@@ -1,0 +1,6 @@
+.venv
+.idea
+.git
+
+aimods_bot/.env
+aimods_bot/modules/__pycache__
