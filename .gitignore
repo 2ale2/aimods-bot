@@ -5,10 +5,4 @@
 aimods_bot/.env
 aimods_bot/modules/__pycache__
 
-
-Writerside/cfg
-Writerside/amd.tree
-Writerside/c.list
-Writerside/v.list
-Writerside/writerside.cfg
-Writerside/images
+Writerside
