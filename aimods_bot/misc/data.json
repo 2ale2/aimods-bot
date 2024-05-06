@@ -1,15 +1,89 @@
 {
   "forum_topics": {
-    "Android": 13,
-    "Windows": 16,
-    "iOS": 15,
-    "MacOS": 17,
-    "OffTopic": 13,
-    "Assistenza App/Software": 12,
-    "Assistenza Tecnica PC/Smartphone": 8,
-    "Richieste MacOS": 5,
-    "Richieste Windows": 4,
-    "Richieste Android": 3,
-    "Richieste iOS": 2
+    "all": {
+        "1": {
+          "id": 13,
+          "name": "Android"
+        },
+        "2": {
+          "id": 16,
+          "name": "Windows"
+        },
+        "3": {
+          "id": 15,
+          "name": "iOS"
+        },
+        "4": {
+          "id": 17,
+          "name": "MacOS"
+        },
+        "5": {
+          "id": 13,
+          "name": "OffTopic"
+        },
+        "6": {
+          "id": 12,
+          "name": "Assistenza App/Software"
+        },
+        "7": {
+          "id": 8,
+          "name": "Assistenza Tecnica PC/Smartphone"
+        },
+        "8": {
+          "id": 5,
+          "name": "Richieste MacOS"
+        },
+        "9": {
+          "id": 4,
+          "name": "Richieste Windows"
+        },
+        "10": {
+          "id": 3,
+          "name": "Richieste Android"
+        },
+        "11": {
+          "id": 2,
+          "name": "Richieste iOS"
+        },
+        "12": {
+          "id": 1,
+          "name": "Generale"
+        }
+      },
+    "richieste": {
+        "1": {
+          "id": 5,
+          "name": "Richieste MacOS"
+        },
+        "2": {
+          "id": 4,
+          "name": "Richieste Windows"
+        },
+        "3": {
+          "id": 3,
+          "name": "Richieste Android"
+        },
+        "4": {
+          "id": 2,
+          "name": "Richieste iOS"
+        }
+      },
+    "assistenza": {
+        "1": {
+          "id": 12,
+          "name": "Assistenza App/Software"
+        },
+        "2": {
+          "id": 8,
+          "name": "Assistenza Tecnica PC/Smartphone"
+        }
+      },
+    "off_topic": {
+        "1": {
+          "id": 13,
+          "name": "OffTopic"
+        }
+    }
   }
 }
+
