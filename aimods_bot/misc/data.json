@@ -1,0 +1,15 @@
+{
+  "forum_topics": {
+    "Android": 13,
+    "Windows": 16,
+    "iOS": 15,
+    "MacOS": 17,
+    "OffTopic": 13,
+    "Assistenza App/Software": 12,
+    "Assistenza Tecnica PC/Smartphone": 8,
+    "Richieste MacOS": 5,
+    "Richieste Windows": 4,
+    "Richieste Android": 3,
+    "Richieste iOS": 2
+  }
+}

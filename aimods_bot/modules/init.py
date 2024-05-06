@@ -15,7 +15,7 @@ logging.basicConfig(
 
 
 def main():
-    application = ApplicationBuilder().token(core.return_bt()).build()
+    application = ApplicationBuilder().token(core.return_env("BOT_TOKEN")).build()
 
     application.add_handlers(handlers.create_handlers())
 
