@@ -1,0 +1,128 @@
+Table admins {
+  admin_id integer [primary key]
+  usarname varchar[32]
+  role serial
+  join_date timestamp [default: null]
+  status bool [not null]
+  permissions serial[]
+}
+
+Table roles {
+  role_id serial [increment, primary key]
+  name varchar[64] [not null]
+  admins_list integer[]
+  description text
+}
+
+Ref: roles.role_id <> admins.role [delete: no action, update: cascade]
+
+Table permissions [note: 'additional permissions granted to admin(s)']{
+  permission_id serial [increment, primary key]
+  name varchar[64]
+  description text
+}
+
+Ref: permissions.permission_id <> admins.permissions [delete: no action, update: cascade]
+
+Table deleted_messages {
+  message_id integer [primary key]
+  admin integer [not null]
+  deletion_time timestamp [not null]
+  user_id integer [not null]
+  telegram_message json
+  reason varchar[256] [not null]
+}
+
+Ref: deleted_messages.admin < admins.admin_id [delete: no action, update: no action]
+
+Table limitations {
+  admin integer [primary key]
+  user_id integer [primary key]
+  what Limitation[] [primary key]
+  expiration timestamp [primary key]
+  limitation_time timestamp [not null]
+  reason text [not null]
+  from Scope [default: 'Scopes.FORUM_SCOPE', not null]
+}
+
+Ref: limitations.admin < admins.admin_id [delete: no action, update: no action]
+
+Table warnings {
+  admin integer [primary key]
+  user_id integer [primary key]
+  warn_time timestamp [primary key]
+  expiration timestamp [default: null]
+  reason text [not null]
+  from Scope[] [default: 'Scopes.FORUM_SCOPE', not null]
+}
+
+Ref: warnings.admin < admins.admin_id [delete: no action, update: no action]
+
+Table kicks {
+  admin integer [primary key]
+  user_id integer [primary key]
+  kick_time timestamp [primary key]
+  reason text [not null]
+}
+
+Ref: kicks.admin < admins.admin_id [delete: no action, update: no action]
+
+Table bans {
+  admin integer [primary key]
+  user_id integer [primary key]
+  ban_time timestamp [not null]
+  reason text [not null]
+}
+
+Ref: bans.admin < admins.admin_id [delete: no action, update: no action]
+
+Table posts {
+  post_id integer [primary key, note: 'message.id']
+  scheduling_date timestamp [note: 'il giorno e la ora in cui il post è stato posto in uscita']
+  posting_date timestamp [note: 'il giorno e la ora in cui il post è stato reso pubblico']
+  what varchar[32] [note: 'applicazione/software/plugin/gioco']
+  platform varchar[32]
+  version varchar[32]
+  file_id integer [default: '<unavailable>']
+  download_link link
+  status varchar [note: 'in uscita/pubblicato/cancellato']
+  content text
+}
+
+Table files {
+  file_id integer [primary key, note: 'message.id']
+  name varchar[256]
+  status bool [not null, note: '0 = up, 1 = removed (guarda tabella removed_files)']
+}
+
+Ref: files.file_id < posts.file_id [delete: set default, update: cascade]
+
+Table requests {
+  request_id integer [primary key]
+  user_id integer [not null]
+  requesting_time timestamp [not null, note: 'controllo automatico numero richieste settimanali']
+  what varchar[32] [note: 'applicazione/software/plugin/gioco']
+  platform varchar[32] [not null]
+  version varchar[32] [not null]
+  functionalities text [not null, note: 'funzionalità richieste']
+  status varchar[32] [default: null, note: 'in uscita/serversided/uscita/non disponibile...']
+}
+
+Table topics_closures {
+  topic_id integer [primary key]
+  closure_date timestamp [primary key]
+  reonening_date timestamp
+  reason text
+  admin_id integer [not null, note: 'in caso di chiusura automatica può essere il bot']
+}
+
+Ref: topics_closures.admin_id < admins.admin_id
+
+Table removed_files [note: 'i file rimossi da devuploads per mancato download']{
+  file_id integer [primary key]
+  date datetime [note: 'pensavo di fare verificare al bot ogni giorno a mezzanotte quali file sono up e quali no, ma in questo caso non sarebbe disponile la ora']
+  link link
+}
+
+Ref: removed_files.file_id - files.file_id [delete: cascade, update: cascade]
+
