@@ -10,7 +10,6 @@ Table admins {
 Table roles {
   role_id serial [increment, primary key]
   name varchar[64] [not null]
-  admins_list integer[]
   description text
 }
 

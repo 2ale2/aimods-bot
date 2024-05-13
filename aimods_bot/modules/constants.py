@@ -11,15 +11,15 @@ scope
     'REQUESTS_SCOPE',           i topic delle richieste
     'ASSISTENCE_SCOPE',         i topic dell'assistenza 
     'OFF_TOPIC_SCOPE',          i topic off topic
-    'SPECIFIC_TOPICS_SCOPE',    gruppo di topic
-    SINGLE TOPICS SCOPES,       singoli topic
+    specific topic scope,       gruppo di topic
+    single topic scope,       singoli topic
     tutti gli scope sono costanti, ad eccezione di SPECIFIC_TOPICS_SCOPE che può essere stabilito arbitrariamente e 
     comprendere uno o più topic.
-    ogni topic ha un 'SIGNLE_TOPIC'
+    ogni topic ha un single topic scope
 '''
 
 
-@dataclass(frozen=True)
+@dataclass
 class Scope:
     name: str
     topics: Set[int]
@@ -35,7 +35,7 @@ class Scope:
         self.topics -= topics_to_remove
 
 
-@dataclass
+@dataclass(frozen=True)
 class Scopes:
     FORUM_SCOPE: Scope = Scope('FORUM_SCOPE', {topic["id"] for topic in TOPICS["all"]})
     REQUESTS_SCOPE: Scope = Scope('REQUESTS_SCOPE', {topic["id"] for topic in TOPICS["richieste"]})
@@ -48,34 +48,13 @@ class Scopes:
                          if topic["name"] == topic_name), None)
         return Scope(name, {topic_id} if topic_id is not None else set())
 
-    ANDROID_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'ANDROID_TOPIC_SCOPE', 'Android')
-    WINDOWS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'WINDOWS_TOPIC_SCOPE', 'Windows')
-    IOS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'IOS_TOPIC_SCOPE', 'iOS')
-    MACOS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'MACOS_TOPIC_SCOPE', 'MacOS')
-    OFFTOPIC_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'OFFTOPIC_TOPIC_SCOPE', 'OffTopic')
-    ASSISTENZA_APP_SOFTWARE_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'ASSISTENZA_APP_SOFTWARE_TOPIC_SCOPE', 'Assistenza App/Software')
-    ASSISTENZA_PC_SMARTPHONE_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'ASSISTENZA_PC_SMARTPHONE_TOPIC_SCOPE', 'Assistenza Tecnica PC/Smartphone')
-    RICHIESTE_MACOS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'RICHIESTE_MACOS_TOPIC_SCOPE', 'Richieste MacOS')
-    RICHIESTE_WINDOWS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'RICHIESTE_WINDOWS_TOPIC_SCOPE', 'Richieste Windows')
-    RICHIESTE_ANDROID_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'RICHIESTE_ANDROID_TOPIC_SCOPE', 'Richieste Android')
-    RICHIESTE_IOS_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'RICHIESTE_IOS_TOPIC_SCOPE', 'Richieste iOS')
-    GENERAL_TOPIC_SCOPE: Scope = _create_single_topic_scope(
-        'GENERAL_TOPIC_SCOPE', 'Generale')
+    for topic in TOPICS["forum_topics"]["all"]:
+        scope_name = topic["name"].upper() + "_TOPIC_SCOPE"
+        globals()[scope_name]: Scope = _create_single_topic_scope(name=scope_name, topic_name=topic["name"])
 
 
-@dataclass
-class Limitation(IntEnum):
+@dataclass(frozen=True)
+class Limitations(IntEnum):
     SEND_MESAGGES: 0
     SEND_ALL_MEDIA: 1
     SEND_PHOTO: 2
