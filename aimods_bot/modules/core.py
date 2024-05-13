@@ -2,8 +2,6 @@ from dotenv import load_dotenv
 import json
 import os
 
-load_dotenv()
-
 TOPICS = {}
 
 

@@ -6,6 +6,8 @@ from telegram.warnings import PTBDeprecationWarning
 from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.modules import core
 
+core.load_dotenv()
+
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
 logging.basicConfig(
