@@ -25,10 +25,9 @@ limitazione, quali azioni limitare, fino a quando e, facoltativamente, il motivo
 
 La cosa più semplice potrebbe essere 
 
-`/limita @username tempo [azioni] [motivo]`
+`/limit @username tempo [azioni] [scope] [motivo]`
 
-Il formato del tempo
-potrebbe essere il seguente:
+Il formato del tempo potrebbe essere il seguente:
 - `1s` per un secondo;
 - `1m` per un minuto;
 - `1h` per un'ora;
@@ -54,13 +53,40 @@ azione:
 - **PIN_MESSAGES**: 12
 - **CHANGE_GROUP_INFO**: 13
 
+Lo `[scope]` è il contesto nel quale la limitazione è applicata. Di default è `FORUM_SCOPE`. Leggi 
+_[Classi Peronalizzate](classi_personalizzate.md)_ per ulteriori dettagli sui contesti di moderazione.
+
 Ecco un esempio di comando completo:
 
-`/limita @user1 1d12h 2,10 Motivo`
+`/limit @user1 1d12h 2,10 REQUESTS_SCOPE Motivo`
 
-Questo comando limita `@user1` per _1 giorno e 12 ore_ impedendogli di _inviare foto_ o _aggiungere altri membri_ per il 
-motivo '_motivo_'.
+Questo comando limita `@user1` per _1 giorno e 12 ore_ impedendogli di _inviare foto_ o _aggiungere altri membri_ 
+nel _contesto dei topic delle richieste_ per il motivo '_Motivo_'.
 
+#### Ammonizioni
+
+Per ammonire un utente, il comando può essere più semplice:
+
+`/warn @user1 tempo [scope] [motivo]`
+
+Il formato del tempo potrebbe essere il seguente:
+- `1s` per un secondo;
+- `1m` per un minuto;
+- `1h` per un'ora;
+- `1d` per un giorno;
+- `1y` per un anno.
+
+Per esempio: `30d12h30m20s` indica 30 giorni, 12 ore, 30 minuti e 20 secondi.
+
+Lo `[scope]` è il contesto nel quale la limitazione è applicata. Di default è `FORUM_SCOPE`. Leggi 
+_[Classi Peronalizzate](classi_personalizzate.md)_ per ulteriori dettagli sui contesti di moderazione.
+
+Ecco un esempio di comando completo:
+
+`/warn @user1 1d12h REQUESTS_SCOPE Motivo`
+
+Questo comando ammonisce `@user1` per _1 giorno e 12 ore_ nel _contesto dei topic delle richieste_ per il motivo 
+_'Motivo'_. Dopo la durata dell'ammonizione, il contatore dei warn viene ridotto di 1.
 
 ## Limitazioni, Ammonizioni, Kick, Ban – Moderazione Circoscritta
 
@@ -71,3 +97,4 @@ d'assistenza. Questo consente più modularità e controllo sui singoli topic.
 
 Di default, il contesto sarà di applicazione sarà il generico su tutti i topic (`FORUM_SCOPE`); se il moderatore
 desidera eseguire un'azione su un altro contesto, lo può fare specificandolo tramite un **comando che indichi il contesto**.
+
