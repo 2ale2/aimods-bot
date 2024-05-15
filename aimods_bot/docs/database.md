@@ -12,13 +12,13 @@ e dalla frequenza di aggiornamento.
 Le informazioni da raccogliere riguardano tutte (o quasi) le funzioni specificate; nel dettaglio:
 - Topic Generale _A&I Mods_
   - _Moderare la chat_
+    - **limitazioni** (data, from, cosa, causa, utente, admin, scadenza);
     - **messaggi rimossi** (data, causa, utente, admin);
     - **ammonizioni** (data, from, causa, utente, admin, scadenza);
-    - **kick** (data, from, causa, utente, admin);
-    - **ban** (data, from, causa, utente, admin);
-    - **limitazioni** (data, from, cosa, causa, utente, admin, scadenza);
+    - **kick** (data, causa, utente, admin);
+    - **ban** (data, causa, utente, admin);
   - _Gestione dei topic e dei post_
-    - **post** (identificativo, data, piattaforma, app/sw/plugin, versione, link, stato, contenuto);
+    - ~~**post** (identificativo, data, piattaforma, app/sw/plugin, versione, link, stato, contenuto);~~ **da definire**
     - **richieste** (identificativo, utente, data, piattaforma, app/sw/plugin, versione, funzionalità richieste, stato);
     - **chiusura topic** (topic, data chiusura, data riapertura, causa, admin);
 - Canale _Android&iOS Modding_
