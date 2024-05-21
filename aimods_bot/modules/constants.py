@@ -1,9 +1,12 @@
+# contiene classi personalizzate che contengono valori di default usati dal bot
+# la classe Scopes è istaziata per consentire di aggiungere istanze di Scope personalizzate
+
 from typing import Set, Union
 from enum import IntEnum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import core
 
-TOPICS = core.get_topics()
+TOPICS = core.get_topics()["forum_topics"]
 
 '''
 scope
@@ -37,25 +40,34 @@ class Scope:
 
 @dataclass(frozen=True)
 class Scopes:
-    FORUM_SCOPE: Scope = Scope('FORUM_SCOPE', {topic["id"] for topic in TOPICS["all"]})
-    REQUESTS_SCOPE: Scope = Scope('REQUESTS_SCOPE', {topic["id"] for topic in TOPICS["richieste"]})
-    ASSISTENCE_SCOPE: Scope = Scope('ASSISTENCE_SCOPE', {topic["id"] for topic in TOPICS["assistenza"]})
-    OFF_TOPIC_SCOPE: Scope = Scope('OFF_TOPIC_SCOPE', {topic["id"] for topic in TOPICS["off_topic"]})
+    FORUM_SCOPE: Scope = field(
+        default_factory=lambda: Scope('FORUM_SCOPE', {topic["id"] for topic in TOPICS["all"].values()})
+    )
+    REQUESTS_SCOPE: Scope = field(
+        default_factory=lambda: Scope('REQUESTS_SCOPE', {topic["id"] for topic in TOPICS["richieste"].values()})
+    )
+    ASSISTENCE_SCOPE: Scope = field(
+        default_factory=lambda: Scope('ASSISTENCE_SCOPE', {topic["id"] for topic in TOPICS["assistenza"].values()})
+    )
+    OFF_TOPIC_SCOPE: Scope = field(
+        default_factory=lambda: Scope('OFF_TOPIC_SCOPE', {topic["id"] for topic in TOPICS["off_topic"].values()})
+    )
 
     @classmethod
-    def _create_single_topic_scope(cls, name: str, topic_name: str) -> Scope:
-        topic_id = next((topic["id"] for topic in TOPICS["forum_topics"]["all"].values()
+    def create_single_topic_scope(cls, name: str, topic_name: str) -> Scope:
+        topic_id = next((topic["id"] for topic in TOPICS["all"].values()
                          if topic["name"] == topic_name), None)
         return Scope(name, {topic_id} if topic_id is not None else set())
 
-    for topic in TOPICS["forum_topics"]["all"]:
-        scope_name = topic["name"].upper() + "_TOPIC_SCOPE"
-        globals()[scope_name]: Scope = _create_single_topic_scope(name=scope_name, topic_name=topic["name"])
+
+for topic in TOPICS["all"].values():
+    scope_name = topic["name"].replace(" ", "_").upper() + "_TOPIC_SCOPE"
+    setattr(Scopes, scope_name, Scopes.create_single_topic_scope(name=scope_name, topic_name=topic["name"]))
 
 
 @dataclass(frozen=True)
 class Limitations(IntEnum):
-    SEND_MESAGGES: 0
+    SEND_MESSAGES: 0
     SEND_ALL_MEDIA: 1
     SEND_PHOTO: 2
     SEND_VIDEO_FILES: 3

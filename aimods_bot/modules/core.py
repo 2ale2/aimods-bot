@@ -1,7 +1,10 @@
+# raccoglie tutti i dati che servono al funzionamento del bot
+
 import json
 import os
+from dotenv import load_dotenv
 
-TOPICS = {}
+load_dotenv()
 
 
 def return_env(env: str):
@@ -9,7 +12,6 @@ def return_env(env: str):
 
 
 def get_topics():
-    global TOPICS
-
     with open("../misc/data.json", "r") as fp:
-        TOPICS = json.load(fp)
+        topics = json.load(fp)
+        return topics
