@@ -18,16 +18,13 @@ quale essa viene rimossa.
 
 ### Comandi
 
-#### Limitazioni
+I comandi sono lo strumento tramite cui i moderatori possono eseguire azioni sul canale/gruppo. I comandi possono 
+prevedere una sintassi che richiede l'indicazione di una durata (per ammonizioni e limitazioni) e di uno scope, ovvero
+un contesto nel quale l'azione è eseguita. Il motivo è sempre facoltativo ma raccomandato.
 
-Il comando delle limitazioni è il più complesso da implementare: bisogna specificare l'utente sul quale applicare la
-limitazione, quali azioni limitare, fino a quando e, facoltativamente, il motivo.
+#### Durata
 
-La cosa più semplice potrebbe essere 
-
-`/limit @username tempo [azioni] [scope] [motivo]`
-
-Il formato del tempo potrebbe essere il seguente:
+Il formato del `[tempo]` potrebbe essere il seguente:
 - `1s` per un secondo;
 - `1m` per un minuto;
 - `1h` per un'ora;
@@ -36,25 +33,26 @@ Il formato del tempo potrebbe essere il seguente:
 
 Per esempio: `30d12h30m20s` indica 30 giorni, 12 ore, 30 minuti e 20 secondi.
 
-Le `[azioni]` potrebbero essere specificate sotto forma di interi separati da virgole; ogni intero corrisponde a una
-azione:
-- **SEND_MESAGGES**: 0
-- **SEND_ALL_MEDIA**: 1
-- **SEND_PHOTO**: 2
-- **SEND_VIDEO_FILES**: 3
-- **SEND_VIDEO_MESSAGES**: 4
-- **SEND_MUSIC**: 5
-- **SEND_FILES**: 6
-- **SEND_STICKERS_GIFTS**: 7
-- **SEND_EMBEDDED_LINKS**: 8
-- **SEND_POOLS**: 9
-- **ADD_MEMBERS**: 10
-- **CREATE_TOPICS**: 11
-- **PIN_MESSAGES**: 12
-- **CHANGE_GROUP_INFO**: 13
+#### Scope
 
-Lo `[scope]` è il contesto nel quale la limitazione è applicata. Di default è `FORUM_SCOPE`. Leggi 
-_[Classi Peronalizzate](classi_personalizzate.md)_ per ulteriori dettagli sui contesti di moderazione.
+Lo `[scope]` è il contesto nel quale la limitazione è applicata. Di default è `FORUM_SCOPE`. Leggi
+_[Classi Personalizzate](classi_personalizzate.md)_ per ulteriori dettagli sui contesti di moderazione.
+
+#### Limitazioni
+
+Il comando delle limitazioni è il più complesso da implementare: bisogna specificare l'utente sul quale applicare la
+limitazione, quali azioni limitare, fino a quando e il motivo.
+
+La cosa più semplice potrebbe essere 
+
+`/limit @username [tempo] [azioni] [scope] [motivo]`
+
+La sintassi del `[tempo]` è [questa](#durata).
+
+Le `[azioni]` potrebbero essere specificate sotto forma di interi separati da virgole; ogni intero corrisponde a una
+azione; maggiori dettagli nel topic delle _[Classi Personalizzate](classi_personalizzate.md#classe-limitations)_.
+
+I dettagli sullo `[scope]` si trovano [qui](#scope).
 
 Ecco un esempio di comando completo:
 
@@ -69,24 +67,36 @@ Per ammonire un utente, il comando può essere più semplice:
 
 `/warn @user1 tempo [scope] [motivo]`
 
-Il formato del tempo potrebbe essere il seguente:
-- `1s` per un secondo;
-- `1m` per un minuto;
-- `1h` per un'ora;
-- `1d` per un giorno;
-- `1y` per un anno.
-
-Per esempio: `30d12h30m20s` indica 30 giorni, 12 ore, 30 minuti e 20 secondi.
-
-Lo `[scope]` è il contesto nel quale la limitazione è applicata. Di default è `FORUM_SCOPE`. Leggi 
-_[Classi Peronalizzate](classi_personalizzate.md)_ per ulteriori dettagli sui contesti di moderazione.
-
 Ecco un esempio di comando completo:
 
 `/warn @user1 1d12h REQUESTS_SCOPE Motivo`
 
 Questo comando ammonisce `@user1` per _1 giorno e 12 ore_ nel _contesto dei topic delle richieste_ per il motivo 
 _'Motivo'_. Dopo la durata dell'ammonizione, il contatore dei warn viene ridotto di 1.
+
+#### Kick
+
+Per kickare un utente il comando può essere:
+
+`/kick @user1 [motivo]`
+
+Questo comando kicka `@user1` per il motivo `[motivo]`.
+
+#### Ban
+
+Per bannare un utente il comando può essere:
+
+`/ban @user1 [motivo]`
+
+Questo comando banna `@user1` per il motivo `[motivo]`.
+
+#### Comandi Inversi
+
+Se è possibile eseguire un'azione di moderazione su un utente, è anche possibile annullarla con i relativi comandi:
+
+- `/unlimit @user1 [azioni]`: toglie una o più limitazioni, se precedentemente applicate, a `@user1`;
+- `/unwarn @user1`: toglie uno warn da `@user1`, se applicato;
+- `/unban @user1`: toglie il ban da `@user1`, se applicato.
 
 ## Limitazioni, Ammonizioni, Kick, Ban – Moderazione Circoscritta
 
@@ -96,5 +106,6 @@ Le limitazioni circoscritte possono essere applicate a contesti specifici, come 
 d'assistenza. Questo consente più modularità e controllo sui singoli topic.
 
 Di default, il contesto sarà di applicazione sarà il generico su tutti i topic (`FORUM_SCOPE`); se il moderatore
-desidera eseguire un'azione su un altro contesto, lo può fare specificandolo tramite un **comando che indichi il contesto**.
+desidera eseguire un'azione su un altro contesto, lo può fare specificandolo tramite un **comando che indichi il 
+contesto**.
 
