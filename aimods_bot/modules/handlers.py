@@ -1,5 +1,5 @@
-from telegram.ext import CommandHandler, ContextTypes
-from telegram import Update
+from telegram.ext import CommandHandler
+import handlers_function
 
 
 def create_handlers() -> list:
@@ -8,11 +8,6 @@ def create_handlers() -> list:
 
     # - command handlers
     # -- start command
-
-    handlers.append(CommandHandler("start", start_command))
+    handlers.append(CommandHandler("start", handlers_function.start_command))
 
     return handlers
-
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello Staff A&I Mods! :)")

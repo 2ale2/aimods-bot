@@ -6,7 +6,7 @@ from enum import IntEnum
 from dataclasses import dataclass, field
 import core
 
-TOPICS = core.get_topics()["forum_topics"]
+TOPICS = core.get_topics_from_json()
 
 '''
 scope

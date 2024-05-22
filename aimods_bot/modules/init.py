@@ -22,9 +22,9 @@ SCOPES = Scopes()
 
 
 def main():
-    application = ApplicationBuilder().token(core.return_env("BOT_TOKEN")).persistence(
-        PostgresPersistence(url=core.return_env("POSTGRES_CONNECTION_URL"))
-    ).build()
+    application = ApplicationBuilder().token(core.get_env("BOT_TOKEN")).persistence(
+        PostgresPersistence(url=core.get_env("POSTGRES_CONNECTION_URL"))
+    ).post_init(core.set_application_data).build()
 
     application.add_handlers(handlers.create_handlers())
 
