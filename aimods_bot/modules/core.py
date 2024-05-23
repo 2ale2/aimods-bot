@@ -6,7 +6,7 @@ import psycopg
 from dotenv import load_dotenv
 from telegram.ext import Application
 
-from loggers import db_logger
+from loggers import db_logger, command_logger
 
 load_dotenv()
 
@@ -29,6 +29,11 @@ async def set_application_data(application: Application):
     admins = get_admins_from_db()
     if 'admins' not in application.bot_data or application.bot_data["admins"] != admins:
         application.bot_data["admins"] = admins
+
+    group_chat_id = os.getenv("GROUP_CHAT_ID")
+    if ('group_chat_id' not in application.bot_data or
+            application.bot_data["group_chat_id"] != group_chat_id):
+        application.bot_data["group_chat_id"] = group_chat_id
 
 
 def get_topics_from_json():

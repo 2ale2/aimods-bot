@@ -1,16 +1,16 @@
 import logging
 
-# creo logger
+# logger del database
 db_logger = logging.getLogger("dblogger")
-# imposto livello minimo
 db_logger.setLevel(logging.INFO)
-
-# creo formatter e file handler
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 file_handler = logging.FileHandler("../misc/logs/database.log")
-
-# indico formato a file handler
 file_handler.setFormatter(formatter)
-
-# aggiungo handler al logger
 db_logger.addHandler(file_handler)
+
+# logger dei comandi
+command_logger = logging.getLogger("commandlogger")
+command_logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("../misc/logs/commands.log")
+file_handler.setFormatter(formatter)
+command_logger.addHandler(file_handler)
