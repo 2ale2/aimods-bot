@@ -2,8 +2,10 @@
 .idea
 .git
 
+aimods_bot/misc/logs
 aimods_bot/.env
 aimods_bot/modules/__pycache__
+
 .python-version
 .env
 
