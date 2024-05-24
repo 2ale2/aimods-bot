@@ -10,4 +10,6 @@ def create_handlers() -> list:
     # -- start command
     handlers.append(CommandHandler("start", handlers_function.start_command))
 
+    handlers.append(CommandHandler("del", handlers_function.delete_group_message))
+
     return handlers

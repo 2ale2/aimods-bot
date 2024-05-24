@@ -81,3 +81,14 @@ class Limitations(IntEnum):
     CREATE_TOPICS: 11
     PIN_MESSAGES: 12
     CHANGE_GROUP_INFO: 13
+
+
+@dataclass
+class DatabaseException(Exception):
+    error_message = 'Qualcosa è andato storto col database. Leggi i log.'
+
+
+@dataclass(frozen=True)
+class Exceptions(Exception):
+    DatabaseException = DatabaseException,
+
