@@ -84,6 +84,9 @@
           "name": "OffTopic"
         }
     }
+  },
+  "texts": {
+    "user_joined_message_text": ""
   }
 }
 

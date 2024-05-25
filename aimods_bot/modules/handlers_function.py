@@ -27,6 +27,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_user.id, "")
     pass
 
 
@@ -47,7 +48,9 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 
         user_identifier = (update.message.reply_to_message.from_user.username or
                            update.message.reply_to_message.from_user.id)
-        reason = "_" + ' '.join(context.args) + "_" if context.args else '`no reason given`'
+
+        reason = ('_' + ' '.join(context.args if message.text.startswith('/') else message.text.split(' ')[1:])
+                  + '_') if (context.args or len(message.text.split(' ')) > 1) else '`no reason given`'
         try:
             await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
                                              message_id=message.reply_to_message.message_id)

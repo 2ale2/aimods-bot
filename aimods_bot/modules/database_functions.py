@@ -1,4 +1,5 @@
 from psycopg import connect
+import pytz
 import psycopg
 import telegram
 from loggers import db_logger
@@ -37,7 +38,7 @@ def generate_values(table_name: str, content_to_elaborate: ...):
         reason = " ".join(content_to_elaborate.message.text.split(" ")[1:])
         return (f'({content_to_elaborate.message.reply_to_message.id}, '
                 f'{content_to_elaborate.effective_user.id}, '
-                f'\'{content_to_elaborate.message.date}\', '
+                f'\'{content_to_elaborate.message.date.astimezone(pytz.timezone('Etc/GMT-2'))}\', '
                 f'{content_to_elaborate.message.reply_to_message.from_user.id}, '
                 f'\'{reason if len(reason) != 0 else 'no_reason_given'}\', '
                 f'\'{content_to_elaborate.message.reply_to_message.text}\')')

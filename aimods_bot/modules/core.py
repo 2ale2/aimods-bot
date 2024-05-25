@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from telegram.ext import Application
 
 from loggers import db_logger, command_logger
+from database_functions import connect_to_database
 
 load_dotenv()
 
@@ -36,6 +37,8 @@ async def set_application_data(application: Application):
         application.bot_data["group_chat_id"] = group_chat_id
 
 
+
+
 def get_topics_from_json():
     """
     :return:    i topic del forum (tutti e categorie)
@@ -49,7 +52,7 @@ def get_admins_from_db():
     """
     :return: l'elenco corrente di admin all'interno del db
     """
-    conn = connect()
+    conn = connect_to_database()
     try:
         res = conn.cursor().execute("SELECT (admin_id, username) from admins").fetchall()
     except psycopg.Error as err:
@@ -59,12 +62,3 @@ def get_admins_from_db():
         return {c[0][0]: c[0][1] for c in res}
     finally:
         conn.close()
-
-
-def connect():
-    try:
-        conn = psycopg.connect(get_env("POSTGRES_CONNECTION_URL"))
-    except psycopg.Error as err:
-        db_logger.error(f"Unable to connect to database: {err}")
-    else:
-        return conn

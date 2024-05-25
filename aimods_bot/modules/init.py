@@ -26,7 +26,7 @@ def main():
         PostgresPersistence(url=core.get_env("POSTGRES_CONNECTION_URL"))
     ).post_init(core.set_application_data).build()
 
-    application.add_handlers(handlers.create_handlers())
+    application.add_handlers(handlers.create_handlers(application))
 
     application.run_polling()
 
