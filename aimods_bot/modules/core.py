@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from telegram.ext import Application
 
 from loggers import db_logger, command_logger
-from database_functions import connect_to_database
 
 load_dotenv()
 
@@ -36,16 +35,19 @@ async def set_application_data(application: Application):
             application.bot_data["group_chat_id"] != group_chat_id):
         application.bot_data["group_chat_id"] = group_chat_id
 
+    user_joined_message_text = get_data_from_json("texts")["user_joined_message_text"]
+    if ('user_joined_message_text' not in application.bot_data or
+            application.bot_data["user_joined_message_text"] != user_joined_message_text):
+        application.bot_data["user_joined_message_text"] = user_joined_message_text
+        
 
-
-
-def get_topics_from_json():
+def get_data_from_json(data: str):
     """
     :return:    i topic del forum (tutti e categorie)
     """
     with open("../misc/data.json", "r") as fp:
         topics = json.load(fp)
-        return topics["forum_topics"]
+        return topics[data]
 
 
 def get_admins_from_db():
@@ -62,3 +64,12 @@ def get_admins_from_db():
         return {c[0][0]: c[0][1] for c in res}
     finally:
         conn.close()
+
+
+def connect_to_database():
+    try:
+        conn = psycopg.connect(get_env("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
+    except psycopg.Error as e:
+        db_logger.error(f'Unable to access database: {e}')
+        raise psycopg.Error(f'Unable to access database: {e}')
+    return conn

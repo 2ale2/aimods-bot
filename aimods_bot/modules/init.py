@@ -1,8 +1,6 @@
 import logging
-import warnings
 
 from telegram.ext import ApplicationBuilder
-from telegram.warnings import PTBDeprecationWarning
 
 from aimods_bot.modules import core
 from aimods_bot.modules.persistence import PostgresPersistence
@@ -15,8 +13,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-
-# warnings.simplefilter('always', PTBDeprecationWarning)
 
 SCOPES = Scopes()
 

@@ -1,92 +1,91 @@
 {
   "forum_topics": {
     "all": {
-        "1": {
-          "id": 13,
-          "name": "Android"
-        },
-        "2": {
-          "id": 16,
-          "name": "Windows"
-        },
-        "3": {
-          "id": 15,
-          "name": "iOS"
-        },
-        "4": {
-          "id": 17,
-          "name": "MacOS"
-        },
-        "5": {
-          "id": 13,
-          "name": "OffTopic"
-        },
-        "6": {
-          "id": 12,
-          "name": "Assistenza App/Software"
-        },
-        "7": {
-          "id": 8,
-          "name": "Assistenza Tecnica PC/Smartphone"
-        },
-        "8": {
-          "id": 5,
-          "name": "Richieste MacOS"
-        },
-        "9": {
-          "id": 4,
-          "name": "Richieste Windows"
-        },
-        "10": {
-          "id": 3,
-          "name": "Richieste Android"
-        },
-        "11": {
-          "id": 2,
-          "name": "Richieste iOS"
-        },
-        "12": {
-          "id": 1,
-          "name": "Generale"
-        }
+      "1": {
+        "id": 13,
+        "name": "Android"
       },
+      "2": {
+        "id": 16,
+        "name": "Windows"
+      },
+      "3": {
+        "id": 15,
+        "name": "iOS"
+      },
+      "4": {
+        "id": 17,
+        "name": "MacOS"
+      },
+      "5": {
+        "id": 13,
+        "name": "OffTopic"
+      },
+      "6": {
+        "id": 12,
+        "name": "Assistenza App/Software"
+      },
+      "7": {
+        "id": 8,
+        "name": "Assistenza Tecnica PC/Smartphone"
+      },
+      "8": {
+        "id": 5,
+        "name": "Richieste MacOS"
+      },
+      "9": {
+        "id": 4,
+        "name": "Richieste Windows"
+      },
+      "10": {
+        "id": 3,
+        "name": "Richieste Android"
+      },
+      "11": {
+        "id": 2,
+        "name": "Richieste iOS"
+      },
+      "12": {
+        "id": 1,
+        "name": "Generale"
+      }
+    },
     "richieste": {
-        "1": {
-          "id": 5,
-          "name": "Richieste MacOS"
-        },
-        "2": {
-          "id": 4,
-          "name": "Richieste Windows"
-        },
-        "3": {
-          "id": 3,
-          "name": "Richieste Android"
-        },
-        "4": {
-          "id": 2,
-          "name": "Richieste iOS"
-        }
+      "1": {
+        "id": 5,
+        "name": "Richieste MacOS"
       },
+      "2": {
+        "id": 4,
+        "name": "Richieste Windows"
+      },
+      "3": {
+        "id": 3,
+        "name": "Richieste Android"
+      },
+      "4": {
+        "id": 2,
+        "name": "Richieste iOS"
+      }
+    },
     "assistenza": {
-        "1": {
-          "id": 12,
-          "name": "Assistenza App/Software"
-        },
-        "2": {
-          "id": 8,
-          "name": "Assistenza Tecnica PC/Smartphone"
-        }
+      "1": {
+        "id": 12,
+        "name": "Assistenza App/Software"
       },
+      "2": {
+        "id": 8,
+        "name": "Assistenza Tecnica PC/Smartphone"
+      }
+    },
     "off_topic": {
-        "1": {
-          "id": 13,
-          "name": "OffTopic"
-        }
+      "1": {
+        "id": 13,
+        "name": "OffTopic"
+      }
     }
   },
   "texts": {
-    "user_joined_message_text": ""
+    "user_joined_message_text": "⚠️ *Ciao {}*! Sono il bot di A&I Mods, il bot moderatore del canale e del gruppo della community.\n\nPrima di poterti unire, ti chiedo gentilmente di leggere le regole del gruppo. Puoi confermare di averlo fatto semplicemente cliccando due volte il bottone sotto questo messaggio – ecco tutto. 👍🏻\n\n*Regole* 📖\n\n1️⃣ *La lingua del gruppo è l'Italiano*: non usare altre lingue o dialetti che possano limitare la comprensione di ciò che scrivi da parte di tutti gli altri membri della community.\n\n2️⃣ Il gruppo è *suddiviso in topic*, ognuno dei quali ricopre *esclusivamente gli argomenti previsti* (leggi ⬇️ _Topics_ per i dettagli); ti chiediamo, dunque, di non disattendere a tali argomenti.\n\n3️⃣ *Non citare o menzionare canali terzi o servizi* senza previo consenso da parte degli admin.\n\n4️⃣ *Non inviare contenuti sensibili*, NSFW (porno, gore) o relativi ad armi, oggetti o sostanze illegali. Non diffondere materiale *di natura politica o che possa incitare all'odio*. \n\n5️⃣ Non scrivere in privato agli admin *senza aver prima ricevuto il consenso* sul gruppo.\n\n6️⃣ *Sii cortese e rispetta tutti gli altri membri della community e ciò che fanno*: non insultare, deridere o denigrare nessuno.\n\n7️⃣ *Non eccedere* con parole o frasi troppo volgari.\n\n8️⃣ *Richieste* – Ciascun utente non può fare più di una richiesta a settimana. Nel fare una richiesta, ricordati di rispettare il formato specificato in cima al relativo topic.\n\n🆘 Qualora si noti una trasgressione o per qualunque necessità *seria* di intervento tempestivo da parte dei moderatori, puoi usare il comando `@admin` per fare una segnalazione. *Non abusarne*.\n\n*Topics* 🗂\n\n- *Assistenza App* – Assistenza riguardante app e software pubblicati sul [canale](https://t.me/+lx9FIsA0UB5iOTE0).\n- *FL Studio* – Richiesta e assistenza riguardante FL Studio e Plug-In FL Studio.\n- *Assistenza PC & Smartphone* – Assistenza _tecnica_ PC & Smartphones.\n- *Richieste Iso* – Richiesta e assistenza ISO Windows.\n- *Custom Colorful Spotify* – Richieste personalizzate di Spotify per Android.\n- *Richieste* + _piattaforma_ – Richiesta di applicazioni e software relative alla piattaforma specificata.\n- *OffTopic* – Tutto ciò che non è trattato nei topic precedenti (nei limiti imposti dalle regole). ⚖ *I moderatori si riservano il diritto di assumere contromisure qualora le regole sopra illustrate non vengano rispettate*, in ottemperanza al loro dovere di garantire un clima sereno e rispettoso per gli altri membri della community. *L'utente si assume, dunque, le responsabilità derivanti da un'eventuale inosservanza di tali regole*."
   }
 }
-

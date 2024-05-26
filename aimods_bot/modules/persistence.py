@@ -54,7 +54,7 @@ class PostgresPersistence(DictPersistence):
         try:
             self.logger.info("Loading database....")
             data_ = self._session.execute(str("SELECT data FROM persistence")).fetchone()
-            data = data_[0] if data_ is not None else {}
+            data = json.loads(data_[0]["jsondata"]) if data_ is not None else {}
 
             chat_data_json = data.get("chat_data", "{}")
             user_data_json = data.get("user_data", "{}")

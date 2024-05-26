@@ -1,6 +1,9 @@
-from telegram.ext import (CommandHandler, MessageHandler,
+from telegram.ext import (CommandHandler, MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, Application)
+
 import handlers_function
+
+RULES_ACCEPTED = range(1)
 
 
 def create_handlers(app: Application) -> list:
@@ -17,10 +20,20 @@ def create_handlers(app: Application) -> list:
                                    callback=handlers_function.delete_group_message))
     handlers.append(MessageHandler(filters=filters.TEXT & filters.Regex('^!del'),
                                    callback=handlers_function.delete_group_message))
-    join_handler = ConversationHandler(
-        entry_points=[ChatJoinRequestHandler(callback=handlers_function.new_member_joined_forum,
-                                             chat_id=app.bot_data["group_chat_id"])],
-        states={},
-        fallbacks=[]
-    )
+    handlers.append(CommandHandler("limit", handlers_function.limit_user))
+
+    # - conversation handlers
+    # -- double check at join
+    handlers.append(ConversationHandler(
+        entry_points=[ChatJoinRequestHandler(callback=handlers_function.new_member_joined_forum)],
+        states={
+            RULES_ACCEPTED: [CallbackQueryHandler(callback=handlers_function.new_member_accepted_the_rules,
+                                                  pattern="^accept_rules.+$")]
+        },
+        fallbacks=[],
+        per_chat=False,
+        name="join_handler",
+        persistent=True
+    ))
+
     return handlers

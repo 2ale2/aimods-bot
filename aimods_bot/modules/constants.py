@@ -6,7 +6,7 @@ from enum import IntEnum
 from dataclasses import dataclass, field
 import core
 
-TOPICS = core.get_topics_from_json()
+TOPICS = core.get_data_from_json("forum_topics")
 
 '''
 scope
@@ -88,7 +88,13 @@ class DatabaseException(Exception):
     error_message = 'Qualcosa è andato storto col database. Leggi i log.'
 
 
+@dataclass
+class JobQueueException(Exception):
+    error_message = 'Errore nell\'esecuzione di un\'azione programmata. Controlla i log.'
+
+
 @dataclass(frozen=True)
 class Exceptions(Exception):
     DatabaseException = DatabaseException,
+    JobQueueException = JobQueueException
 
