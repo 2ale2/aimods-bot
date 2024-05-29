@@ -1,12 +1,12 @@
 from telegram.ext import (CommandHandler, MessageHandler, CallbackQueryHandler,
-                          ConversationHandler, ChatJoinRequestHandler, filters, Application)
+                          ConversationHandler, ChatJoinRequestHandler, filters)
 
 import handlers_function
 
-RULES_ACCEPTED = range(1)
+RULES_ACCEPTED = 0
 
 
-def create_handlers(app: Application) -> list:
+def create_handlers() -> list:
     """Crea gli handler e li pone all'interno di una lista; poi la ritorna."""
     handlers = list()
 

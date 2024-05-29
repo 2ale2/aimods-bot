@@ -10,7 +10,7 @@ from constants import Exceptions, Scopes
 import database_functions
 import job_queue_functions
 
-RULES_ACCEPTED = range(1)
+RULES_ACCEPTED = 0
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -45,7 +45,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
 
 
 async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id == update.callback_query.data.split(" ")[1]:
+    if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
         keyboard = [
             [InlineKeyboardButton(text="Vai al Canale ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
         ]
@@ -80,7 +80,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                            update.message.reply_to_message.from_user.id)
 
         reason = ('_' + ' '.join(context.args if message.text.startswith('/') else message.text.split(' ')[1:])
-                  + '_') if (context.args or len(message.text.split(' ')) > 1) else '`no reason given`'
+                  + '_') if len(message.text.split(' ')) > 1 else '`no reason given`'
         try:
             await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
                                              message_id=message.reply_to_message.message_id)
@@ -96,7 +96,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
-                                                                           in scopes.FORUM_SCOPE.topics else None),
+                                                                        in scopes.FORUM_SCOPE.topics else None),
                                                      text=text, parse_mode="MARKDOWN")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -112,7 +112,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                                  message_thread_id=(message.message_thread_id
                                                                     if message.message_thread_id
-                                                                       in scopes.FORUM_SCOPE.topics else None),
+                                                                    in scopes.FORUM_SCOPE.topics else None),
                                                  text="⚠️ Solo gli admin A&I Mods possono rimuovere i messaggi.")
 
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
