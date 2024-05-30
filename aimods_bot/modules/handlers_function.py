@@ -1,8 +1,10 @@
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import ContextTypes, ConversationHandler, CallbackContext
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ChatAction
 from datetime import datetime, timedelta
 from copy import deepcopy
 import telegram.error
+import requests
 
 import core
 from loggers import command_logger
@@ -39,32 +41,50 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
     await context.bot.send_message(chat_id=update.effective_user.id,
                                    text=context.bot_data["user_joined_message_text"]
                                    .format(update.effective_user.full_name),
-                                   parse_mode="MARKDOWN", reply_markup=keyboard_markup,
+                                   parse_mode="MarkdownV2", reply_markup=keyboard_markup,
                                    link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
     return RULES_ACCEPTED
 
 
 async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    L'utente ha accettato le regole. La richiesta viene approvata e l'utente è indirizzato al gruppo.
+
+    :param update: Update: l'Update da gestire
+    :param context: ContextTypes: il contesto dell'istanza di Application
+    :return: ConversationHandler.END
+    """
     if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
+        await context.bot.delete_message(chat_id=update.effective_user.id,
+                                         message_id=update.effective_message.message_id)
+        await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
         keyboard = [
-            [InlineKeyboardButton(text="Vai al Canale ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
+            [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
                                                     user_id=update.effective_user.id)
-        await context.bot.edit_message_text(text="✅ *La tua richiesta è stata approvata*\n"
-                                                 "Lo staff di A&I Mods ti dà il benvenuto."
-                                                 "Grazie per averci scelto 😃",
-                                            chat_id=update.effective_user.id,
-                                            message_id=update.callback_query.message.message_id,
-                                            reply_markup=reply_markup)
+        data = {
+            "text": "✅ *La tua richiesta è stata approvata*\n\nLo staff di A&I Mods ti dà il benvenuto. Grazie per "
+                    "averci scelto 😃",
+            "chat_id": update.effective_user.id,
+            "reply_markup": reply_markup
+        }
+        context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
         return ConversationHandler.END
 
 
 # COMANDO RIMOZIONE MESSAGGI
 async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Rimuove il messaggio selezionato tramite comando.
+    :param update: Update: l'Update da gestire
+    :param context: ContextTypes: il contesto dell'istanza di Application
+    :return:
+    """
     scopes = Scopes()
     message = deepcopy(update.message)
+
     try:
         await context.bot.delete_message(chat_id=update.effective_chat.id,
                                          message_id=update.message.message_id)
@@ -72,6 +92,26 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         pass
 
     if is_admin(update.effective_user.id, context):
+        if message.reply_to_message is None:
+            reply_markup = InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton(text='Open It Privately 💬',
+                                          callback_data=f'open_private_alert {update.effective_user.id}')]
+                ]
+            )
+            admin_identifier = (update.effective_user.username or
+                                update.message.reply_to_message.from_user.id)
+            text = f'🔐 Message for [{update.effective_user.first_name}](tg;//user?=id={admin_identifier})' \
+                if admin_identifier.isnumeric() else f'🔐 Message for @{update.effective_user.username}'
+
+            await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
+                                           message_thread_id=(message.message_thread_id
+                                                              if message.message_thread_id
+                                                              in scopes.FORUM_SCOPE.topics else None),
+                                           text=text,
+                                           reply_markup=reply_markup)
+            return
+
         if datetime.now(message.reply_to_message.date.tzinfo) - message.reply_to_message.date > timedelta(hours=48):
             core.command_logger.error("Message cannot be deleted from bot cause it was sent more than 48h ago.")
             return
@@ -88,7 +128,8 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             core.command_logger.error(f"Message cannot be deleted {e}")
         else:
             if user_identifier.isnumeric():
-                text = (f'♻️ Message sent by [{update.effective_user.first_name}](tg://user?id={user_identifier})'
+                text = (f'♻️ Message sent by '
+                        f'[{update.message.reply_to_message.from_user.first_name}](tg://user?id={user_identifier})'
                         f' was removed: {reason}')
             else:
                 text = f'♻️ Message sent by @{user_identifier} was removed: {reason}'
@@ -97,7 +138,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
                                                                         in scopes.FORUM_SCOPE.topics else None),
-                                                     text=text, parse_mode="MARKDOWN")
+                                                     text=text, parse_mode="MarkdownV2")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
                                        data={"chat_id": context.bot_data["group_chat_id"],
@@ -119,6 +160,24 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                    data={"chat_id": context.bot_data["group_chat_id"],
                                          "message_id": message.id},
                                    when=15)
+
+
+async def alert_message(update: Update, context: CallbackContext):
+    """
+    Invia un messaggio privato all'utente specificato.
+    :param update: Update: l'Update da gestire
+    :param context: ContextTypes: il contesto dell'istanza di Application
+    :return:
+    """
+    if not update.callback_query.data.endswith(str(update.effective_user.id)):
+        return
+
+    await context.bot.answer_callback_query(callback_query_id=update.callback_query.id,
+                                            text='ℹ️ INFO\n\n'
+                                                 'Per poter eliminare un messaggio, selezionalo rispondendovi.',
+                                            show_alert=True)
+    await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
+                                     message_id=update.effective_message.id)
 
 
 # COMANDO LIMITAZIONE UTENTE

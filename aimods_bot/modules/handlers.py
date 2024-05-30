@@ -20,6 +20,8 @@ def create_handlers() -> list:
                                    callback=handlers_function.delete_group_message))
     handlers.append(MessageHandler(filters=filters.TEXT & filters.Regex('^!del'),
                                    callback=handlers_function.delete_group_message))
+    handlers.append(CallbackQueryHandler(callback=handlers_function.alert_message,
+                                         pattern="^open_private_alert.+$"))
     handlers.append(CommandHandler("limit", handlers_function.limit_user))
 
     # - conversation handlers
