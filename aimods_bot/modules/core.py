@@ -60,7 +60,7 @@ def get_admins_from_db():
     except psycopg.Error as err:
         db_logger.error(f"Unable to collect (admin_id, username) from admins table: {err}")
     else:
-        db_logger.info("Operation Success: information gathered.")
+        db_logger.info("Operation Success: admin list gathered.")
         return {c[0][0]: c[0][1] for c in res}
     finally:
         conn.close()

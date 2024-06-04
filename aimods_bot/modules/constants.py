@@ -98,3 +98,8 @@ class Exceptions(Exception):
     DatabaseException = DatabaseException,
     JobQueueException = JobQueueException
 
+
+@dataclass(frozen=True)
+class LogType(IntEnum):
+    MODERATION_ERROR_LOG: 0
+

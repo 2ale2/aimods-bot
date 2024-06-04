@@ -4,11 +4,11 @@ from telegram.constants import ChatAction
 from datetime import datetime, timedelta
 from copy import deepcopy
 import telegram.error
-import requests
 
 import core
 from loggers import command_logger
 from constants import Exceptions, Scopes
+
 import database_functions
 import job_queue_functions
 
@@ -38,11 +38,21 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
     ]
 
     keyboard_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-    await context.bot.send_message(chat_id=update.effective_user.id,
-                                   text=context.bot_data["user_joined_message_text"]
-                                   .format(update.effective_user.full_name),
-                                   parse_mode="MarkdownV2", reply_markup=keyboard_markup,
-                                   link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
+    message = await context.bot.send_message(chat_id=update.effective_user.id,
+                                             text=context.bot_data["user_joined_message_text"]
+                                             .format(update.effective_user.full_name),
+                                             parse_mode="MarkdownV2", reply_markup=keyboard_markup,
+                                             link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
+
+    context.job_queue.run_once(callback=job_queue_functions.scheduled_edit_message,
+                               data={
+                                   'chat_id': update.effective_user.id,
+                                   'message_id': message.message_id,
+                                   'text': '⚠️ Non hai completato la verifica. Per far accettare la tua richiesta '
+                                           'di accesso al gruppo, puoi fornire il comando /request.'
+                               },
+                               when=300,  # tempo massimo di accettazione delle regole
+                               name=f'captcha_failed_{update.effective_user.id}')
     return RULES_ACCEPTED
 
 
@@ -54,6 +64,9 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     :param context: ContextTypes: il contesto dell'istanza di Application
     :return: ConversationHandler.END
     """
+    if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
+        job[0].schedule_removal()
+
     if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
         await context.bot.delete_message(chat_id=update.effective_user.id,
                                          message_id=update.effective_message.message_id)
@@ -107,7 +120,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                            message_thread_id=(message.message_thread_id
                                                               if message.message_thread_id
-                                                              in scopes.FORUM_SCOPE.topics else None),
+                                                                 in scopes.FORUM_SCOPE.topics else None),
                                            text=text,
                                            reply_markup=reply_markup)
             return
@@ -137,7 +150,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
-                                                                        in scopes.FORUM_SCOPE.topics else None),
+                                                                           in scopes.FORUM_SCOPE.topics else None),
                                                      text=text, parse_mode="MarkdownV2")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -153,7 +166,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                                  message_thread_id=(message.message_thread_id
                                                                     if message.message_thread_id
-                                                                    in scopes.FORUM_SCOPE.topics else None),
+                                                                       in scopes.FORUM_SCOPE.topics else None),
                                                  text="⚠️ Solo gli admin A&I Mods possono rimuovere i messaggi.")
 
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -162,7 +175,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                    when=15)
 
 
-async def alert_message(update: Update, context: CallbackContext):
+async def alert_del_message_not_selected(update: Update, context: CallbackContext):
     """
     Invia un messaggio privato all'utente specificato.
     :param update: Update: l'Update da gestire
@@ -202,7 +215,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                               text=text,
                                                               message_thread_id=(message.message_thread_id
                                                                                  if message.message_thread_id
-                                                                                 in scopes.FORUM_SCOPE.topics else None)
+                                                                                    in scopes.FORUM_SCOPE.topics else None)
                                                               )
 
                 context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
