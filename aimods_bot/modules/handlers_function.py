@@ -6,7 +6,7 @@ from copy import deepcopy
 import telegram.error
 
 import core
-from loggers import command_logger
+from loggers import command_logger, db_logger
 from constants import Exceptions, Scopes
 
 import database_functions
@@ -120,7 +120,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                            message_thread_id=(message.message_thread_id
                                                               if message.message_thread_id
-                                                                 in scopes.FORUM_SCOPE.topics else None),
+                                                              in scopes.FORUM_SCOPE.topics else None),
                                            text=text,
                                            reply_markup=reply_markup)
             return
@@ -150,7 +150,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
-                                                                           in scopes.FORUM_SCOPE.topics else None),
+                                                                        in scopes.FORUM_SCOPE.topics else None),
                                                      text=text, parse_mode="MarkdownV2")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -162,11 +162,12 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                 await database_functions.add_to_table(table_name='deleted_messages', content=update)
             except Exceptions.DatabaseException as e:
                 command_logger.error(f'Something went wrong while operating with database: {e.error_message}')
+                db_logger.error(f'Something went wrong while operating with database: {e.error_message}')
     else:
         message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                                  message_thread_id=(message.message_thread_id
                                                                     if message.message_thread_id
-                                                                       in scopes.FORUM_SCOPE.topics else None),
+                                                                    in scopes.FORUM_SCOPE.topics else None),
                                                  text="⚠️ Solo gli admin A&I Mods possono rimuovere i messaggi.")
 
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -177,7 +178,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def alert_del_message_not_selected(update: Update, context: CallbackContext):
     """
-    Invia un messaggio privato all'utente specificato.
+    Invia un messaggio privato all'utente specificato, all'interno del gruppo.
     :param update: Update: l'Update da gestire
     :param context: ContextTypes: il contesto dell'istanza di Application
     :return:
@@ -215,7 +216,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                               text=text,
                                                               message_thread_id=(message.message_thread_id
                                                                                  if message.message_thread_id
-                                                                                    in scopes.FORUM_SCOPE.topics else None)
+                                                                                 in scopes.FORUM_SCOPE.topics else None)
                                                               )
 
                 context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
