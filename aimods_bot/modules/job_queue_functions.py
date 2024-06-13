@@ -23,7 +23,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_message(chat_id=data["chat_id"], text=data["text"],
                                        reply_markup=data["reply_markup"],
-                                       parse_mode="MarkdownV2")
+                                       parse_mode="HTML")
     except telegram.error.TelegramError as e:
         job_queue_logger.error(f'Not able to perform scheduled action: {e}')
 

@@ -41,7 +41,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
     message = await context.bot.send_message(chat_id=update.effective_user.id,
                                              text=context.bot_data["user_joined_message_text"]
                                              .format(update.effective_user.full_name),
-                                             parse_mode="MarkdownV2", reply_markup=keyboard_markup,
+                                             parse_mode="HTML", reply_markup=keyboard_markup,
                                              link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
 
     context.job_queue.run_once(callback=job_queue_functions.scheduled_edit_message,
@@ -78,8 +78,8 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
         await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
                                                     user_id=update.effective_user.id)
         data = {
-            "text": "✅ *La tua richiesta è stata approvata*\n\nLo staff di A&I Mods ti dà il benvenuto. Grazie per "
-                    "averci scelto 😃",
+            "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. Grazie per"
+                    " averci scelto 😃",
             "chat_id": update.effective_user.id,
             "reply_markup": reply_markup
         }
@@ -151,7 +151,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
                                                                         in scopes.FORUM_SCOPE.topics else None),
-                                                     text=text, parse_mode="MarkdownV2")
+                                                     text=text, parse_mode="MARKDOWN")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
                                        data={"chat_id": context.bot_data["group_chat_id"],
