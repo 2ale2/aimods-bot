@@ -1,16 +1,16 @@
-from telegram.ext import ContextTypes, ConversationHandler, CallbackContext
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ChatAction
-from datetime import datetime, timedelta
 from copy import deepcopy
+from datetime import datetime, timedelta
+
 import telegram.error
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ChatMemberStatus
+from telegram.ext import ContextTypes, ConversationHandler, CallbackContext
 
 import core
-from loggers import command_logger, db_logger
-from constants import Exceptions, Scopes
-
 import database_functions
 import job_queue_functions
+from constants import Exceptions, Scopes
+from loggers import command_logger, db_logger
 
 RULES_ACCEPTED = 0
 
@@ -32,6 +32,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
+        keyboard = [
+            [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n"
+                                                                              "Usa /rules per leggere le regole.",
+                                       reply_markup=reply_markup)
+        return ConversationHandler.END
+
     inline_keyboard = [
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋",
                               callback_data="accept_rules " + str(update.effective_user.id))],
@@ -48,8 +58,9 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                data={
                                    'chat_id': update.effective_user.id,
                                    'message_id': message.message_id,
-                                   'text': '⚠️ Non hai completato la verifica. Per far accettare la tua richiesta '
-                                           'di accesso al gruppo, puoi fornire il comando /request.'
+                                   'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
+                                           'Per far accettare la tua richiesta di accesso al gruppo, puoi fornire il '
+                                           'comando /request.'
                                },
                                when=300,  # tempo massimo di accettazione delle regole
                                name=f'captcha_failed_{update.effective_user.id}')
@@ -64,26 +75,44 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     :param context: ContextTypes: il contesto dell'istanza di Application
     :return: ConversationHandler.END
     """
+    # if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
+    #     job[0].schedule_removal()
+    #
+    # if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
+    #     await context.bot.delete_message(chat_id=update.effective_user.id,
+    #                                      message_id=update.effective_message.message_id)
+    #     await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
+    #     keyboard = [
+    #         [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
+    #     ]
+    #     reply_markup = InlineKeyboardMarkup(keyboard)
+    #     await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
+    #                                                 user_id=update.effective_user.id)
+    #     data = {
+    #         "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
+    #                 "Grazie per averci scelto 😃",
+    #         "chat_id": update.effective_user.id,
+    #         "reply_markup": reply_markup
+    #     }
+    #     context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
+    #     return ConversationHandler.END
+
     if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
         job[0].schedule_removal()
 
     if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
-        await context.bot.delete_message(chat_id=update.effective_user.id,
-                                         message_id=update.effective_message.message_id)
-        await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
         keyboard = [
             [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
                                                     user_id=update.effective_user.id)
-        data = {
-            "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. Grazie per"
-                    " averci scelto 😃",
-            "chat_id": update.effective_user.id,
-            "reply_markup": reply_markup
-        }
-        context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
+        await context.bot.edit_message_text(message_id=update.effective_message.message_id,
+                                            chat_id=update.effective_user.id,
+                                            text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods "
+                                                 "ti dà il benvenuto. Grazie per averci scelto 😃",
+                                            parse_mode="HTML",
+                                            reply_markup=reply_markup)
         return ConversationHandler.END
 
 
@@ -232,3 +261,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
     return str(user_id) in context.bot_data["admins"].keys()
+
+
+async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+    if res.status is ChatMemberStatus.LEFT:
+        return False
+    return True

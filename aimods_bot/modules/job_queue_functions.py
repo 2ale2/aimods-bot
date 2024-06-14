@@ -37,6 +37,6 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
 
     try:
         await context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text,
-                                            reply_markup=reply_markup)
+                                            reply_markup=reply_markup, parse_mode="HTML")
     except telegram.error.TelegramError as e:
         job_queue_logger.error(f'Not able to perform scheduled action: {e}')
