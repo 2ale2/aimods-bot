@@ -32,6 +32,23 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_message is not None:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_user.id,
+                                             message_id=update.effective_message.message_id)
+        except telegram.error.BadRequest:
+            pass
+
+    if update.chat_join_request is None:
+        keyboard = [
+            [InlineKeyboardButton(text="Chiedi l'accesso ➕", url="https://t.me/+FbR5I5YukVBmYTM0")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=update.effective_user.id,
+                                       text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',
+                                       reply_markup=reply_markup)
+        return
+
     if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
         keyboard = [
             [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
@@ -40,6 +57,17 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n"
                                                                               "Usa /rules per leggere le regole.",
                                        reply_markup=reply_markup)
+        return ConversationHandler.END
+
+    if await user_is_banned(user_id=update.effective_user.id,
+                            chat_id=context.bot_data["group_chat_id"],
+                            context=context):
+        message = await context.bot.send_message(chat_id=update.effective_user.id, text="❌ Il tuo ID è stato "
+                                                                                        "<b>bannato</b>.\n\n"
+                                                                                        "Non puoi unirti al gruppo.",
+                                                 parse_mode="HTML")
+        context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,
+                                   data={"message_id": message.message_id, "chat_id": update.effective_user.id})
         return ConversationHandler.END
 
     inline_keyboard = [
@@ -62,7 +90,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                            'Per far accettare la tua richiesta di accesso al gruppo, puoi fornire il '
                                            'comando /request.'
                                },
-                               when=300,  # tempo massimo di accettazione delle regole
+                               when=5,  # tempo massimo di accettazione delle regole
                                name=f'captcha_failed_{update.effective_user.id}')
     return RULES_ACCEPTED
 
@@ -265,6 +293,13 @@ def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
 
 async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
-    if res.status is ChatMemberStatus.LEFT:
-        return False
-    return True
+    if res.status is ChatMemberStatus.MEMBER or res.status is ChatMemberStatus.ADMINISTRATOR:
+        return True
+    return False
+
+
+async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+    if res.status is ChatMemberStatus.BANNED:
+        return True
+    return False

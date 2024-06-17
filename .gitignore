@@ -3,6 +3,7 @@
 .git
 
 aimods_bot/misc/logs
+aimods_bot/misc/NOTE.txt
 aimods_bot/.env
 aimods_bot/modules/__pycache__
 
