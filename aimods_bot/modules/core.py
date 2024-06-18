@@ -35,10 +35,16 @@ async def set_application_data(application: Application):
             application.bot_data["group_chat_id"] != group_chat_id):
         application.bot_data["group_chat_id"] = group_chat_id
 
-    user_joined_message_text = get_data_from_json("texts")["user_joined_message_text"]
+    texts = get_data_from_json("texts")
+
+    user_joined_message_text = texts["user_joined_message_text"]
     if ('user_joined_message_text' not in application.bot_data or
             application.bot_data["user_joined_message_text"] != user_joined_message_text):
         application.bot_data["user_joined_message_text"] = user_joined_message_text
+
+    rules_text = texts["rules_text"]
+    if 'rules_text' not in application.bot_data or application.bot_data["rules_text"] != rules_text:
+        application.bot_data["rules_text"] = rules_text
         
 
 def get_data_from_json(data: str):

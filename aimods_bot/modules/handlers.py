@@ -12,17 +12,20 @@ def create_handlers() -> list:
 
     # - command handlers
     # -- start command
-    handlers.append(CommandHandler("start", handlers_function.start_command))
+    handlers.append(CommandHandler("start", callback=handlers_function.start_command))
 
+    # -- rules command
+    handlers.append(CommandHandler("rules", callback=handlers_function.send_rules))
     # -- delete message command
-    handlers.append(CommandHandler("del", handlers_function.delete_group_message))
+    handlers.append(CommandHandler("del", callback=handlers_function.delete_group_message))
     handlers.append(MessageHandler(filters=filters.TEXT & filters.Regex(r'^\.del'),
                                    callback=handlers_function.delete_group_message))
     handlers.append(MessageHandler(filters=filters.TEXT & filters.Regex('^!del'),
                                    callback=handlers_function.delete_group_message))
     handlers.append(CallbackQueryHandler(callback=handlers_function.alert_del_message_not_selected,
                                          pattern="^open_private_alert.+$"))
-    handlers.append(CommandHandler("limit", handlers_function.limit_user))
+
+    handlers.append(CommandHandler("limit", callback=handlers_function.limit_user))
 
     # - conversation handlers
     # -- double check at join
@@ -38,5 +41,9 @@ def create_handlers() -> list:
         name="join_handler",
         persistent=True
     ))
+
+    # - service handlers
+    # -- delete message using inline keyboard
+    handlers.append(CallbackQueryHandler(callback=handlers_function.callback_close_message, pattern="^close.+$"))
 
     return handlers

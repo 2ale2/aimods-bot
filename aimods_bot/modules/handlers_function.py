@@ -30,7 +30,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_user.id, text="Hi A&I Mods Staff! :)")
 
 
-# DOPPIA VERIFICA
+# {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_message is not None:
         try:
@@ -38,16 +38,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                              message_id=update.effective_message.message_id)
         except telegram.error.BadRequest:
             pass
-
-    if update.chat_join_request is None:
-        keyboard = [
-            [InlineKeyboardButton(text="Chiedi l'accesso ➕", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id,
-                                       text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',
-                                       reply_markup=reply_markup)
-        return
 
     if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
         keyboard = [
@@ -69,6 +59,21 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,
                                    data={"message_id": message.message_id, "chat_id": update.effective_user.id})
         return ConversationHandler.END
+
+    if update.chat_join_request and "group_join_request" not in context.user_data:
+        context.user_data["group_join_request"] = True
+
+    if "group_join_request" not in context.user_data:
+        keyboard = [
+            [InlineKeyboardButton(text="Chiedi l'accesso ➕", url="https://t.me/+FbR5I5YukVBmYTM0")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=update.effective_user.id,
+                                       text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',
+                                       reply_markup=reply_markup)
+        return
+
+    # codice eseguito se "group_join_request" è in context.user_data
 
     inline_keyboard = [
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋",
@@ -135,6 +140,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
                                                     user_id=update.effective_user.id)
+        del context.user_data["group_join_request"]
         await context.bot.edit_message_text(message_id=update.effective_message.message_id,
                                             chat_id=update.effective_user.id,
                                             text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods "
@@ -142,6 +148,8 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
                                             parse_mode="HTML",
                                             reply_markup=reply_markup)
         return ConversationHandler.END
+
+# }
 
 
 # COMANDO RIMOZIONE MESSAGGI
@@ -251,6 +259,25 @@ async def alert_del_message_not_selected(update: Update, context: CallbackContex
                                      message_id=update.effective_message.id)
 
 
+async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        await context.bot.delete_message(chat_id=update.effective_user.id,
+                                         message_id=update.effective_message.id)
+    except telegram.error.BadRequest:
+        pass
+
+    message = await context.bot.send_message(chat_id=update.effective_user.id,
+                                             text=context.bot_data["rules_text"],
+                                             parse_mode="HTML")
+    keyboard = [
+        [InlineKeyboardButton(text="Close 📖", callback_data=f"close {message.id}")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.edit_message_reply_markup(chat_id=update.effective_user.id, message_id=message.message_id,
+                                                reply_markup=reply_markup)
+
+
 # COMANDO LIMITAZIONE UTENTE
 async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     scopes = Scopes()
@@ -303,3 +330,17 @@ async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAU
     if res.status is ChatMemberStatus.BANNED:
         return True
     return False
+
+
+async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Deletes the message by gathering its id from given call back data
+    :param update: Update: l'Update da gestire
+    :param context: ContextTypes: il contesto dell'istanza di Application
+    :return:
+    """
+    try:
+        await context.bot.delete_message(chat_id=update.effective_chat.id,
+                                         message_id=update.callback_query.data.split(" ")[1])
+    except telegram.error.BadRequest:
+        pass
