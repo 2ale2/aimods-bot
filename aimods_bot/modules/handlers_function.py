@@ -95,7 +95,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                            'Per far accettare la tua richiesta di accesso al gruppo, puoi fornire il '
                                            'comando /request.'
                                },
-                               when=5,  # tempo massimo di accettazione delle regole
+                               when=600,  # tempo massimo di accettazione delle regole
                                name=f'captcha_failed_{update.effective_user.id}')
     return RULES_ACCEPTED
 
@@ -149,6 +149,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
                                             reply_markup=reply_markup)
         return ConversationHandler.END
 
+
 # }
 
 
@@ -170,7 +171,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         pass
 
     if is_admin(update.effective_user.id, context):
-        if message.reply_to_message is None:
+        if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
             reply_markup = InlineKeyboardMarkup(
                 [
                     [InlineKeyboardButton(text='Open It Privately 💬',
@@ -185,13 +186,22 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                            message_thread_id=(message.message_thread_id
                                                               if message.message_thread_id
-                                                              in scopes.FORUM_SCOPE.topics else None),
+                                                                 in scopes.FORUM_SCOPE.topics else None),
                                            text=text,
                                            reply_markup=reply_markup)
             return
 
         if datetime.now(message.reply_to_message.date.tzinfo) - message.reply_to_message.date > timedelta(hours=48):
+            message = await context.bot.send_message(chat_id=update.effective_chat.id,
+                                                     message_thread_id=update.effective_message.message_thread_id,
+                                                     text="⚠️ Non posso rimuovere il messaggio perché è stato mandato"
+                                                          " più di 48 ore fa.\n\n💡 Puoi rimuoverlo manualmente, "
+                                                          "ma non verrà aggiunto .")
             core.command_logger.error("Message cannot be deleted from bot cause it was sent more than 48h ago.")
+            context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
+                                       data={"chat_id": context.bot_data["group_chat_id"],
+                                             "message_id": message.id},
+                                       when=15)
             return
 
         user_identifier = (update.message.reply_to_message.from_user.username or
@@ -200,12 +210,16 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         reason = ('_' + ' '.join(context.args if message.text.startswith('/') else message.text.split(' ')[1:])
                   + '_') if len(message.text.split(' ')) > 1 else '`no reason given`'
         try:
+            await database_functions.add_to_table(table_name='deleted_messages', content=update)
             await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
                                              message_id=message.reply_to_message.message_id)
         except telegram.error.TelegramError as e:
             core.command_logger.error(f"Message cannot be deleted {e}")
+        except Exceptions.DatabaseException as e:
+            command_logger.error(f'Something went wrong while operating with database: {e.error_message}')
+            db_logger.error(f'Something went wrong while operating with database: {e.error_message}')
         else:
-            if user_identifier.isnumeric():
+            if isinstance(user_identifier, int):
                 text = (f'♻️ Message sent by '
                         f'[{update.message.reply_to_message.from_user.first_name}](tg://user?id={user_identifier})'
                         f' was removed: {reason}')
@@ -215,7 +229,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                                      message_thread_id=(message.message_thread_id
                                                                         if message.message_thread_id
-                                                                        in scopes.FORUM_SCOPE.topics else None),
+                                                                           in scopes.FORUM_SCOPE.topics else None),
                                                      text=text, parse_mode="MARKDOWN")
 
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
@@ -223,11 +237,6 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                              "message_id": message.id},
                                        when=60)
 
-            try:
-                await database_functions.add_to_table(table_name='deleted_messages', content=update)
-            except Exceptions.DatabaseException as e:
-                command_logger.error(f'Something went wrong while operating with database: {e.error_message}')
-                db_logger.error(f'Something went wrong while operating with database: {e.error_message}')
     else:
         message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                                  message_thread_id=(message.message_thread_id
@@ -300,7 +309,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                               text=text,
                                                               message_thread_id=(message.message_thread_id
                                                                                  if message.message_thread_id
-                                                                                 in scopes.FORUM_SCOPE.topics else None)
+                                                                                    in scopes.FORUM_SCOPE.topics else None)
                                                               )
 
                 context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,

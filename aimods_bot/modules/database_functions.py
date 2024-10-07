@@ -16,7 +16,8 @@ async def add_to_table(table_name: str, content: ...):
         raise Exceptions.DatabaseException("Connection instance is None.")
 
     try:
-        conn.cursor().execute(f'INSERT INTO deleted_messages VALUES {generate_values(table_name, content)};')
+        conn.cursor().execute("INSERT INTO deleted_messages VALUES (%s, %s, %s, %s, %s, %s, %s, %s);",
+                              await generate_values('deleted_messages', content))
     except psycopg.Error as e:
         db_logger.error(f'Unable to add entry into \'{table_name}\' table: {e}')
         raise Exceptions.DatabaseException(f'Unable to add entry into \'{table_name}\' table: {e}')
@@ -27,7 +28,7 @@ async def add_to_table(table_name: str, content: ...):
         conn.close()
 
 
-def generate_values(table_name: str, content_to_elaborate: ...):
+async def generate_values(table_name: str, content_to_elaborate: ...):
     if table_name == "deleted_messages":
         if not isinstance(content_to_elaborate, telegram.Update):
             db_logger.error(f'Cannot elaborate content for inserting entry in table {table_name}: content must be '
@@ -36,12 +37,31 @@ def generate_values(table_name: str, content_to_elaborate: ...):
                 f'Cannot elaborate content for inserting entry in table {table_name}: content must be '
                 f'instance of \'telegram.Update\'')
         reason = " ".join(content_to_elaborate.message.text.split(" ")[1:])
-        return (f'({content_to_elaborate.message.reply_to_message.id}, '
-                f'{content_to_elaborate.effective_user.id}, '
-                f'\'{content_to_elaborate.message.date.astimezone(pytz.timezone('Etc/GMT-2'))}\', '
-                f'{content_to_elaborate.message.reply_to_message.from_user.id}, '
-                f'\'{reason if len(reason) != 0 else 'no_reason_given'}\', '
-                f'\'{content_to_elaborate.message.reply_to_message.text}\')')
+        if len(reason) == 0:
+            reason = '\"no reason given\"'
+        message_id_to_delete = content_to_elaborate.message.reply_to_message.id
+        admin_performing_the_action = content_to_elaborate.effective_user.id
+        message_date = str(content_to_elaborate.message.date.astimezone(pytz.timezone('Etc/GMT-2')))
+        message_author = content_to_elaborate.message.reply_to_message.from_user.id
+        if content_to_elaborate.message.reply_to_message.effective_attachment:
+
+            file_sent = await content_to_elaborate.message.effective_attachment.get_file()
+            path_to_file = await file_sent.download_to_drive('database/removed_attachments')
+        else:
+            path_to_file = None
+        if content_to_elaborate.message.reply_to_message.text:
+            message_content = content_to_elaborate.message.reply_to_message.text
+        else:
+            message_content = None
+        author_username = content_to_elaborate.message.reply_to_message.from_user.name
+        return (message_id_to_delete,
+                admin_performing_the_action,
+                message_date,
+                message_author,
+                reason,
+                message_content,
+                author_username,
+                path_to_file)
 
 
 def connect_to_database():
