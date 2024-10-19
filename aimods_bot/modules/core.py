@@ -51,7 +51,7 @@ def get_data_from_json(data: str):
     """
     :return:    i topic del forum (tutti e categorie)
     """
-    with open("../misc/data.json", "r") as fp:
+    with open("aimods_bot/misc/data.json", "r") as fp:
         topics = json.load(fp)
         return topics[data]
 

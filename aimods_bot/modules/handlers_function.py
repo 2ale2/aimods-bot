@@ -196,7 +196,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                                                      message_thread_id=update.effective_message.message_thread_id,
                                                      text="⚠️ Non posso rimuovere il messaggio perché è stato mandato"
                                                           " più di 48 ore fa.\n\n💡 Puoi rimuoverlo manualmente, "
-                                                          "ma non verrà aggiunto .")
+                                                          "ma non verrà memorizzato.")
             core.command_logger.error("Message cannot be deleted from bot cause it was sent more than 48h ago.")
             context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
                                        data={"chat_id": context.bot_data["group_chat_id"],

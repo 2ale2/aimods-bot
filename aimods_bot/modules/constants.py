@@ -102,3 +102,11 @@ class Exceptions(Exception):
 @dataclass(frozen=True)
 class LogType(IntEnum):
     MODERATION_ERROR_LOG = 0
+
+
+@dataclass(frozen=True)
+class AttachmentType(IntEnum):
+    IMAGE: 0
+    VIDEO: 1
+    AUDIO: 2
+    DOCUMENT: 3

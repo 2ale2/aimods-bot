@@ -1,3 +1,5 @@
+import os.path
+
 from psycopg import connect
 import pytz
 import psycopg
@@ -43,10 +45,16 @@ async def generate_values(table_name: str, content_to_elaborate: ...):
         admin_performing_the_action = content_to_elaborate.effective_user.id
         message_date = str(content_to_elaborate.message.date.astimezone(pytz.timezone('Etc/GMT-2')))
         message_author = content_to_elaborate.message.reply_to_message.from_user.id
-        if content_to_elaborate.message.reply_to_message.effective_attachment:
 
-            file_sent = await content_to_elaborate.message.effective_attachment.get_file()
-            path_to_file = await file_sent.download_to_drive('database/removed_attachments')
+        if content_to_elaborate.message.reply_to_message.effective_attachment:
+            file_sent = await content_to_elaborate.message.reply_to_message.effective_attachment[-1].get_file()
+            if not os.path.isdir(os.path.join('database', 'removed_attachments', 'photos')):
+                os.makedirs(os.path.join('database', 'removed_attachments', 'photos'))
+            path_to_file = await file_sent.download_to_drive(
+                custom_path=os.path.join('database', 'removed_attachments', 'photos',
+                                         f'{file_sent.file_unique_id}.png'),
+            )
+            path_to_file = path_to_file.parts[-1]
         else:
             path_to_file = None
         if content_to_elaborate.message.reply_to_message.text:
