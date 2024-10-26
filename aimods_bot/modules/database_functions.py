@@ -22,7 +22,7 @@ async def add_to_table(table_name: str, content: ...):
                               await generate_values('deleted_messages', content))
     except psycopg.Error as e:
         db_logger.error(f'Unable to add entry into \'{table_name}\' table: {e}')
-        raise Exceptions.DatabaseException(f'Unable to add entry into \'{table_name}\' table: {e}')
+        raise Exceptions.DatabaseException(f'Unable to add entry into \'{table_name}\' table: {e.__repr__()}')
     else:
         db_logger.info(f'Successfully inserted item inside \'{table_name}\'')
         conn.commit()

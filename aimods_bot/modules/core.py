@@ -32,7 +32,8 @@ async def set_application_data(application: Application):
 
     group_chat_id = os.getenv("GROUP_CHAT_ID")
     if ('group_chat_id' not in application.bot_data or
-            application.bot_data["group_chat_id"] != group_chat_id):
+            application.bot_data["group_chat_id"] != group_chat_id or
+            application.bot_data["group_chat_id"] is None):
         application.bot_data["group_chat_id"] = group_chat_id
 
     texts = get_data_from_json("texts")
@@ -45,13 +46,13 @@ async def set_application_data(application: Application):
     rules_text = texts["rules_text"]
     if 'rules_text' not in application.bot_data or application.bot_data["rules_text"] != rules_text:
         application.bot_data["rules_text"] = rules_text
-        
+
 
 def get_data_from_json(data: str):
     """
     :return:    i topic del forum (tutti e categorie)
     """
-    with open("aimods_bot/misc/data.json", "r") as fp:
+    with open("aimods_bot/misc/data.json", encoding="utf-8", mode="r") as fp:
         topics = json.load(fp)
         return topics[data]
 

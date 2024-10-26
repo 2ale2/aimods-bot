@@ -186,7 +186,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
                                            message_thread_id=(message.message_thread_id
                                                               if message.message_thread_id
-                                                                 in scopes.FORUM_SCOPE.topics else None),
+                                                              in scopes.FORUM_SCOPE.topics else None),
                                            text=text,
                                            reply_markup=reply_markup)
             return
@@ -214,7 +214,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
                                              message_id=message.reply_to_message.message_id)
         except telegram.error.TelegramError as e:
-            core.command_logger.error(f"Message cannot be deleted {e}")
+            core.command_logger.error(f"Message cannot be deleted: {e}")
         except Exceptions.DatabaseException as e:
             command_logger.error(f'Something went wrong while operating with database: {e.error_message}')
             db_logger.error(f'Something went wrong while operating with database: {e.error_message}')
