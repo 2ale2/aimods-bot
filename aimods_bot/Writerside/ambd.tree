@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="ambd"
+                 name="A&I Mods Bot Documentation" start-page="database.md">
+
+    <toc-element topic="safety.md"/>
+    <toc-element topic="Doppia-Verifica.md"/>
+    <toc-element topic="Message-Deleting-Command.md"/>
+    <toc-element topic="database.md"/>
+    <toc-element topic="delete_group_message.md"/>
+</instance-profile>

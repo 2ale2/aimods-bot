@@ -109,4 +109,7 @@ class AttachmentType(IntEnum):
     IMAGE: 0
     VIDEO: 1
     AUDIO: 2
-    DOCUMENT: 3
+    VOICE: 4
+    DOCUMENT: 5
+    STICKER: 6
+    POLL: 7

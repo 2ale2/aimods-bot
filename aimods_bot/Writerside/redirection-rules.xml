@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rules SYSTEM "https://resources.jetbrains.com/writerside/1.0/redirection-rules.dtd">
+<rules>
+    <!-- format is as follows
+    <rule id="<unique id>">
+        <accepts>page.html</accepts>
+    </rule>
+    -->
+    <rule id="6bd1d10a">
+        <description>
+            <![CDATA[Created after removal of "classi_sottoclassi" from A&I Mods Bot Documentation]]></description>
+        <accepts>classi-sottoclassi.html</accepts>
+    </rule>
+    <rule id="4c0d25e2">
+        <description><![CDATA[Created after removal of "init.py" from A&I Mods – Technical Help]]></description>
+        <accepts>init-py.html</accepts>
+    </rule>
+</rules>

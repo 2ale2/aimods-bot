@@ -30,14 +30,14 @@ async def add_to_table(table_name: str, content: ...):
         conn.close()
 
 
-async def generate_values(table_name: str, content_to_elaborate: ...):
+async def generate_values(table_name: str, content_to_elaborate: telegram.Message):
     if table_name == "deleted_messages":
-        if not isinstance(content_to_elaborate, telegram.Update):
+        if not isinstance(content_to_elaborate, telegram.Message):
             db_logger.error(f'Cannot elaborate content for inserting entry in table {table_name}: content must be '
-                            f'instance of \'telegram.Update\'')
+                            f'instance of \'telegram.Message\'')
             raise Exceptions.DatabaseException(
                 f'Cannot elaborate content for inserting entry in table {table_name}: content must be '
-                f'instance of \'telegram.Update\'')
+                f'instance of \'telegram.Message\'')
         reason = " ".join(content_to_elaborate.message.text.split(" ")[1:])
         if len(reason) == 0:
             reason = '\"no reason given\"'
@@ -46,8 +46,8 @@ async def generate_values(table_name: str, content_to_elaborate: ...):
         message_date = str(content_to_elaborate.message.date.astimezone(pytz.timezone('Etc/GMT-2')))
         message_author = content_to_elaborate.message.reply_to_message.from_user.id
 
-        if content_to_elaborate.message.reply_to_message.effective_attachment:
-            file_sent = await content_to_elaborate.message.reply_to_message.effective_attachment[-1].get_file()
+        if attachment := content_to_elaborate.message.reply_to_message.effective_attachment:
+            file_sent = await attachment[-1].get_file()
             if not os.path.isdir(os.path.join('database', 'removed_attachments', 'photos')):
                 os.makedirs(os.path.join('database', 'removed_attachments', 'photos'))
             path_to_file = await file_sent.download_to_drive(
@@ -70,6 +70,10 @@ async def generate_values(table_name: str, content_to_elaborate: ...):
                 message_content,
                 author_username,
                 path_to_file)
+
+
+async def get_attachment_string_to_store(attachment):
+    pass
 
 
 def connect_to_database():

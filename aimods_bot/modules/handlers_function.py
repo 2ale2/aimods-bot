@@ -264,8 +264,11 @@ async def alert_del_message_not_selected(update: Update, context: CallbackContex
                                             text='ℹ️ INFO\n\n'
                                                  'Per poter eliminare un messaggio, selezionalo rispondendovi.',
                                             show_alert=True)
-    await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
-                                     message_id=update.effective_message.id)
+    try:
+        await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
+                                         message_id=update.effective_message.id)
+    except telegram.error.BadRequest:
+        pass
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -328,6 +331,8 @@ def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    # tells if user_id is already in chat_id
+
     res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
     if res.status is ChatMemberStatus.MEMBER or res.status is ChatMemberStatus.ADMINISTRATOR:
         return True
