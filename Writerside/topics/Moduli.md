@@ -1,10 +1,10 @@
-# Moduli
+# 🧱 Moduli
 
 In questa sotto categoria spiegherò nel dettaglio la funzione di ciascun 
 modulo, le funzioni (e ci che fanno) o le classi (e qual è la loro utilità) 
 o le costanti che contiene.
 
-## Struttura Generale
+## 🩻 Struttura Generale
 
 Ogni modulo contiene funzioni, classi e costanti specifiche che riguardano 
 un aspetto specifico del funzionamento del bot:
@@ -35,3 +35,9 @@ la _JobQueue_.
   - **Exceptions**: raccoglie tutte le classi che rappresentano delle eccezioni.
   - **AttachmentType**: contiene degli interi che categorizzano un allegato di un 
 messaggio.
+- `utils.py`: contiene funzioni che possono tornare utili a tutti gli altri moduli; è come se fosse 
+una cassetta degli attrezzi.
+- `persistence.py`: definisce la classe persistenza; inizializza, carica, aggiorna e compie 
+tutte quelle operazioni che salvano informazioni nella persistenza, all'interno del db Postgres.
+- `loggers.py`: crea e setta i vari logger.
+- `job_queue_functions.py`: contiene tutte le funzioni che agiscono sulla Job Queue.
