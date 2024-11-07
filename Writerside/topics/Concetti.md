@@ -1,3 +1,0 @@
-# Concetti
-
-Start typing here...
