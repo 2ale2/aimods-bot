@@ -6,6 +6,14 @@ aimods_bot/misc/logs
 aimods_bot/misc/NOTE.txt
 aimods_bot/.env
 aimods_bot/modules/__pycache__
+aimods_bot/untitled/.idea
+untitled/Writerside/.idea
+untitled/Writerside/cfg
+untitled/Writerside/c.list
+untitled/Writerside/in.tree
+untitled/Writerside/ug.tree
+untitled/Writerside/v.list
+untitled/Writerside/writerside.cfg
 
 .python-version
 .env
