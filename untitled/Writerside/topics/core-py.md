@@ -86,6 +86,8 @@ Tale dizionario viene poi ritornato.
 
 > Esegue una connessione al database Postgres.
 
+<warning>Perché non in <code>utils.py</code>?</warning>
+
 Questa funzione viene usata da tutte le funzioni che richiedono una connessione al 
 database. Il valore di ritorno è la variabile _Connection_ utilizzabile per compiere 
 query.
