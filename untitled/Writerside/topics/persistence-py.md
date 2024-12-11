@@ -147,3 +147,8 @@ Il metodo chiama quello omonimo della classe padre `DictPersistence`, passando i
 <code-block>CDCData = Tuple[List[Tuple[str, float, Dict[str, Any]]], Dict[str, str]]</code-block>
 
 Il metodo chiama quello omonimo della classe padre `DictPersistence`, passando i parametri ottenuti.
+
+## Metodo `flush`
+> Concede alla persistenza il tempo di arrestarsi scongiurando errori.
+
+La funzione viene chiamata in automatico quando l'Updater riceve un segnale d'arresto.
