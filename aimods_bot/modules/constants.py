@@ -66,7 +66,7 @@ for topic in TOPICS["all"].values():
 
 
 @dataclass(frozen=True)
-class Limitations(IntEnum):
+class Permissions(IntEnum):
     SEND_MESSAGES = 0
     SEND_ALL_MEDIA = 1
     SEND_PHOTO = 2
@@ -74,7 +74,7 @@ class Limitations(IntEnum):
     SEND_VIDEO_MESSAGES = 4
     SEND_MUSIC = 5
     SEND_FILES = 6
-    SEND_STICKERS_GIFTS = 7
+    SEND_STICKERS_GIFS = 7
     SEND_EMBEDDED_LINKS = 8
     SEND_POOLS = 9
     ADD_MEMBERS = 10
