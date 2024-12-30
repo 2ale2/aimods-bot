@@ -83,27 +83,6 @@ class Permissions(IntEnum):
     CHANGE_GROUP_INFO = 13
 
 
-@dataclass
-class DatabaseException(Exception):
-    error_message = 'Qualcosa è andato storto col database. Leggi i log.'
-
-
-@dataclass
-class JobQueueException(Exception):
-    error_message = 'Errore nell\'esecuzione di un\'azione programmata. Controlla i log.'
-
-
-@dataclass(frozen=True)
-class Exceptions(Exception):
-    DatabaseException = DatabaseException,
-    JobQueueException = JobQueueException
-
-
-@dataclass(frozen=True)
-class LogType(IntEnum):
-    MODERATION_ERROR_LOG = 0
-
-
 @dataclass(frozen=True)
 class AttachmentType(IntEnum):
     IMAGE: 0

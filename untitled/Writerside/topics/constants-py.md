@@ -129,5 +129,8 @@ rappresenterà il valore dell'attributo.
 - `CREATE_TOPICS`: limitazione sulla creazione di topic.
 - `CHANGE_GROUP_INFO`: limitazione sulla modifica delle informazioni del gruppo.
 
+## Classe `AttachmentType`
 
+> È una classe che associa ad ogni tipo di allegato un intero. Può essere usata per identificare rapidamente
+> il tipo di allegato di un messaggio.
 
