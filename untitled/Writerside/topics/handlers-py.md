@@ -80,3 +80,33 @@ handlers.append(
     Questi handlers gestisco un flusso di conversazione. Sono in genere più complessi e hanno compiti molto specifici,
     come guidare un utente o un admin a compiere una determinata azione.
 </note>
+1. **Handler per accettare la richiesta di _join_ di un utente**
+<code-block>
+ConversationHandler(
+        entry_points=[
+            ChatJoinRequestHandler(
+                callback=handlers_function.new_member_joined_forum
+            ),
+            CommandHandler(
+                command="request", 
+                callback=handlers_function.new_member_joined_forum
+            )
+        ],
+        states={
+            RULES_ACCEPTED: [
+                CallbackQueryHandler(
+                    callback=handlers_function.new_member_accepted_the_rules,
+                    pattern="^accept_rules.+$")
+            ]
+        },
+        fallbacks=[
+            CommandHandler(
+                command="request", 
+                callback=handlers_function.new_member_joined_forum
+            )
+        ],
+        per_chat=False,
+        name="join_handler",
+        persistent=True
+)
+</code-block>

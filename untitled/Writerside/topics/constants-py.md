@@ -134,3 +134,12 @@ rappresenterà il valore dell'attributo.
 > È una classe che associa ad ogni tipo di allegato un intero. Può essere usata per identificare rapidamente
 > il tipo di allegato di un messaggio.
 
+Di seguito i diversi tipi di allegato (non completa, solo i tipi necessari):
+1. `IMAGE`: immagine
+2. `VIDEO`: video
+3. `AUDIO`: file audio
+4. `VOICE`: nota audio
+5. `DOCUMENT`: file non audio
+6. `STICKER`: sticker
+7. `POLL`: sondaggio
+
