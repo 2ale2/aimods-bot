@@ -29,6 +29,12 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
+    data = context.job.data
+
+    if "chat_id" not in data or "message_id" not in data or "text" not in data:
+        job_queue_logger.warn("'chat_id', 'message_id' or 'text' are missing in JobQueue data.")
+        return
+
     chat_id = context.job.data["chat_id"]
     message_id = context.job.data["message_id"]
     text = context.job.data["text"]
