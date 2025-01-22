@@ -39,16 +39,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         except telegram.error.BadRequest:
             pass
 
-    if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
-        keyboard = [
-            [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n"
-                                                                              "Usa /rules per leggere le regole.",
-                                       reply_markup=reply_markup)
-        return ConversationHandler.END
-
     if await user_is_banned(user_id=update.effective_user.id,
                             chat_id=context.bot_data["group_chat_id"],
                             context=context):
@@ -58,6 +48,16 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                                  parse_mode="HTML")
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,
                                    data={"message_id": message.message_id, "chat_id": update.effective_user.id})
+        return ConversationHandler.END
+
+    if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
+        keyboard = [
+            [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n"
+                                                                              "Usa /rules per leggere le regole.",
+                                       reply_markup=reply_markup)
         return ConversationHandler.END
 
     if update.chat_join_request and "group_join_request" not in context.user_data:

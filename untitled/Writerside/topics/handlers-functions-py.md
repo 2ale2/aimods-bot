@@ -17,4 +17,19 @@ pannello di controllo, altrimenti viene mostrato un messaggio di benvenuto.
 
 > Gestisce gli step della conversazione per l'aggiunta di un nuovo membro al gruppo.
 
+Siccome la funzione risponde anche al comando `/request`, la funzione controlla ed elimina il rispettivo comando (per 
+mere questioni di ordine).
+
+La funzione controlla, dapprima, se l'utente che ha fatto richiesta è stato bannato, nel qual caso il bot risponde
+avvertendo l'utente del ban e chiude la conversazione.
+
+Qualora la conversazione non è terminata nei casi precedenti, la funzione controlla se l'utente che ha fatto 
+richiesta si trova già nel gruppo oppure no: se lo è, manda un messaggio che rimanda al gruppo e suggerisce il comando 
+`/rules` per stampare le regole. In questo caso, la conversazione viene terminata.
+
+A questo punto, si vuole capire se l'utente ha cominciato la conversazione tramite comando `/request` oppure facendo 
+una richiesta sul gruppo della community. In quest'ultimo caso, la funzione crea una variabile all'interno dello 
+`user_data` associato all'utente, che tiene conto del fatto che l'utente ha fatto richiesta di entrare.
+Dopo tale controllo, se tale variabile non è presente, significa che la conversazione è stata avviata tramite comando
+`/requests`.
 
