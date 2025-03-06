@@ -23,7 +23,7 @@ mere questioni di ordine).
 La funzione controlla, dapprima, se l'utente che ha fatto richiesta è stato bannato, nel qual caso il bot risponde
 avvertendo l'utente del ban e chiude la conversazione.
 
-Qualora la conversazione non è terminata nei casi precedenti, la funzione controlla se l'utente che ha fatto 
+Qualora la conversazione non fosse terminata nei casi precedenti, la funzione controlla se l'utente che ha fatto 
 richiesta si trova già nel gruppo oppure no: se lo è, manda un messaggio che rimanda al gruppo e suggerisce il comando 
 `/rules` per stampare le regole. In questo caso, la conversazione viene terminata.
 
@@ -32,4 +32,20 @@ una richiesta sul gruppo della community. In quest'ultimo caso, la funzione crea
 `user_data` associato all'utente, che tiene conto del fatto che l'utente ha fatto richiesta di entrare.
 Dopo tale controllo, se tale variabile non è presente, significa che la conversazione è stata avviata tramite comando
 `/requests`.
+
+Se l'utente ha cominciato la conversazione facendo richiesta, allora il bot invia il messaggio con le regole da 
+accettare tramite tasto entro 10 minuti. Se dopo tale tempo l'utente non ha accettato le regole, allora il bot
+modifica il messaggio che richiede di mandare il comando `/request` per poter completare la verifica.
+
+
+## Funzione `new_member_accepted_the_rules`
+
+> La funzione accetta la richiesta di join dell'utente.
+
+Se l'utente accetta le regole, viene rimosso il countdown di accettazione delle regole, il bot accetta la sua 
+richiesta e viene linkato il gruppo.
+
+## Funzione `delete_group_message`
+
+> Rimuove il messaggio selezionato tramite comando.
 
