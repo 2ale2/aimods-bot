@@ -1,16 +1,12 @@
 from copy import deepcopy
-from datetime import datetime, timedelta
 
 import telegram.error
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ContextTypes, ConversationHandler, CallbackContext
 
-import core
-import database_functions
 import job_queue_functions
-from constants import Exceptions, Scopes
-from loggers import command_logger, db_logger
+from constants import Scopes
 
 RULES_ACCEPTED = 0
 
@@ -155,99 +151,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 
 # COMANDO RIMOZIONE MESSAGGI
 async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Rimuove il messaggio selezionato tramite comando.
-    :param update: Update: l'Update da gestire
-    :param context: ContextTypes: il contesto dell'istanza di Application
-    :return:
-    """
-    scopes = Scopes()
-    message = deepcopy(update.message)
-
-    try:
-        await context.bot.delete_message(chat_id=update.effective_chat.id,
-                                         message_id=update.message.message_id)
-    except telegram.error.TelegramError:
-        pass
-
-    if is_admin(update.effective_user.id, context):
-        if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
-            reply_markup = InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton(text='Open It Privately 💬',
-                                          callback_data=f'open_private_alert {update.effective_user.id}')]
-                ]
-            )
-            admin_identifier = (update.effective_user.username or
-                                update.message.reply_to_message.from_user.id)
-            text = f'🔐 Message for [{update.effective_user.first_name}](tg;//user?=id={admin_identifier})' \
-                if admin_identifier.isnumeric() else f'🔐 Message for @{update.effective_user.username}'
-
-            await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
-                                           message_thread_id=(message.message_thread_id
-                                                              if message.message_thread_id
-                                                              in scopes.FORUM_SCOPE.topics else None),
-                                           text=text,
-                                           reply_markup=reply_markup)
-            return
-
-        if datetime.now(message.reply_to_message.date.tzinfo) - message.reply_to_message.date > timedelta(hours=48):
-            message = await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                     message_thread_id=update.effective_message.message_thread_id,
-                                                     text="⚠️ Non posso rimuovere il messaggio perché è stato mandato"
-                                                          " più di 48 ore fa.\n\n💡 Puoi rimuoverlo manualmente, "
-                                                          "ma non verrà memorizzato.")
-            core.command_logger.error("Message cannot be deleted from bot cause it was sent more than 48h ago.")
-            context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
-                                       data={"chat_id": context.bot_data["group_chat_id"],
-                                             "message_id": message.id},
-                                       when=15)
-            return
-
-        user_identifier = (update.message.reply_to_message.from_user.username or
-                           update.message.reply_to_message.from_user.id)
-
-        reason = ('_' + ' '.join(context.args if message.text.startswith('/') else message.text.split(' ')[1:])
-                  + '_') if len(message.text.split(' ')) > 1 else '`no reason given`'
-        try:
-            await database_functions.add_to_table(table_name='deleted_messages', content=update)
-            await context.bot.delete_message(chat_id=context.bot_data["group_chat_id"],
-                                             message_id=message.reply_to_message.message_id)
-        except telegram.error.TelegramError as e:
-            core.command_logger.error(f"Message cannot be deleted: {e}")
-        except Exceptions.DatabaseException as e:
-            command_logger.error(f'Something went wrong while operating with database: {e.error_message}')
-            db_logger.error(f'Something went wrong while operating with database: {e.error_message}')
-        else:
-            if isinstance(user_identifier, int):
-                text = (f'♻️ Message sent by '
-                        f'[{update.message.reply_to_message.from_user.first_name}](tg://user?id={user_identifier})'
-                        f' was removed: {reason}')
-            else:
-                text = f'♻️ Message sent by @{user_identifier} was removed: {reason}'
-
-            message = await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                     message_thread_id=(message.message_thread_id
-                                                                        if message.message_thread_id
-                                                                           in scopes.FORUM_SCOPE.topics else None),
-                                                     text=text, parse_mode="MARKDOWN")
-
-            context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
-                                       data={"chat_id": context.bot_data["group_chat_id"],
-                                             "message_id": message.id},
-                                       when=60)
-
-    else:
-        message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],
-                                                 message_thread_id=(message.message_thread_id
-                                                                    if message.message_thread_id
-                                                                    in scopes.FORUM_SCOPE.topics else None),
-                                                 text="⚠️ Solo gli admin A&I Mods possono rimuovere i messaggi.")
-
-        context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
-                                   data={"chat_id": context.bot_data["group_chat_id"],
-                                         "message_id": message.id},
-                                   when=15)
+    pass
 
 
 async def alert_del_message_not_selected(update: Update, context: CallbackContext):
@@ -273,12 +177,12 @@ async def alert_del_message_not_selected(update: Update, context: CallbackContex
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        await context.bot.delete_message(chat_id=update.effective_user.id,
+        await context.bot.delete_message(chat_id=update.effective_chat.id,
                                          message_id=update.effective_message.id)
     except telegram.error.BadRequest:
         pass
 
-    message = await context.bot.send_message(chat_id=update.effective_user.id,
+    message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                              text=context.bot_data["rules_text"],
                                              parse_mode="HTML")
     keyboard = [

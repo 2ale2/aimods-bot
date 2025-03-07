@@ -47,5 +47,24 @@ richiesta e viene linkato il gruppo.
 
 ## Funzione `delete_group_message`
 
-> Rimuove il messaggio selezionato tramite comando.
+> Rimuove il messaggio selezionato tramite comando `/del`.
+
+<warning>La riscrivo perché fa cacare.</warning>
+
+
+## Funzione `alert_del_message_not_selected`
+
+> Apre un messaggio privato per un admin specifico.
+
+<warning>
+Da generalizzare (messaggio all'interno della memoria del bot, `callback` con prefisso e desinenza univoca).
+</warning>
+
+La funzione controlla che l'utente che ha premuto il tasto sia il destinatario del messaggio; se lo è, apre un alert
+con il messaggio indicato, dopodiché elimina il messaggio con il tasto.
+
+## Funzione `send_rules`
+
+> Invia un messaggio con le regole del gruppo.
+
 
