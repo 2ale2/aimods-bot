@@ -4,9 +4,10 @@
 from typing import Set, Union
 from enum import IntEnum
 from dataclasses import dataclass, field
-import core
+from utils import get_data_from_json
+from telegram import Video, Audio, Voice, Document, Sticker, Poll
 
-TOPICS = core.get_data_from_json("forum_topics")
+TOPICS = get_data_from_json("forum_topics")
 
 '''
 scope
@@ -85,10 +86,22 @@ class Permissions(IntEnum):
 
 @dataclass(frozen=True)
 class AttachmentType(IntEnum):
-    IMAGE: 0
-    VIDEO: 1
-    AUDIO: 2
-    VOICE: 4
-    DOCUMENT: 5
-    STICKER: 6
-    POLL: 7
+    IMAGE = 0
+    VIDEO = 1
+    AUDIO = 2
+    VOICE = 4
+    DOCUMENT = 5
+    STICKER = 6
+    POLL = 7
+
+    @classmethod
+    async def get_attachment_type(cls, attachment):
+        match attachment:
+            case list(): return cls.IMAGE
+            case Video(): return cls.VIDEO
+            case Audio(): return cls.AUDIO
+            case Voice(): return cls.VOICE
+            case Document(): return cls.DOCUMENT
+            case Sticker(): return cls.STICKER
+            case Poll(): return cls.POLL
+            case _: raise ValueError("Tipo di allegato non supportato")

@@ -57,7 +57,7 @@ richiesta e viene linkato il gruppo.
 > Apre un messaggio privato per un admin specifico.
 
 <warning>
-Da generalizzare (messaggio all'interno della memoria del bot, `callback` con prefisso e desinenza univoca).
+Da generalizzare (messaggio all'interno della memoria del bot, <code>callback</code> con prefisso e desinenza univoca).
 </warning>
 
 La funzione controlla che l'utente che ha premuto il tasto sia il destinatario del messaggio; se lo è, apre un alert

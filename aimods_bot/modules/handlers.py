@@ -8,7 +8,7 @@ RULES_ACCEPTED = 0
 
 def create_handlers() -> list:
     """Crea gli handler e li pone all'interno di una lista; poi la ritorna."""
-    handlers = list()
+    handlers = []
 
     # - command handlers
     # -- start command

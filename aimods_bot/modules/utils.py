@@ -1,6 +1,25 @@
-from telegram import Video, Audio, Voice, Document, Sticker, Poll
+import json
+import os
+import psycopg
 
-from aimods_bot.modules.constants import AttachmentType
+from aimods_bot.modules.loggers import db_logger
+
+
+def get_env(env: str):
+    """
+    :param env:  nome variabile ambiente
+    :return:    contenuto della variabile ambiente
+    """
+    return os.getenv(env)
+
+
+def get_data_from_json(data: str):
+    """
+    :return:    il contenuto del file di configurazione json richiesto
+    """
+    with open("aimods_bot/misc/data.json", encoding="utf-8", mode="r") as fp:
+        content = json.load(fp)
+        return content[data]
 
 
 async def get_file(file):
@@ -12,24 +31,10 @@ async def get_file(file):
         await get_file(file[-1])
 
 
-async def get_attachment_type(attachment):
-    if isinstance(attachment, list):
-        return AttachmentType.IMAGE
-
-    if isinstance(attachment, Video):
-        return AttachmentType.VIDEO
-
-    if isinstance(attachment, Audio):
-        return AttachmentType.AUDIO
-
-    if isinstance(attachment, Voice):
-        return AttachmentType.VOICE
-
-    if isinstance(attachment, Document):
-        return AttachmentType.DOCUMENT
-
-    if isinstance(attachment, Sticker):
-        return AttachmentType.STICKER
-
-    if isinstance(attachment, Poll):
-        return AttachmentType.POLL
+def connect_to_database():
+    try:
+        conn = psycopg.connect(get_env("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
+    except psycopg.Error as e:
+        db_logger.error(f'Unable to access database: {e}')
+        raise psycopg.Error(f'Unable to access database: {e}')
+    return conn

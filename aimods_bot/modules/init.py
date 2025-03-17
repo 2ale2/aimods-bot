@@ -2,9 +2,8 @@ import logging
 
 from telegram.ext import ApplicationBuilder
 
-from aimods_bot.modules import core
+from aimods_bot.modules import utils, core, handlers
 from aimods_bot.modules.persistence import PostgresPersistence
-from aimods_bot.modules import handlers
 from aimods_bot.modules.constants import Scopes
 
 logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -18,8 +17,8 @@ SCOPES = Scopes()
 
 
 def main():
-    application = ApplicationBuilder().token(core.get_env("BOT_TOKEN")).persistence(
-        PostgresPersistence(url=core.get_env("POSTGRES_CONNECTION_URL"))
+    application = ApplicationBuilder().token(utils.get_env("BOT_TOKEN")).persistence(
+        PostgresPersistence(url=utils.get_env("POSTGRES_CONNECTION_URL"))
     ).post_init(core.set_application_data).build()
 
     application.add_handlers(handlers.create_handlers())

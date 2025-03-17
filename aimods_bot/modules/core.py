@@ -1,22 +1,16 @@
 # raccoglie tutti i dati che servono al funzionamento del bot
 
-import json
 import os
+
 import psycopg
 from dotenv import load_dotenv
 from telegram.ext import Application
 
-from loggers import db_logger, command_logger
+from aimods_bot.modules.exceptions import DatabaseBotException
+from loggers import db_logger
+from utils import connect_to_database, get_data_from_json
 
 load_dotenv()
-
-
-def get_env(env: str):
-    """
-    :param env:  nome variabile ambiente
-    :return:    contenuto della variabile ambiente
-    """
-    return os.getenv(env)
 
 
 async def set_application_data(application: Application):
@@ -26,6 +20,7 @@ async def set_application_data(application: Application):
     Per esempio, se l'elenco admin viene modificato ma, dalla modifica all'arresto del bot, la persistenza non
     si aggiorna (nessun update), l'elenco all'avvio non risulta modificato. Questa funzione sopperisce alla mancanza.
     """
+    # noinspection PyNoneFunctionAssignment
     admins = get_admins_from_db()
     if 'admins' not in application.bot_data or application.bot_data["admins"] != admins:
         application.bot_data["admins"] = admins
@@ -48,15 +43,6 @@ async def set_application_data(application: Application):
         application.bot_data["rules_text"] = rules_text
 
 
-def get_data_from_json(data: str):
-    """
-    :return:    il contenuto del file data.json richiesto
-    """
-    with open("aimods_bot/misc/data.json", encoding="utf-8", mode="r") as fp:
-        topics = json.load(fp)
-        return topics[data]
-
-
 def get_admins_from_db():
     """
     :return: l'elenco corrente di admin all'interno del db
@@ -65,19 +51,9 @@ def get_admins_from_db():
     try:
         res = conn.cursor().execute("SELECT (admin_id, username) from admins").fetchall()
     except psycopg.Error as err:
-        pass
-        db_logger.error(f"Unable to collect (admin_id, username) from admins table: {err}")
+        DatabaseBotException(f"non è stato possibile reperire la lista degli admin (generic database error)\n\t{err}")
     else:
         db_logger.info("Operation Success: admin list gathered.")
         return {c[0][0]: c[0][1].strip('{}') for c in res}
     finally:
         conn.close()
-
-
-def connect_to_database():
-    try:
-        conn = psycopg.connect(get_env("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
-    except psycopg.Error as e:
-        db_logger.error(f'Unable to access database: {e}')
-        raise psycopg.Error(f'Unable to access database: {e}')
-    return conn
