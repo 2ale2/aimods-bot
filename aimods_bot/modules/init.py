@@ -4,7 +4,6 @@ from telegram.ext import ApplicationBuilder
 
 from aimods_bot.modules import utils, core, handlers
 from aimods_bot.modules.persistence import PostgresPersistence
-from aimods_bot.modules.constants import Scopes
 
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
@@ -12,8 +11,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-
-SCOPES = Scopes()
 
 
 def main():

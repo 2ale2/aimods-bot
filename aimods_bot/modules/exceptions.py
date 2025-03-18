@@ -27,3 +27,10 @@ class QueryException(DatabaseBotException):
         else:
             super().__init__(self.message + f" ({self.code}).\n\t{self.query}", self.code)
 
+
+class AlertException(BotException):
+    def __init__(self, message="mancano dei parametri nei dati della callback query", code=2000):
+        super().__init__(message + f" ({code})")
+        self.message = message
+        self.code = code
+

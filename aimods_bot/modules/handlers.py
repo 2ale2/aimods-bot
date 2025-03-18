@@ -2,6 +2,7 @@ from telegram.ext import (CommandHandler, MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters)
 
 import handlers_function
+import utils
 
 RULES_ACCEPTED = 0
 
@@ -22,8 +23,8 @@ def create_handlers() -> list:
                                    callback=handlers_function.delete_group_message))
     handlers.append(MessageHandler(filters=filters.TEXT & filters.Regex('^!del'),
                                    callback=handlers_function.delete_group_message))
-    handlers.append(CallbackQueryHandler(callback=handlers_function.alert_del_message_not_selected,
-                                         pattern="^open_private_alert.+$"))
+    handlers.append(CallbackQueryHandler(callback=utils.open_private_alert,
+                                         pattern="^alert.+$"))
 
     handlers.append(CommandHandler("limit", callback=handlers_function.limit_user))
 

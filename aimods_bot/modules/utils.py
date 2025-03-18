@@ -1,8 +1,16 @@
 import json
 import os
-import psycopg
+from uuid import uuid4
 
+import psycopg
+import telegram
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ChatAction
+from telegram.ext import ContextTypes
+
+from aimods_bot.modules.exceptions import AlertException
 from aimods_bot.modules.loggers import db_logger
+from aimods_bot.modules import job_queue_functions
 
 
 def get_env(env: str):
@@ -11,6 +19,98 @@ def get_env(env: str):
     :return:    contenuto della variabile ambiente
     """
     return os.getenv(env)
+
+async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id
+        )
+    except telegram.error.BadRequest:
+        pass
+
+
+async def send_private_alert(update: Update,
+                             context: ContextTypes.DEFAULT_TYPE,
+                             text: str,
+                             button_text="Open It Privately 💬",
+                             delay=0):
+    """
+        Invia un messaggio con un'azione privata e un pulsante inline per aprirlo.
+
+        Args:
+            update: L'oggetto update di Telegram.
+            context: Il contesto della callback.
+            text (str): Il testo del messaggio di alert.
+            button_text (str): Il testo del pulsante inline (default: "Open It Privately 💬").
+            delay (int): Tempo in secondi prima di inviare il messaggio (default: 2s).
+        """
+
+    if "alerts" not in context.user_data:
+        context.user_data["alerts"] = {}
+
+    alert_id = str(uuid4())
+    context.user_data["alerts"][alert_id] = text
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                button_text,
+                callback_data=f"alert_{update.effective_user.id}_{alert_id}"
+            )
+        ]
+    ]
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        message_thread_id=update.effective_message.message_thread_id,
+        action=ChatAction.TYPING
+    )
+
+    if delay > 0:
+        context.job_queue.run_once(
+            callback=job_queue_functions.scheduled_send_message,
+            data={
+                "chat_id": update.effective_chat.id,
+                "thread_id": update.effective_message.message_thread_id,
+                "text": f"🔐 Message for {update.effective_user.name}",
+                "reply_markup": InlineKeyboardMarkup(keyboard)
+            },
+            when=delay
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            message_thread_id=update.effective_message.message_thread_id,
+            text=f"🔐 Message for {update.effective_user.name}",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+async def open_private_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    infos = update.callback_query.data.split("_")
+    if len(infos) != 3:
+        raise AlertException()
+
+    recipient = int(infos[1])
+    alert_id = infos[2]
+
+    if update.effective_user.id != recipient:
+        return
+
+    if "alerts" in context.user_data:
+        for alert in context.user_data["alerts"]:
+            if alert == alert_id:
+                text = context.user_data["alerts"][alert]
+                await update.callback_query.answer(
+                    text=text,
+                    show_alert=True
+                )
+                context.user_data["alerts"].pop(alert, None)
+                break
+
+    await update.effective_message.delete()
+
 
 
 def get_data_from_json(data: str):

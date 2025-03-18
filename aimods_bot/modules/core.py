@@ -42,6 +42,8 @@ async def set_application_data(application: Application):
     if 'rules_text' not in application.bot_data or application.bot_data["rules_text"] != rules_text:
         application.bot_data["rules_text"] = rules_text
 
+    application.bot_data["jobs"] = {}
+
 
 def get_admins_from_db():
     """

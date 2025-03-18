@@ -1,5 +1,8 @@
 import telegram.error
 from telegram.ext import ContextTypes
+import asyncio
+from uuid import uuid4
+from telegram.constants import ChatAction
 
 from loggers import job_queue_logger
 
@@ -16,15 +19,30 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
-    data = context.job.data
-    if "chat_id" not in data or "text" not in data or "reply_markup" not in data:
-        job_queue_logger.warn("'chat_id' or 'message_id' are missing in JobQueue data.")
+    job = context.job
+    data = job.data
+
+    if "chat_id" not in data or "text" not in data:
+        job_queue_logger.warn("'chat_id' or 'text' are missing in JobQueue data.")
         return
+
+    job_to_edit = None
+    for j in context.bot_data["jobs"]:
+        if j == job.name:
+            job_to_edit = j
+            break
+
     try:
-        await context.bot.send_message(chat_id=data["chat_id"], text=data["text"],
-                                       reply_markup=data["reply_markup"],
-                                       parse_mode="HTML")
+        message = await context.bot.send_message(chat_id=data["chat_id"], text=data["text"],
+                                                 reply_markup=data["reply_markup"] if "reply_markup" in data else None,
+                                                 message_thread_id=data["thread_id"] if "thread_id" in data else None,
+                                                 parse_mode="HTML")
+        if job_to_edit:
+            context.bot_data["jobs"][job_to_edit]["returned_value"] = message.id
+            context.bot_data["jobs"][job_to_edit]["done"] = True
     except telegram.error.TelegramError as e:
+        if job_to_edit:
+            context.bot_data["jobs"].pop(job_to_edit, None)
         job_queue_logger.error(f'Not able to perform scheduled action: {e}')
 
 
@@ -46,3 +64,62 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
                                             reply_markup=reply_markup, parse_mode="HTML")
     except telegram.error.TelegramError as e:
         job_queue_logger.error(f'Not able to perform scheduled action: {e}')
+
+
+async def send_temporary_message(update, context, text, delay_before=2, delay_delete=10):
+    """
+    Invia un messaggio temporaneo e lo elimina dopo un certo tempo.
+
+    Args:
+        update: L'oggetto update di Telegram.
+        context: Il contesto della callback.
+        text (str): Il testo del messaggio da inviare.
+        delay_before (int): Tempo in secondi prima di inviare il messaggio (default: 2s).
+        delay_delete (int): Tempo in secondi prima di eliminare il messaggio (default: 10s).
+    """
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        message_thread_id=update.effective_message.message_thread_id,
+        action=ChatAction.TYPING
+    )
+
+    job_id = str(uuid4())
+
+    job = context.job_queue.run_once(
+        callback=scheduled_send_message,
+        data={
+            "chat_id": update.effective_chat.id,
+            "thread_id": update.effective_message.message_thread_id,
+            "text": text
+        },
+        when=delay_before,
+        name=job_id
+    )
+
+    context.bot_data["jobs"][job_id] = {
+        "job": job,
+        "returned_value": None,
+        "done": False
+    }
+
+    # Attendi il completamento del job
+    while not context.bot_data["jobs"][job_id]["done"]:
+        await asyncio.sleep(0.1)
+
+    # Ottieni l'ID del messaggio restituito
+    message_id = context.bot_data["jobs"][job_id]["returned_value"]
+
+    # Rimuovi il job dalla lista
+    context.bot_data["jobs"].pop(job_id, None)
+
+    # Pianifica l'eliminazione del messaggio
+    context.job_queue.run_once(
+        callback=scheduled_delete_message,
+        data={
+            "chat_id": update.effective_chat.id,
+            "message_id": message_id
+        },
+        when=delay_delete
+    )
+
