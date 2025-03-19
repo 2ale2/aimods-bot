@@ -1,18 +1,17 @@
-import asyncio
 import copy
+import pytz
 from copy import deepcopy
 
 import telegram.error
-from uuid import uuid4
-from utils import *
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ChatMemberStatus, ChatAction
-from telegram.ext import ConversationHandler, CallbackContext
+from telegram.constants import ChatMemberStatus
+from telegram.ext import ConversationHandler
+from datetime import datetime, timedelta
 
-import job_queue_functions
 from constants import Scopes
+from utils import *
 
 RULES_ACCEPTED = 0
+italian_pytz = pytz.timezone('Europe/Rome')
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,22 +129,13 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     # if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
     #     job[0].schedule_removal()
     #
-    # if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
-    #     keyboard = [
-    #         [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
-    #     ]
-    #     reply_markup = InlineKeyboardMarkup(keyboard)
-    #     await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
-    #                                                 user_id=update.effective_user.id)
-    #     del context.user_data["group_join_request"]
-    #     await context.bot.edit_message_text(message_id=update.effective_message.message_id,
-    #                                         chat_id=update.effective_user.id,
-    #                                         text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods "
-    #                                              "ti dà il benvenuto. Grazie per averci scelto 😃",
-    #                                         parse_mode="HTML",
-    #                                         reply_markup=reply_markup)
-    #     return ConversationHandler.END
-
+    # if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]: keyboard = [ [
+    # InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")] ] reply_markup =
+    # InlineKeyboardMarkup(keyboard) await context.bot.approve_chat_join_request(chat_id=context.bot_data[
+    # "group_chat_id"], user_id=update.effective_user.id) del context.user_data["group_join_request"] await
+    # context.bot.edit_message_text(message_id=update.effective_message.message_id, chat_id=update.effective_user.id,
+    # text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods " "ti dà il benvenuto. Grazie per
+    # averci scelto 😃", parse_mode="HTML", reply_markup=reply_markup) return ConversationHandler.END
 
 # }
 
@@ -161,7 +151,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             update=update,
             context=context,
             text="⚠️ Solo gli admin possono eseguire questa azione.",
-            delay_before=2, # per la chat action
+            delay_before=2,  # per la chat action
             delay_delete=10
         )
         return
@@ -174,6 +164,23 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             delay=1
         )
         return
+
+    if (message_date := update.effective_message.reply_to_message.date).tzinfo is None:
+        message_date.replace(tzinfo=italian_pytz)
+
+    if datetime.now() - update.effective_message.reply_to_message.date > timedelta(seconds=10):
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="⚠️ WARNING\n\nIl messaggio non può essere rimosso, perché è stato mandato più di 48 ore fa.",
+            delay=1
+        )
+        return
+
+    if context.args:
+        reason = ' '.join(context.args)
+    else:
+        reason = "<code>no reason given</code>"
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -217,7 +224,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                               text=text,
                                                               message_thread_id=(message.message_thread_id
                                                                                  if message.message_thread_id
-                                                                                    in scopes.FORUM_SCOPE.topics else None)
+                                                                                 in scopes.FORUM_SCOPE.topics else None)
                                                               )
 
                 context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,
