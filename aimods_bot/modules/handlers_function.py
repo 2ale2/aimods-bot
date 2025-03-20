@@ -1,5 +1,4 @@
 import copy
-import pytz
 from copy import deepcopy
 
 import telegram.error
@@ -7,11 +6,11 @@ from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 from datetime import datetime, timedelta
 
+from aimods_bot.modules.loggers import command_logger
 from constants import Scopes
 from utils import *
 
 RULES_ACCEPTED = 0
-italian_pytz = pytz.timezone('Europe/Rome')
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -110,20 +109,37 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
         await context.bot.delete_message(chat_id=update.effective_user.id,
                                          message_id=update.effective_message.message_id)
-        await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
+
+        await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
+                                                    user_id=update.effective_user.id)
+
         keyboard = [
             [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],
-                                                    user_id=update.effective_user.id)
-        data = {
-            "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
-                    "Grazie per averci scelto 😃",
-            "chat_id": update.effective_user.id,
-            "reply_markup": reply_markup
-        }
-        context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
+
+        await send_action_message_after(
+            update=update,
+            context=context,
+            text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
+                 "Grazie per averci scelto 😃",
+            additional_job_data={
+                "reply_markup": InlineKeyboardMarkup(keyboard)
+            }
+        )
+
+        # await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
+        # keyboard = [
+        #     [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
+        # ]
+        # reply_markup = InlineKeyboardMarkup(keyboard)
+        #
+        # data = {
+        #     "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
+        #             "Grazie per averci scelto 😃",
+        #     "chat_id": update.effective_user.id,
+        #     "reply_markup": reply_markup
+        # }
+        # context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
         return ConversationHandler.END
 
     # if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
@@ -137,12 +153,13 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     # text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods " "ti dà il benvenuto. Grazie per
     # averci scelto 😃", parse_mode="HTML", reply_markup=reply_markup) return ConversationHandler.END
 
+
 # }
 
 
 # COMANDO RIMOZIONE MESSAGGI
 async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = copy.deepcopy(update.effective_message)
+    message = copy.deepcopy(update.effective_message.reply_to_message)
 
     await delete_effective_message(update, context)
 
@@ -165,14 +182,11 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
 
-    if (message_date := update.effective_message.reply_to_message.date).tzinfo is None:
-        message_date.replace(tzinfo=italian_pytz)
-
-    if datetime.now() - update.effective_message.reply_to_message.date > timedelta(seconds=10):
+    if datetime.now((message_date := message.reply_to_message.date).tzinfo) - message_date > timedelta(hours=48):
         await send_private_alert(
             update=update,
             context=context,
-            text="⚠️ WARNING\n\nIl messaggio non può essere rimosso, perché è stato mandato più di 48 ore fa.",
+            text="⚠️ Warning\n\nIl messaggio non può essere rimosso, perché è stato mandato più di 48 ore fa.",
             delay=1
         )
         return
@@ -181,6 +195,22 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         reason = ' '.join(context.args)
     else:
         reason = "<code>no reason given</code>"
+
+    try:
+        await update.effective_message.reply_to_message.delete()
+    except telegram.error.BadRequest as e:
+        command_logger.error(f"Errore nella rimozione di un messaggio: {e}")
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="❌ Error\n\nIl messaggio non può essere rimosso a causa di un errore. Controlla i log dei comandi.",
+            delay=1
+        )
+        return
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+        )
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,7 +254,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                               text=text,
                                                               message_thread_id=(message.message_thread_id
                                                                                  if message.message_thread_id
-                                                                                 in scopes.FORUM_SCOPE.topics else None)
+                                                                                    in scopes.FORUM_SCOPE.topics else None)
                                                               )
 
                 context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,

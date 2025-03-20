@@ -20,6 +20,7 @@ def get_env(env: str):
     """
     return os.getenv(env)
 
+
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.delete_message(
@@ -108,9 +109,26 @@ async def open_private_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 )
                 context.user_data["alerts"].pop(alert, None)
                 break
+    try:
+        await update.effective_message.delete()
+    except telegram.error.BadRequest:
+        pass
 
-    await update.effective_message.delete()
 
+async def send_action_message_after(update: Update,
+                                    context: ContextTypes.DEFAULT_TYPE,
+                                    text: str,
+                                    recipient_id=None,
+                                    time=1,
+                                    additional_job_data=None):
+    await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
+
+    job_data = (additional_job_data if additional_job_data is not None else {}) | {
+        "text": text,
+        "chat_id": recipient_id if recipient_id is not None else update.effective_chat.id,
+    }
+
+    context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=job_data, when=time)
 
 
 def get_data_from_json(data: str):
