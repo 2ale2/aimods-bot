@@ -4,34 +4,48 @@ from psycopg import connect
 import pytz
 import psycopg
 import telegram
+from telegram import Update
+
 from loggers import db_logger
-import core
 
 from exceptions import DatabaseBotException
 
 
-async def add_to_table(table_name: str, content: ...):
-    if content is None:
-        db_logger.error("Content cannot be None")
-        return DatabaseBotException("Content cannot be None")
-    if (conn := connect_to_database()) is None:
-        db_logger.error("Connection instance is None.")
-        raise DatabaseBotException("Connection instance is None.")
+async def add_to_table(table_name: str, content: dict):
+    """
+    Aggiunge entry al database. L'ordine delle colonne deve essere rispettato (vedi la documentazione).
+    :param table_name: il nome della tabella
+    :param content: dizionario del tipo {'colonna 1': 'valore 1')
+    :return:
+    """
 
-    try:
-        conn.cursor().execute("INSERT INTO deleted_messages VALUES (%s, %s, %s, %s, %s, %s, %s, %s);",
-                              await generate_values('deleted_messages', content))
-    except psycopg.Error as e:
-        db_logger.error(f'Unable to add entry into \'{table_name}\' table: {e}')
-        raise DatabaseBotException(f'Unable to add entry into \'{table_name}\' table: {e.__repr__()}')
-    else:
-        db_logger.info(f'Successfully inserted item inside \'{table_name}\'')
-        conn.commit()
-    finally:
-        conn.close()
+    columns = content.keys()
+    values = content.values()
+
+    if table_name == "admins":
+        query = f"INSERT INTO admins ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(values))})"
+
+    # if content is None:
+    #     db_logger.error("Content cannot be None")
+    #     return DatabaseBotException("Content cannot be None")
+    # if (conn := connect_to_database()) is None:
+    #     db_logger.error("Connection instance is None.")
+    #     raise DatabaseBotException("Connection instance is None.")
+    #
+    # try:
+    #     conn.cursor().execute("INSERT INTO deleted_messages VALUES (%s, %s, %s, %s, %s, %s, %s, %s);",
+    #                           await generate_values('deleted_messages', content))
+    # except psycopg.Error as e:
+    #     db_logger.error(f'Unable to add entry into \'{table_name}\' table: {e}')
+    #     raise DatabaseBotException(f'Unable to add entry into \'{table_name}\' table: {e.__repr__()}')
+    # else:
+    #     db_logger.info(f'Successfully inserted item inside \'{table_name}\'')
+    #     conn.commit()
+    # finally:
+    #     conn.close()
 
 
-async def generate_values(table_name: str, content_to_elaborate: telegram.Message):
+async def generate_values(table_name: str, content_to_elaborate: Update):
     if table_name == "deleted_messages":
         if not isinstance(content_to_elaborate, telegram.Message):
             db_logger.error(f'Cannot elaborate content for inserting entry in table {table_name}: content must be '
@@ -79,7 +93,7 @@ async def get_attachment_string_to_store(attachment):
 
 def connect_to_database():
     try:
-        conn = connect(core.get_env("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
+        conn = connect(os.getenv("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
     except psycopg.Error as e:
         db_logger.error(f'Unable to access database: {e}')
         raise DatabaseBotException(f'Unable to access database: {e}')

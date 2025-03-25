@@ -9,16 +9,8 @@ from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
 from aimods_bot.modules.exceptions import AlertException
-from aimods_bot.modules.loggers import db_logger
+from aimods_bot.modules.loggers import db_logger, bot_logger
 from aimods_bot.modules import job_queue_functions
-
-
-def get_env(env: str):
-    """
-    :param env:  nome variabile ambiente
-    :return:    contenuto della variabile ambiente
-    """
-    return os.getenv(env)
 
 
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,21 +63,6 @@ async def send_private_alert(update: Update,
                 "reply_markup": InlineKeyboardMarkup(keyboard)
             }
         )
-        # await context.bot.send_chat_action(
-        #     chat_id=update.effective_chat.id,
-        #     message_thread_id=update.effective_message.message_thread_id,
-        #     action=ChatAction.TYPING
-        # )
-        # context.job_queue.run_once(
-        #     callback=job_queue_functions.scheduled_send_message,
-        #     data={
-        #         "chat_id": update.effective_chat.id,
-        #         "thread_id": update.effective_message.message_thread_id,
-        #         "text": f"🔐 Message for {update.effective_user.name}",
-        #         "reply_markup": InlineKeyboardMarkup(keyboard)
-        #     },
-        #     when=delay
-        # )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -150,7 +127,11 @@ def get_data_from_json(data: str):
     """
     with open("aimods_bot/misc/data.json", encoding="utf-8", mode="r") as fp:
         content = json.load(fp)
-        return content[data]
+        try:
+            return content[data]
+        except KeyError as e:
+            bot_logger.error(f"Chiave {e} mancante in 'data.json'")
+            raise KeyError(e)
 
 
 async def get_file(file):
@@ -164,7 +145,7 @@ async def get_file(file):
 
 def connect_to_database():
     try:
-        conn = psycopg.connect(get_env("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
+        conn = psycopg.connect(os.getenv("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
     except psycopg.Error as e:
         db_logger.error(f'Unable to access database: {e}')
         raise psycopg.Error(f'Unable to access database: {e}')

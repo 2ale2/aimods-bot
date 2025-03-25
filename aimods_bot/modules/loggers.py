@@ -10,11 +10,11 @@ file_handler.setFormatter(formatter)
 db_logger.addHandler(file_handler)
 
 # logger dei comandi
-command_logger = logging.getLogger("commandlogger")
-command_logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(os.path.join("aimods_bot", "misc", "logs", "commands.log"))
+bot_logger = logging.getLogger("botlogger")
+bot_logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler(os.path.join("aimods_bot", "misc", "logs", "bot.log"))
 file_handler.setFormatter(formatter)
-command_logger.addHandler(file_handler)
+bot_logger.addHandler(file_handler)
 
 # logger della queue
 job_queue_logger = logging.getLogger("jobqueuelogger")

@@ -1,4 +1,5 @@
 import logging
+import os
 
 from telegram.ext import ApplicationBuilder
 
@@ -14,8 +15,8 @@ logging.basicConfig(
 
 
 def main():
-    application = ApplicationBuilder().token(utils.get_env("BOT_TOKEN")).persistence(
-        PostgresPersistence(url=utils.get_env("POSTGRES_CONNECTION_URL"))
+    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).persistence(
+        PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL"))
     ).post_init(core.set_application_data).build()
 
     application.add_handlers(handlers.create_handlers())

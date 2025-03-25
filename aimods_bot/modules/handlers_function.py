@@ -6,7 +6,7 @@ from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 from datetime import datetime, timedelta
 
-from aimods_bot.modules.loggers import command_logger
+from aimods_bot.modules.loggers import bot_logger
 from constants import Scopes
 from utils import *
 
@@ -199,7 +199,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         await update.effective_message.reply_to_message.delete()
     except telegram.error.BadRequest as e:
-        command_logger.error(f"Errore nella rimozione di un messaggio: {e}")
+        bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
         await send_private_alert(
             update=update,
             context=context,
