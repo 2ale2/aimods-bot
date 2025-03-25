@@ -35,17 +35,15 @@ async def send_private_alert(update: Update,
                              context: ContextTypes.DEFAULT_TYPE,
                              text: str,
                              button_text="Open It Privately 💬",
-                             delay=0):
+                             delay=2):
     """
-        Invia un messaggio con un'azione privata e un pulsante inline per aprirlo.
+        Invia un messaggio privato in una chat pubblica apribile solo dal destinatario.
 
         Args:
-            update: L'oggetto update di Telegram.
-            context: Il contesto della callback.
             text (str): Il testo del messaggio di alert.
             button_text (str): Il testo del pulsante inline (default: "Open It Privately 💬").
             delay (int): Tempo in secondi prima di inviare il messaggio (default: 2s).
-        """
+    """
 
     if "alerts" not in context.user_data:
         context.user_data["alerts"] = {}
@@ -62,23 +60,32 @@ async def send_private_alert(update: Update,
         ]
     ]
 
-    await context.bot.send_chat_action(
-        chat_id=update.effective_chat.id,
-        message_thread_id=update.effective_message.message_thread_id,
-        action=ChatAction.TYPING
-    )
-
     if delay > 0:
-        context.job_queue.run_once(
-            callback=job_queue_functions.scheduled_send_message,
-            data={
-                "chat_id": update.effective_chat.id,
+        await send_action_message_after(
+            update=update,
+            context=context,
+            text=f"🔐 Message for {update.effective_user.name}",
+            time=delay,
+            additional_job_data={
                 "thread_id": update.effective_message.message_thread_id,
-                "text": f"🔐 Message for {update.effective_user.name}",
                 "reply_markup": InlineKeyboardMarkup(keyboard)
-            },
-            when=delay
+            }
         )
+        # await context.bot.send_chat_action(
+        #     chat_id=update.effective_chat.id,
+        #     message_thread_id=update.effective_message.message_thread_id,
+        #     action=ChatAction.TYPING
+        # )
+        # context.job_queue.run_once(
+        #     callback=job_queue_functions.scheduled_send_message,
+        #     data={
+        #         "chat_id": update.effective_chat.id,
+        #         "thread_id": update.effective_message.message_thread_id,
+        #         "text": f"🔐 Message for {update.effective_user.name}",
+        #         "reply_markup": InlineKeyboardMarkup(keyboard)
+        #     },
+        #     when=delay
+        # )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -89,6 +96,8 @@ async def send_private_alert(update: Update,
 
 
 async def open_private_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Apre un alert privato per un utente."""
+
     infos = update.callback_query.data.split("_")
     if len(infos) != 3:
         raise AlertException()
@@ -121,7 +130,11 @@ async def send_action_message_after(update: Update,
                                     recipient_id=None,
                                     time=1,
                                     additional_job_data=None):
-    await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
+    """Invia un messaggio dopo un tempo specificato, simulando l'azione di scrittura (max 5 secondi)."""
+
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id,
+                                       message_thread_id=update.effective_message.message_thread_id if update.effective_message.message_thread_id else None,
+                                       action=ChatAction.TYPING)
 
     job_data = (additional_job_data if additional_job_data is not None else {}) | {
         "text": text,
