@@ -11,6 +11,25 @@ from loggers import db_logger
 from exceptions import DatabaseBotException
 
 
+async def get_columns_order(conn, table_name: str):
+    """
+    Recupera l'ordine delle colonne dal database.
+    :param conn: connessione al database
+    :param table_name: nome della tabella
+    :return: lista dei nomi delle colonne ordinate
+    """
+    query = """
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = %s
+    ORDER BY ordinal_position;
+    """
+    async with conn.cursor() as cursor:
+        await cursor.execute(query, (table_name,))
+        result = await cursor.fetchall()
+        return [row[0] for row in result]
+
+
 async def add_to_table(table_name: str, content: dict):
     """
     Aggiunge entry al database. L'ordine delle colonne deve essere rispettato (vedi la documentazione).
@@ -19,11 +38,20 @@ async def add_to_table(table_name: str, content: dict):
     :return:
     """
 
-    columns = content.keys()
-    values = content.values()
+    conn = connect_to_database()
+    columns_order = await get_columns_order(conn, table_name)
+
+    ordered_content = {col: content[col] for col in columns_order if col in content}
+    columns = ordered_content.keys()
+    values = ordered_content.values()
 
     if table_name == "admins":
+        # noinspection SqlInsertValues
         query = f"INSERT INTO admins ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(values))})"
+
+    async with conn.cursor() as cursor:
+        await cursor.execute(query, tuple(values))
+        await conn.commit()
 
     # if content is None:
     #     db_logger.error("Content cannot be None")
