@@ -2,6 +2,8 @@ import copy
 import os
 from copy import deepcopy
 
+#Scrivo per testare
+
 import telegram.error
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
