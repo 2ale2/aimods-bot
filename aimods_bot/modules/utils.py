@@ -150,3 +150,4 @@ def connect_to_database():
         db_logger.error(f'Unable to access database: {e}')
         raise psycopg.Error(f'Unable to access database: {e}')
     return conn
+

@@ -1,4 +1,5 @@
 import copy
+import os
 from copy import deepcopy
 
 import telegram.error
@@ -6,7 +7,6 @@ from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 from datetime import datetime, timedelta
 
-from aimods_bot.modules.loggers import bot_logger
 from constants import Scopes
 from utils import *
 
@@ -46,6 +46,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
 
     if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
         keyboard = [
+            # link statico alla chat https://t.me/c/<group_chat_id>
             [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -65,7 +66,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         await context.bot.send_message(chat_id=update.effective_user.id,
                                        text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',
                                        reply_markup=reply_markup)
-        return
+        return ConversationHandler.END
 
     # codice eseguito se "group_join_request" è in context.user_data
 
@@ -83,7 +84,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
 
     context.job_queue.run_once(callback=job_queue_functions.scheduled_edit_message,
                                data={
-                                   'chat_id': update.effective_user.id,
+                                   'chat_id': update.effective_chat.id,
                                    'message_id': message.message_id,
                                    'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
                                            'Per far accettare la tua richiesta di accesso al gruppo, puoi fornire il '

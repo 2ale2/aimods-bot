@@ -9,7 +9,7 @@ file_handler = logging.FileHandler(os.path.join("aimods_bot", "misc", "logs", "d
 file_handler.setFormatter(formatter)
 db_logger.addHandler(file_handler)
 
-# logger dei comandi
+# logger del bot
 bot_logger = logging.getLogger("botlogger")
 bot_logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler(os.path.join("aimods_bot", "misc", "logs", "bot.log"))

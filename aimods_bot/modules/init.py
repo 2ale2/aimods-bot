@@ -3,7 +3,7 @@ import os
 
 from telegram.ext import ApplicationBuilder
 
-from aimods_bot.modules import utils, core, handlers
+from aimods_bot.modules import core, handlers
 from aimods_bot.modules.persistence import PostgresPersistence
 
 logging.getLogger('httpx').setLevel(logging.WARNING)

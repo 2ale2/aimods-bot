@@ -1,6 +1,3 @@
-from datetime import datetime
-from aimods_bot.modules import loggers
-
 
 class BotException(Exception):
     def __init__(self, message="si è verificato un errore."):
