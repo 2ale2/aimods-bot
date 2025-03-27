@@ -31,13 +31,23 @@ def create_handlers() -> list:
     # - conversation handlers
     # -- double check at join
     handlers.append(ConversationHandler(
-        entry_points=[ChatJoinRequestHandler(callback=handlers_function.new_member_joined_forum),
-                      CommandHandler("request", callback=handlers_function.new_member_joined_forum)],
+        entry_points=[
+            ChatJoinRequestHandler(callback=handlers_function.new_member_joined_forum),
+            CallbackQueryHandler(
+                callback=handlers_function.new_member_joined_forum,
+                pattern="^recreate_captcha$"
+            )
+        ],
         states={
             RULES_ACCEPTED: [CallbackQueryHandler(callback=handlers_function.new_member_accepted_the_rules,
                                                   pattern="^accept_rules.+$")]
         },
-        fallbacks=[CommandHandler("request", callback=handlers_function.new_member_joined_forum)],
+        fallbacks=[
+            CallbackQueryHandler(
+                callback=handlers_function.new_member_joined_forum,
+                pattern="^recreate_captcha$"
+            )
+        ],
         per_chat=False,
         name="join_handler",
         persistent=True

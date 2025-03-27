@@ -2,9 +2,11 @@ import copy
 import os
 from copy import deepcopy
 
+import pytz
 #Scrivo per testare
 
 import telegram.error
+from telegram import ReplyKeyboardMarkup
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 from datetime import datetime, timedelta
@@ -32,9 +34,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_message is not None:
-        await delete_effective_message(update, context)
-
     if await user_is_banned(user_id=update.effective_user.id,
                             chat_id=context.bot_data["group_chat_id"],
                             context=context):
@@ -45,32 +44,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,
                                    data={"message_id": message.message_id, "chat_id": update.effective_user.id})
         return ConversationHandler.END
-
-    if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
-        keyboard = [
-            # link statico alla chat https://t.me/c/<group_chat_id>
-            [InlineKeyboardButton(text="Vai alla Chat ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n"
-                                                                              "Usa /rules per leggere le regole.",
-                                       reply_markup=reply_markup)
-        return ConversationHandler.END
-
-    if update.chat_join_request and "group_join_request" not in context.user_data:
-        context.user_data["group_join_request"] = True
-
-    if "group_join_request" not in context.user_data:
-        keyboard = [
-            [InlineKeyboardButton(text="Chiedi l'accesso ➕", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id,
-                                       text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',
-                                       reply_markup=reply_markup)
-        return ConversationHandler.END
-
-    # codice eseguito se "group_join_request" è in context.user_data
 
     inline_keyboard = [
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋",
@@ -84,13 +57,20 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                              parse_mode="HTML", reply_markup=keyboard_markup,
                                              link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
 
+    keyboard = [
+        [
+            InlineKeyboardButton("🔄 Ricarica Captcha", callback_data="recreate_captcha")
+        ]
+    ]
+
     context.job_queue.run_once(callback=job_queue_functions.scheduled_edit_message,
                                data={
                                    'chat_id': update.effective_chat.id,
                                    'message_id': message.message_id,
                                    'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
-                                           'Per far accettare la tua richiesta di accesso al gruppo, puoi fornire il '
-                                           'comando /request.'
+                                           'Per ricaricare la doppia verifica, puoi premere il '
+                                           'tasto sotto.',
+                                   'reply_markup': InlineKeyboardMarkup(keyboard)
                                },
                                when=600,  # tempo massimo di accettazione delle regole
                                name=f'captcha_failed_{update.effective_user.id}')
