@@ -2,11 +2,7 @@ import copy
 from copy import deepcopy
 from datetime import datetime, timedelta
 
-import pytz
-#Scrivo per testare
-
 import telegram.error
-from telegram import ReplyKeyboardMarkup
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 
@@ -32,7 +28,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-<<<<<<< HEAD
     if await user_is_banned(user_id=update.effective_user.id,
                             chat_id=context.bot_data["group_chat_id"],
                             context=context):
@@ -44,53 +39,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                    data={"message_id": message.message_id, "chat_id": update.effective_user.id})
         return ConversationHandler.END
 
-=======
-    if update.effective_message is not None:
-        await delete_effective_message(update, context)
-
-    if await user_is_banned(user_id=update.effective_user.id,chat_id=context.bot_data["group_chat_id"],context=context):
-        message = await context.bot.send_message(chat_id=update.effective_user.id, text="❌ Il tuo ID è stato ""<b>bannato</b>.\n\n""Non puoi unirti al gruppo.",parse_mode="HTML")
-        context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,data={"message_id": message.message_id, "chat_id": update.effective_user.id})
-        return ConversationHandler.END
-
-    if await user_in_chat(user_id=update.effective_user.id, chat_id=context.bot_data["group_chat_id"], context=context):
-        
-        # Generazione del Link in base al Chat ID
-        if str(context.bot_data["group_chat_id"]).startswith("-100"):
-            clean_id = str(context.bot_data["group_chat_id"])[4:] 
-            clean_url = f"https://t.me/c/{clean_id}/1"
-        else:
-            clean_url = f"https://t.me/c/{str(context.bot_data["group_chat_id"])}/1"
-
-        keyboard = [
-            [InlineKeyboardButton(text="Vai alla Chat ↗️", url=clean_url)]
-        ]
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id, text="❔ Sei già all'interno del gruppo.\n\n""Usa /rules per leggere le regole.",reply_markup=reply_markup)
-        return ConversationHandler.END
-
-    if update.chat_join_request and "group_join_request" not in context.user_data:
-        context.user_data["group_join_request"] = True
-
-    if "group_join_request" not in context.user_data:
-
-        '''
-        Per evitare di usare Link fisso bisogna inserire una serie di controlli:
-        - Controllo se l'utente ha già un link (Nel DB)
-        - Controllo se il link è ancora valido
-        - Generazione nuovo link o utilizzo del Link già esistente        
-        '''
-
-        keyboard = [
-            [InlineKeyboardButton(text="Chiedi l'accesso ➕", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=update.effective_user.id,text='⚠️ Devi prima chiedere di accedere al gruppo tramite link di invito.',reply_markup=reply_markup)
-        return ConversationHandler.END
-
-    # codice eseguito se "group_join_request" è in context.user_data
->>>>>>> f4088fd (Sistemata impaginazione + Aggiunto funzione Link Dinamico al gruppo + Piccoli Fix)
     inline_keyboard = [
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋",callback_data="accept_rules " + str(update.effective_user.id))],
     ]
@@ -108,14 +56,10 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
                                data={
                                    'chat_id': update.effective_chat.id,
                                    'message_id': message.message_id,
-<<<<<<< HEAD
                                    'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
                                            'Per ricaricare la doppia verifica, puoi premere il '
                                            'tasto sotto.',
                                    'reply_markup': InlineKeyboardMarkup(keyboard)
-=======
-                                   'text': "⚠️ <b>Non hai completato la verifica</b>.\n\nPer far accettare la tua richiesta di accesso al gruppo, puoi fornire il comando /request."
->>>>>>> f4088fd (Sistemata impaginazione + Aggiunto funzione Link Dinamico al gruppo + Piccoli Fix)
                                },
                                when=595,  # tempo massimo di accettazione delle regole --> Ho abbassato di 5 secondi per evitare di beccare il CD di Telegram
                                name=f'captcha_failed_{update.effective_user.id}')
@@ -137,11 +81,8 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
         await context.bot.delete_message(chat_id=update.effective_user.id,message_id=update.effective_message.message_id)
         await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],user_id=update.effective_user.id)
         # Generazione del Link in base al Chat ID
-        if str(context.bot_data["group_chat_id"]).startswith("-100"):
-            clean_id = str(context.bot_data["group_chat_id"])[4:] 
-            clean_url = f"https://t.me/c/{clean_id}/1"
-        else:
-            clean_url = f"https://t.me/c/{str(context.bot_data["group_chat_id"])}/1"
+        clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
+        clean_url = f"https://t.me/c/{clean_id}/1"
 
         keyboard = [
             [InlineKeyboardButton(text="Vai al Gruppo ↗️", url=clean_url)]
