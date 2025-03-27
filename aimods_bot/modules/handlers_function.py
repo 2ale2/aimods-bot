@@ -1,11 +1,10 @@
 import copy
-import os
 from copy import deepcopy
+from datetime import datetime, timedelta
 
 import telegram.error
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
-from datetime import datetime, timedelta
 
 from constants import Scopes
 from utils import *
