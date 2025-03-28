@@ -53,15 +53,10 @@ async def get_admins(app: Application):
     :return: l'elenco corrente di admin della chat
     """
     admins = await app.bot.get_chat_administrators(chat_id=app.bot_data["group_chat_id"])
-    pass
+    admins_dict = {}
 
-    # conn = connect_to_database()
-    # try:
-    #     res = conn.cursor().execute("SELECT (admin_id, username) from admins").fetchall()
-    # except psycopg.Error as err:
-    #     DatabaseBotException(f"non è stato possibile reperire la lista degli admin (generic database error)\n\t{err}")
-    # else:
-    #     db_logger.info("Operation Success: admin list gathered.")
-    #     return {c[0][0]: c[0][1].strip('{}') for c in res}
-    # finally:
-    #     conn.close()
+    for admin in admins:
+        user = admin["user"]
+        admins_dict[str(user.id)] = user.name
+
+    return admins_dict

@@ -6,6 +6,7 @@ import telegram.error
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 
+from aimods_bot.modules.job_queue_functions import send_temporary_message
 from constants import Scopes
 from utils import *
 
@@ -50,6 +51,9 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         )
         return ConversationHandler.END
 
+    if update.callback_query is not None:
+        await delete_effective_message(update, context)
+
     inline_keyboard = [
         [
             InlineKeyboardButton(
@@ -75,20 +79,21 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         [
             InlineKeyboardButton(
                 text="🔄 Ricarica Captcha",
-                callback_data="recreate_captcha")
+                callback_data="recreate_captcha"
+            )
         ]
     ]
 
     context.job_queue.run_once(
         callback=job_queue_functions.scheduled_edit_message,
         data={
-            'chat_id': update.effective_chat.id,
+            'chat_id': update.effective_user.id,
             'message_id': message.message_id,
             'text': '⚠️ <b>Non hai completato la verifica</b>.\n\nPer ricaricare la doppia verifica, puoi premere il '
                     'tasto sotto.',
             'reply_markup': InlineKeyboardMarkup(keyboard)
         },
-        when=595,  # tempo massimo di accettazione delle regole --> Ho abbassato di 5 secondi per evitare di beccare il CD di Telegram
+        when=5,  # tempo massimo di accettazione delle regole
         name=f'captcha_failed_{update.effective_user.id}')
 
     return RULES_ACCEPTED
@@ -114,7 +119,6 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
             chat_id=context.bot_data["group_chat_id"],
             user_id=update.effective_user.id
         )
-        # Generazione del Link in base al Chat ID
         clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
         clean_url = f"https://t.me/c/{clean_id}/1"
 
@@ -157,7 +161,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
 
-    if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
+    if message is None or message.forum_topic_created is not None:
         await send_private_alert(
             update=update,
             context=context,
@@ -166,7 +170,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
 
-    if datetime.now((message_date := message.reply_to_message.date).tzinfo) - message_date > timedelta(hours=48):
+    if datetime.now((message_date := message.date).tzinfo) - message_date > timedelta(hours=48):
         await send_private_alert(
             update=update,
             context=context,
@@ -176,9 +180,12 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     if context.args:
-        reason = ' '.join(context.args)
+        reason = ': <b>' + ' '.join(context.args) + "</b>"
     else:
-        reason = "<code>no reason given</code>"
+        reason = " (<b>no reason given</b>)"
+
+    answer_text = (f"♻️ Message sent by {message.from_user.name} was removed{reason}.\n\n"
+                   f"ℹ <i>This message will be deleted in 5min</i>.")
 
     try:
         await update.effective_message.reply_to_message.delete()
@@ -192,7 +199,14 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
     else:
-        await context.bot.send_message(chat_id=update.effective_chat.id,)
+        await send_temporary_message(
+            update=update,
+            context=context,
+            text=answer_text,
+            delay_before=2
+        )
+
+        # ultimare la rimozione automatica del messaggio di notifica
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -240,8 +254,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     text = "⚠️ L'utente non è nel gruppo."
                 elif user.status == user.ADMINISTRATOR or user.status == user.OWNER:
                     text = "⚠️ Non è consentito limitare gli altri admin."
-                else:  # user.status == user.BANNED
+                elif user.status == user.BANNED:
                     text = "⚠️ L'utente è bannato."
+                # noinspection PyUnboundLocalVariable
                 sent_message = await context.bot.send_message(
                     chat_id=context.bot_data["group_chat_id"],
                     text=text,

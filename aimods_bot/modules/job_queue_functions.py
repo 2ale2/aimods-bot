@@ -1,4 +1,6 @@
 import telegram.error
+from pyrogram.raw.base import reply_markup
+from telegram import Update
 from telegram.ext import ContextTypes
 import asyncio
 from uuid import uuid4
@@ -69,16 +71,25 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
         job_queue_logger.error(f'Not able to perform scheduled action: {e}')
 
 
-async def send_temporary_message(update, context, text, delay_before=2, delay_delete=10):
+async def send_temporary_message(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        text: str,
+        additional_job_data=None,
+        delay_before=2,
+        delay_delete=10
+):
     """
     Invia un messaggio temporaneo e lo elimina dopo un certo tempo.
 
     Args:
         update: L'oggetto update di Telegram.
-        context: Il contesto della callback.
-        text (str): Il testo del messaggio da inviare.
-        delay_before (int): Tempo in secondi prima di inviare il messaggio (default: 2s).
-        delay_delete (int): Tempo in secondi prima di eliminare il messaggio (default: 10s).
+        :param update:
+        :param context: Il contesto della callback.
+        :param text:
+        :param delay_delete:
+        :param delay_before:
+        :param additional_job_data:
     """
 
     await context.bot.send_chat_action(
@@ -94,7 +105,11 @@ async def send_temporary_message(update, context, text, delay_before=2, delay_de
         data={
             "chat_id": update.effective_chat.id,
             "thread_id": update.effective_message.message_thread_id,
-            "text": text
+            "text": text,
+            "reply_markup": (additional_job_data["reply_markup"]
+                             if additional_job_data is not None
+                                and "reply_markup" in additional_job_data
+                             else None),
         },
         when=delay_before,
         name=job_id

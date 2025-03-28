@@ -118,7 +118,18 @@ async def send_action_message_after(update: Update,
         "chat_id": recipient_id if recipient_id is not None else update.effective_chat.id,
     }
 
-    context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=job_data, when=time)
+    job_id = str(uuid4())
+    job = context.job_queue.run_once(
+        callback=job_queue_functions.scheduled_send_message,
+        data=job_data,
+        when=time,
+        name=job_id
+    )
+    context.bot_data["jobs"][job_id] = {
+        "job": job,
+        "returned_value": None,
+        "done": False
+    }
 
 
 def get_data_from_json(data: str):
