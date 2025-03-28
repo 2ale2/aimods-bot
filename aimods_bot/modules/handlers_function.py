@@ -24,45 +24,73 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     # per ora stampiamo semplicemente il benvenuto
-    await context.bot.send_message(chat_id=update.effective_user.id, text="Hi A&I Mods Staff! :)")
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text="Hi A&I Mods Staff! :)"
+    )
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await user_is_banned(user_id=update.effective_user.id,
-                            chat_id=context.bot_data["group_chat_id"],
-                            context=context):
-        message = await context.bot.send_message(chat_id=update.effective_user.id, text="❌ Il tuo ID è stato "
-                                                                                        "<b>bannato</b>.\n\n"
-                                                                                        "Non puoi unirti al gruppo.",
-                                                 parse_mode="HTML")
-        context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message, when=10,
-                                   data={"message_id": message.message_id, "chat_id": update.effective_user.id})
+    if await user_is_banned(
+            user_id=update.effective_user.id,
+            chat_id=context.bot_data["group_chat_id"],
+            context=context
+    ):
+        message = await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text="❌ Il tuo ID è stato <b>bannato</b>.\n\nNon puoi unirti al gruppo.",
+            parse_mode="HTML"
+        )
+        context.job_queue.run_once(
+            callback=job_queue_functions.scheduled_delete_message,
+            when=10,
+            data={
+                "message_id": message.message_id,
+                "chat_id": update.effective_user.id}
+        )
         return ConversationHandler.END
 
     inline_keyboard = [
-        [InlineKeyboardButton("Ho letto e accetto le regole 🖋",callback_data="accept_rules " + str(update.effective_user.id))],
-    ]
-
-    keyboard_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-    message = await context.bot.send_message(chat_id=update.effective_user.id,text=context.bot_data["user_joined_message_text"].format(update.effective_user.full_name),parse_mode="HTML", reply_markup=keyboard_markup,link_preview_options=telegram.LinkPreviewOptions(is_disabled=True))
-
-    keyboard = [
         [
-            InlineKeyboardButton("🔄 Ricarica Captcha", callback_data="recreate_captcha")
+            InlineKeyboardButton(
+                text="Ho letto e accetto le regole 🖋",
+                callback_data="accept_rules " + str(update.effective_user.id)
+            )
         ]
     ]
 
-    context.job_queue.run_once(callback=job_queue_functions.scheduled_edit_message,
-                               data={
-                                   'chat_id': update.effective_chat.id,
-                                   'message_id': message.message_id,
-                                   'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
-                                           'Per ricaricare la doppia verifica, puoi premere il '
-                                           'tasto sotto.',
-                                   'reply_markup': InlineKeyboardMarkup(keyboard)
-                               },
-                               when=595,  # tempo massimo di accettazione delle regole --> Ho abbassato di 5 secondi per evitare di beccare il CD di Telegram
-                               name=f'captcha_failed_{update.effective_user.id}')
+    keyboard_markup = InlineKeyboardMarkup(
+        inline_keyboard=inline_keyboard
+    )
+
+    message = await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text=context.bot_data["user_joined_message_text"].format(update.effective_user.full_name),
+        parse_mode="HTML",
+        reply_markup=keyboard_markup,
+        link_preview_options=telegram.LinkPreviewOptions(is_disabled=True)
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="🔄 Ricarica Captcha",
+                callback_data="recreate_captcha")
+        ]
+    ]
+
+    context.job_queue.run_once(
+        callback=job_queue_functions.scheduled_edit_message,
+        data={
+            'chat_id': update.effective_chat.id,
+            'message_id': message.message_id,
+            'text': '⚠️ <b>Non hai completato la verifica</b>.\n\nPer ricaricare la doppia verifica, puoi premere il '
+                    'tasto sotto.',
+            'reply_markup': InlineKeyboardMarkup(keyboard)
+        },
+        when=595,  # tempo massimo di accettazione delle regole --> Ho abbassato di 5 secondi per evitare di beccare il CD di Telegram
+        name=f'captcha_failed_{update.effective_user.id}')
+
     return RULES_ACCEPTED
 
 
@@ -78,14 +106,24 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
         job[0].schedule_removal()
 
     if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
-        await context.bot.delete_message(chat_id=update.effective_user.id,message_id=update.effective_message.message_id)
-        await context.bot.approve_chat_join_request(chat_id=context.bot_data["group_chat_id"],user_id=update.effective_user.id)
+        await context.bot.delete_message(
+            chat_id=update.effective_user.id,
+            message_id=update.effective_message.message_id
+        )
+        await context.bot.approve_chat_join_request(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=update.effective_user.id
+        )
         # Generazione del Link in base al Chat ID
         clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
         clean_url = f"https://t.me/c/{clean_id}/1"
 
         keyboard = [
-            [InlineKeyboardButton(text="Vai al Gruppo ↗️", url=clean_url)]
+            [
+                InlineKeyboardButton(
+                    text="Vai al Gruppo ↗️",
+                    url=clean_url)
+            ]
         ]
 
         await send_action_message_after(
@@ -98,32 +136,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
             }
         )
 
-        # await context.bot.send_chat_action(chat_id=update.effective_user.id, action=ChatAction.TYPING)
-        # keyboard = [
-        #     [InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")]
-        # ]
-        # reply_markup = InlineKeyboardMarkup(keyboard)
-        #
-        # data = {
-        #     "text": "✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
-        #             "Grazie per averci scelto 😃",
-        #     "chat_id": update.effective_user.id,
-        #     "reply_markup": reply_markup
-        # }
-        # context.job_queue.run_once(callback=job_queue_functions.scheduled_send_message, data=data, when=1)
         return ConversationHandler.END
-
-    # if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
-    #     job[0].schedule_removal()
-    #
-    # if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]: keyboard = [ [
-    # InlineKeyboardButton(text="Vai al Gruppo ↗️", url="https://t.me/+FbR5I5YukVBmYTM0")] ] reply_markup =
-    # InlineKeyboardMarkup(keyboard) await context.bot.approve_chat_join_request(chat_id=context.bot_data[
-    # "group_chat_id"], user_id=update.effective_user.id) del context.user_data["group_join_request"] await
-    # context.bot.edit_message_text(message_id=update.effective_message.message_id, chat_id=update.effective_user.id,
-    # text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods " "ti dà il benvenuto. Grazie per
-    # averci scelto 😃", parse_mode="HTML", reply_markup=reply_markup) return ConversationHandler.END
-
 
 # }
 
@@ -184,16 +197,30 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        await context.bot.delete_message(chat_id=update.effective_chat.id,message_id=update.effective_message.id)
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.id)
     except telegram.error.BadRequest:
         pass
 
-    message = await context.bot.send_message(chat_id=update.effective_chat.id,text=context.bot_data["rules_text"],parse_mode="HTML")
+    message = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=context.bot_data["rules_text"],
+        parse_mode="HTML"
+    )
     keyboard = [
-        [InlineKeyboardButton(text="Close 📖", callback_data=f"close {message.id}")]
+        [
+            InlineKeyboardButton(
+                text="Close 📖",
+                callback_data=f"close {message.id}")
+        ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.edit_message_reply_markup(chat_id=update.effective_user.id, message_id=message.message_id,reply_markup=reply_markup)
+    await context.bot.edit_message_reply_markup(
+        chat_id=update.effective_user.id,
+        message_id=message.message_id,
+        reply_markup=reply_markup
+    )
 
 
 # COMANDO LIMITAZIONE UTENTE
@@ -202,7 +229,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = deepcopy(update.message)
     if is_admin(update.effective_user.id, context):
         if update.message.text.split(" ")[0].endswith("limit"):
-            user = await context.bot.get_chat_member(chat_id=context.bot_data["group_chat_id"],user_id=update.effective_user.id)
+            user = await context.bot.get_chat_member(
+                chat_id=context.bot_data["group_chat_id"],
+                user_id=update.effective_user.id
+            )
             if user.status == user.MEMBER or user == user.RESTRICTED:
                 pass
             else:
@@ -212,12 +242,19 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     text = "⚠️ Non è consentito limitare gli altri admin."
                 else:  # user.status == user.BANNED
                     text = "⚠️ L'utente è bannato."
-                sent_message = await context.bot.send_message(chat_id=context.bot_data["group_chat_id"],text=text,
-                                                              message_thread_id=(message.message_thread_id
-                                                                                 if message.message_thread_id
-                                                                                    in scopes.FORUM_SCOPE.topics else None)
-                                                              )
-                context.job_queue.run_once(callback=job_queue_functions.scheduled_delete_message,data={"chat_id": context.bot_data["group_chat_id"],"message_id": sent_message.id},when=60)
+                sent_message = await context.bot.send_message(
+                    chat_id=context.bot_data["group_chat_id"],
+                    text=text,
+                    message_thread_id=(message.message_thread_id
+                                       if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
+                )
+                context.job_queue.run_once(
+                    callback=job_queue_functions.scheduled_delete_message,
+                    data={
+                        "chat_id": context.bot_data["group_chat_id"],
+                        "message_id": sent_message.id
+                    },
+                    when=60)
         else:
             # mute
             pass
@@ -231,14 +268,20 @@ async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
 
 async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     # tells if user_id is already in chat_id
-    res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+    res = await context.bot.get_chat_member(
+        user_id=user_id,
+        chat_id=chat_id
+    )
     if res.status is ChatMemberStatus.MEMBER or res.status is ChatMemberStatus.ADMINISTRATOR:
         return True
     return False
 
 
 async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    res = await context.bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+    res = await context.bot.get_chat_member(
+        user_id=user_id,
+        chat_id=chat_id
+    )
     if res.status is ChatMemberStatus.BANNED:
         return True
     return False
@@ -252,6 +295,9 @@ async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_T
     :return:
     """
     try:
-        await context.bot.delete_message(chat_id=update.effective_chat.id,message_id=update.callback_query.data.split(" ")[1])
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.callback_query.data.split(" ")[1]
+        )
     except telegram.error.BadRequest:
         pass
