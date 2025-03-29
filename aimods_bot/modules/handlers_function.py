@@ -184,11 +184,18 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         reason = " (<b>no reason given</b>)"
 
-    answer_text = (f"♻️ Message sent by {message.from_user.name} was removed{reason}.\n\n"
+    answer_text = (f"♻️ Message sent by {message.from_user.name} was removed: {reason}.\n\n"
                    f"ℹ <i>This message will be deleted in 5min</i>.")
 
     try:
-        await update.effective_message.reply_to_message.delete()
+        context.job_queue.run_once(
+            callback=job_queue_functions.scheduled_delete_message,
+            data={
+                "chat_id": context.bot_data["group_chat_id"],
+                "message_id": message.message_id
+            },
+            when=600)
+        # await update.effective_message.reply_to_message.delete()
     except telegram.error.BadRequest as e:
         bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
         await send_private_alert(
@@ -198,6 +205,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             delay=1
         )
         return
+    ''' Ma è da rimuovere sto pezzo?
     else:
         await send_temporary_message(
             update=update,
@@ -205,7 +213,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             text=answer_text,
             delay_before=2
         )
-
+    '''
         # ultimare la rimozione automatica del messaggio di notifica
 
 
