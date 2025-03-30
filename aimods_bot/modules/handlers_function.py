@@ -184,18 +184,27 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         reason = " (<b>no reason given</b>)"
 
+    answer_text = (f"♻️ Message sent by {message.from_user.name} was removed: {reason}.\n\n"
+                   f"ℹ <i>This message will be deleted in 5min</i>.")
 
-    
-    git config --global user.email
-    ''' Ma è da rimuovere sto pezzo?
-    else:
-        await send_temporary_message(
+    try:
+        await update.effective_message.reply_to_message.delete()
+        await job_queue_functions.send_temporary_message(
             update=update,
             context=context,
             text=answer_text,
-            delay_before=2
+            delay_before=600
         )
-    '''
+    except telegram.error.BadRequest as e:
+        bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="❌ Error\n\nIl messaggio non può essere rimosso a causa di un errore. Controlla i log dei comandi.",
+            delay=1
+        )
+        return
+    
         # ultimare la rimozione automatica del messaggio di notifica
 
 
