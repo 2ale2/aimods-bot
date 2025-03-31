@@ -272,25 +272,48 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if update.message.text.split(" ")[0].endswith("limit"):
 			if user == user.RESTRICTED:
 				pass
-			else:
-				#else
 		if update.message.text.split(" ")[0].endswith("mute"):
 			if user == user.RESTRICTED:
 				pass
-		if update.message.text.split(" ")[0].endswith("ban"):
-			# ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
-			'''
-			Possibili scenari:
-			/ban Motivo [In Risposta]
-			/ban Motivo Tempo [In Risposta]
-			/ban UsernameoID
-			/ban UsernameoID Motivo
-			/ban UsernameoID Motivo Tempo
-			''''
-			if len(update.message.text.split(" ")) == 2: 
-				await context.bot.ban_chat_member(context.bot_data["group_chat_id"], update.message.text.split(" ")[1])
-				# Inserire messaggio di servizio per il Ban. Son combattuto se inserire il bottone "Sbanna" sotto. Dato che spesso viene cliccato per errore dagli Admin
-				return
+		if update.message.text.split(" ")[0].endswith("ban"): # ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
+			if update.message.reply_to_message:
+				part = update.message.text.split(" ", 1)
+				
+				if len(part) == 1: #Scenario /ban in risposta
+					await context.bot.ban_chat_member(update.message.chat.id, update.message.reply_to_message.from_user)
+					sent_message = await context.bot.send_message(
+						chat_id=update.message.chat.id,
+						text="Ho bannato l'utente",
+						message_thread_id=(message.message_thread_id
+											if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
+					)
+					context.job_queue.run_once(
+						callback=job_queue_functions.scheduled_delete_message,
+						data={
+							"chat_id": update.message.chat.id,
+							"message_id": sent_message.id
+						},
+						when=60)
+					return True
+					
+				rest = part.split(" ", 1)
+				if len(rest) == 1: #Scenario /ban motivazione in risposta
+					await context.bot.ban_chat_member(update.message.chat.id, update.message.reply_to_message.from_user)
+					reason = rest[0]
+					sent_message = await context.bot.send_message(
+						chat_id=update.message.chat.id,
+						text=f"Ho bannato l'utente\nMotivo: {reason}",
+						message_thread_id=(message.message_thread_id
+											if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
+					)
+					context.job_queue.run_once(
+						callback=job_queue_functions.scheduled_delete_message,
+						data={
+							"chat_id": update.message.chat.id,
+							"message_id": sent_message.id
+						},
+						when=60)
+					return True
 			elif len(update.message.text.split(" ")) == 3:
 				reason = update.message.text.split(" ")[2]
 
