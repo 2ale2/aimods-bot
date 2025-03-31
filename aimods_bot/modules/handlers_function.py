@@ -193,7 +193,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             update=update,
             context=context,
             text=answer_text,
-            delay_before=600
+            delay_delete=600
         )
     except telegram.error.BadRequest as e:
         bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
@@ -273,6 +273,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # mute
             pass
     else:
+        await job_queue_functions.send_temporary_message(
+            update=update,
+            context=context,
+            text="⚠️ Solo gli admin possono eseguire questa azione.",
+            delay_before=2,  # per la chat action
+            delay_delete=10
+        )
         pass
 
 
