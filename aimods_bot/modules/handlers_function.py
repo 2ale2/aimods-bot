@@ -278,6 +278,22 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 			if user == user.RESTRICTED:
 				pass
 		if update.message.text.split(" ")[0].endswith("ban"):
+			# ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
+			'''
+			Possibili scenari:
+			/ban Motivo [In Risposta]
+			/ban Motivo Tempo [In Risposta]
+			/ban UsernameoID
+			/ban UsernameoID Motivo
+			/ban UsernameoID Motivo Tempo
+			''''
+			if len(update.message.text.split(" ")) == 2: 
+				await context.bot.ban_chat_member(context.bot_data["group_chat_id"], update.message.text.split(" ")[1])
+				# Inserire messaggio di servizio per il Ban. Son combattuto se inserire il bottone "Sbanna" sotto. Dato che spesso viene cliccato per errore dagli Admin
+				return
+			elif len(update.message.text.split(" ")) == 3:
+				reason = update.message.text.split(" ")[2]
+
 			pass
 		if update.message.text.split(" ")[0].endswith("kick"):
 			pass
