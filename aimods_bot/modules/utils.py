@@ -1,16 +1,15 @@
 import json
-import os
+import re
 from uuid import uuid4
 
-import psycopg
 import telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatAction
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CallbackContext
 
-from aimods_bot.modules.exceptions import AlertException
-from aimods_bot.modules.loggers import db_logger, bot_logger
 from aimods_bot.modules import job_queue_functions
+from aimods_bot.modules.exceptions import AlertException
+from aimods_bot.modules.loggers import bot_logger
 
 
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -152,13 +151,4 @@ async def get_file(file):
         return file.get_file()
     else:
         await get_file(file[-1])
-
-
-def connect_to_database():
-    try:
-        conn = psycopg.connect(os.getenv("POSTGRES_CONNECTION_URL"), client_encoding="utf8")
-    except psycopg.Error as e:
-        db_logger.error(f'Unable to access database: {e}')
-        raise psycopg.Error(f'Unable to access database: {e}')
-    return conn
 

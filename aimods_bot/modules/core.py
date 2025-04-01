@@ -1,17 +1,11 @@
 # raccoglie tutti i dati che servono al funzionamento del bot
 
 import os
-import uuid
 
-import psycopg
-import telegram
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import Application, BaseHandler
+from telegram.ext import Application
 
-from aimods_bot.modules.exceptions import DatabaseBotException
-from loggers import db_logger
-from utils import connect_to_database, get_data_from_json
+from utils import get_data_from_json
 
 load_dotenv()
 

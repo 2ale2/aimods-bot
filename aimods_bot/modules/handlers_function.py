@@ -1,13 +1,13 @@
 import copy
-from copy import deepcopy
+import os
 from datetime import datetime, timedelta
 
 import telegram.error
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 
+from aimods_bot.modules.database_functions import add_to_table
 from aimods_bot.modules.job_queue_functions import send_temporary_message
-from constants import Scopes
 from utils import *
 
 RULES_ACCEPTED = 0
@@ -145,9 +145,30 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 # }
 
 
+async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+	message_text = update.message.text
+	match = re.match(r"^[/!.]([a-zA-Z0-9_]+)(?:\s(.*))?$", message_text)
+
+	if match:
+		command = match.group(1)
+		args = match.group(2) if len(match.groups()) == 2 else None
+
+		match command:
+			case "start":
+				await start_command(update=update, context=context)
+			case "rules":
+				await send_rules(update=update, context=context)
+			case "del":
+				await delete_group_message(update=update, context=context, args=args)
+			case "ban":
+				await limit_user(update=update, context=context, command=command, args=args)
+
+
 # COMANDO RIMOZIONE MESSAGGI
-async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-	message = copy.deepcopy(update.effective_message.reply_to_message)
+async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None):
+	message_to_delete = copy.deepcopy(update.effective_message.reply_to_message)
+	message_from_admin = copy.deepcopy(update.effective_message)
+	forwarded_media = None
 
 	await delete_effective_message(update, context)
 
@@ -161,7 +182,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 		)
 		return
 
-	if message is None or message.forum_topic_created is not None:
+	if message_to_delete is None or message_to_delete.forum_topic_created is not None:
 		await send_private_alert(
 			update=update,
 			context=context,
@@ -170,7 +191,7 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 		)
 		return
 
-	if datetime.now((message_date := message.date).tzinfo) - message_date > timedelta(hours=48):
+	if datetime.now((message_date := message_to_delete.date).tzinfo) - message_date > timedelta(hours=48):
 		await send_private_alert(
 			update=update,
 			context=context,
@@ -179,21 +200,25 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 		)
 		return
 
-	if context.args:
-		reason = ': <b>' + ' '.join(context.args) + "</b>"
+	if args:
+		reason = ': <b>' + args + "</b>"
 	else:
 		reason = " (<b>no reason given</b>)"
 
-	answer_text = (f"♻️ Message sent by {message.from_user.name} was removed: {reason}.\n\n"
+	answer_text = (f"♻️ Message sent by {message_to_delete.from_user.name} was removed{reason}.\n\n"
 				   f"ℹ <i>This message will be deleted in 5min</i>.")
 
 	try:
-		await update.effective_message.reply_to_message.delete()
+		if message_to_delete.effective_attachment is not None:
+			forwarded_media = await message_to_delete.forward(
+				chat_id=os.getenv("DELETED_MEDIA_CHANNEL_ID")
+			)
+		await message_to_delete.delete()
 		await job_queue_functions.send_temporary_message(
 			update=update,
 			context=context,
 			text=answer_text,
-			delay_delete=600
+			delay_delete=300
 		)
 	except telegram.error.BadRequest as e:
 		bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
@@ -203,9 +228,21 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 			text="❌ Error\n\nIl messaggio non può essere rimosso a causa di un errore. Controlla i log dei comandi.",
 			delay=1
 		)
-		return
-	
-		# ultimare la rimozione automatica del messaggio di notifica
+	else:
+		data_for_database = {
+			"message_id": message_to_delete.message_id,
+			"admin": message_from_admin.from_user.id,
+			"deletion_time": datetime.now(),
+			"user_id": message_to_delete.from_user.id,
+			"reason": re.sub(r'</?b>|\(|\)|:', '', reason).strip(),
+			"content": (message_to_delete.text
+						if message_to_delete.effective_attachment is None
+						else message_to_delete.caption),
+			"username": message_to_delete.from_user.name,
+			"media": forwarded_media.link if forwarded_media is not None else None,
+			"manual": False
+		}
+		await add_to_table(table_name="deleted_messages", content=data_for_database)
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -237,90 +274,9 @@ async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # COMANDO LIMITAZIONE UTENTE
-async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-	scopes = Scopes()
-	message = deepcopy(update.message)
-	if is_admin(update.effective_user.id, context):
-		user = await context.bot.get_chat_member(
-			chat_id=context.bot_data["group_chat_id"],
-			user_id=update.effective_user.id
-		)
-		text = None
-		if user.status == user.LEFT:
-			text = "⚠️ L'utente non è nel gruppo."
-		elif user.status == user.ADMINISTRATOR or user.status == user.OWNER:
-			text = "⚠️ Non è consentito limitare gli altri admin."
-		elif user.status == user.BANNED:
-			text = "⚠️ L'utente è bannato."
-		# noinspection PyUnboundLocalVariable
-		if text:
-			sent_message = await context.bot.send_message(
-				chat_id=context.bot_data["group_chat_id"],
-				text=text,
-				message_thread_id=(message.message_thread_id
-									if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
-			)
-			context.job_queue.run_once(
-				callback=job_queue_functions.scheduled_delete_message,
-				data={
-					"chat_id": context.bot_data["group_chat_id"],
-					"message_id": sent_message.id
-				},
-				when=60)
-			return True
-		
-		if update.message.text.split(" ")[0].endswith("limit"):
-			if user == user.RESTRICTED:
-				pass
-		if update.message.text.split(" ")[0].endswith("mute"):
-			if user == user.RESTRICTED:
-				pass
-		if update.message.text.split(" ")[0].endswith("ban"): # ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
-			if update.message.reply_to_message:
-				part = update.message.text.split(" ", 1)
-				
-				if len(part) == 1: #Scenario /ban in risposta
-					await context.bot.ban_chat_member(update.message.chat.id, update.message.reply_to_message.from_user)
-					sent_message = await context.bot.send_message(
-						chat_id=update.message.chat.id,
-						text="Ho bannato l'utente",
-						message_thread_id=(message.message_thread_id
-											if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
-					)
-					context.job_queue.run_once(
-						callback=job_queue_functions.scheduled_delete_message,
-						data={
-							"chat_id": update.message.chat.id,
-							"message_id": sent_message.id
-						},
-						when=60)
-					return True
-					
-				rest = part.split(" ", 1)
-				if len(rest) == 1: #Scenario /ban motivazione in risposta
-					await context.bot.ban_chat_member(update.message.chat.id, update.message.reply_to_message.from_user)
-					reason = rest[0]
-					sent_message = await context.bot.send_message(
-						chat_id=update.message.chat.id,
-						text=f"Ho bannato l'utente\nMotivo: {reason}",
-						message_thread_id=(message.message_thread_id
-											if message.message_thread_id in scopes.FORUM_SCOPE.topics else None)
-					)
-					context.job_queue.run_once(
-						callback=job_queue_functions.scheduled_delete_message,
-						data={
-							"chat_id": update.message.chat.id,
-							"message_id": sent_message.id
-						},
-						when=60)
-					return True
-			elif len(update.message.text.split(" ")) == 3:
-				reason = update.message.text.split(" ")[2]
-
-			pass
-		if update.message.text.split(" ")[0].endswith("kick"):
-			pass
-	else:
+async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, args: str | None):
+	message = copy.deepcopy(update.message)
+	if not is_admin(update.effective_user.id, context):
 		await job_queue_functions.send_temporary_message(
 			update=update,
 			context=context,
@@ -328,6 +284,65 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 			delay_before=2,  # per la chat action
 			delay_delete=10
 		)
+		return
+
+	user = await context.bot.get_chat_member(
+		chat_id=context.bot_data["group_chat_id"],
+		user_id=update.effective_user.id
+	)
+	text = None
+	if user.status == user.LEFT:
+		text = "⚠️ L'utente non è nel gruppo."
+	elif user.status == user.ADMINISTRATOR or user.status == user.OWNER:
+		text = "⚠️ Non è consentito limitare gli altri admin."
+	elif user.status == user.BANNED:
+		text = "⚠️ L'utente è bannato."
+
+	if text is not None:
+		await send_private_alert(
+			update=update,
+			context=context,
+			text=text
+		)
+		return True
+
+	if command == "limit":
+		if user == user.RESTRICTED:
+			pass
+	elif command == "mute":
+		if user == user.RESTRICTED:
+			pass
+	if command == "ban":  # ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
+		if update.message.reply_to_message:
+			await context.bot.ban_chat_member(
+				chat_id=update.message.chat.id,
+				user_id=update.message.reply_to_message.from_user.id
+			)
+
+			if args is None:  # Scenario /ban in risposta senza motivazione
+				await send_temporary_message(
+					update=update,
+					context=context,
+					text="Ho bannato l'utente",
+					delay_before=2,
+					delay_delete=60
+				)
+				return True
+
+			# Scenario /ban in risposta con motivazione
+			await send_temporary_message(
+				update=update,
+				context=context,
+				text=f"Ho bannato l'utente\nMotivo: {args}",
+				delay_before=2,
+				delay_delete=60
+			)
+			return True
+		elif len(update.message.text.split(" ")) == 3:
+			reason = update.message.text.split(" ")[2]
+
+		pass
+	if update.message.text.split(" ")[0].endswith("kick"):
 		pass
 
 
