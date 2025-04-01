@@ -318,8 +318,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 				chat_id=update.message.chat.id,
 				user_id=update.message.reply_to_message.from_user.id
 			)
+			
+			part = update.message.text.split(" ", 1) # Split per verificare quale dei 3 scenari possibili avviene in risposta
 
-			if args is None:  # Scenario /ban in risposta senza motivazione
+			if len(part) == 1: #Scenario /ban in risposta
 				await send_temporary_message(
 					update=update,
 					context=context,
@@ -329,15 +331,58 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 				)
 				return True
 
-			# Scenario /ban in risposta con motivazione
-			await send_temporary_message(
-				update=update,
-				context=context,
-				text=f"Ho bannato l'utente\nMotivo: {args}",
-				delay_before=2,
-				delay_delete=60
-			)
-			return True
+			else: #Scenario multiplo
+				#Tabella conversione per le durate delle punizioni --> Da definire come Globale/Costante
+				conversione = {
+					"minuti": 1,
+					"minuto": 1,
+					"ore": 60,
+					"ora": 60,
+					"giorni": 1440,
+					"giorno": 1440,
+					"settimane": 10080,
+					"settimana": 10080,
+					"mesi": 43800,
+					"mese": 43800,
+					"anni": 525600,
+					"anno": 525600
+				}
+
+				# Tentiamo di capire se il primo elemento è una durata
+				durata_parte = part.split(" ", 1)[0]
+				motivo = part.split(" ", 1)[1] if len(part.split(" ", 1)) > 1 else ""
+
+				# Se la durata è solo un numero → sono minuti
+				if durata_parte.isdigit():
+					durata_minuti = int(durata_parte)
+				else:
+					# Proviamo a estrarre numero + unità di tempo
+					durata_split = durata_parte.split(" ", 1)
+					if len(durata_split) == 2 and durata_split[1] in conversione:
+						numero, unita = durata_split
+						if numero.isdigit():
+							durata_minuti = int(numero) * conversione[unita]
+						else:
+							durata_minuti = None  # Non valido
+					else:
+						# Se non è riconosciuto come durata, trattiamolo come parte del motivo
+						await send_temporary_message(
+							update=update,
+							context=context,
+							text=f"Ho bannato l'utente\nMotivo: {part[1]}",
+							delay_before=2,
+							delay_delete=60
+						)
+						return True
+				await send_temporary_message(
+					update=update,
+					context=context,
+					text=f"Ho bannato l'utente per {durata_minuti} minuti\nMotivo: {part[1]}",
+					delay_before=2,
+					delay_delete=60
+				)
+				return True
+
 		elif len(update.message.text.split(" ")) == 3:
 			reason = update.message.text.split(" ")[2]
 
