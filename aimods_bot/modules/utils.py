@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import timedelta
 from uuid import uuid4
 
 import telegram
@@ -8,7 +9,7 @@ from telegram.constants import ChatAction
 from telegram.ext import ContextTypes, CallbackContext
 
 from aimods_bot.modules import job_queue_functions
-from aimods_bot.modules.exceptions import AlertException
+from aimods_bot.modules.exceptions import AlertException, CommandSyntaxException
 from aimods_bot.modules.loggers import bot_logger
 
 
@@ -128,6 +129,43 @@ async def send_action_message_after(update: Update,
         "job": job,
         "returned_value": None,
         "done": False
+    }
+
+
+async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str):
+    pattern = r"[/.!](\w+)\s*(?:(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s*((?:\d+\s*(?:giorni|ore|minuti|secondi)\s*)*)\s*(.*)?"
+    match = re.match(pattern, command)
+
+    if not match:
+        bot_logger.error(f"Invalid command: {command}")
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="⚠️ Warning\n\nLa sintassi del comando non è corretta."
+        )
+        # potremmo in qualche modo linkare un manuale di utilizzo
+        return None
+
+    action = match.group(1)  # Comando (ban, mute, warn, ecc.)
+    username = match.group(2)  # Può essere @username o None
+    user_id = match.group(3) or match.group(4)  # ID numerico (da input diretto o da menzione HTML)
+    user = user_id if user_id else username  # Se c'è un ID, usiamo quello, altrimenti username
+    duration_text = match.group(5) or ""  # Durata
+    message = match.group(6) or ""  # Messaggio
+
+    duration_mapping = {"giorni": "days", "ore": "hours", "minuti": "minutes", "secondi": "seconds"}
+    duration_kwargs = {key: 0 for key in duration_mapping.values()}
+
+    for num, unit in re.findall(r"(\d+)\s*(giorni|ore|minuti|secondi)", duration_text):
+        duration_kwargs[duration_mapping[unit]] = int(num)
+
+    duration = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
+
+    return {
+        "action": action,
+        "user": user,
+        "duration": duration,
+        "message": message.strip() if message else None
     }
 
 

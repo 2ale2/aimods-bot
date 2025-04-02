@@ -31,3 +31,10 @@ class AlertException(BotException):
         self.message = message
         self.code = code
 
+
+class CommandSyntaxException(BotException):
+    def __init__(self, command: str, code=3000):
+        super().__init__(f"errore nella sintassi del comando: {command} ({code})")
+        self.message = f"errore nella sintassi del comando: {command}"
+        self.code = code
+

@@ -30,7 +30,11 @@ def create_handlers() -> list:
             )
         ],
         states={
-            RULES_ACCEPTED: [CallbackQueryHandler(callback=handlers_function.new_member_accepted_the_rules,pattern="^accept_rules.+$")]
+            RULES_ACCEPTED: [
+                CallbackQueryHandler(
+                    callback=handlers_function.new_member_accepted_the_rules,
+                    pattern="^accept_rules.+$")
+            ]
         },
         fallbacks=[
             CallbackQueryHandler(callback=handlers_function.new_member_joined_forum,pattern="^recreate_captcha$")

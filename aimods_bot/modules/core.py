@@ -4,7 +4,10 @@ import os
 
 from dotenv import load_dotenv
 from telegram.ext import Application
+from pyrogram import Client
+from pyrogram.errors import RPCError
 
+from aimods_bot.modules.loggers import bot_logger
 from utils import get_data_from_json
 
 load_dotenv()
@@ -40,6 +43,20 @@ async def set_application_data(application: Application):
         application.bot_data["rules_text"] = rules_text
 
     application.bot_data["jobs"] = {}
+    try:
+        pyro_instance = Client(
+            name="bridge_bot",
+            api_id=os.getenv("API_ID"),
+            api_hash=os.getenv("API_HASH"),
+            bot_token=os.getenv("BRIDGE_TOKEN")
+        )
+    except RPCError as e:
+        bot_logger.error(e)
+        raise
+
+    application.bot_data["pyro_instance"] = pyro_instance
+
+    await pyro_instance.start()
 
 
 async def get_admins(app: Application):
