@@ -107,7 +107,7 @@ async def send_temporary_message(
             "text": text,
             "reply_markup": (additional_job_data["reply_markup"]
                              if additional_job_data is not None
-                                and "reply_markup" in additional_job_data
+                             and "reply_markup" in additional_job_data
                              else None),
         },
         when=delay_before,

@@ -63,6 +63,7 @@ async def get_admins(app: Application):
     """
     :return: l'elenco corrente di admin della chat
     """
+    # noinspection PyUnresolvedReferences
     admins = await app.bot.get_chat_administrators(chat_id=app.bot_data["group_chat_id"])
     admins_dict = {}
 

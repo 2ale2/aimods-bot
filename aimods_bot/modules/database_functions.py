@@ -57,7 +57,7 @@ async def add_to_table(table_name: str, content: dict):
 
 async def connect_to_database():
     try:
-        conn = await asyncpg.connect(os.getenv("POSTGRES_CONNECTION_URL"))
+        conn = await asyncpg.connect(os.getenv("POSTGRES_CONNECTION_URL"), ssl=False)
         return conn
     except Exception as e:
         db_logger.error(f'Unable to access database: {e}')

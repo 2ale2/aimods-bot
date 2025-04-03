@@ -6,10 +6,10 @@ from uuid import uuid4
 import telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatAction
-from telegram.ext import ContextTypes, CallbackContext
+from telegram.ext import ContextTypes
 
 from aimods_bot.modules import job_queue_functions
-from aimods_bot.modules.exceptions import AlertException, CommandSyntaxException
+from aimods_bot.modules.exceptions import AlertException
 from aimods_bot.modules.loggers import bot_logger
 
 
