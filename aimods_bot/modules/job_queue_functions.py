@@ -93,7 +93,7 @@ async def send_temporary_message(
 
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id,
-        message_thread_id=update.effective_message.message_thread_id,
+        message_thread_id=await get_thread_id(update),
         action=ChatAction.TYPING
     )
 
@@ -103,7 +103,7 @@ async def send_temporary_message(
         callback=scheduled_send_message,
         data={
             "chat_id": update.effective_chat.id,
-            "thread_id": update.effective_message.message_thread_id,
+            "thread_id": await get_thread_id(update),
             "text": text,
             "reply_markup": (additional_job_data["reply_markup"]
                              if additional_job_data is not None
@@ -139,4 +139,11 @@ async def send_temporary_message(
         },
         when=delay_delete
     )
+
+async def get_thread_id(update: Update):
+    t_id = update.effective_message.message_thread_id
+    if t_id is not None and t_id < 20:
+        return t_id
+    return None
+
 

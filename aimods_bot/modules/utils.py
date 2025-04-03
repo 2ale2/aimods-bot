@@ -59,14 +59,14 @@ async def send_private_alert(update: Update,
             text=f"🔐 Message for {update.effective_user.name}",
             time=delay,
             additional_job_data={
-                "thread_id": update.effective_message.message_thread_id,
+                "thread_id": await get_thread_id(update),
                 "reply_markup": InlineKeyboardMarkup(keyboard)
             }
         )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            message_thread_id=update.effective_message.message_thread_id,
+            message_thread_id=await get_thread_id(update),
             text=f"🔐 Message for {update.effective_user.name}",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -109,8 +109,13 @@ async def send_action_message_after(update: Update,
                                     additional_job_data=None):
     """Invia un messaggio dopo un tempo specificato, simulando l'azione di scrittura (max 5 secondi)."""
 
+    if additional_job_data and "thread_id" in additional_job_data:
+        t_id = additional_job_data["thread_id"]
+    else:
+        t_id = await get_thread_id(update)
+
     await context.bot.send_chat_action(chat_id=update.effective_chat.id,
-                                       message_thread_id=update.effective_message.message_thread_id if update.effective_message.message_thread_id else None,
+                                       message_thread_id=t_id,
                                        action=ChatAction.TYPING)
 
     job_data = (additional_job_data if additional_job_data is not None else {}) | {
@@ -190,3 +195,9 @@ async def get_file(file):
     else:
         await get_file(file[-1])
 
+
+async def get_thread_id(update: Update):
+    t_id = update.effective_message.message_thread_id
+    if t_id is not None and t_id < 20:
+        return t_id
+    return None

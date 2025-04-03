@@ -15,5 +15,10 @@ untitled/Writerside/ug.tree
 untitled/Writerside/v.list
 untitled/Writerside/writerside.cfg
 
+aimods_bot/modules/bridge_bot.session
+aimods_bot/modules/bridge_bot.session-shm
+aimods_bot/modules/bridge_bot.session-wal
+database/
+
 .python-version
 .env

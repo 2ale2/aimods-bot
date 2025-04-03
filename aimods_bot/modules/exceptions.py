@@ -37,4 +37,3 @@ class CommandSyntaxException(BotException):
         super().__init__(f"errore nella sintassi del comando: {command} ({code})")
         self.message = f"errore nella sintassi del comando: {command}"
         self.code = code
-

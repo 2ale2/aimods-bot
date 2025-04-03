@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import telegram.error
 from pyrogram import utils
-from pyrogram.enums import ParseMode
+from pyrogram.errors import PeerIdInvalid
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 
@@ -19,7 +19,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 	La risposta dipende dall'utente: se è admin, allora stampo il pannello di controllo; altrimenti do il benvenuto.
 	--> Basta semplicemente aggiungere un Benvenuto standard e, se Admin, aggiungere un bottone con "Settings"
 	"""
-	if is_admin(update.effective_user.id, context):
+	if await is_admin(update.effective_user.id, context):
 		# stampa pannello di controllo
 		pass
 	else:
@@ -283,6 +283,8 @@ async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # COMANDO LIMITAZIONE UTENTE
 async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, full_command: str):
 	message = copy.deepcopy(update.message)
+	await delete_effective_message(update, context)
+
 	if not await is_admin(update.effective_user.id, context):
 		await job_queue_functions.send_temporary_message(
 			update=update,
@@ -296,29 +298,34 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 	parsed = await parse_command(update=update, context=context, command=full_command)
 
 	if parsed["user"] is None:
-		if update.message.reply_to_message is None:
+		if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
 			await send_private_alert(
 				update=update,
 				context=context,
-				text="⚠️ Warning\n\nSe non rispondi ad un messaggio, devi indicare un utente."
+				text="⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente."
 			)
 			return
 
-	replied = update.message.reply_to_message if update.message.reply_to_message.forum_topic_created is None else None
+	if message.reply_to_message is not None and message.reply_to_message.forum_topic_created is None:
+		replied = message.reply_to_message
+	else:
+		replied = None
 
-	user = await context.bot_data["pyro_instance"].get_chat_member(
-		chat_id=context.bot_data["group_chat_id"],
-		user_id=parsed["user"] or replied.from_user.id
-	)
-
-	text = None
-	status_name = user.status.name
-	if status_name == "LEFT":
-		text = "⚠️ Warning\n\nL'utente non è nel gruppo."
-	elif status_name == "ADMINISTRATOR" or status_name == "OWNER":
-		text = "⚠️ Warning\n\nNon è consentito limitare gli altri admin."
-	elif status_name == "BANNED":
-		text = "⚠️ Warning\n\nL'utente è bannato."
+	try:
+		text = None
+		user = await context.bot_data["pyro_instance"].get_chat_member(
+			chat_id=context.bot_data["group_chat_id"],
+			user_id=parsed["user"] or replied.from_user.id
+		)
+		status_name = user.status.name
+		if status_name == "LEFT":
+			text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
+		elif status_name == "ADMINISTRATOR" or status_name == "OWNER":
+			text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
+		elif status_name == "BANNED":
+			text = "⚠️ Warning\n\n▪️ L'utente è bannato."
+	except PeerIdInvalid:
+		text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
 
 	if text is not None:
 		await send_private_alert(
@@ -348,13 +355,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 		# 	"anni": 525600,
 		# 	"anno": 525600
 		# }
-		# if update.message.reply_to_message:
+		# if message.reply_to_message:
 		# 	await context.bot.ban_chat_member(
-		# 		chat_id=update.message.chat.id,
-		# 		user_id=update.message.reply_to_message.from_user.id
+		# 		chat_id=message.chat.id,
+		# 		user_id=message.reply_to_message.from_user.id
 		# 	)
 		#
-		# 	part = update.message.text.split(" ", 1) # Split per verificare quale dei 3 scenari possibili avviene in risposta
+		# 	part = message.text.split(" ", 1) # Split per verificare quale dei 3 scenari possibili avviene in risposta
 		#
 		# 	if len(part) == 1: #Scenario /ban in risposta
 		# 		await send_temporary_message(
@@ -402,7 +409,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 		# 		)
 		# 		return True
 		# else: #Comando ban non in risposta
-		# 	part = update.message.text.split(" ", 2) # Split per verificare quale dei 3 scenari possibili avviene in risposta
+		# 	part = message.text.split(" ", 2) # Split per verificare quale dei 3 scenari possibili avviene in risposta
 		# 	if len(part) < 2:
 		# 		await send_private_alert(
 		# 			update=update,
@@ -451,7 +458,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
 		italian_tz = pytz.timezone("Europe/Rome")
 
+		# noinspection PyUnboundLocalVariable
 		mention = (
+			# se arriviamo a questo punto del codice, user è definita necessariamente
 			f'<a href="tg://user?id={user.user.id}">{user.user.first_name}</a>'
 			if user.user.username is None
 			else f"@{user.user.username}"
@@ -474,7 +483,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 			service_text += "a <b>tempo indeterminato</b>."
 
 		if parsed["message"]:
-			service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
+			service_text += f"\n<b>Motivo</b>: {parsed['message']}."
 
 		service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 
@@ -485,7 +494,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 			delay_delete=300
 		)
 
-	if update.message.text.split(" ")[0].endswith("kick"):
+		# AGGIUNGERE LA PARTE DI AGGIUNTA AL DATABASE (tabella bans)
+
+	if message.text.split(" ")[0].endswith("kick"):
 		pass
 
 
