@@ -175,9 +175,9 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
         duration_kwargs[duration_mapping[unit]] = int(num)
 
     duration = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
-    # Calcolo until_date (Unix timestamp in secondi)
-    now = datetime.now(timezone.utc)
-    duration = int((now + duration).timestamp()) if duration else None
+    # # Calcolo until_date (Unix timestamp in secondi)
+    #     # now = datetime.now(timezone.utc)
+    #     # duration = int((now + duration).timestamp()) if duration else None
 
     return {
         "action": action,

@@ -162,6 +162,8 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
+            case "unlimit":
+                await limit_user(update=update, context=context, command=command, full_command=message_text)
 
 
 # COMANDO RIMOZIONE MESSAGGI
@@ -341,7 +343,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     now_italy = datetime.now(italian_tz)
     until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
 
-    if command == "limit":
+    if command == "limit" or command == "unlimit":
         p = Permissions
         new_permissions = {}
         permissions_texts = {
@@ -359,14 +361,22 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         }
         if parsed["permissions"] == [11]:  # "non è un bug, è una feature;)"
             for perm in p:
-                new_permissions[perm.name] = True
-            service_text = f"🔓 Utente {mention} (<code>{user.user.id}</code>) non più limitato."
+                new_permissions[perm.name] = True if command == "limit" else False
+            if command == "limit":
+                service_text = f"🔓 Utente {mention} (<code>{user.user.id}</code>) non più limitato."
+            else:
+                service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) limitato (tutti i permessi rimossi)."
         else:
-            actual = user.permissions.__dict__
+            actual = user.permissions.__dict__ if user.permissions is not None else {perm.name: True for perm in p}
+            if command == "limit":
+                new_permissions = {
+                    perm.name: (actual[perm.name] if perm.value not in parsed["permissions"] else False) for perm in p
+                }
+            else:
+                new_permissions = {
+                    perm.name: (True if perm.value not in parsed["permissions"] else actual[perm.name]) for perm in p
+                }
 
-            new_permissions = {
-                perm.name: (actual[perm.name] if perm.value not in parsed["permissions"] else False) for perm in p
-            }
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id,
@@ -375,20 +385,27 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             use_independent_chat_permissions=True
         )
         if parsed["permissions"] != [11]:
-            service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
-            if parsed["duration"]:
-                service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+            if command == "limit":
+                service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
+                if parsed["duration"]:
+                    service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+                else:
+                    service_text += "a <b>tempo indeterminato</b>."
+
+                service_text += "\n\n<u>Permessi Rimossi</u>"
+
+                for el in permissions_texts:
+                    if el in parsed["permissions"]:
+                        service_text += f"\n\t▪️ {permissions_texts[el]}"
+
+                if parsed["message"]:
+                    service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
             else:
-                service_text += "a <b>tempo indeterminato</b>."
-
-            service_text += "\n\n<u>Permessi Rimossi</u>"
-
-            for el in permissions_texts:
-                if el in parsed["permissions"]:
-                    service_text += f"\n\t▪️ {permissions_texts[el]}"
-
-            if parsed["message"]:
-                service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
+                service_text = (f"🔓 Utente {mention} (<code>{user.user.id}</code>) <b>non più limitato</b>.\n\n"
+                                f"<u>Permessi Aggiunti</u>")
+                for el in permissions_texts:
+                    if el in parsed["permissions"]:
+                        service_text += f"\n\t▪️ {permissions_texts[el]}"
 
     elif command == "mute":
         pass
