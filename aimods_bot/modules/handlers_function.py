@@ -6,8 +6,10 @@ import pytz
 import telegram.error
 from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
+from pyrogram.types import ChatPermissions
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
+from constants import Permissions
 
 from aimods_bot.modules.database_functions import add_to_table
 from utils import *
@@ -149,11 +151,6 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         command = match.group(1)
         args = match.group(2) if len(match.groups()) == 2 else None
 
-        if command in ["ban"]:
-            parsed = await parse_command(update=update, context=context, command=message_text)
-            if parsed is None:
-                return
-
         match command:
             case "start":
                 await start_command(update=update, context=context)
@@ -162,6 +159,8 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             case "del":
                 await delete_group_message(update=update, context=context, args=args)
             case "ban":
+                await limit_user(update=update, context=context, command=command, full_command=message_text)
+            case "limit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
 
 
@@ -289,7 +288,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
-    parsed = await parse_command(update=update, context=context, command=full_command)
+    parsed = await parse_command(update=update, context=context, command=command, full_command=full_command)
 
     if parsed["user"] is None:
         if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
@@ -329,8 +328,68 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
+    italian_tz = pytz.timezone("Europe/Rome")
+
+    # noinspection PyUnboundLocalVariable
+    mention = (
+        # se arriviamo a questo punto del codice, user è definita necessariamente
+        f'<a href="tg://user?id={user.user.id}">{user.user.first_name}</a>'
+        if user.user.username is None
+        else f"@{user.user.username}"
+    )
+
+    now_italy = datetime.now(italian_tz)
+    until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
+
     if command == "limit":
-        pass
+        p = Permissions
+        new_permissions = {}
+        permissions_texts = {
+            0: "Inviare messaggi",
+            1: "Inviare sondaggi",
+            2: "Inviare stickers e GIFs",
+            3: "Aggiungere Web Previews",
+            4: "Invitare altri membri",
+            5: "Inviare file audio",
+            6: "Inviare documenti",
+            7: "Inviare foto",
+            8: "Inviare video",
+            9: "Inviare note video",
+            10: "Inviare note vocali"
+        }
+        if parsed["permissions"] == [11]:  # "non è un bug, è una feature;)"
+            for perm in p:
+                new_permissions[perm.name] = True
+            service_text = f"🔓 Utente {mention} (<code>{user.user.id}</code>) non più limitato."
+        else:
+            actual = user.permissions.__dict__
+
+            new_permissions = {
+                perm.name: (actual[perm.name] if perm.value not in parsed["permissions"] else False) for perm in p
+            }
+        await context.bot.restrict_chat_member(
+            chat_id=update.effective_chat.id,
+            user_id=user.user.id,
+            permissions=new_permissions,
+            until_date=until_date,
+            use_independent_chat_permissions=True
+        )
+        if parsed["permissions"] != [11]:
+            service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
+            if parsed["duration"]:
+                service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+            else:
+                service_text += "a <b>tempo indeterminato</b>."
+
+            service_text += "\n\n<u>Permessi Rimossi</u>"
+
+            for el in permissions_texts:
+                if el in parsed["permissions"]:
+                    service_text += f"\n\t▪️ {permissions_texts[el]}"
+
+            if parsed["message"]:
+                service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
+
     elif command == "mute":
         pass
     if command == "ban":  # ban_chat_member(chat_id, user_id, until_date=None, revoke_messages=None)
@@ -450,19 +509,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         # 		)
         # 	return True
 
-        italian_tz = pytz.timezone("Europe/Rome")
-
-        # noinspection PyUnboundLocalVariable
-        mention = (
-            # se arriviamo a questo punto del codice, user è definita necessariamente
-            f'<a href="tg://user?id={user.user.id}">{user.user.first_name}</a>'
-            if user.user.username is None
-            else f"@{user.user.username}"
-        )
-
-        now_italy = datetime.now(italian_tz)
-        until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
-
         await context.bot_data["pyro_instance"].ban_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id,
@@ -479,19 +525,25 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
 
-        service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
-
-        await job_queue_functions.send_temporary_message(
-            update=update,
-            context=context,
-            text=service_text,
-            delay_delete=300
-        )
-
-        # AGGIUNGERE LA PARTE DI AGGIUNTA AL DATABASE (tabella bans)
+        await add_to_table("bans", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "ban_time": datetime.now(),
+            "reason": parsed["message"] if parsed["message"] else "",
+            "until_date": until_date.replace(tzinfo=italian_tz) if until_date != utils.zero_datetime() else None
+        })
 
     if message.text.split(" ")[0].endswith("kick"):
         pass
+
+    service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
+
+    await job_queue_functions.send_temporary_message(
+        update=update,
+        context=context,
+        text=service_text,
+        delay_delete=300
+    )
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):

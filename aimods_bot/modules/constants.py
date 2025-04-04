@@ -68,20 +68,17 @@ for topic in TOPICS["all"].values():
 
 @dataclass(frozen=True)
 class Permissions(IntEnum):
-    SEND_MESSAGES = 0
-    SEND_ALL_MEDIA = 1
-    SEND_PHOTO = 2
-    SEND_VIDEO_FILES = 3
-    SEND_VIDEO_MESSAGES = 4
-    SEND_MUSIC = 5
-    SEND_FILES = 6
-    SEND_STICKERS_GIFS = 7
-    SEND_EMBEDDED_LINKS = 8
-    SEND_POOLS = 9
-    ADD_MEMBERS = 10
-    CREATE_TOPICS = 11
-    PIN_MESSAGES = 12
-    CHANGE_GROUP_INFO = 13
+    can_send_messages = 0
+    can_send_polls = 1
+    can_send_other_messages = 2
+    can_add_web_page_previews = 3
+    can_invite_users = 4
+    can_send_audios = 5
+    can_send_documents = 6
+    can_send_photos = 7
+    can_send_videos = 8
+    can_send_video_notes = 9
+    can_send_voice_notes = 10
 
 
 @dataclass(frozen=True)

@@ -137,12 +137,16 @@ async def send_action_message_after(update: Update,
     }
 
 
-async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str):
-    pattern = r"[/.!](\w+)\s*(?:(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s*((?:\d+\s*(?:giorni|ore|minuti|secondi)\s*)*)\s*(.*)?"
-    match = re.match(pattern, command)
+async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, full_command: str):
+    if command in ["ban"]:
+        pattern = r"[/.!](\w+)(?:\s+(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s*((?:\d+\s*(?:giorni|ore|minuti|secondi)\s*)*)\s*(.*)?"
+    else:
+        pattern = r"[.!/](\w+)(?:\s+(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s+((?:\d{1,2})(?:,(?:\d{1,2}))*)(?:\s+(\d+\s*(?:anni|mesi|giorni|ore|minuti|secondi)(?:\s+\d+\s*(?:anni|mesi|giorni|ore|minuti|secondi))*))?(?:\s+(.+))?"
+
+    match = re.match(pattern, full_command)
 
     if not match:
-        bot_logger.error(f"Invalid command: {command}")
+        bot_logger.error(f"Invalid command: {full_command}")
         await send_private_alert(
             update=update,
             context=context,
@@ -155,8 +159,14 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
     username = match.group(2)  # Può essere @username o None
     user_id = match.group(3) or match.group(4)  # ID numerico (da input diretto o da menzione HTML)
     user = user_id if user_id else username  # Se c'è un ID, usiamo quello, altrimenti username
-    duration_text = match.group(5) or ""  # Durata
-    message = match.group(6) or ""  # Messaggio
+    permissions = None
+    if command == "limit":
+        permissions = [pe for pe in [int(p) for p in match.group(5).split(",")] if pe <= 11]
+        duration_text = match.group(6) or ""
+        message = match.group(7) or ""
+    else:
+        duration_text = match.group(5) or ""  # Durata
+        message = match.group(6) or ""  # Messaggio
 
     duration_mapping = {"giorni": "days", "ore": "hours", "minuti": "minutes", "secondi": "seconds"}
     duration_kwargs = {key: 0 for key in duration_mapping.values()}
@@ -170,7 +180,8 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
         "action": action,
         "user": user,
         "duration": duration,
-        "message": message.strip() if message else None
+        "message": message.strip() if message else None,
+        "permissions": permissions
     }
 
 
