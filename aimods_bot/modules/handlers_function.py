@@ -433,15 +433,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
 
     elif command == "mute" or command == "unmute":
-        p = Permissions
-        actual = user.permissions.__dict__ if user.permissions is not None else {perm.name: True for perm in p}
-        new_permissions = {
-            perm.name: (actual[perm.name] if perm.value != "can_send_messages" else True) for perm in p
-        }
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id,
-            permissions=new_permissions,
+            permissions={"can_send_messages": False if command == "mute" else True},
             until_date=until_date,
             use_independent_chat_permissions=False  # l'utente non può mandare nessun tipo di messaggio
         )
