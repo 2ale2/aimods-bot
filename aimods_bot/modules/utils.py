@@ -138,10 +138,8 @@ async def send_action_message_after(update: Update,
 
 
 async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, full_command: str):
-    if command in ["ban"]:
-        pattern = r"[/.!](\w+)(?:\s+(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s*((?:\d+\s*(?:giorni|ore|minuti|secondi)\s*)*)\s*(.*)?"
-    else:
-        pattern = r"[.!/](\w+)(?:\s+(@\w+|(\d{7,})|<a\s+href=\"tg://user\?id=(\d{7,})\">.*?</a>))?\s+((?:\d{1,2})(?:,(?:\d{1,2}))*)(?:\s+(\d+\s*(?:anni|mesi|giorni|ore|minuti|secondi)(?:\s+\d+\s*(?:anni|mesi|giorni|ore|minuti|secondi))*))?(?:\s+(.+))?"
+    pattern = context.bot_data["commands"][command]["pattern"]
+    parameters = context.bot_data["commands"][command]["parameters"]
 
     match = re.match(pattern, full_command)
 
@@ -150,41 +148,49 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
         await send_private_alert(
             update=update,
             context=context,
-            text="⚠️ Warning\n\nLa sintassi del comando non è corretta."
+            text="⚠️ Warning\n\n▪️ La sintassi del comando non è corretta."
         )
         # potremmo in qualche modo linkare un manuale di utilizzo
         return None
 
-    action = match.group(1)  # Comando (ban, mute, warn, ecc.)
-    username = match.group(2)  # Può essere @username o None
-    user_id = match.group(3) or match.group(4)  # ID numerico (da input diretto o da menzione HTML)
-    user = user_id if user_id else username  # Se c'è un ID, usiamo quello, altrimenti username
-    permissions = None
-    if command == "limit":
-        permissions = [pe for pe in [int(p) for p in match.group(5).split(",")] if pe <= 11]
-        duration_text = match.group(6) or ""
-        message = match.group(7) or ""
-    else:
-        duration_text = match.group(5) or ""  # Durata
-        message = match.group(6) or ""  # Messaggio
+    extracted = {"action": match.group(1)}
+    gidx = 2
+    for param in parameters:
+        if param == "mention":
+            username = match.group(gidx)  # Può essere @username o None
+            user_id = match.group(gidx + 1) or match.group(gidx + 2)  # ID numerico (da input diretto o da menzione HTML)
+            extracted["user"] = user_id if user_id else username  # Se c'è un ID, usiamo quello, altrimenti username
+            gidx += 3
+        elif param == "permissions":
+            extracted["permissions"] = [pe for pe in [int(p) for p in match.group(gidx).split(",")] if pe <= 11]
+        else:
+            if param == "duration" or param == "message":
+                extracted[param] = match.group(gidx) or ""
+            else:
+                extracted[param] = match.group(gidx)
+            gidx += 1
 
     duration_mapping = {"giorni": "days", "ore": "hours", "minuti": "minutes", "secondi": "seconds"}
     duration_kwargs = {key: 0 for key in duration_mapping.values()}
 
-    for num, unit in re.findall(r"(\d+)\s*(giorni|ore|minuti|secondi)", duration_text):
-        duration_kwargs[duration_mapping[unit]] = int(num)
+    if "duration" in extracted:
+        for num, unit in re.findall(r"(\d+)\s*(giorni|ore|minuti|secondi)", extracted["duration"]):
+            duration_kwargs[duration_mapping[unit]] = int(num)
 
-    duration = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
-    # # Calcolo until_date (Unix timestamp in secondi)
-    #     # now = datetime.now(timezone.utc)
-    #     # duration = int((now + duration).timestamp()) if duration else None
+        extracted["duration"] = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
+
+    parsed = {}
+    for el in extracted:
+        if el == "message":
+            parsed[el] = extracted[el].strip() if extracted[el] else None
+        parsed[el] = extracted[el]
 
     return {
-        "action": action,
-        "user": user,
-        "duration": duration,
-        "message": message.strip() if message else None,
-        "permissions": permissions
+        "action": extracted["action"],
+        "user": extracted["user"] if "user" in extracted else None,
+        "duration": extracted["duration"] if "duration" in extracted else "",
+        "message": extracted["message"] if "message" in extracted else None,
+        "permissions": extracted["permissions"] if "permissions" in extracted else None,
     }
 
 

@@ -42,6 +42,10 @@ async def set_application_data(application: Application):
     if 'rules_text' not in application.bot_data or application.bot_data["rules_text"] != rules_text:
         application.bot_data["rules_text"] = rules_text
 
+    commands = get_data_from_json("commands")
+    if 'commands' not in application.bot_data or application.bot_data["commands"] != commands:
+        application.bot_data["commands"] = commands
+
     application.bot_data["jobs"] = {}
     try:
         pyro_instance = Client(
