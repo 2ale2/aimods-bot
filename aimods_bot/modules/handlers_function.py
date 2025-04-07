@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytz
 import telegram.error
-from pyrogram import utils
+from pyrogram import utils, enums
 from pyrogram.errors import PeerIdInvalid
 from pyrogram.types import ChatPermissions
 from telegram.constants import ChatMemberStatus
@@ -318,12 +318,11 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
             )
             return
-        status_name = user.status.name
-        if status_name == "LEFT":
+        if user.status ==  enums.ChatMemberStatus.LEFT:
             text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
-        elif status_name == "ADMINISTRATOR" or status_name == "OWNER":
+        elif user.status == enums.ChatMemberStatus.ADMINISTRATOR or user.status ==  enums.ChatMemberStatus.OWNER:
             text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
-        elif status_name == "BANNED":
+        elif user.status ==  enums.ChatMemberStatus.BANNED:
             text = "⚠️ Warning\n\n▪️ L'utente è bannato."
     except PeerIdInvalid:
         text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
