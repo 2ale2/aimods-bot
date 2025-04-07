@@ -466,19 +466,28 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             }
         )
 
-    if command == "ban":
-        await context.bot_data["pyro_instance"].ban_chat_member(
-            chat_id=update.effective_chat.id,
-            user_id=user.user.id,
-            until_date=until_date
-        )
-
-        service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
-
-        if parsed["duration"]:
-            service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+    if command == "ban" or command == "unban":
+        if command == "ban":
+            await context.bot_data["pyro_instance"].ban_chat_member(
+                chat_id=update.effective_chat.id,
+                user_id=user.user.id,
+                until_date=until_date
+            )
         else:
-            service_text += "a <b>tempo indeterminato</b>."
+            await context.bot_data["pyro_instance"].unban_chat_member(
+                chat_id=update.effective_chat.id,
+                user_id=user.user.id
+            )
+
+        if command == "ban":
+            service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
+
+            if parsed["duration"]:
+                service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+            else:
+                service_text += "a <b>tempo indeterminato</b>."
+        else:
+            service_text = f"✅ Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
@@ -490,25 +499,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "reason": parsed["message"] if parsed["message"] else "",
             "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                            if until_date != utils.zero_datetime() else None),
-            "unban": False if command == "ban" else True
-        })
-
-    if command == "unban":
-        await context.bot_data["pyro_instance"].unban_chat_member(
-            chat_id=update.effective_chat.id,
-            user_id=user.user.id
-        )
-
-        service_text = f"✅ Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
-
-        if parsed["message"]:
-            service_text += f"\n<b>Motivo</b>: {parsed['message']}."
-
-        await add_to_table("bans", {
-            "admin": update.effective_user.id,
-            "user_id": user.user.id,
-            "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-            "reason": parsed["message"] if parsed["message"] else "",
             "unban": False if command == "ban" else True
         })
 

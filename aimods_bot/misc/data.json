@@ -98,7 +98,7 @@
       "parameters": ["mention", "duration", "message"]
     },
     "unban": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
+      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
       "parameters": ["mention", "message"]
     },
     "limit": {
@@ -116,6 +116,10 @@
     "unmute": {
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
       "parameters": ["mention"]
+    },
+    "kick": {
+      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
+      "parameters": ["mention", "message"]
     }
   }
 }
