@@ -99,7 +99,7 @@
     },
     "unban": {
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
-      "parameters": ["mention"]
+      "parameters": ["mention", "message"]
     },
     "limit": {
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)(?:\\s+(\\d+\\s*(?:anni|mesi|giorni|ore|minuti|secondi)(?:\\s+\\d+\\s*(?:anni|mesi|giorni|ore|minuti|secondi))*))?(?:\\s+(.+))?",

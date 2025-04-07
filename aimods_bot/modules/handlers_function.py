@@ -532,8 +532,41 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "user_id": user.user.id,
             "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else ""
-        })        
-        pass
+        })  
+
+    if command == "warn":
+        warn = 0 #Leggi i Warn dal DB
+        maxwarn = 3
+        service_text = f"🟡 Utente {mention} (<code>{user.user.id}</code>) <b>Ammonito {warn}/{maxwarn}</b> "
+
+        if parsed["message"]:
+            service_text += f"\n<b>Motivo</b>: {parsed['message']}."
+
+        if warn >= maxwarn:
+            service_text += f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
+            service_text += f"\n<b>Motivo</b>: Superamento delle ammonizioni massime consentite."
+         
+            await context.bot_data["pyro_instance"].ban_chat_member(
+            chat_id=update.effective_chat.id,
+            user_id=user.user.id,
+            until_date=until_date
+            )
+            
+            await add_to_table("bans", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "reason": parsed["message"] if parsed["message"] else "",
+            "until_date": None,
+            "unban": False
+            })
+
+        await add_to_table("kicks", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "reason": parsed["message"] if parsed["message"] else ""
+        })  
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 
