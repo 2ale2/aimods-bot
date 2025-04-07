@@ -489,10 +489,50 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else "",
             "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                           if until_date != utils.zero_datetime() else None)
+                           if until_date != utils.zero_datetime() else None),
+            "unban": False if command == "ban" else True
         })
 
-    if message.text.split(" ")[0].endswith("kick"):
+    if command == "unban":
+        await context.bot_data["pyro_instance"].unban_chat_member(
+            chat_id=update.effective_chat.id,
+            user_id=user.user.id
+        )
+
+        service_text = f"✅ Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
+
+        if parsed["message"]:
+            service_text += f"\n<b>Motivo</b>: {parsed['message']}."
+
+        await add_to_table("bans", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "reason": parsed["message"] if parsed["message"] else "",
+            "unban": False if command == "ban" else True
+        })
+
+    if command == "kick":
+        await context.bot_data["pyro_instance"].ban_chat_member(
+            chat_id=update.effective_chat.id,
+            user_id=user.user.id
+        )
+        await context.bot_data["pyro_instance"].unban_chat_member(
+            chat_id=update.effective_chat.id,
+            user_id=user.user.id
+        )
+
+        service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b> "
+
+        if parsed["message"]:
+            service_text += f"\n<b>Motivo</b>: {parsed['message']}."
+
+        await add_to_table("kicks", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "reason": parsed["message"] if parsed["message"] else ""
+        })        
         pass
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
