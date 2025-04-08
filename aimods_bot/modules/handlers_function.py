@@ -157,7 +157,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             case "rules":
                 await send_rules(update=update, context=context)
             case "del" | "delmute" | "delban" | "delkick":
-                await delete_group_message(update=update, context=context, args=args)
+                await delete_group_message(update=update, context=context, args=args, command=command)
             case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
@@ -165,7 +165,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # COMANDO RIMOZIONE MESSAGGI
-async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None):
+async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None, command: str):
     message_to_delete = copy.deepcopy(update.effective_message.reply_to_message)
     message_from_admin = copy.deepcopy(update.effective_message)
     forwarded_media = None
@@ -243,6 +243,11 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             "manual": False
         }
         await add_to_table(table_name="deleted_messages", content=data_for_database)
+        
+    action = command[3:]
+    if action:
+        full_command = f"/{action} {message_to_delete.from_user.id} {reason}"
+        limit_user(update = update, context = context, command = action, full_command = full_command)
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
