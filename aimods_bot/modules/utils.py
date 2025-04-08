@@ -163,6 +163,7 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
             gidx += 3
         elif param == "permissions":
             extracted["permissions"] = [pe for pe in [int(p) for p in match.group(gidx).split(",")] if pe <= 11]
+            gidx += 1
         else:
             if param == "duration" or param == "message":
                 extracted[param] = match.group(gidx) or ""

@@ -165,7 +165,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # COMANDO RIMOZIONE MESSAGGI
-async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None, command: str, full_command: str):
+async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None, command: str, full_command: str, log_message=True):
     message_to_delete = copy.deepcopy(update.effective_message.reply_to_message)
     message_from_admin = copy.deepcopy(update.effective_message)
     forwarded_media = None
@@ -214,12 +214,13 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
                 chat_id=os.getenv("DELETED_MEDIA_CHANNEL_ID")
             )
         await message_to_delete.delete()
-        await job_queue_functions.send_temporary_message(
-            update=update,
-            context=context,
-            text=answer_text,
-            delay_delete=300
-        )
+        if log_message:
+            await job_queue_functions.send_temporary_message(
+                update=update,
+                context=context,
+                text=answer_text,
+                delay_delete=300
+            )
     except telegram.error.BadRequest as e:
         bot_logger.error(f"Errore nella rimozione di un messaggio: {e}")
         await send_private_alert(
@@ -243,11 +244,17 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             "manual": False
         }
         await add_to_table(table_name="deleted_messages", content=data_for_database)
-        
-    action = command[3:]
-    if action:
-        full_command = full_command.replace("del", "")
-        limit_user(update = update, context = context, command = action, full_command = full_command)
+
+    # opzione 1
+
+    if action := command.replace("del", ""):
+        parts = full_command.split(" ", 1)
+        if len(parts) > 1:
+            full_command = f"/{action} {message_to_delete.from_user.id} {parts[1]}"
+        else:
+            full_command = f"/{action} {message_to_delete.from_user.id}"
+
+        await limit_user(update = update, context = context, command = action, full_command = full_command)
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -323,11 +330,11 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
             )
             return
-        if user.status ==  enums.ChatMemberStatus.LEFT:
+        if user.status == enums.ChatMemberStatus.LEFT:
             text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
-        elif user.status == enums.ChatMemberStatus.ADMINISTRATOR or user.status ==  enums.ChatMemberStatus.OWNER:
+        elif user.status == enums.ChatMemberStatus.ADMINISTRATOR or user.status == enums.ChatMemberStatus.OWNER:
             text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
-        elif user.status ==  enums.ChatMemberStatus.BANNED:
+        elif user.status == enums.ChatMemberStatus.BANNED:
             text = "⚠️ Warning\n\n▪️ L'utente è bannato."
     except PeerIdInvalid:
         text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
@@ -352,6 +359,19 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     now_italy = datetime.now(tz=italian_tz).replace(tzinfo=None)
     until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
+
+    # opzione 2
+
+    if "del" in command:
+        await delete_group_message(
+            update=update,
+            context=context,
+            args=parsed["message"],
+            command="del",
+            full_command=f"/del {parsed['message']}" if parsed["message"] is not None else "/del",
+            log_message=False
+        )
+        command = command.replace("del", "")
 
     if command == "limit" or command == "unlimit":
         p = Permissions
@@ -436,7 +456,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             }
         )
 
-    elif command == "mute" or command == "unmute":
+    if command == "mute" or command == "unmute":
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id,
@@ -492,7 +512,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             else:
                 service_text += "a <b>tempo indeterminato</b>."
         else:
-            service_text = f"✅ Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
+            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
@@ -508,16 +528,12 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         })
 
     if command == "kick":
-        await context.bot_data["pyro_instance"].ban_chat_member(
-            chat_id=update.effective_chat.id,
-            user_id=user.user.id
-        )
-        await context.bot_data["pyro_instance"].unban_chat_member(
+        await context.bot.unban_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id
         )
 
-        service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b> "
+        service_text = f"🥊 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b> "
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
