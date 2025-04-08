@@ -156,9 +156,9 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await start_command(update=update, context=context)
             case "rules":
                 await send_rules(update=update, context=context)
-            case "del":
+            case "del" | "delmute" | "delban" | "delkick":
                 await delete_group_message(update=update, context=context, args=args)
-            case "ban" | "mute" | "unmute":
+            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
