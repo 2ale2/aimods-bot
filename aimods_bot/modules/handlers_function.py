@@ -157,7 +157,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             case "rules":
                 await send_rules(update=update, context=context)
             case "del" | "delmute" | "delban" | "delkick":
-                await delete_group_message(update=update, context=context, args=args, command=command, full_command=message_text)
+                await delete_group_message(update=update, context=context, args=args)
             case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
@@ -165,7 +165,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # COMANDO RIMOZIONE MESSAGGI
-async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None, command: str, full_command: str, log_message=True):
+async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE, args: str | None, log_message=True):
     message_to_delete = copy.deepcopy(update.effective_message.reply_to_message)
     message_from_admin = copy.deepcopy(update.effective_message)
     forwarded_media = None
@@ -244,17 +244,6 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             "manual": False
         }
         await add_to_table(table_name="deleted_messages", content=data_for_database)
-
-    # opzione 1
-
-    if action := command.replace("del", ""):
-        parts = full_command.split(" ", 1)
-        if len(parts) > 1:
-            full_command = f"/{action} {message_to_delete.from_user.id} {parts[1]}"
-        else:
-            full_command = f"/{action} {message_to_delete.from_user.id}"
-
-        await limit_user(update = update, context = context, command = action, full_command = full_command)
 
 
 async def send_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -360,15 +349,11 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     now_italy = datetime.now(tz=italian_tz).replace(tzinfo=None)
     until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
 
-    # opzione 2
-
     if "del" in command:
         await delete_group_message(
             update=update,
             context=context,
             args=parsed["message"],
-            command="del",
-            full_command=f"/del {parsed['message']}" if parsed["message"] is not None else "/del",
             log_message=False
         )
         command = command.replace("del", "")
