@@ -1,8 +1,9 @@
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, datetime
 from uuid import uuid4
 
+import pytz
 import telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatAction
@@ -11,6 +12,7 @@ from telegram.ext import ContextTypes
 from aimods_bot.modules import job_queue_functions
 from aimods_bot.modules.exceptions import AlertException
 from aimods_bot.modules.loggers import bot_logger
+from aimods_bot.modules.database_functions import execute_query_for_value
 
 
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -193,6 +195,16 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
         "message": extracted["message"] if "message" in extracted else None,
         "permissions": extracted["permissions"] if "permissions" in extracted else None,
     }
+
+
+async def get_user_warnings(user_id: int):
+    tz_italia = pytz.timezone("Europe/Rome")
+    now = datetime.now(tz=tz_italia)
+    query = f"SELECT COUNT(*) FROM warnings WHERE user_id = {user_id} AND expiration > {now}"
+    count = await execute_query_for_value(query=query)
+    if count is None:
+        bot_logger.error(f"Not able to fetch warnings for user_id {user_id}")
+    return None
 
 
 def get_data_from_json(data: str):

@@ -156,9 +156,9 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await start_command(update=update, context=context)
             case "rules":
                 await send_rules(update=update, context=context)
-            case "del" | "delmute" | "delban" | "delkick":
+            case "del":
                 await delete_group_message(update=update, context=context, args=args)
-            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
+            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn" | "delmute" | "delban" | "delkick" | "dellimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
@@ -289,7 +289,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
-    parsed = await parse_command(update=update, context=context, command=command, full_command=full_command)
+    parsed = await parse_command(update=update, context=context, command=command.replace("del", ""), full_command=full_command)
 
     if parsed["user"] is None:
         if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
@@ -323,7 +323,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
         elif user.status == enums.ChatMemberStatus.ADMINISTRATOR or user.status == enums.ChatMemberStatus.OWNER:
             text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
-        elif user.status == enums.ChatMemberStatus.BANNED:
+        elif user.status == enums.ChatMemberStatus.BANNED and command != "unban":
             text = "⚠️ Warning\n\n▪️ L'utente è bannato."
     except PeerIdInvalid:
         text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
@@ -441,7 +441,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             }
         )
 
-    if command == "mute" or command == "unmute":
+    elif command == "mute" or command == "unmute":
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id,
@@ -476,7 +476,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             }
         )
 
-    if command == "ban" or command == "unban":
+    elif command == "ban" or command == "unban":
         if command == "ban":
             await context.bot_data["pyro_instance"].ban_chat_member(
                 chat_id=update.effective_chat.id,
@@ -497,7 +497,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             else:
                 service_text += "a <b>tempo indeterminato</b>."
         else:
-            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b> "
+            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b>."
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
@@ -512,13 +512,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "unban": False if command == "ban" else True
         })
 
-    if command == "kick":
+    elif command == "kick":
         await context.bot.unban_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user.user.id
         )
 
-        service_text = f"🥊 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b> "
+        service_text = f"🥊 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b>."
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
@@ -530,16 +530,16 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "reason": parsed["message"] if parsed["message"] else ""
         })  
 
-    if command == "warn":
-        warn = 0 #Leggi i Warn dal DB
-        maxwarn = 3
-        service_text = f"🟡 Utente {mention} (<code>{user.user.id}</code>) <b>Ammonito {warn}/{maxwarn}</b> "
+    elif command == "warn":
+        warns_count = await get_user_warnings(user_id=user.user.id)
+        max_warns = 3
+        service_text = f"⚠️ Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> ({warns_count}/{max_warns})."
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
 
-        if warn >= maxwarn:
-            service_text += f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
+        if warns_count >= max_warns:
+            service_text = f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
             service_text += f"\n<b>Motivo</b>: Superamento delle ammonizioni massime consentite."
          
             await context.bot_data["pyro_instance"].ban_chat_member(

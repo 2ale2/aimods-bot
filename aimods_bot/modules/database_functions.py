@@ -55,6 +55,20 @@ async def add_to_table(table_name: str, content: dict):
         await conn.close()
 
 
+async def execute_query_for_value(query: str):
+    conn = await connect_to_database()
+    try:
+        result = await conn.fetch(query)
+    except Exception as e:
+        db_logger.error(f"Errore durante l'esecuzione di {query}: {e}")
+        bot_logger.error("Errore nel database. Vedi i log del database.")
+        return None
+    else:
+        return result
+    finally:
+        await conn.close()
+
+
 async def connect_to_database():
     try:
         conn = await asyncpg.connect(os.getenv("POSTGRES_CONNECTION_URL"), ssl=False)
