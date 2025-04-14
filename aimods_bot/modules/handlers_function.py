@@ -1,17 +1,14 @@
 import copy
 import os
-from datetime import datetime
 
-import pytz
 import telegram.error
 from pyrogram import utils, enums
 from pyrogram.errors import PeerIdInvalid
-from pyrogram.types import ChatPermissions
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
-from constants import Permissions
 
 from aimods_bot.modules.database_functions import add_to_table
+from constants import Permissions
 from utils import *
 
 RULES_ACCEPTED = 0
