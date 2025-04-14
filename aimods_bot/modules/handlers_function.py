@@ -16,6 +16,7 @@ from utils import *
 
 RULES_ACCEPTED = 0
 
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     La risposta dipende dall'utente: se è admin, allora stampo il pannello di controllo; altrimenti do il benvenuto.
@@ -156,9 +157,10 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await start_command(update=update, context=context)
             case "rules":
                 await send_rules(update=update, context=context)
-            case "del":
-                await delete_group_message(update=update, context=context, args=args)
-            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn" | "delmute" | "delban" | "delkick" | "dellimit":
+            case "del" | "delmute" | "delban" | "delkick":
+                await delete_group_message(update=update, context=context, args=args, command=command,
+                                           full_command=message_text)
+            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
@@ -528,7 +530,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "user_id": user.user.id,
             "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else ""
-        })  
+        })
 
     elif command == "warn":
         warns_count = await get_user_warnings(user_id=user.user.id)
@@ -543,18 +545,18 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             service_text += f"\n<b>Motivo</b>: Superamento delle ammonizioni massime consentite."
          
             await context.bot_data["pyro_instance"].ban_chat_member(
-            chat_id=update.effective_chat.id,
-            user_id=user.user.id,
-            until_date=until_date
+                chat_id=update.effective_chat.id,
+                user_id=user.user.id,
+                until_date=until_date
             )
             
             await add_to_table("bans", {
-            "admin": update.effective_user.id,
-            "user_id": user.user.id,
-            "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-            "reason": parsed["message"] if parsed["message"] else "",
-            "until_date": None,
-            "unban": False
+                "admin": update.effective_user.id,
+                "user_id": user.user.id,
+                "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+                "reason": parsed["message"] if parsed["message"] else "",
+                "until_date": None,
+                "unban": False
             })
 
         await add_to_table("kicks", {
@@ -562,7 +564,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             "user_id": user.user.id,
             "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else ""
-        })  
+        })
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 
