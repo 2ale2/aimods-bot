@@ -529,16 +529,20 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         })
 
     elif command == "warn":
-        warns_count = await get_user_warnings(user_id=user.user.id)
+        warns_count = await get_user_warnings(user_id=user.user.id) or 1
         max_warns = 3
         service_text = f"⚠️ Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> ({warns_count}/{max_warns})."
 
+        if parsed["duration"]:
+            service_text += f"\n\n<i>Fino al {until_date.strftime('%d %B %Y')} alle {until_date.strftime('%H:%M')}</i>."
+
         if parsed["message"]:
-            service_text += f"\n<b>Motivo</b>: {parsed['message']}."
+            service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
 
         if warns_count >= max_warns:
-            service_text = f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
-            service_text += f"\n<b>Motivo</b>: Superamento delle ammonizioni massime consentite."
+            service_text = f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> ({warns_count}/{max_warns})."
+            if parsed["message"]:
+                service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
          
             await context.bot_data["pyro_instance"].ban_chat_member(
                 chat_id=update.effective_chat.id,
@@ -551,14 +555,17 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "user_id": user.user.id,
                 "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
                 "reason": parsed["message"] if parsed["message"] else "",
-                "until_date": None,
+                "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
+                               if until_date != utils.zero_datetime() else None),
                 "unban": False
             })
 
-        await add_to_table("kicks", {
+        await add_to_table("warnings", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "warn_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
+                               if until_date != utils.zero_datetime() else None),
             "reason": parsed["message"] if parsed["message"] else ""
         })
 

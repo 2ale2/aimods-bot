@@ -120,6 +120,10 @@
     "kick": {
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
       "parameters": ["mention", "message"]
+    },
+    "warn": {
+      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|ore|minuti|secondi)\\s*)*)\\s*(.*)?",
+      "parameters": ["mention", "duration", "message"]
     }
   }
 }
