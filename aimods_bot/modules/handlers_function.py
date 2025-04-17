@@ -156,7 +156,7 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await send_rules(update=update, context=context)
             case "del" | "delmute" | "delban" | "delkick":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
-            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn":
+            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn" | "unwarn":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
@@ -559,7 +559,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                                if until_date != utils.zero_datetime() else None),
                 "unban": False
             })
-
+        
         await add_to_table("warnings", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
@@ -568,6 +568,31 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                                if until_date != utils.zero_datetime() else None),
             "reason": parsed["message"] if parsed["message"] else ""
         })
+
+    elif command == "unwarn":
+        warns_count = await get_user_warnings(user_id=user.user.id) or 1
+        max_warns = 3
+        if warns_count > 0:
+            service_text = f"✅ Ammonizione tolta per l'utente {mention} (<code>{user.user.id}</code>)\n Ammonizioni Attuali: ({warns_count}/{max_warns})."
+
+        if parsed["message"]:
+            service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
+
+        '''
+        Bisogna creare la funzione, ma prima bisogna capire come gestire i Warn dato che, eliminandoli si perderebbe il motivo e l'eventuale
+        expiration
+        Quindi è da rivedere l'intera logica dei Warn secondo me
+
+        await remove_from_table("warnings", {
+            "admin": update.effective_user.id,
+            "user_id": user.user.id,
+            "warn_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
+                               if until_date != utils.zero_datetime() else None),
+            "reason": parsed["message"] if parsed["message"] else ""
+        })
+        '''
+
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 
