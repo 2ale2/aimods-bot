@@ -2,7 +2,6 @@ from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters)
 
 import handlers_function
-import automatic_tasks
 import utils
 
 RULES_ACCEPTED = 0

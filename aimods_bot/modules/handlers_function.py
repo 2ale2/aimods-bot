@@ -106,37 +106,39 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
         job[0].schedule_removal()
 
-    if str(update.effective_user.id) == update.callback_query.data.split(" ")[1]:
-        await context.bot.delete_message(
-            chat_id=update.effective_user.id,
-            message_id=update.effective_message.message_id
-        )
-        await context.bot.approve_chat_join_request(
-            chat_id=context.bot_data["group_chat_id"],
-            user_id=update.effective_user.id
-        )
-        clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
-        clean_url = f"https://t.me/c/{clean_id}/1"
+    if str(update.effective_user.id) != update.callback_query.data.split(" ")[1]:
+        return None
 
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    text="Vai al Gruppo ↗️",
-                    url=clean_url)
-            ]
+    await context.bot.delete_message(
+        chat_id=update.effective_user.id,
+        message_id=update.effective_message.message_id
+    )
+    await context.bot.approve_chat_join_request(
+        chat_id=context.bot_data["group_chat_id"],
+        user_id=update.effective_user.id
+    )
+    clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
+    clean_url = f"https://t.me/c/{clean_id}/1"
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="Vai al Gruppo ↗️",
+                url=clean_url)
         ]
+    ]
 
-        await send_action_message_after(
-            update=update,
-            context=context,
-            text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
-                 "Grazie per averci scelto 😃",
-            additional_job_data={
-                "reply_markup": InlineKeyboardMarkup(keyboard)
-            }
-        )
+    await send_action_message_after(
+        update=update,
+        context=context,
+        text="✅ <b>La tua richiesta è stata approvata</b>\n\nLo staff di A&I Mods ti dà il benvenuto. "
+             "Grazie per averci scelto 😃",
+        additional_job_data={
+            "reply_markup": InlineKeyboardMarkup(keyboard)
+        }
+    )
 
-        return ConversationHandler.END
+    return ConversationHandler.END
 
 # }
 
@@ -573,26 +575,19 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         warns_count = await get_user_warnings(user_id=user.user.id) or 1
         max_warns = 3
         if warns_count > 0:
-            service_text = f"✅ Ammonizione tolta per l'utente {mention} (<code>{user.user.id}</code>)\n Ammonizioni Attuali: ({warns_count}/{max_warns})."
+            service_text = f"✅ Ammonizione rimossa per l'utente {mention} (<code>{user.user.id}</code>)\n Ammonizioni Attuali: ({warns_count}/{max_warns})."
 
         if parsed["message"]:
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
 
+        '''        
+        Ho aggiunto una colonna 'cancelled' alla tabella 'warnings' per evitare di eliminare i record.
+        C'è da rivedere la funzione di aggiunta al database per capire come aggiornare un record esistente nel caso 
+        in cui un ban, limitazione o ammonizione venga rimosso, per ora la funzione non è in grado di farlo (aggiunge
+        un record con 'cancelled' a True, creando ridondanza e generando potenzialmente errori).
+        Alternativamente, si può creare una funzione specifica per la modifica di un record in una tabella specifica;
+        ma come identificare il record da modificare?
         '''
-        Bisogna creare la funzione, ma prima bisogna capire come gestire i Warn dato che, eliminandoli si perderebbe il motivo e l'eventuale
-        expiration
-        Quindi è da rivedere l'intera logica dei Warn secondo me
-
-        await remove_from_table("warnings", {
-            "admin": update.effective_user.id,
-            "user_id": user.user.id,
-            "warn_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-            "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                               if until_date != utils.zero_datetime() else None),
-            "reason": parsed["message"] if parsed["message"] else ""
-        })
-        '''
-
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 

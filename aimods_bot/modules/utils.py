@@ -173,12 +173,19 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
                 extracted[param] = match.group(gidx)
             gidx += 1
 
-    duration_mapping = {"giorni": "days", "ore": "hours", "minuti": "minutes", "secondi": "seconds"}
-    duration_kwargs = {key: 0 for key in duration_mapping.values()}
+    duration_mapping = {
+        "giorno": "days", "giorni": "days",
+        "ora": "hours", "ore": "hours",
+        "minuto": "minutes", "minuti": "minutes",
+        "secondo": "seconds", "secondi": "seconds"
+    }
+
+    duration_kwargs = {key: 0 for key in duration_mapping.values()}  # ← Questa serve
 
     if "duration" in extracted:
-        for num, unit in re.findall(r"(\d+)\s*(giorni|ore|minuti|secondi)", extracted["duration"]):
-            duration_kwargs[duration_mapping[unit]] = int(num)
+        for num, unit in re.findall(r"(\d+)\s*(giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)",
+                                    extracted["duration"]):
+            duration_kwargs[duration_mapping[unit]] += int(num)
 
         extracted["duration"] = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
 

@@ -94,7 +94,7 @@
   },
   "commands": {
     "ban": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|ore|minuti|secondi)\\s*)*)\\s*(.*)?",
+      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
       "parameters": ["mention", "duration", "message"]
     },
     "unban": {
@@ -102,7 +102,7 @@
       "parameters": ["mention", "message"]
     },
     "limit": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)(?:\\s+(\\d+\\s*(?:anni|mesi|giorni|ore|minuti|secondi)(?:\\s+\\d+\\s*(?:anni|mesi|giorni|ore|minuti|secondi))*))?(?:\\s+(.+))?",
+      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
       "parameters": ["mention", "permissions", "duration", "message"]
     },
     "unlimit": {
@@ -110,7 +110,7 @@
       "parameters": ["mention", "permissions"]
     },
     "mute": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|ore|minuti|secondi)\\s*)*)\\s*(.*)?",
+      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
       "parameters": ["mention", "duration", "message"]
     },
     "unmute": {
@@ -122,8 +122,12 @@
       "parameters": ["mention", "message"]
     },
     "warn": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|ore|minuti|secondi)\\s*)*)\\s*(.*)?",
+      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
       "parameters": ["mention", "duration", "message"]
+    },
+    "unwarn": {
+      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
+      "parameters": ["mention"]
     }
   }
 }
