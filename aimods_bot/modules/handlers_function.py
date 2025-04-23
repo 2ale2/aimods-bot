@@ -433,7 +433,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": message.from_user.id,
                 "user_id": user.user.id,
                 "what": parsed["permissions"],
-                "limitation_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
                 "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                                if until_date != utils.zero_datetime() else None),
                 "reason": parsed["message"],
@@ -468,7 +468,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": message.from_user.id,
                 "user_id": user.user.id,
                 "what": [0, 1, 2, 5, 6, 7, 8, 9, 10],
-                "limitation_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
                 "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                                if until_date != utils.zero_datetime() else None),
                 "reason": parsed["message"],
@@ -505,7 +505,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         await add_to_table("bans", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else "",
             "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                            if until_date != utils.zero_datetime() else None),
@@ -555,7 +555,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
                 "user_id": user.user.id,
-                "ban_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
                 "reason": parsed["message"] if parsed["message"] else "",
                 "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                                if until_date != utils.zero_datetime() else None),
@@ -565,7 +565,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         await add_to_table("warnings", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "warn_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
+            "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
                                if until_date != utils.zero_datetime() else None),
             "reason": parsed["message"] if parsed["message"] else ""

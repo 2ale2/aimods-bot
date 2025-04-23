@@ -12,7 +12,7 @@ from telegram.ext import ContextTypes
 from aimods_bot.modules import job_queue_functions
 from aimods_bot.modules.exceptions import AlertException
 from aimods_bot.modules.loggers import bot_logger
-from aimods_bot.modules.database_functions import execute_query_for_value
+from aimods_bot.modules.database_functions import execute_query
 
 
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -208,10 +208,26 @@ async def get_user_warnings(user_id: int):
     tz_italia = pytz.timezone("Europe/Rome")
     now = datetime.now(tz=tz_italia)
     query = f"SELECT COUNT(*) FROM warnings WHERE user_id = {user_id} AND expiration > {now}"
-    count = await execute_query_for_value(query=query)
+    count = await execute_query(query=query, for_value=True)
     if count is None:
         bot_logger.error(f"Not able to fetch warnings for user_id {user_id}")
-    return None
+        return None
+    return count
+
+async def revoke_last_action(table: str, user_id: int):
+    query = (f"SELECT id FROM {table}"
+             f"WHERE user_id = $1 AND cancelled = FALSE"
+             f"ORDER BY timestamp DESC LIMIT 1")
+    res = await execute_query(query, for_value=True, params=[user_id])
+
+    if not res:
+        return False
+
+    query = f"UPDATE {table} SET cancelled = TRUE WHERE id = $1"
+
+    await execute_query(query, for_value=False, params=[dict(res[0])['id']])
+
+    return True
 
 
 def get_data_from_json(data: str):

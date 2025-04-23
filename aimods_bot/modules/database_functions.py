@@ -55,10 +55,14 @@ async def add_to_table(table_name: str, content: dict):
         await conn.close()
 
 
-async def execute_query_for_value(query: str):
+async def execute_query(query: str, for_value=False, params=None):
     conn = await connect_to_database()
     try:
-        result = await conn.fetch(query)
+        if for_value:
+            result = await conn.fetch(query, *params) if params else await conn.fetch(query)
+        else:
+            await conn.execute(query, *params) if params else await conn.execute(query)
+            result = None
     except Exception as e:
         db_logger.error(f"Errore durante l'esecuzione di {query}: {e}")
         bot_logger.error("Errore nel database. Vedi i log del database.")
