@@ -160,7 +160,7 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
     for param in parameters:
         if param == "mention":
             username = match.group(gidx)  # Può essere @username o None
-            user_id = match.group(gidx + 1) or match.group(gidx + 2)  # ID numerico (da input diretto o da menzione HTML)
+            user_id = match.group(gidx + 1) or match.group(gidx + 2)  # ID (da input diretto o da menzione HTML)
             extracted["user"] = user_id if user_id else username  # Se c'è un ID, usiamo quello, altrimenti username
             gidx += 3
         elif param == "permissions":
@@ -214,16 +214,17 @@ async def get_user_warnings(user_id: int):
         return None
     return count
 
+
 async def revoke_last_action(table: str, user_id: int):
-    query = (f"SELECT id FROM {table}"
-             f"WHERE user_id = $1 AND cancelled = FALSE"
+    query = (f"SELECT id FROM {table} "
+             f"WHERE user_id = $1 AND revoked_ad IS NULL"
              f"ORDER BY timestamp DESC LIMIT 1")
     res = await execute_query(query, for_value=True, params=[user_id])
 
     if not res:
         return False
 
-    query = f"UPDATE {table} SET cancelled = TRUE WHERE id = $1"
+    query = f"UPDATE {table} SET revoked_ad = now() WHERE id = $1"
 
     await execute_query(query, for_value=False, params=[dict(res[0])['id']])
 
@@ -249,7 +250,7 @@ async def get_file(file):
     except TypeError:
         return file.get_file()
     else:
-        await get_file(file[-1])
+        return await get_file(file[-1])
 
 
 async def get_thread_id(update: Update):

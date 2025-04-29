@@ -44,7 +44,8 @@ async def add_to_table(table_name: str, content: dict):
 
         columns = ordered_content.keys()
         values = ordered_content.values()
-        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join([f'${i+1}' for i in range(len(values))])})"
+        query = (f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES "
+                 f"({', '.join([f'${i+1}' for i in range(len(values))])})")
 
         await conn.execute(query, *values)
     except Exception as e:

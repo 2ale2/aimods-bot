@@ -1,16 +1,8 @@
 # modulo per i recap e le task automatiche
-import copy
-import os
-
-import telegram.error
-from pyrogram import utils, enums
-from pyrogram.errors import PeerIdInvalid
-from telegram.constants import ChatMemberStatus
-from telegram.ext import ConversationHandler
-
 from aimods_bot.modules.database_functions import add_to_table
 from constants import Permissions
 from utils import *
+
 
 async def new_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     testo = update.message.text

@@ -6,6 +6,7 @@ from pyrogram import utils, enums
 from pyrogram.errors import PeerIdInvalid
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
+from datetime import timezone
 
 from aimods_bot.modules.database_functions import add_to_table
 from constants import Permissions
@@ -140,6 +141,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 
     return ConversationHandler.END
 
+
 # }
 
 
@@ -149,7 +151,6 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if match:
         command = match.group(1)
-        args = match.group(2) if len(match.groups()) == 2 else None
 
         match command:
             case "start":
@@ -233,15 +234,13 @@ async def delete_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         data_for_database = {
             "message_id": message_to_delete.message_id,
             "admin": message_from_admin.from_user.id,
-            "deletion_time": datetime.now(),
             "user_id": message_to_delete.from_user.id,
             "reason": re.sub(r'</?b>|\(|\)|:', '', reason).strip(),
             "content": (message_to_delete.text
                         if message_to_delete.effective_attachment is None
                         else message_to_delete.caption),
             "username": message_to_delete.from_user.name,
-            "media": forwarded_media.link if forwarded_media is not None else None,
-            "manual": False
+            "media": forwarded_media.link if forwarded_media is not None else None
         }
         await add_to_table(table_name="deleted_messages", content=data_for_database)
 
@@ -289,7 +288,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
-    parsed = await parse_command(update=update, context=context, command=command.replace("del", ""), full_command=full_command)
+    parsed = await parse_command(update=update, context=context, command=command.replace("del", ""),
+                                 full_command=full_command)
 
     if parsed["user"] is None:
         if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
@@ -336,8 +336,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
-    italian_tz = pytz.timezone("Europe/Rome")
-
     # noinspection PyUnboundLocalVariable
     mention = (
         # se arriviamo a questo punto del codice, user è definita necessariamente
@@ -346,8 +344,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         else f"@{user.user.username}"
     )
 
-    now_italy = datetime.now(tz=italian_tz).replace(tzinfo=None)
-    until_date = (now_italy + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
+    now_utc = datetime.now(timezone.utc)
+    until_date = (now_utc + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
 
     if "del" in command:
         await delete_group_message(
@@ -408,7 +406,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             if command == "limit":
                 service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
                 if parsed["duration"]:
-                    service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+                    service_text += (f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle "
+                                     f"{until_date.strftime('%H:%M')}.")
                 else:
                     service_text += "a <b>tempo indeterminato</b>."
 
@@ -433,9 +432,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": message.from_user.id,
                 "user_id": user.user.id,
                 "what": parsed["permissions"],
-                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-                "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                               if until_date != utils.zero_datetime() else None),
+                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"],
                 "unlimit": False if command == "limit" else True
             }
@@ -468,9 +465,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": message.from_user.id,
                 "user_id": user.user.id,
                 "what": [0, 1, 2, 5, 6, 7, 8, 9, 10],
-                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-                "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                               if until_date != utils.zero_datetime() else None),
+                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"],
                 "unlimit": False if command == "mute" else True
             }
@@ -505,10 +500,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         await add_to_table("bans", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else "",
-            "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                           if until_date != utils.zero_datetime() else None),
+            "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
             "unban": False if command == "ban" else True
         })
 
@@ -526,7 +519,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         await add_to_table("kicks", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "kick_time": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
             "reason": parsed["message"] if parsed["message"] else ""
         })
 
@@ -542,40 +534,38 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
 
         if warns_count >= max_warns:
-            service_text = f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> ({warns_count}/{max_warns})."
+            service_text = (f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> "
+                            f"({warns_count}/{max_warns}).")
             if parsed["message"]:
                 service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
-         
+
             await context.bot_data["pyro_instance"].ban_chat_member(
                 chat_id=update.effective_chat.id,
                 user_id=user.user.id,
                 until_date=until_date
             )
-            
+
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
                 "user_id": user.user.id,
-                "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
                 "reason": parsed["message"] if parsed["message"] else "",
-                "until_date": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                               if until_date != utils.zero_datetime() else None),
+                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False
             })
-        
+
         await add_to_table("warnings", {
             "admin": update.effective_user.id,
             "user_id": user.user.id,
-            "timestamp": datetime.now().astimezone(tz=italian_tz).replace(tzinfo=None),
-            "expiration": (until_date.astimezone(tz=italian_tz).replace(tzinfo=None)
-                               if until_date != utils.zero_datetime() else None),
+            "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
             "reason": parsed["message"] if parsed["message"] else ""
         })
 
     elif command == "unwarn":
-        warns_count = await get_user_warnings(user_id=user.user.id) or 1
+        warns_count = await get_user_warnings(user_id=user.user.id)
         max_warns = 3
         if warns_count > 0:
-            service_text = f"✅ Ammonizione rimossa per l'utente {mention} (<code>{user.user.id}</code>)\n Ammonizioni Attuali: ({warns_count}/{max_warns})."
+            service_text = (f"✅ Ammonizione rimossa per l'utente {mention} (<code>{user.user.id}</code>)\n "
+                            f"Ammonizioni Attuali: ({warns_count}/{max_warns}).")
 
         if parsed["message"]:
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
