@@ -216,19 +216,24 @@ async def get_user_warnings(user_id: int):
 
 
 async def revoke_last_action(table: str, user_id: int):
-    query = (f"SELECT id FROM {table} "
-             f"WHERE user_id = $1 AND revoked_ad IS NULL"
-             f"ORDER BY timestamp DESC LIMIT 1")
+    query = (f"SELECT * FROM {table} "
+             f"WHERE user_id = $1 "
+             f"AND (expires_at IS NULL OR expires_at > now()) "
+             f"AND revoked_at IS NULL"
+             f"ORDER BY issued_at DESC LIMIT 1")
     res = await execute_query(query, for_value=True, params=[user_id])
 
-    if not res:
-        return False
+    if isinstance(res, list) and len(res) == 0:
+        return False  # la query non ha tornato entry
+
+    if not isinstance(res, list):
+        return res
 
     query = f"UPDATE {table} SET revoked_ad = now() WHERE id = $1"
 
-    await execute_query(query, for_value=False, params=[dict(res[0])['id']])
+    res = await execute_query(query, for_value=False, params=[dict(res[0])['id']])
 
-    return True
+    return res
 
 
 def get_data_from_json(data: str):

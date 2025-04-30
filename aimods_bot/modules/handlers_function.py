@@ -561,23 +561,22 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         })
 
     elif command == "unwarn":
+        res = await revoke_last_action(table="warnings", user_id=user.user.id)
+        if res is False:
+            await send_private_alert(
+                update=update,
+                context=context,
+                text="⚠️ Warning\n\nL'utente non ha ammonizioni attive."
+            )
+            return
+
         warns_count = await get_user_warnings(user_id=user.user.id)
         max_warns = 3
-        if warns_count > 0:
-            service_text = (f"✅ Ammonizione rimossa per l'utente {mention} (<code>{user.user.id}</code>)\n "
-                            f"Ammonizioni Attuali: ({warns_count}/{max_warns}).")
+        service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{user.user.id}</code>)\n "
+                        f"<b>Ammonizioni Attuali</b>: ({warns_count}/{max_warns})")
 
         if parsed["message"]:
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
-
-        '''        
-        Ho aggiunto una colonna 'cancelled' alla tabella 'warnings' per evitare di eliminare i record.
-        C'è da rivedere la funzione di aggiunta al database per capire come aggiornare un record esistente nel caso 
-        in cui un ban, limitazione o ammonizione venga rimosso, per ora la funzione non è in grado di farlo (aggiunge
-        un record con 'cancelled' a True, creando ridondanza e generando potenzialmente errori).
-        Alternativamente, si può creare una funzione specifica per la modifica di un record in una tabella specifica;
-        ma come identificare il record da modificare?
-        '''
 
     service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 

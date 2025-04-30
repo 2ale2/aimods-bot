@@ -63,7 +63,7 @@ async def execute_query(query: str, for_value=False, params=None):
             result = await conn.fetch(query, *params) if params else await conn.fetch(query)
         else:
             await conn.execute(query, *params) if params else await conn.execute(query)
-            result = None
+            result = True
     except Exception as e:
         db_logger.error(f"Errore durante l'esecuzione di {query}: {e}")
         bot_logger.error("Errore nel database. Vedi i log del database.")
