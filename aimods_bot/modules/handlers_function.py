@@ -1,5 +1,6 @@
 import copy
 import os
+import locale
 
 import telegram.error
 from pyrogram import utils, enums
@@ -13,6 +14,8 @@ from constants import Permissions
 from utils import *
 
 RULES_ACCEPTED = 0
+
+locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -346,6 +349,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     now_utc = datetime.now(timezone.utc)
     until_date = (now_utc + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
+    rome_until_date = until_date.astimezone(pytz.timezone('Europe/Rome'))
 
     if "del" in command:
         await delete_group_message(
@@ -406,8 +410,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             if command == "limit":
                 service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
                 if parsed["duration"]:
-                    service_text += (f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle "
-                                     f"{until_date.strftime('%H:%M')}.")
+                    service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> alle "
+                                     f"{rome_until_date.strftime('%H:%M')}.")
                 else:
                     service_text += "a <b>tempo indeterminato</b>."
 
@@ -416,15 +420,15 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 for el in permissions_texts:
                     if el in parsed["permissions"]:
                         service_text += f"\n\t▪️ {permissions_texts[el]}"
-
-                if parsed["message"]:
-                    service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
             else:
                 service_text = (f"🔓 Utente {mention} (<code>{user.user.id}</code>) <b>non più limitato</b>.\n\n"
                                 f"<u>Permessi Aggiunti</u>")
                 for el in permissions_texts:
                     if el in parsed["permissions"]:
                         service_text += f"\n\t▪️ {permissions_texts[el]}"
+
+            if parsed["message"]:
+                service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
 
         await add_to_table(
             table_name="limitations",
@@ -450,7 +454,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if command == "mute":
             service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>mutato</b> "
             if parsed["duration"]:
-                service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+                service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
+                                 f"alle {rome_until_date.strftime('%H:%M')}.")
             else:
                 service_text += "a <b>tempo indeterminato</b>."
 
@@ -473,22 +478,39 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     elif command == "ban" or command == "unban":
         if command == "ban":
-            await context.bot_data["pyro_instance"].ban_chat_member(
-                chat_id=update.effective_chat.id,
-                user_id=user.user.id,
-                until_date=until_date
-            )
+            try:
+                await context.bot_data["pyro_instance"].ban_chat_member(
+                    chat_id=update.effective_chat.id,
+                    user_id=user.user.id,
+                    until_date=until_date
+                )
+            except Exception as e:
+                bot_logger.error(f"Errore durante il ban dell'utente {user.user.id}: {e}")
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="❌ Error\n\n▪️ C'è stato un errore in fase di ban dell'utente. Leggi i log."
+                )
         else:
-            await context.bot_data["pyro_instance"].unban_chat_member(
-                chat_id=update.effective_chat.id,
-                user_id=user.user.id
-            )
+            try:
+                await context.bot_data["pyro_instance"].unban_chat_member(
+                    chat_id=update.effective_chat.id,
+                    user_id=user.user.id
+                )
+            except Exception as e:
+                bot_logger.error(f"Errore durante l'unban dell'utente {user.user.id}: {e}")
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="❌ Error\n\n▪️ C'è stato un errore in fase di unban dell'utente. Leggi i log."
+                )
 
         if command == "ban":
             service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
 
             if parsed["duration"]:
-                service_text += f"fino al <b>{until_date.strftime('%d %B %Y')}</b> alle {until_date.strftime('%H:%M')}."
+                service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
+                                 f"alle {rome_until_date.strftime('%H:%M')}.")
             else:
                 service_text += "a <b>tempo indeterminato</b>."
         else:
@@ -497,13 +519,30 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
 
-        await add_to_table("bans", {
-            "admin": update.effective_user.id,
-            "user_id": user.user.id,
-            "reason": parsed["message"] if parsed["message"] else "",
-            "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
-            "unban": False if command == "ban" else True
-        })
+        if command == "ban":
+            await add_to_table("bans", {
+                "admin": update.effective_user.id,
+                "user_id": user.user.id,
+                "reason": parsed["message"] if parsed["message"] else "",
+                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                "unban": False if command == "ban" else True
+            })
+        else:
+            res = await revoke_last_action("bans", user.user.id)
+            if res is False:
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="⚠️ Warning\n\n▪️ Non risulta alcun record sul ban dell'utente."
+                )
+            if res is not True:
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="❌ Error\n\n▪️ Errore in fase di registrazione dell'unban. Leggi i log."
+                )
+
+            # l'azione di moderazione è stata comunque correttamente eseguita: mando il messaggio di servizio
 
     elif command == "kick":
         await context.bot.unban_chat_member(
@@ -528,7 +567,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         service_text = f"⚠️ Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> ({warns_count}/{max_warns})."
 
         if parsed["duration"]:
-            service_text += f"\n\n<i>Fino al {until_date.strftime('%d %B %Y')} alle {until_date.strftime('%H:%M')}</i>."
+            service_text += f"\n\n<i>Fino al {rome_until_date.strftime('%d %B %Y')} alle {rome_until_date.strftime('%H:%M')}</i>."
 
         if parsed["message"]:
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
