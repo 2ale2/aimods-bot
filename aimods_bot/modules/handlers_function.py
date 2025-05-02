@@ -612,7 +612,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         warns_count = await get_user_warnings(user_id=user.user.id)
         max_warns = 3
         service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{user.user.id}</code>)\n "
-                        f"<b>Ammonizioni Attuali</b>: ({warns_count}/{max_warns})")
+                        f"<b>Ammonizioni Attuali</b>: "
+                        f"<code>{warns_count if warns_count is not None else 0}/{max_warns}</code>")
 
         if parsed["message"]:
             service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."

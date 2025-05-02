@@ -219,7 +219,7 @@ async def revoke_last_action(table: str, user_id: int):
     query = (f"SELECT * FROM {table} "
              f"WHERE user_id = $1 "
              f"AND (expires_at IS NULL OR expires_at > now()) "
-             f"AND revoked_at IS NULL"
+             f"AND revoked_at IS NULL "
              f"ORDER BY issued_at DESC LIMIT 1")
     res = await execute_query(query, for_value=True, params=[user_id])
 
@@ -229,7 +229,7 @@ async def revoke_last_action(table: str, user_id: int):
     if not isinstance(res, list):
         return res
 
-    query = f"UPDATE {table} SET revoked_ad = now() WHERE id = $1"
+    query = f"UPDATE {table} SET revoked_at = now() WHERE id = $1"
 
     res = await execute_query(query, for_value=False, params=[dict(res[0])['id']])
 
