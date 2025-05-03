@@ -205,14 +205,14 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
 
 
 async def get_user_warnings(user_id: int):
-    tz_italia = pytz.timezone("Europe/Rome")
-    now = datetime.now(tz=tz_italia)
-    query = f"SELECT COUNT(*) FROM warnings WHERE user_id = {user_id} AND expiration > {now}"
+    query = (f"SELECT COUNT(*) FROM warnings WHERE user_id = {user_id} "
+             f"AND (expires_at IS NULL OR expires_at > now()) "
+             f"AND revoked_at IS NULL")
     count = await execute_query(query=query, for_value=True)
-    if count is None:
+    if count is None or not isinstance(count, list):
         bot_logger.error(f"Not able to fetch warnings for user_id {user_id}")
         return None
-    return count
+    return dict(count[0])["count"]
 
 
 async def revoke_last_action(table: str, user_id: int):
