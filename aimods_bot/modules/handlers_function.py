@@ -312,24 +312,35 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     text = None
     try:
         user = await context.bot_data["pyro_instance"].resolve_peer(
-            user_id=parsed["user"] or replied.from_user.id
+            peer_id=parsed["user"] or replied.from_user.id
         )
-    except KeyError:
+        member = await context.bot.get_chat_member(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=user.user_id
+        )
+    except PeerIdInvalid:
         await send_private_alert(
             update=update,
             context=context,
-            text="⚠️ Warning\n\n▪️ L'utente sembra non esistere oppure non l'ho mai visto."
+            text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
+        )
+        return
+    except telegram.error.BadRequest as e:
+        if command.endswith("ban"):
+            pass
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto."
         )
         return
     else:
         admins = await update.effective_message.chat.get_administrators()
         for el in admins:
-            if el.user.id == user.user.id:
+            if el.user.id == user.user_id:
                 text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
-        if user.status == enums.ChatMemberStatus.BANNED and command != "unban":
-            text = "⚠️ Warning\n\n▪️ L'utente è bannato."
         try:
-            member = await update.effective_message.chat.get_member(user.user.id)
+            member = await update.effective_message.chat.get_member(user.user_id)
             if member.status == 'left' and command != "unban":
                 text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
             if member.status == 'kicked' and command != "unban":
