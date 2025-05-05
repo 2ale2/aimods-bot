@@ -310,19 +310,28 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     # resolving del peer
     try:
-        user = await context.bot_data["pyro_instance"].get_users(
-            user_ids=parsed["user"] or replied.from_user.id
-        )
-        # user = await context.bot_data["pyro_instance"].resolve_peer(
-        #     peer_id=parsed["user"] or replied.from_user.id
+        # user = await context.bot_data["pyro_instance"].get_users(
+        #     user_ids=parsed["user"] or replied.from_user.id
         # )
-    except PeerIdInvalid:
-        await send_private_alert(
-            update=update,
-            context=context,
-            text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
+        user = await context.bot_data["pyro_instance"].resolve_peer(
+            peer_id=parsed["user"] or replied.from_user.id
         )
-        return
+    except PeerIdInvalid:
+        if not command.endswith("ban"):
+            await send_private_alert(
+                update=update,
+                context=context,
+                text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
+            )
+            return
+        try:
+            await context.bot_data["pyro_instance"].ban_chat_member(
+                chat_id=update.effective_chat.id,
+                user_id=parsed["user"] or replied.from_user.id
+            )
+        except Exception as e:
+            print(f"dio cane: {e}")
+            return
     except Exception as e:
         bot_logger.error(f"Errore nel resolving del peer: {e}")
         await send_private_alert(
