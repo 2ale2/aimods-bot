@@ -310,9 +310,12 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     # resolving del peer
     try:
-        user = await context.bot_data["pyro_instance"].resolve_peer(
-            peer_id=parsed["user"] or replied.from_user.id
+        user = await context.bot_data["pyro_instance"].get_users(
+            user_ids=parsed["user"] or replied.from_user.id
         )
+        # user = await context.bot_data["pyro_instance"].resolve_peer(
+        #     peer_id=parsed["user"] or replied.from_user.id
+        # )
     except PeerIdInvalid:
         await send_private_alert(
             update=update,
@@ -350,7 +353,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     admins = await update.effective_message.chat.get_administrators()
     for el in admins:
         if el.user.id == user.user_id:
-            text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
+            text = "⚠️ Warning\n\n▪️ Non è consentito compiere questa azione su altri admin."
             break
     if member is not None:
         if member.status == 'left' and command != "ban":
@@ -550,7 +553,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 )
 
         if command == "ban":
-            service_text = f"🚫 Utente {mention} (<code>{user.user_id}</code>) <b>bannato</b> "
+            if not mention.isnumeric():
+                service_text = f"🚫 Utente {mention} (<code>{user.user_id}</code>) <b>bannato</b> "
+            else:
+                service_text = f"🚫 Utente <code>{mention}</code> <b>bannato</b> "
 
             if parsed["duration"]:
                 service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
@@ -558,7 +564,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             else:
                 service_text += "a <b>tempo indeterminato</b>."
         else:
-            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user_id}</code>) <b>sbannato</b>."
+            if not mention.isnumeric():
+                service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user_id}</code>) <b>sbannato</b>."
+            else:
+                service_text = f"⛓️‍💥 Utente <code>{mention}</code> <b>sbannato</b> "
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
