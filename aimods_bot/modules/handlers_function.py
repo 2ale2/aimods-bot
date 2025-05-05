@@ -1,14 +1,13 @@
 import copy
-import os
 import locale
+import os
+from datetime import timezone
 
 import telegram.error
-from pyrogram import utils, enums
-from pyrogram.errors import PeerIdInvalid, BadRequest, UserNotParticipant
+from pyrogram import utils
+from pyrogram.errors import PeerIdInvalid
 from telegram.constants import ChatMemberStatus
-from telegram.error import TelegramError
 from telegram.ext import ConversationHandler
-from datetime import timezone
 
 from aimods_bot.modules.database_functions import add_to_table
 from constants import Permissions
@@ -309,14 +308,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     else:
         replied = None
 
-    text = None
+    # resolving del peer
     try:
         user = await context.bot_data["pyro_instance"].resolve_peer(
             peer_id=parsed["user"] or replied.from_user.id
-        )
-        member = await context.bot.get_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
-            user_id=user.user_id
         )
     except PeerIdInvalid:
         await send_private_alert(
@@ -325,28 +320,49 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
         )
         return
-    except telegram.error.BadRequest as e:
-        if command.endswith("ban"):
-            pass
+    except Exception as e:
+        bot_logger.error(f"Errore nel resolving del peer: {e}")
         await send_private_alert(
             update=update,
             context=context,
-            text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto."
+            text="❌ Error\n\n▪️ Errore nel resolving del peer: leggi i log."
         )
         return
-    else:
-        admins = await update.effective_message.chat.get_administrators()
-        for el in admins:
-            if el.user.id == user.user_id:
-                text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
-        try:
-            member = await update.effective_message.chat.get_member(user.user_id)
-            if member.status == 'left' and command != "unban":
+
+    # resolving del membro della chat
+    try:
+        member = await context.bot.get_chat_member(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=user.user_id
+        )
+    except telegram.error.BadRequest as e:
+        if not command.endswith("ban"):
+            bot_logger.warning(f"Utente non trovato (Bad Request): {e}")
+            await send_private_alert(
+                update=update,
+                context=context,
+                text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto."
+            )
+            return
+        member = None
+
+    text = None
+    admins = await update.effective_message.chat.get_administrators()
+    for el in admins:
+        if el.user.id == user.user_id:
+            text = "⚠️ Warning\n\n▪️ Non è consentito limitare gli admin."
+            break
+    if member is not None:
+        if member.status == 'left' and command != "ban":
+            if command == "unban":
+                text = "⚠️ Warning\n\n▪️ L'utente è già sbannato."
+            else:
                 text = "⚠️ Warning\n\n▪️ L'utente non è nel gruppo."
-            if member.status == 'kicked' and command != "unban":
-                text = "⚠️ Warning\n\n▪️ L'utente è bannato."
-        except TelegramError as e:
-            bot_logger.error("Errore nella ricerca dell'utente: " + str(e))
+        if member.status == 'kicked' and command != "unban":
+            if command == "ban":
+                text = "⚠️ Warning\n\n▪️ L'utente è già bannato."
+            else:
+                text = "⚠️ Warning\n\n▪️ L'utente è bannato: sbannalo prima di compiere questa azione."
 
     if text is not None:
         await send_private_alert(
@@ -356,13 +372,24 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         )
         return
 
-    # noinspection PyUnboundLocalVariable
-    mention = (
-        # se arriviamo a questo punto del codice, user è definita necessariamente
-        f'<a href="tg://user?id={user.user.id}">{user.user.first_name}</a>'
-        if user.user.username is None
-        else f"@{user.user.username}"
-    )
+    if member is not None:
+        # noinspection PyUnboundLocalVariable
+        mention = (
+            f'<a href="tg://user?id={member.user.id}">{member.user.first_name}</a>'
+            if member.user.username is None
+            else f"@{member.user.username}"
+        )
+    else:
+        if parsed["user"]:
+            mention = f"<code>{parsed["user"]}</code>" if parsed["user"].isnumeric() else f"{parsed['user']}"
+        else:
+            # se parsed["user"] non contiene un utente, allora, per i controlli precedenti, l'admin ha risposto a un
+            # messaggio.
+            mention = (
+                f'<a href="tg://user?id={replied.from_user.id}">{replied.from_user.first_name}</a>'
+                if replied.from_user.username is None
+                else f"@{replied.from_user.username}"
+            )
 
     now_utc = datetime.now(timezone.utc)
     until_date = (now_utc + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
@@ -397,10 +424,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             for perm in p:
                 new_permissions[perm.name] = True if command == "limit" else False
             if command == "limit":
-                service_text = (f"🔓 Utente {mention} (<code>{user.user.id}</code>) non più limitato "
+                service_text = (f"🔓 Utente {mention} (<code>{member.user.id}</code>) non più limitato "
                                 f"(<b>tutti i permessi aggiunti</b>).")
             else:
-                service_text = (f"🔒 Utente {mention} (<code>{user.user.id}</code>) limitato "
+                service_text = (f"🔒 Utente {mention} (<code>{member.user.id}</code>) limitato "
                                 f"(<b>tutti i permessi rimossi</b>).")
         else:
             actual = user.permissions.__dict__ if user.permissions is not None else {perm.name: True for perm in p}
@@ -417,7 +444,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
-            user_id=user.user.id,
+            user_id=member.user.id,
             permissions=new_permissions,
             until_date=until_date,
             use_independent_chat_permissions=True
@@ -425,7 +452,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         if parsed["permissions"] != [11]:
             if command == "limit":
-                service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>limitato</b> "
+                service_text = f"🔒 Utente {mention} (<code>{member.user.id}</code>) <b>limitato</b> "
                 if parsed["duration"]:
                     service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> alle "
                                      f"{rome_until_date.strftime('%H:%M')}.")
@@ -438,7 +465,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                     if el in parsed["permissions"]:
                         service_text += f"\n\t▪️ {permissions_texts[el]}"
             else:
-                service_text = (f"🔓 Utente {mention} (<code>{user.user.id}</code>) <b>non più limitato</b>.\n\n"
+                service_text = (f"🔓 Utente {mention} (<code>{member.user.id}</code>) <b>non più limitato</b>.\n\n"
                                 f"<u>Permessi Aggiunti</u>")
                 for el in permissions_texts:
                     if el in parsed["permissions"]:
@@ -451,7 +478,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             table_name="limitations",
             content={
                 "admin": message.from_user.id,
-                "user_id": user.user.id,
+                "user_id": member.user.id,
                 "what": parsed["permissions"],
                 "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"],
@@ -462,14 +489,14 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     elif command == "mute" or command == "unmute":
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
-            user_id=user.user.id,
+            user_id=member.user.id,
             permissions={"can_send_messages": False if command == "mute" else True},
             until_date=until_date,
             use_independent_chat_permissions=False  # l'utente non può mandare nessun tipo di messaggio
         )
 
         if command == "mute":
-            service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>mutato</b> "
+            service_text = f"🔒 Utente {mention} (<code>{member.user.id}</code>) <b>mutato</b> "
             if parsed["duration"]:
                 service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
                                  f"alle {rome_until_date.strftime('%H:%M')}.")
@@ -479,13 +506,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             if parsed["message"]:
                 service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
         else:
-            service_text = f"🔒 Utente {mention} (<code>{user.user.id}</code>) <b>smutato</b>."
+            service_text = f"🔒 Utente {mention} (<code>{member.user.id}</code>) <b>smutato</b>."
 
         await add_to_table(
             table_name="limitations",
             content={
                 "admin": message.from_user.id,
-                "user_id": user.user.id,
+                "user_id": member.user.id,
                 "what": [0, 1, 2, 5, 6, 7, 8, 9, 10],
                 "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"],
@@ -498,11 +525,11 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             try:
                 await context.bot_data["pyro_instance"].ban_chat_member(
                     chat_id=update.effective_chat.id,
-                    user_id=user.user.id,
+                    user_id=user.user_id,
                     until_date=until_date
                 )
             except Exception as e:
-                bot_logger.error(f"Errore durante il ban dell'utente {user.user.id}: {e}")
+                bot_logger.error(f"Errore durante il ban dell'utente {user.user_id}: {e}")
                 await send_private_alert(
                     update=update,
                     context=context,
@@ -512,10 +539,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             try:
                 await context.bot_data["pyro_instance"].unban_chat_member(
                     chat_id=update.effective_chat.id,
-                    user_id=user.user.id
+                    user_id=user.user_id
                 )
             except Exception as e:
-                bot_logger.error(f"Errore durante l'unban dell'utente {user.user.id}: {e}")
+                bot_logger.error(f"Errore durante l'unban dell'utente {user.user_id}: {e}")
                 await send_private_alert(
                     update=update,
                     context=context,
@@ -523,7 +550,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 )
 
         if command == "ban":
-            service_text = f"🚫 Utente {mention} (<code>{user.user.id}</code>) <b>bannato</b> "
+            service_text = f"🚫 Utente {mention} (<code>{user.user_id}</code>) <b>bannato</b> "
 
             if parsed["duration"]:
                 service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
@@ -531,7 +558,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             else:
                 service_text += "a <b>tempo indeterminato</b>."
         else:
-            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user.id}</code>) <b>sbannato</b>."
+            service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user_id}</code>) <b>sbannato</b>."
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
@@ -539,13 +566,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if command == "ban":
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
-                "user_id": user.user.id,
+                "user_id": user.user_id,
                 "reason": parsed["message"] if parsed["message"] else "",
                 "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
             })
         else:
-            res = await revoke_last_action("bans", user.user.id)
+            res = await revoke_last_action("bans", user.user_id)
             if res is False:
                 await send_private_alert(
                     update=update,
@@ -564,29 +591,29 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     elif command == "kick":
         await context.bot.unban_chat_member(
             chat_id=update.effective_chat.id,
-            user_id=user.user.id
+            user_id=member.user.id
         )
 
-        service_text = f"🥊 Utente {mention} (<code>{user.user.id}</code>) <b>kickato</b>."
+        service_text = f"🥊 Utente {mention} (<code>{member.user.id}</code>) <b>kickato</b>."
 
         if parsed["message"]:
             service_text += f"\n<b>Motivo</b>: {parsed['message']}."
 
         await add_to_table("kicks", {
             "admin": update.effective_user.id,
-            "user_id": user.user.id,
+            "user_id": member.user.id,
             "reason": parsed["message"] if parsed["message"] else ""
         })
 
     elif command == "warn":
         await add_to_table("warnings", {
             "admin": update.effective_user.id,
-            "user_id": user.user.id,
+            "user_id": member.user.id,
             "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
             "reason": parsed["message"] if parsed["message"] else ""
         })
 
-        warns_count = await get_user_warnings(user_id=user.user.id)
+        warns_count = await get_user_warnings(user_id=member.user.id)
         if not isinstance(warns_count, int):
             await send_private_alert(
                 update=update,
@@ -601,11 +628,11 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             try:
                 await context.bot_data["pyro_instance"].ban_chat_member(
                     chat_id=update.effective_chat.id,
-                    user_id=user.user.id,
+                    user_id=member.user.id,
                     until_date=until_date
                 )
             except Exception as e:
-                bot_logger.error(f"Errore durante il ban dell'utente {user.user.id}: {e}")
+                bot_logger.error(f"Errore durante il ban dell'utente {member.user.id}: {e}")
                 await send_private_alert(
                     update=update,
                     context=context,
@@ -613,7 +640,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 )
                 return
 
-            service_text = (f"\n\n🚫 Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> "
+            service_text = (f"\n\n🚫 Utente {mention} (<code>{member.user.id}</code>) <b>ammonito</b> "
                             f"(<code>{warns_count}/{max_warns}</code> → <b>Bannato</b>).")
 
             if parsed["duration"]:
@@ -625,13 +652,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
-                "user_id": user.user.id,
+                "user_id": member.user.id,
                 "reason": parsed["message"] if parsed["message"] else "",
                 "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None
             })
 
         else:
-            service_text = (f"\n\n⚠️ Utente {mention} (<code>{user.user.id}</code>) <b>ammonito</b> "
+            service_text = (f"\n\n⚠️ Utente {mention} (<code>{member.user.id}</code>) <b>ammonito</b> "
                             f"(<code>{warns_count}/{max_warns}</code>).")
 
             if parsed["duration"]:
@@ -642,7 +669,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 service_text += f"\n\n<b>Motivo</b>: {parsed['message']}."
 
     elif command == "unwarn":
-        res = await revoke_last_action(table="warnings", user_id=user.user.id)
+        res = await revoke_last_action(table="warnings", user_id=member.user.id)
         if res is False:
             await send_private_alert(
                 update=update,
@@ -651,9 +678,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             )
             return
 
-        warns_count = await get_user_warnings(user_id=user.user.id)
+        warns_count = await get_user_warnings(user_id=member.user.id)
         max_warns = 3
-        service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{user.user.id}</code>)\n "
+        service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{member.user.id}</code>)\n "
                         f"<b>Ammonizioni Attuali</b>: "
                         f"<code>{warns_count if warns_count is not None else 0}/{max_warns}</code>")
 
