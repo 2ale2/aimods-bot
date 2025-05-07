@@ -330,8 +330,14 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 user_id=parsed["user"] or replied.from_user.id
             )
         except Exception as e:
-            print(f"dio cane: {e}")
+            await add_to_table("blacklist", {
+                "admin": update.effective_user.id,
+                "user_id": parsed["user"] or replied.from_user.id,
+                "reason": parsed["message"] if parsed["message"] else "",
+                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None
+            })
             return
+        
     except Exception as e:
         bot_logger.error(f"Errore nel resolving del peer: {e}")
         await send_private_alert(
