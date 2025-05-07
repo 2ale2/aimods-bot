@@ -327,16 +327,12 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             return
         if command == "ban":
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
-
-            # Consideriamo l'ipotesi di usare la persistenza per facilitarci la vita e migliorare le performance:
             context.bot_data["ban_list"].append(parsed["user"] or replied.from_user.id)
-
-            # await add_to_table("blacklist", {
-            #     "admin": update.effective_user.id,
-            #     "user_id": parsed["user"] or replied.from_user.id,
-            #     "reason": parsed["message"] if parsed["message"] else "",
-            #     "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None
-            # })
+            await send_private_alert(
+                update=update,
+                context=context,
+                text="⚠️ Warning\n\n▪️ L'utente sembra non esistere, oppure non è mai stato visto dal bot. Aggiunto in Blacklist"
+            )            
             return
         
     except Exception as e:
@@ -352,7 +348,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     try:
         member = await context.bot.get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
-            user_id=user.user_id
+            user_id=user.id
         )
     except telegram.error.BadRequest as e:
         if not command.endswith("ban"):
@@ -368,7 +364,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     text = None
     admins = await update.effective_message.chat.get_administrators()
     for el in admins:
-        if el.user.id == user.user_id:
+        if el.user.id == user.id:
             text = "⚠️ Warning\n\n▪️ Non è consentito compiere questa azione su altri admin."
             break
     if member is not None:
@@ -540,7 +536,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             try:
                 await context.bot_data["pyro_instance"].ban_chat_member(
                     chat_id=update.effective_chat.id,
-                    user_id=user.user_id,
+                    user_id=user.id,
                     until_date=until_date
                 )
             except Exception as e:
@@ -552,12 +548,14 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 )
         else:
             try:
+                if user.id in context.bot_data.get("ban_list", []): #Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
+                    context.bot_data.get("ban_list", []).remove(user.id)
                 await context.bot_data["pyro_instance"].unban_chat_member(
                     chat_id=update.effective_chat.id,
-                    user_id=user.user_id
+                    user_id=user.id
                 )
             except Exception as e:
-                bot_logger.error(f"Errore durante l'unban dell'utente {user.user_id}: {e}")
+                bot_logger.error(f"Errore durante l'unban dell'utente {user.id}: {e}")
                 await send_private_alert(
                     update=update,
                     context=context,
@@ -566,7 +564,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         if command == "ban":
             if not mention.isnumeric():
-                service_text = f"🚫 Utente {mention} (<code>{user.user_id}</code>) <b>bannato</b> "
+                service_text = f"🚫 Utente {mention} (<code>{user.id}</code>) <b>bannato</b> "
             else:
                 service_text = f"🚫 Utente <code>{mention}</code> <b>bannato</b> "
 
@@ -577,7 +575,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 service_text += "a <b>tempo indeterminato</b>."
         else:
             if not mention.isnumeric():
-                service_text = f"⛓️‍💥 Utente {mention} (<code>{user.user_id}</code>) <b>sbannato</b>."
+                service_text = f"⛓️‍💥 Utente {mention} (<code>{user.id}</code>) <b>sbannato</b>."
             else:
                 service_text = f"⛓️‍💥 Utente <code>{mention}</code> <b>sbannato</b> "
 
@@ -587,13 +585,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if command == "ban":
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
-                "user_id": user.user_id,
+                "user_id": user.id,
                 "reason": parsed["message"] if parsed["message"] else "",
                 "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
             })
         else:
-            res = await revoke_last_action("bans", user.user_id)
+            res = await revoke_last_action("bans", user.id)
             if res is False:
                 await send_private_alert(
                     update=update,
@@ -739,6 +737,8 @@ async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAU
         chat_id=chat_id
     )
     if res.status is ChatMemberStatus.BANNED:
+        return True
+    if user_id in context.bot_data.get("ban_list", []): # Aggiunto controllo per la Blacklist
         return True
     return False
 
