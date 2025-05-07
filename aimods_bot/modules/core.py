@@ -62,6 +62,9 @@ async def set_application_data(application: Application):
 
     await pyro_instance.start()
 
+    if "ban_list" not in application.bot_data:
+        application.bot_data["ban_list"] = []
+
 
 async def get_admins(app: Application):
     """

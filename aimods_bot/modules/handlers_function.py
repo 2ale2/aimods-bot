@@ -308,34 +308,35 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     else:
         replied = None
 
+    now_utc = datetime.now(timezone.utc)
+    until_date = (now_utc + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
+    rome_until_date = until_date.astimezone(pytz.timezone('Europe/Rome'))
+
     # resolving del peer
     try:
-        # user = await context.bot_data["pyro_instance"].get_users(
-        #     user_ids=parsed["user"] or replied.from_user.id
-        # )
-        user = await context.bot_data["pyro_instance"].resolve_peer(
-            peer_id=parsed["user"] or replied.from_user.id
+        user = await context.bot_data["pyro_instance"].get_users(
+            user_ids=parsed["user"] or replied.from_user.id
         )
     except PeerIdInvalid:
         if not command.endswith("ban"):
             await send_private_alert(
                 update=update,
                 context=context,
-                text="⚠️ Warning\n\n▪️ L'utente sembra non esistere."
+                text="⚠️ Warning\n\n▪️ L'utente sembra non esistere, oppure non è mai stato visto dal bot."
             )
             return
-        try:
-            await context.bot_data["pyro_instance"].ban_chat_member(
-                chat_id=update.effective_chat.id,
-                user_id=parsed["user"] or replied.from_user.id
-            )
-        except Exception as e:
-            await add_to_table("blacklist", {
-                "admin": update.effective_user.id,
-                "user_id": parsed["user"] or replied.from_user.id,
-                "reason": parsed["message"] if parsed["message"] else "",
-                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None
-            })
+        if command == "ban":
+            # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
+
+            # Consideriamo l'ipotesi di usare la persistenza per facilitarci la vita e migliorare le performance:
+            context.bot_data["ban_list"].append(parsed["user"] or replied.from_user.id)
+
+            # await add_to_table("blacklist", {
+            #     "admin": update.effective_user.id,
+            #     "user_id": parsed["user"] or replied.from_user.id,
+            #     "reason": parsed["message"] if parsed["message"] else "",
+            #     "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None
+            # })
             return
         
     except Exception as e:
@@ -408,10 +409,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 if replied.from_user.username is None
                 else f"@{replied.from_user.username}"
             )
-
-    now_utc = datetime.now(timezone.utc)
-    until_date = (now_utc + parsed["duration"]) if parsed["duration"] else utils.zero_datetime()
-    rome_until_date = until_date.astimezone(pytz.timezone('Europe/Rome'))
 
     if "del" in command:
         await delete_group_message(
