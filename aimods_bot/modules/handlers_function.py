@@ -39,6 +39,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id in context.bot_data.get("ban_list", {}): #Se è blascklisdtato procediamo a chiudere il processo di ban definitivo
+        ban_data = context.bot_data.get("ban_list", {}).get(update.effective_user.id)
+        await context.bot_data["pyro_instance"].ban_chat_member(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=update.effective_user.id,
+            until_date=ban_data['until']
+        )
     if await user_is_banned(
             user_id=update.effective_user.id,
             chat_id=context.bot_data["group_chat_id"],
@@ -327,7 +334,18 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             return
         if command == "ban":
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
-            context.bot_data["ban_list"].append(parsed["user"] or replied.from_user.id)
+            context.bot_data.setdefault("ban_list", {})
+            context.bot_data["ban_list"][parsed["user"] or replied.from_user.id] = {
+                "until": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                "reason": parsed["message"] or None
+            }
+            await add_to_table("bans", {
+                "admin": update.effective_user.id,
+                "user_id": parsed["user"] or replied.from_user.id,
+                "reason": parsed["message"] if parsed["message"] else "",
+                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                "unban": False if command == "ban" else True
+            })
             await send_private_alert(
                 update=update,
                 context=context,
@@ -548,8 +566,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 )
         else:
             try:
-                if user.id in context.bot_data.get("ban_list", []): #Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
-                    context.bot_data.get("ban_list", []).remove(user.id)
+                # Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
+                if user.id in context.bot_data.get("ban_list", {}): 
+                    context.bot_data.get("ban_list", {}).pop(user.id, None)
                 await context.bot_data["pyro_instance"].unban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=user.id
@@ -737,8 +756,6 @@ async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAU
         chat_id=chat_id
     )
     if res.status is ChatMemberStatus.BANNED:
-        return True
-    if user_id in context.bot_data.get("ban_list", []): # Aggiunto controllo per la Blacklist
         return True
     return False
 
