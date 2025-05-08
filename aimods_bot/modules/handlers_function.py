@@ -39,7 +39,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if (uid := update.effective_user.id) in context.bot_data["ban_list"]: #Se è blascklisdtato procediamo a chiudere il processo di ban definitivo
+    if (uid := update.effective_user.id) in context.bot_data["ban_list"]:
         ban_data = context.bot_data["ban_list"][uid]
         await context.bot_data["pyro_instance"].ban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
@@ -65,7 +65,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
             text=service_text,
             delay_delete=300
         )
-
         return ConversationHandler.END
 
     if await user_is_banned(
