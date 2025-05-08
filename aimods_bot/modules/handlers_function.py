@@ -39,13 +39,35 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id in context.bot_data.get("ban_list", {}): #Se è blascklisdtato procediamo a chiudere il processo di ban definitivo
-        ban_data = context.bot_data.get("ban_list", {}).get(update.effective_user.id)
+    if (uid := update.effective_user.id) in context.bot_data["ban_list"]: #Se è blascklisdtato procediamo a chiudere il processo di ban definitivo
+        ban_data = context.bot_data["ban_list"][uid]
         await context.bot_data["pyro_instance"].ban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
-            user_id=update.effective_user.id,
-            until_date=ban_data['until']
+            user_id=uid,
+            until_date=ban_data["expires_at"]
         )
+        service_text = f"🚫 Utente <b>in blacklist</b> {update.effective_user.name} (<code>{uid}</code>) <b>bannato</b> "
+
+        if expiring := ban_data["expires_at"]:
+            service_text += (f"fino al <b>{expiring.strftime('%d %B %Y')}</b> "
+                             f"alle {expiring.strftime('%H:%M')}.")
+        else:
+            service_text += "a <b>tempo indeterminato</b>."
+
+        if reason := ban_data["reason"]:
+            service_text += f"\n<b>Motivo</b>: <i>{reason}</i>."
+
+        service_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
+
+        await job_queue_functions.send_temporary_message(
+            update=update,
+            context=context,
+            text=service_text,
+            delay_delete=300
+        )
+
+        return ConversationHandler.END
+
     if await user_is_banned(
             user_id=update.effective_user.id,
             chat_id=context.bot_data["group_chat_id"],
@@ -332,24 +354,31 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 text="⚠️ Warning\n\n▪️ L'utente sembra non esistere, oppure non è mai stato visto dal bot."
             )
             return
+        parsed_user = parsed["user"] or replied.from_user.id
         if command == "ban":
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
-            context.bot_data["ban_list"][parsed["user"] or replied.from_user.id] = {
-                "until": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+            context.bot_data["ban_list"][parsed_user] = {
+                "expires_at": rome_until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"] or None
             }
-            await add_to_table("bans", {
-                "admin": update.effective_user.id,
-                "user_id": int(parsed["user"]) or replied.from_user.id,
-                "reason": parsed["message"] if parsed["message"] else "",
-                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
-                "unban": False if command == "ban" else True
-            })
+            await job_queue_functions.send_temporary_message(
+                update=update,
+                context=context,
+                text=f"🖊 Utente <code>{parsed_user}</code> <b>aggiunto in blacklist</b>. "
+                     f"Verrà bannato al primo ingresso.\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>.",
+                delay_delete=300
+            )
+            return
+        if command == "unban":
             await send_private_alert(
                 update=update,
                 context=context,
-                text="⚠️ Warning\n\n▪️ L'utente sembra non esistere, oppure non è mai stato visto dal bot. Aggiunto in Blacklist"
-            )            
+                text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto.\n\n"
+                     "Sbannalo manualmente dalle impostazioni."
+            )
+            # Lo sban manuale non consente il log automatico nel database. Possiamo salvare l'ID dell'utente e
+            # gestire gli eventi di unban in modo da loggare automaticamente gli unban manuali (tramite confronto
+            # dell'ID).
             return
         
     except Exception as e:
@@ -365,6 +394,10 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     try:
         # UnboundLocalError: cannot access local variable 'user' where it is not associated with a value
         # Da errore di variabile vuota se si usa unban su un utente che non è mai stato visto dal bot
+        # FIX - Adesso il comando 'unban', in caso di errore nel parsing, è gestito nel ramo; tutte le altre eccezioni
+        # sono gestite con clausola 'except Exception' (vedi sopra).
+
+        # noinspection PyUnboundLocalVariable
         member = await context.bot.get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=user.id
