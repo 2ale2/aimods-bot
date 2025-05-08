@@ -334,14 +334,13 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             return
         if command == "ban":
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
-            context.bot_data.setdefault("ban_list", {})
             context.bot_data["ban_list"][parsed["user"] or replied.from_user.id] = {
                 "until": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"] or None
             }
             await add_to_table("bans", {
                 "admin": update.effective_user.id,
-                "user_id": parsed["user"] or replied.from_user.id,
+                "user_id": int(parsed["user"]) or replied.from_user.id,
                 "reason": parsed["message"] if parsed["message"] else "",
                 "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
