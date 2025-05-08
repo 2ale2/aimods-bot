@@ -342,7 +342,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": update.effective_user.id,
                 "user_id": int(parsed["user"]) or replied.from_user.id,
                 "reason": parsed["message"] if parsed["message"] else "",
-                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
             })
             await send_private_alert(
@@ -363,6 +363,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     # resolving del membro della chat
     try:
+        # UnboundLocalError: cannot access local variable 'user' where it is not associated with a value
+        # Da errore di variabile vuota se si usa unban su un utente che non è mai stato visto dal bot
         member = await context.bot.get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=user.id
@@ -605,7 +607,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "admin": update.effective_user.id,
                 "user_id": user.id,
                 "reason": parsed["message"] if parsed["message"] else "",
-                "until_date": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
             })
         else:
