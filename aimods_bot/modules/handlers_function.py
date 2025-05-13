@@ -46,6 +46,14 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
             user_id=uid,
             until_date=ban_data["expires_at"]
         )
+
+        await add_to_table(
+            table_name="bans",
+            content={
+                "admin": ban_data["admin"],
+            }
+        )
+
         service_text = f"🚫 Utente <b>in blacklist</b> {update.effective_user.name} (<code>{uid}</code>) <b>bannato</b> "
 
         if expiring := ban_data["expires_at"]:
@@ -358,7 +366,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
             context.bot_data["ban_list"][parsed_user] = {
                 "expires_at": rome_until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
-                "reason": parsed["message"] or None
+                "reason": parsed["message"] or None,
+                "admin": message.from_user.id
             }
             await job_queue_functions.send_temporary_message(
                 update=update,
