@@ -13,7 +13,12 @@ def create_handlers() -> list:
     handlers = []
 
     # - command handlers
-    handlers.append(MessageHandler(filters.TEXT & filters.Regex(r"^[/.!]"), callback=handlers_function.handle_command))
+    handlers.append(
+        MessageHandler(
+            filters=(filters.TEXT | filters.CAPTION)
+            & (filters.Regex(r"^[/.!]") | filters.CaptionRegex(r"^[/.!]")),
+            callback=handlers_function.handle_command)
+    )
 
     # - callback query handlers
     handlers.append(CallbackQueryHandler(callback=utils.open_private_alert,pattern="^alert.+$"))

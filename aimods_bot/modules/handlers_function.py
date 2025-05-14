@@ -1,11 +1,13 @@
 import copy
 import locale
 import os
-from datetime import timezone
+from datetime import timezone, datetime
 
+import pytz
 import telegram.error
 from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
+from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler
 
@@ -39,26 +41,35 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # {DOPPIA VERIFICA
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # check banlist
     if (uid := update.effective_user.id) in context.bot_data["ban_list"]:
         ban_data = context.bot_data["ban_list"][uid]
+        if ban_data["expires_at"] is not None:
+            rome_until_date = (until_date := ban_data['expires_at']).astimezone(pytz.timezone('Europe/Rome'))
+        else:
+            until_date = None
+            rome_until_date = None
         await context.bot_data["pyro_instance"].ban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=uid,
-            until_date=ban_data["expires_at"]
+            until_date=until_date
         )
 
         await add_to_table(
             table_name="bans",
             content={
                 "admin": ban_data["admin"],
+                "user_id": uid,
+                "reason": ban_data["reason"],
+                "expires_at": until_date
             }
         )
 
         service_text = f"🚫 Utente <b>in blacklist</b> {update.effective_user.name} (<code>{uid}</code>) <b>bannato</b> "
 
-        if expiring := ban_data["expires_at"]:
-            service_text += (f"fino al <b>{expiring.strftime('%d %B %Y')}</b> "
-                             f"alle {expiring.strftime('%H:%M')}.")
+        if rome_until_date:
+            service_text += (f"fino al <b>{rome_until_date.strftime('%d %B %Y')}</b> "
+                             f"alle {rome_until_date.strftime('%H:%M')}.")
         else:
             service_text += "a <b>tempo indeterminato</b>."
 
@@ -80,17 +91,11 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
             chat_id=context.bot_data["group_chat_id"],
             context=context
     ):
-        message = await context.bot.send_message(
-            chat_id=update.effective_user.id,
+        await job_queue_functions.send_temporary_message(
+            update=update,
+            context=context,
             text="❌ Il tuo ID è stato <b>bannato</b>.\n\nNon puoi unirti al gruppo.",
-            parse_mode="HTML"
-        )
-        context.job_queue.run_once(
-            callback=job_queue_functions.scheduled_delete_message,
-            when=10,
-            data={
-                "message_id": message.message_id,
-                "chat_id": update.effective_user.id}
+            delay_delete=10
         )
         return ConversationHandler.END
 
@@ -185,7 +190,7 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 
 
 async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_text = update.message.text_html_urled
+    message_text = update.message.text_html_urled or update.message.caption_html_urled
     match = re.match(r"^[/!.]([a-zA-Z0-9_]+)(?:\s(.*))?$", message_text)
 
     if match:
@@ -202,6 +207,8 @@ async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
             case "limit" | "unlimit":
                 await limit_user(update=update, context=context, command=command, full_command=message_text)
+            case "annuncio":
+                await announce(update=update, context=context)
 
 
 # COMANDO RIMOZIONE MESSAGGI
@@ -330,6 +337,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     parsed = await parse_command(update=update, context=context, command=command.replace("del", ""),
                                  full_command=full_command)
 
+    if not parsed:
+        return
+
     if parsed["user"] is None:
         if message.reply_to_message is None or message.reply_to_message.forum_topic_created is not None:
             await send_private_alert(
@@ -365,7 +375,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         if command == "ban":
             # il resolving di uno username non genera mai PeerIdInvalid, quindi, se siamo qua, parsed[user] è un ID
             context.bot_data["ban_list"][parsed_user] = {
-                "expires_at": rome_until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
+                # senza fuso orario per evitare di convertire 10 volte
+                "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "reason": parsed["message"] or None,
                 "admin": message.from_user.id
             }
@@ -378,15 +389,24 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             )
             return
         if command == "unban":
+            if parsed_user in context.bot_data["ban_list"]:
+                del context.bot_data["ban_list"][parsed_user]
+                await job_queue_functions.send_temporary_message(
+                    update=update,
+                    context=context,
+                    text=f"🖊 Utente <code>{parsed_user}</code> <b>rimosso dalla blacklist</b>.\n\n"
+                         f"ℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>.",
+                    delay_delete=300
+                )
+                return
             await send_private_alert(
                 update=update,
                 context=context,
                 text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto.\n\n"
-                     "Sbannalo manualmente dalle impostazioni."
+                     "Sbannalo manualmente dalle impostazioni (se l'utente non ha username, salvalo prima nei contatti)."
             )
-            # Lo sban manuale non consente il log automatico nel database. Possiamo salvare l'ID dell'utente e
-            # gestire gli eventi di unban in modo da loggare automaticamente gli unban manuali (tramite confronto
-            # dell'ID).
+            # Lo sban manuale non consente il log automatico nel database. Possiamo però gestire l'evento di ban
+            # manuale da parte di un admin per aggiornare il database.
             return
         
     except Exception as e:
@@ -406,7 +426,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         # sono gestite con clausola 'except Exception' (vedi sopra).
 
         # noinspection PyUnboundLocalVariable
-        member = await context.bot.get_chat_member(
+        member = await context.bot_data["pyro_instance"].get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=user.id
         )
@@ -501,7 +521,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 service_text = (f"🔒 Utente {mention} (<code>{member.user.id}</code>) limitato "
                                 f"(<b>tutti i permessi rimossi</b>).")
         else:
-            actual = user.permissions.__dict__ if user.permissions is not None else {perm.name: True for perm in p}
+            actual = member.permissions.__dict__ if member.permissions is not None else {perm.name: True for perm in p}
             if command == "limit":
                 new_permissions = {
                     perm.name: (actual[perm.name] if perm.value not in parsed["permissions"] else False) for perm in p
@@ -607,6 +627,21 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                     text="❌ Error\n\n▪️ C'è stato un errore in fase di ban dell'utente. Leggi i log."
                 )
         else:
+            res = await revoke_last_action("bans", user.id)
+            if res is False:
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="⚠️ Warning\n\n▪️ Non risulta alcun record sul ban dell'utente."
+                )
+                return
+            if res is not True:
+                await send_private_alert(
+                    update=update,
+                    context=context,
+                    text="❌ Error\n\n▪️ Errore in fase di registrazione dell'unban. Leggi i log."
+                )
+
             try:
                 # Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
                 if user.id in context.bot_data.get("ban_list", {}): 
@@ -622,6 +657,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                     context=context,
                     text="❌ Error\n\n▪️ C'è stato un errore in fase di unban dell'utente. Leggi i log."
                 )
+                return
 
         if command == "ban":
             if not mention.isnumeric():
@@ -651,22 +687,6 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 "expires_at": until_date.astimezone(pytz.UTC) if until_date != utils.zero_datetime() else None,
                 "unban": False if command == "ban" else True
             })
-        else:
-            res = await revoke_last_action("bans", user.id)
-            if res is False:
-                await send_private_alert(
-                    update=update,
-                    context=context,
-                    text="⚠️ Warning\n\n▪️ Non risulta alcun record sul ban dell'utente."
-                )
-            if res is not True:
-                await send_private_alert(
-                    update=update,
-                    context=context,
-                    text="❌ Error\n\n▪️ Errore in fase di registrazione dell'unban. Leggi i log."
-                )
-
-            # l'azione di moderazione è stata comunque correttamente eseguita: mando il messaggio di servizio
 
     elif command == "kick":
         await context.bot.unban_chat_member(
@@ -760,8 +780,8 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         warns_count = await get_user_warnings(user_id=member.user.id)
         max_warns = 3
-        service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{member.user.id}</code>)\n "
-                        f"<b>Ammonizioni Attuali</b>: "
+        service_text = (f"✅ <b>Ammonizione rimossa</b> per {mention} (<code>{member.user.id}</code>)\n\n"
+                        f"🔹 <b>Ammonizioni Attuali</b>: "
                         f"<code>{warns_count if warns_count is not None else 0}/{max_warns}</code>")
 
         if parsed["message"]:
@@ -775,6 +795,47 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         text=service_text,
         delay_delete=300
     )
+
+
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await safe_delete(update=update, context=context)
+
+    if update.effective_chat.id != int(context.bot_data["group_chat_id"]):
+        return
+
+    mes = update.effective_message
+
+    if att := mes.effective_attachment:
+        match type(att):
+            case _ if isinstance(att, tuple):
+                att = InputMediaPhoto(media=att[-1])
+            case telegram.Audio:
+                att = InputMediaAudio(media=att)
+
+            case telegram.Video:
+                att = InputMediaVideo(media=att)
+            case _:
+                att = InputMediaDocument(media=att)
+
+        await context.bot.send_media_group(
+            chat_id=update.effective_chat.id,
+            media=[att],
+            caption=mes.caption_html_urled.split(" ", maxsplit=1)[-1],
+            reply_parameters=telegram.ReplyParameters(
+                message_id=mes.reply_to_message.id if mes.reply_to_message else None
+            ),
+            parse_mode="HTML"
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=mes.text_html_urled.split(" ", maxsplit=1)[1],
+            reply_parameters=telegram.ReplyParameters(
+                message_id=mes.reply_to_message.id if mes.reply_to_message else None
+            ),
+            parse_mode="HTML"
+        )
+
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):

@@ -140,6 +140,7 @@ async def send_temporary_message(
         when=delay_delete
     )
 
+
 async def get_thread_id(update: Update):
     t_id = update.effective_message.message_thread_id
     if t_id is not None and t_id < 20:

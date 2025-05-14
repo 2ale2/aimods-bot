@@ -1,9 +1,8 @@
 import json
 import re
-from datetime import timedelta, datetime
+from datetime import timedelta
 from uuid import uuid4
 
-import pytz
 import telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatAction
@@ -263,3 +262,19 @@ async def get_thread_id(update: Update):
     if t_id is not None and t_id < 20:
         return t_id
     return None
+
+
+async def safe_delete(update: Update, context: ContextTypes.DEFAULT_TYPE, message=None):
+    if message is not None:
+        if not isinstance(message, telegram.Message):
+            bot_logger.error("Message is not a telegram.Message object.")
+            return
+        try:
+            await message.delete()
+        except telegram.error.BadRequest:
+            pass
+    else:
+        try:
+            await update.effective_message.delete()
+        except telegram.error.BadRequest:
+            pass
