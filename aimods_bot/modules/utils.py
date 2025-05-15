@@ -124,6 +124,11 @@ async def send_action_message_after(update: Update,
         "chat_id": recipient_id if recipient_id is not None else update.effective_chat.id,
     }
 
+    if "attachments" in additional_job_data and additional_job_data["attachments"]:
+        job_data["media"] = True
+    else:
+        job_data["media"] = False
+
     job_id = str(uuid4())
     job = context.job_queue.run_once(
         callback=job_queue_functions.scheduled_send_message,

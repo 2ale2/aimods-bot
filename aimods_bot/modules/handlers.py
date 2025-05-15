@@ -1,5 +1,6 @@
+import telegram
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
-                          ConversationHandler, ChatJoinRequestHandler, filters)
+                          ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
 import handlers_function
 import utils
@@ -11,6 +12,14 @@ def create_handlers() -> list:
     """Crea gli handler e li pone all'interno di una lista; poi la ritorna."""
     # noinspection PyListCreation
     handlers = []
+
+    # - test handler, for testing and debugging purposes only. it reroutes every update!
+    # handlers.append(
+    #     TypeHandler(
+    #         type=telegram.Update,
+    #         callback=handlers_function.test
+    #     )
+    # )
 
     # - command handlers
     handlers.append(

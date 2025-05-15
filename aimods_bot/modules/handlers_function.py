@@ -9,7 +9,7 @@ from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
 from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
 from telegram.constants import ChatMemberStatus
-from telegram.ext import ConversationHandler
+from telegram.ext import ConversationHandler, MessageHandler, filters
 
 from aimods_bot.modules.database_functions import add_to_table
 from constants import Permissions
@@ -18,6 +18,15 @@ from utils import *
 RULES_ACCEPTED = 0
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
+
+
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # callback function of the TypeHandler, usable for testing and debugging purposes
+    a = MessageHandler(
+        filters=(filters.TEXT | filters.CAPTION)
+                & (filters.Regex(r"^[/.!]") | filters.CaptionRegex(r"^[/.!]")),
+        callback=handle_command)
+    pass
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -191,24 +200,22 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 
 async def handle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = update.message.text_html_urled or update.message.caption_html_urled
-    match = re.match(r"^[/!.]([a-zA-Z0-9_]+)(?:\s(.*))?$", message_text)
+    parts = message_text.split(None, 1)
+    command = parts[0][1:].lower()
 
-    if match:
-        command = match.group(1)
-
-        match command:
-            case "start":
-                await start_command(update=update, context=context)
-            case "rules":
-                await send_rules(update=update, context=context)
-            case "del" | "delmute" | "delban" | "delkick":
-                await limit_user(update=update, context=context, command=command, full_command=message_text)
-            case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn" | "unwarn":
-                await limit_user(update=update, context=context, command=command, full_command=message_text)
-            case "limit" | "unlimit":
-                await limit_user(update=update, context=context, command=command, full_command=message_text)
-            case "annuncio":
-                await announce(update=update, context=context)
+    match command:
+        case "start":
+            await start_command(update=update, context=context)
+        case "rules":
+            await send_rules(update=update, context=context)
+        case "del" | "delmute" | "delban" | "delkick":
+            await limit_user(update=update, context=context, command=command, full_command=message_text)
+        case "ban" | "unban" | "mute" | "unmute" | "kick" | "warn" | "unwarn":
+            await limit_user(update=update, context=context, command=command, full_command=message_text)
+        case "limit" | "unlimit":
+            await limit_user(update=update, context=context, command=command, full_command=message_text)
+        case "annuncio":
+            await announce(update=update, context=context)
 
 
 # COMANDO RIMOZIONE MESSAGGI
@@ -402,8 +409,9 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
             await send_private_alert(
                 update=update,
                 context=context,
-                text="⚠️ Warning\n\n▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto.\n\n"
-                     "Sbannalo manualmente dalle impostazioni (se l'utente non ha username, salvalo prima nei contatti)."
+                text="⚠️ Warning\n\n"
+                     "▪️ L'utente non è mai stato nel gruppo oppure il bot non lo ha mai visto.\n\nSbannalo "
+                     "manualmente dalle impostazioni (se l'utente non ha username, salvalo prima nei contatti)."
             )
             # Lo sban manuale non consente il log automatico nel database. Possiamo però gestire l'evento di ban
             # manuale da parte di un admin per aggiornare il database.
@@ -804,6 +812,14 @@ async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     mes = update.effective_message
+    reply_parameters = telegram.ReplyParameters(
+        message_id=mes.reply_to_message.id if mes.reply_to_message else None
+    )
+
+    text_content = mes.caption_html_urled or mes.text_html_urled
+
+    parts = text_content.split(None, 1)
+    cleaned_content = parts[1]
 
     if att := mes.effective_attachment:
         match type(att):
@@ -817,25 +833,26 @@ async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
             case _:
                 att = InputMediaDocument(media=att)
 
-        await context.bot.send_media_group(
-            chat_id=update.effective_chat.id,
-            media=[att],
-            caption=mes.caption_html_urled.split(" ", maxsplit=1)[-1],
-            reply_parameters=telegram.ReplyParameters(
-                message_id=mes.reply_to_message.id if mes.reply_to_message else None
-            ),
-            parse_mode="HTML"
+        await send_action_message_after(
+            update=update,
+            context=context,
+            text=cleaned_content,
+            additional_job_data={
+                "attachments": [att],
+                "reply_parameters": reply_parameters,
+                "message_thread_id": mes.message_thread_id
+            }
         )
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=mes.text_html_urled.split(" ", maxsplit=1)[1],
-            reply_parameters=telegram.ReplyParameters(
-                message_id=mes.reply_to_message.id if mes.reply_to_message else None
-            ),
-            parse_mode="HTML"
+        await send_action_message_after(
+            update=update,
+            context=context,
+            text=cleaned_content,
+            additional_job_data={
+                "reply_parameters": reply_parameters,
+                "message_thread_id": mes.message_thread_id
+            }
         )
-
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):

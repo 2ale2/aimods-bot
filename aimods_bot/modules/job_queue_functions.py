@@ -22,6 +22,7 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     data = job.data
+    media = data["media"]
 
     if "chat_id" not in data or "text" not in data:
         job_queue_logger.warn("'chat_id' or 'text' are missing in JobQueue data.")
@@ -34,12 +35,24 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
             break
 
     try:
-        message = await context.bot.send_message(
-            chat_id=data["chat_id"], text=data["text"],
-            reply_markup=data["reply_markup"] if "reply_markup" in data else None,
-            message_thread_id=data["thread_id"] if "thread_id" in data else None,
-            parse_mode="HTML"
-        )
+        if media:
+            message = await context.bot.send_media_group(
+                chat_id=data["chat_id"],
+                media=data["attachments"],  # must be a list
+                caption=data["text"],
+                reply_parameters=data["reply_parameters"],
+                message_thread_id=data["thread_id"] if "thread_id" in data else None,
+                parse_mode="HTML"
+            )
+            message = message[0]
+        else:
+            message = await context.bot.send_message(
+                chat_id=data["chat_id"], text=data["text"],
+                reply_parameters=data["reply_parameters"],
+                reply_markup=data["reply_markup"] if "reply_markup" in data else None,
+                message_thread_id=data["thread_id"] if "thread_id" in data else None,
+                parse_mode="HTML"
+            )
 
         if job_to_edit:
             context.bot_data["jobs"][job_to_edit]["returned_value"] = message.id
