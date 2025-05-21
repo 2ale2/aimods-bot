@@ -4,8 +4,12 @@
 from typing import Set, Union
 from enum import IntEnum
 from dataclasses import dataclass, field
+
+import telegram
+
 from utils import get_data_from_json
 from telegram import Video, Audio, Voice, Document, Sticker, Poll
+from telegram.ext.filters import MessageFilter
 
 TOPICS = get_data_from_json("forum_topics")
 
@@ -21,6 +25,14 @@ scope
     comprendere uno o più topic.
     ogni topic ha un single topic scope
 '''
+
+class ChannelMessageForRecapFilter(MessageFilter):
+    def filter(self, message: telegram.Message):
+        if not message.text and not message.caption:
+            return False
+        if any(hashtag in message.text for hashtag in ["windows", "android", "macos", "ios", "linux"]):
+            return True
+        return False
 
 
 @dataclass

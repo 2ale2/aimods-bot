@@ -35,17 +35,26 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     --> Basta semplicemente aggiungere un Benvenuto standard e, se Admin, aggiungere un bottone con "Settings"
     """
     if await is_admin(update.effective_user.id, context):
-        # stampa pannello di controllo
-        pass
+        keyboard = [
+            [
+                InlineKeyboardButton(text="♟ Moderazione", callback_data="moderation"),
+                InlineKeyboardButton(text="⚙ Impostazioni", callback_data="settings")
+            ],
+            [
+                InlineKeyboardButton(text="❔ Gestione Richieste", callback_data="requests")
+            ]
+        ]
+        await context.bot.send_message(
+            text="👾 <b>Pannello di Controllo</b>\n\n"
+                 "🔸 Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
+                 "🔹 Scegli un'opzione per cominciare.",
+            chat_id=update.effective_user.id,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
     else:
         # stampa
         pass
-
-    # per ora stampiamo semplicemente il benvenuto
-    await context.bot.send_message(
-        chat_id=update.effective_user.id,
-        text="Hi A&I Mods Staff! :)"
-    )
 
 
 # {DOPPIA VERIFICA
@@ -853,6 +862,53 @@ async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "message_thread_id": mes.message_thread_id
             }
         )
+
+
+async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_message.text and not update.effective_message.caption:
+        return
+
+    text = update.effective_message.text
+    platforms = []
+
+    if "#android" in text:
+        platforms.append("Android")
+    if "#ios" in text:
+        platforms.append("iOS")
+    if "#windows" in text:
+        platforms.append("Windows")
+    if "#macos" in text:
+        platforms.append("MacOS")
+    if "#linux" in text:
+        platforms.append("Linux")
+
+    if len(platforms) == 0:
+        bot_logger.warning(f"Software platform(s) not captured in post #{update.effective_message.id} from channel.")
+        return
+
+    lines = text.splitlines()
+    if "#richiesta" in lines[0]:
+        lines.pop(0)
+
+    first_line = re.sub(r"^\W+", "", lines[0])
+
+    match = re.match(r"(.+?)\s+([vw]\d[\d.]*|build\s+\d+)", first_line, re.IGNORECASE)
+
+    if not match:
+        bot_logger.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
+        return
+
+    software_name = match.group(1).strip()
+
+    await add_to_table(
+        table_name="recap_posts",
+        content={
+            "post_id": update.effective_message.id,
+            "platforms": str(platforms).replace("'", ""),
+            "software_name": software_name,
+            "link": update.effective_message.link
+        }
+    )
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):

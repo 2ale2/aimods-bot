@@ -1,6 +1,6 @@
-import telegram
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
+from constants import ChannelMessageForRecapFilter
 
 import handlers_function
 import utils
@@ -20,6 +20,16 @@ def create_handlers() -> list:
     #         callback=handlers_function.test
     #     )
     # )
+
+    channel_message_for_recap_filter = ChannelMessageForRecapFilter()
+
+    # - cattura post canale
+    handlers.append(
+        MessageHandler(
+            filters=channel_message_for_recap_filter & filters.Chat(chat_id=-1002544860500),
+            callback=handlers_function.catch_post_from_channel
+        )
+    )
 
     # - command handlers
     handlers.append(
