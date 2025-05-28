@@ -871,15 +871,15 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     text = update.effective_message.text
     platforms = []
 
-    if "#android" in text:
+    if any(x in text for x in context.bot_data["hashtags"]["Android"]):
         platforms.append("Android")
-    if "#ios" in text:
+    if any(x in text for x in context.bot_data["hashtags"]["iOS"]):
         platforms.append("iOS")
-    if "#windows" in text:
+    if any(x in text for x in context.bot_data["hashtags"]["Windows"]):
         platforms.append("Windows")
-    if "#macos" in text:
+    if any(x in text for x in context.bot_data["hashtags"]["MacOS"]):
         platforms.append("MacOS")
-    if "#linux" in text:
+    if any(x in text for x in context.bot_data["hashtags"]["Linux"]):
         platforms.append("Linux")
 
     if len(platforms) == 0:

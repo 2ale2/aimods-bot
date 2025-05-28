@@ -129,5 +129,12 @@
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
       "parameters": ["mention"]
     }
+  },
+  "hashtags": {
+    "Android": ["#android"],
+    "Windows": ["#windows", "#winhubx", "#storewin", "#assistente", "#radio", "#spoifydl", "#copymanager", "#fixlicenza", "#riproduttore"],
+    "iOS": ["#ios"],
+    "MacOS": ["#macos", "#storemac"],
+    "Linux": ["#linux"]
   }
 }

@@ -48,7 +48,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
         else:
             message = await context.bot.send_message(
                 chat_id=data["chat_id"], text=data["text"],
-                reply_parameters=data["reply_parameters"],
+                reply_parameters=data["reply_parameters"] if "reply_parameters" in data else None,
                 reply_markup=data["reply_markup"] if "reply_markup" in data else None,
                 message_thread_id=data["thread_id"] if "thread_id" in data else None,
                 parse_mode="HTML"

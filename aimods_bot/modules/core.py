@@ -7,8 +7,11 @@ from telegram.ext import Application
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
+from aimods_bot.modules.automatic_tasks import create_and_send_recaps
 from aimods_bot.modules.loggers import bot_logger
+from aimods_bot.modules.utils import get_time_until_next_recap
 from utils import get_data_from_json
+from datetime import timedelta
 
 load_dotenv()
 
@@ -45,6 +48,18 @@ async def set_application_data(application: Application):
     commands = get_data_from_json("commands")
     if 'commands' not in application.bot_data or application.bot_data["commands"] != commands:
         application.bot_data["commands"] = commands
+
+    hashtags = get_data_from_json("hashtags")
+    if 'hashtags' not in application.bot_data or application.bot_data["hashtags"] != hashtags:
+        application.bot_data["hashtags"] = hashtags
+
+    time_until_recap = await get_time_until_next_recap()
+
+    application.job_queue.run_repeating(
+        callback=create_and_send_recaps,
+        interval=timedelta(days=7),
+        first=time_until_recap
+    )
 
     application.bot_data["jobs"] = {}
     try:

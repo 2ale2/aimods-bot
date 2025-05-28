@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
 from uuid import uuid4
 
 import telegram
@@ -251,6 +251,16 @@ def get_data_from_json(data: str):
         except KeyError as e:
             bot_logger.error(f"Chiave {e} mancante in 'data.json'")
             raise KeyError(e)
+
+
+async def get_time_until_next_recap():
+    now = datetime.now()
+    days_until_sunday = (6 - now.weekday()) or 7
+    next_recap_time = datetime.combine(
+        now.date() + timedelta(days=days_until_sunday),
+        datetime.min.time()
+    )
+    return next_recap_time - now
 
 
 async def get_file(file):
