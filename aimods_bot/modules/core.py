@@ -53,15 +53,37 @@ async def set_application_data(application: Application):
     if 'hashtags' not in application.bot_data or application.bot_data["hashtags"] != hashtags:
         application.bot_data["hashtags"] = hashtags
 
+    autorecap_job_name = "auto_recap"
+
+    if "jobs" in application.bot_data:
+        if "next_recap" in application.bot_data["jobs"]:
+            if not application.bot_data["jobs"][autorecap_job_name]["executed"]:
+                # eseguo il recap sedutastante
+                await create_and_send_recaps(application)
+                del application.bot_data["jobs"][autorecap_job_name]
+
+    # programmo i prossimi recap automatici
     time_until_recap = await get_time_until_next_recap()
 
-    application.job_queue.run_repeating(
+    await application.job_queue.start()
+
+    job = application.job_queue.run_repeating(
         callback=create_and_send_recaps,
         interval=timedelta(days=7),
-        first=time_until_recap
+        first=time_until_recap,
+        name=autorecap_job_name
     )
 
-    application.bot_data["jobs"] = {}
+    application.bot_data["jobs"] = {
+        # settled to recover the auto recap job in case of forced arrest
+        # example format "31_12_9999_23_59_59"
+        job.name: {
+            "next_date": job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+            "executed": False
+        }
+    }
+
+    # setto l'istanza di pyrotgfork
     try:
         pyro_instance = Client(
             name="bridge_bot",

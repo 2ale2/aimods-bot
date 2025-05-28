@@ -83,6 +83,24 @@
         "id": 13,
         "name": "OffTopic"
       }
+    },
+    "recap": {
+      "1": {
+        "id": 13,
+        "name": "Android"
+      },
+      "2": {
+        "id": 16,
+        "name": "Windows"
+      },
+      "3": {
+        "id": 15,
+        "name": "iOS"
+      },
+      "4": {
+        "id": 17,
+        "name": "MacOS"
+      }
     }
   },
   "texts": {

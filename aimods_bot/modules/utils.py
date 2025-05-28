@@ -254,6 +254,8 @@ def get_data_from_json(data: str):
 
 
 async def get_time_until_next_recap():
+    # in futuro potrebbe implementare adattemento a giorno ed ora personalizzabili
+    # ora default domenica a mezzanotte
     now = datetime.now()
     days_until_sunday = (6 - now.weekday()) or 7
     next_recap_time = datetime.combine(

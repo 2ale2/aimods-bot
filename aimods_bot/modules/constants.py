@@ -26,6 +26,7 @@ scope
     ogni topic ha un single topic scope
 '''
 
+
 class ChannelMessageForRecapFilter(MessageFilter):
     def filter(self, message: telegram.Message):
         if not message.text and not message.caption:
@@ -33,7 +34,7 @@ class ChannelMessageForRecapFilter(MessageFilter):
         hashtags = get_data_from_json("hashtags")
         l = []
         for el in hashtags:
-            l.append(hashtags[el])
+            l.extend(hashtags[el])
         if any(hashtag in message.text for hashtag in l):
             return True
         return False

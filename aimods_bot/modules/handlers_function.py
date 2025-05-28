@@ -11,6 +11,7 @@ from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMed
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ConversationHandler, MessageHandler, filters
 
+from aimods_bot.modules.automatic_tasks import create_and_send_recaps
 from aimods_bot.modules.database_functions import add_to_table
 from constants import Permissions
 from utils import *
@@ -22,10 +23,7 @@ locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # callback function of the TypeHandler, usable for testing and debugging purposes
-    a = MessageHandler(
-        filters=(filters.TEXT | filters.CAPTION)
-                & (filters.Regex(r"^[/.!]") | filters.CaptionRegex(r"^[/.!]")),
-        callback=handle_command)
+    await create_and_send_recaps(context=context)
     pass
 
 
