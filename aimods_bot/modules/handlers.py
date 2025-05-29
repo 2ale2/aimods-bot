@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
+
 from constants import ChannelMessageForRecapFilter
 
 import handlers_function
@@ -32,7 +33,7 @@ def create_handlers() -> list:
         )
     )
 
-    # - command handlers
+    # - commands handler
     handlers.append(
         MessageHandler(
             filters=(filters.TEXT | filters.CAPTION)
@@ -42,7 +43,7 @@ def create_handlers() -> list:
 
     # - callback query handlers
     handlers.append(CallbackQueryHandler(callback=utils.open_private_alert,pattern="^alert.+$"))
-    handlers.append(CallbackQueryHandler(callback=handlers_function.callback_close_message, pattern="^close.+$"))
+    handlers.append(CallbackQueryHandler(callback=utils.callback_close_message, pattern="^close.+$"))
 
     # - conversation handlers
     # -- double check at join
@@ -62,11 +63,21 @@ def create_handlers() -> list:
             ]
         },
         fallbacks=[
-            CallbackQueryHandler(callback=handlers_function.new_member_joined_forum,pattern="^recreate_captcha$")
+            CallbackQueryHandler(callback=handlers_function.new_member_joined_forum, pattern="^recreate_captcha$")
         ],
         per_chat=False,
         name="join_handler",
         persistent=True
     ))
+
+    # -- moderation settings menu
+    moderation_settings_conversation_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(callback=handlers_function.moderation_settings, pattern="^moderation$"),
+        ],
+        states={
+
+        }
+    )
 
     return handlers

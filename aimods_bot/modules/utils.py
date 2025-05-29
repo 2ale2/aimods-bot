@@ -4,14 +4,15 @@ from datetime import timedelta, datetime
 from uuid import uuid4
 
 import telegram
+import telegram.error
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, ChatMemberStatus
 from telegram.ext import ContextTypes
 
-from aimods_bot.modules import job_queue_functions
-from aimods_bot.modules.exceptions import AlertException
-from aimods_bot.modules.loggers import bot_logger
-from aimods_bot.modules.database_functions import execute_query
+import job_queue_functions
+from exceptions import AlertException
+from loggers import bot_logger
+from database_functions import execute_query
 
 
 async def delete_effective_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -295,3 +296,47 @@ async def safe_delete(update: Update, context: ContextTypes.DEFAULT_TYPE, messag
             await update.effective_message.delete()
         except telegram.error.BadRequest:
             pass
+
+
+async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Deletes the message by gathering its id from given call back data
+    :param update: Update: l'Update da gestire
+    :param context: ContextTypes: il contesto dell'istanza di Application
+    :return:
+    """
+    try:
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=update.callback_query.data.split(" ")[1]
+        )
+    except telegram.error.BadRequest:
+        pass
+
+
+async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
+    return str(user_id) in context.bot_data["admins"].keys()
+
+
+async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    # tells if user_id is already in chat_id
+    res = await context.bot.get_chat_member(
+        user_id=user_id,
+        chat_id=chat_id
+    )
+    if (res.status is ChatMemberStatus.MEMBER
+            or res.status is ChatMemberStatus.ADMINISTRATOR
+            or res.status is ChatMemberStatus.OWNER
+    ):
+        return True
+    return False
+
+
+async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    res = await context.bot.get_chat_member(
+        user_id=user_id,
+        chat_id=chat_id
+    )
+    if res.status is ChatMemberStatus.BANNED:
+        return True
+    return False

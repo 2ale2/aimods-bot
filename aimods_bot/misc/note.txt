@@ -1,1 +1,70 @@
 - generazione dinamica dei link di invito
+
+Menu Moderazione
+
+Sezione “Aiuto & FAQ”:
+Integrare una sezione di supporto direttamente nel menu in cui l’utente
+possa trovare rapidamente guide, spiegazioni e link a documentazioni o tutorial.
+Questo facilita l’apprendimento per utenti meno esperti.
+
+🔐 Sicurezza e Filtri
+
+    Anti-Spam
+
+    Anti-Flood
+
+    Anti-Link
+
+    Anti-Porno
+
+    Alfabeti (es. cirillico, arabo, ecc.)
+
+    Controlli (filtri avanzati)
+
+    Captcha
+
+⚠️ Moderazione Utenti
+
+    Warn
+
+    Blocchi
+
+    @Admin (richiesta di aiuto allo staff)
+
+    Arrivederci (messaggio di uscita)
+
+    Modalità Notte
+
+📲 Messaggi e Contenuti
+
+    Media
+
+    Link
+
+    Tag
+
+    Modalità approvazione (messaggi soggetti ad approvazione)
+
+💬 Comunicazioni automatiche
+
+    Benvenuto
+
+    Regolamento
+
+    Cancellazione Messaggi
+
+👥 Sincronizzazione e gestione community
+
+    Canale collegato: gestione commenti, sincronizzazione ban
+
+    Obbligo iscrizione canale
+
+    Notifiche di pubblicazione
+
+⚙️ Sistema
+
+    Lingua
+
+    Chiudi
+
+    Altro

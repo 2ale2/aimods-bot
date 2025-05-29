@@ -2,9 +2,8 @@ import os.path
 
 import asyncpg
 
-from aimods_bot.modules.loggers import bot_logger
 from exceptions import DatabaseBotException
-from loggers import db_logger
+from loggers import db_logger, bot_logger
 
 
 async def get_columns_order(conn, table_name: str):

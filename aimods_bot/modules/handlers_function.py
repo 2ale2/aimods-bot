@@ -1,18 +1,17 @@
 import copy
 import locale
 import os
-from datetime import timezone, datetime
+from datetime import timezone
 
 import pytz
 import telegram.error
 from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
 from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
-from telegram.constants import ChatMemberStatus
-from telegram.ext import ConversationHandler, MessageHandler, filters
+from telegram.ext import ConversationHandler
 
-from aimods_bot.modules.automatic_tasks import create_and_send_recaps
-from aimods_bot.modules.database_functions import add_to_table
+from automatic_tasks import create_and_send_recaps
+from database_functions import add_to_table
 from constants import Permissions
 from utils import *
 
@@ -200,8 +199,6 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     )
 
     return ConversationHandler.END
-
-
 # }
 
 
@@ -917,42 +914,26 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
-    return str(user_id) in context.bot_data["admins"].keys()
+async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(user_id=update.callback_query.from_user.id, context=context):
+        return
 
+    text = "⚙️ <b>Impostazioni – Moderazione Gruppo e Canale</b>"
 
-async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    # tells if user_id is already in chat_id
-    res = await context.bot.get_chat_member(
-        user_id=user_id,
-        chat_id=chat_id
-    )
-    if res.status is ChatMemberStatus.MEMBER or res.status is ChatMemberStatus.ADMINISTRATOR:
-        return True
-    return False
-
-
-async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    res = await context.bot.get_chat_member(
-        user_id=user_id,
-        chat_id=chat_id
-    )
-    if res.status is ChatMemberStatus.BANNED:
-        return True
-    return False
-
-
-async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Deletes the message by gathering its id from given call back data
-    :param update: Update: l'Update da gestire
-    :param context: ContextTypes: il contesto dell'istanza di Application
-    :return:
-    """
-    try:
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=update.callback_query.data.split(" ")[1]
-        )
-    except telegram.error.BadRequest:
-        pass
+    keyboard = [
+        [
+            InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data="security_filters_settings")
+        ],
+        [
+            InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data="user_moderation_settings")
+        ],
+        [
+            InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data="media_contents_settings")
+        ],
+        [
+            InlineKeyboardButton(text="💬 Comunicazioni Automatiche", callback_data="auto_communications_settings")
+        ],
+        [
+            InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")
+        ],
+    ]

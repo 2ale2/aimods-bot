@@ -1,4 +1,5 @@
 import telegram.error
+from pyrogram.filters import media
 from telegram import Update
 from telegram.ext import ContextTypes
 import asyncio
@@ -22,7 +23,7 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     data = job.data
-    media = data["media"]
+    media_bool = data["media"]
 
     if "chat_id" not in data or "text" not in data:
         job_queue_logger.warn("'chat_id' or 'text' are missing in JobQueue data.")
@@ -35,7 +36,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
             break
 
     try:
-        if media:
+        if media_bool:
             message = await context.bot.send_media_group(
                 chat_id=data["chat_id"],
                 media=data["attachments"],  # must be a list
@@ -112,6 +113,11 @@ async def send_temporary_message(
 
     job_id = str(uuid4())
 
+    if additional_job_data is not None and "attachments" in additional_job_data and additional_job_data["attachments"]:
+        media_bool = True
+    else:
+        media_bool = False
+
     job = context.job_queue.run_once(
         callback=scheduled_send_message,
         data={
@@ -122,6 +128,7 @@ async def send_temporary_message(
                              if additional_job_data is not None
                              and "reply_markup" in additional_job_data
                              else None),
+            "media": media_bool
         },
         when=delay_before,
         name=job_id

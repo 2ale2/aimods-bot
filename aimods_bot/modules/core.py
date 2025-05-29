@@ -7,10 +7,9 @@ from telegram.ext import Application
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
-from aimods_bot.modules.automatic_tasks import create_and_send_recaps
-from aimods_bot.modules.loggers import bot_logger
-from aimods_bot.modules.utils import get_time_until_next_recap
-from utils import get_data_from_json
+from automatic_tasks import create_and_send_recaps
+from loggers import bot_logger
+from utils import get_data_from_json, get_time_until_next_recap
 from datetime import timedelta
 
 load_dotenv()

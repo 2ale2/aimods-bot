@@ -1,10 +1,10 @@
 import logging
 import os
+import core
+import handlers
 
 from telegram.ext import ApplicationBuilder
-
-from aimods_bot.modules import core, handlers
-from aimods_bot.modules.persistence import PostgresPersistence
+from persistence import PostgresPersistence
 
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
