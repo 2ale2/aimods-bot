@@ -54,32 +54,41 @@ async def create_and_send_recaps(context: ContextTypes.DEFAULT_TYPE | Applicatio
         if recap_topics[el]["name"] == "Android":
             await context.bot.send_message(
                 chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(el["id"]),
+                message_thread_id=int(recap_topics[el]["id"]),
                 text=android_recap_text,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode="HTML"
             )
             continue
         if recap_topics[el]["name"] == "Windows":
             await context.bot.send_message(
                 chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(el["id"]),
+                message_thread_id=int(recap_topics[el]["id"]),
                 text=windows_recap_text,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode="HTML"
             )
             continue
         if recap_topics[el]["name"] == "iOS":
             await context.bot.send_message(
                 chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(el["id"]),
+                message_thread_id=int(recap_topics[el]["id"]),
                 text=ios_recap_text,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode="HTML"
             )
             continue
         if recap_topics[el]["name"] == "MacOS":
             await context.bot.send_message(
                 chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(el["id"]),
+                message_thread_id=int(recap_topics[el]["id"]),
                 text=macos_recap_text,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode="HTML"
             )
             continue
+
+    # noinspection SqlWithoutWhere
+    query = "DELETE FROM recap_posts"
+
+    await execute_query(query=query)

@@ -868,16 +868,17 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
 
     text = update.effective_message.text
     platforms = []
+    hashtags = context.bot_data["hashtags"]
 
-    if any(x in text for x in context.bot_data["hashtags"]["Android"]):
+    if any(x in text for x in hashtags["platforms"]["Android"]):
         platforms.append("Android")
-    if any(x in text for x in context.bot_data["hashtags"]["iOS"]):
+    if any(x in text for x in hashtags["platforms"]["iOS"]):
         platforms.append("iOS")
-    if any(x in text for x in context.bot_data["hashtags"]["Windows"]):
+    if any(x in text for x in hashtags["platforms"]["Windows"]):
         platforms.append("Windows")
-    if any(x in text for x in context.bot_data["hashtags"]["MacOS"]):
+    if any(x in text for x in hashtags["platforms"]["MacOS"]):
         platforms.append("MacOS")
-    if any(x in text for x in context.bot_data["hashtags"]["Linux"]):
+    if any(x in text for x in hashtags["platforms"]["Linux"]):
         platforms.append("Linux")
 
     if len(platforms) == 0:
@@ -896,7 +897,14 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
         bot_logger.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
         return
 
-    software_name = match.group(1).strip()
+    software_name = None
+    for el in hashtags["software_associations"]:
+        if hashtags["software_associations"][el] in text:
+            software_name = el
+            break
+
+    if software_name is None:
+        software_name = match.group(1).strip()
 
     await add_to_table(
         table_name="recap_posts",

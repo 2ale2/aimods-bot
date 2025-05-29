@@ -15,12 +15,12 @@ def create_handlers() -> list:
     handlers = []
 
     # - test handler, for testing and debugging purposes only. it reroutes every update!
-    handlers.append(
-        TypeHandler(
-            type=Update,
-            callback=handlers_function.test
-        )
-    )
+    # handlers.append(
+    #     TypeHandler(
+    #         type=Update,
+    #         callback=handlers_function.test
+    #     )
+    # )
 
     channel_message_for_recap_filter = ChannelMessageForRecapFilter()
 

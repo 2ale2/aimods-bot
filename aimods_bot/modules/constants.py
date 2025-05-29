@@ -31,7 +31,7 @@ class ChannelMessageForRecapFilter(MessageFilter):
     def filter(self, message: telegram.Message):
         if not message.text and not message.caption:
             return False
-        hashtags = get_data_from_json("hashtags")
+        hashtags = get_data_from_json("hashtags")["platforms"]
         l = []
         for el in hashtags:
             l.extend(hashtags[el])

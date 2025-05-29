@@ -2,7 +2,7 @@
   "forum_topics": {
     "all": {
       "1": {
-        "id": 13,
+        "id": 14,
         "name": "Android"
       },
       "2": {
@@ -30,42 +30,8 @@
         "name": "Assistenza Tecnica PC/Smartphone"
       },
       "8": {
-        "id": 5,
-        "name": "Richieste MacOS"
-      },
-      "9": {
-        "id": 4,
-        "name": "Richieste Windows"
-      },
-      "10": {
-        "id": 3,
-        "name": "Richieste Android"
-      },
-      "11": {
-        "id": 2,
-        "name": "Richieste iOS"
-      },
-      "12": {
         "id": 1,
         "name": "Generale"
-      }
-    },
-    "richieste": {
-      "1": {
-        "id": 5,
-        "name": "Richieste MacOS"
-      },
-      "2": {
-        "id": 4,
-        "name": "Richieste Windows"
-      },
-      "3": {
-        "id": 3,
-        "name": "Richieste Android"
-      },
-      "4": {
-        "id": 2,
-        "name": "Richieste iOS"
       }
     },
     "assistenza": {
@@ -86,7 +52,7 @@
     },
     "recap": {
       "1": {
-        "id": 13,
+        "id": 14,
         "name": "Android"
       },
       "2": {
@@ -149,10 +115,23 @@
     }
   },
   "hashtags": {
-    "Android": ["#android"],
-    "Windows": ["#windows", "#winhubx", "#storewin", "#assistente", "#radio", "#spoifydl", "#copymanager", "#fixlicenza", "#riproduttore"],
-    "iOS": ["#ios"],
-    "MacOS": ["#macos", "#storemac"],
-    "Linux": ["#linux"]
+    "platforms": {
+      "Android": ["#android"],
+      "Windows": ["#windows", "#winhubx", "#storewin", "#assistente", "#radio", "#spotifydl", "#copymanager", "#fixlicenza", "#riproduttore"],
+      "iOS": ["#ios"],
+      "MacOS": ["#macos", "#storemac"],
+      "Linux": ["#linux"]
+    },
+    "software_associations": {
+      "WinHubX": "#winhubx",
+      "AIMods Store Windows": "#storewin",
+      "Assistente Aggiornamento by <i>AIMods</i>™": "#assistente",
+      "Radio Windows by <i>AIMods</i>™": "#radio",
+      "Spotify Downloader by <i>AIMods</i>™": "#spotifydl",
+      "ClipBoard Manager by <i>AIMods</i>™": "#copymanager",
+      "Fix Licenza by <i>AIMods</i>™": "#fixlicenza",
+      "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
+      "AIMods Store MacOS": "#storemac"
+    }
   }
 }
