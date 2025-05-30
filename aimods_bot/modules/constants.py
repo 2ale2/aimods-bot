@@ -9,7 +9,7 @@ import telegram
 
 from utils import get_data_from_json
 from telegram import Video, Audio, Voice, Document, Sticker, Poll
-from telegram.ext.filters import MessageFilter
+from telegram.ext.filters import MessageFilter, ChatType
 
 TOPICS = get_data_from_json("forum_topics")
 
@@ -29,6 +29,8 @@ scope
 
 class ChannelMessageForRecapFilter(MessageFilter):
     def filter(self, message: telegram.Message):
+        if message.chat.type is not ChatType.CHANNEL:
+            return False
         if not message.text and not message.caption:
             return False
         hashtags = get_data_from_json("hashtags")["platforms"]

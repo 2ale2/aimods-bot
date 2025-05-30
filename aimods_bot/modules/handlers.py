@@ -71,13 +71,14 @@ def create_handlers() -> list:
     ))
 
     # -- moderation settings menu
-    moderation_settings_conversation_handler = ConversationHandler(
+    handlers.append(ConversationHandler(
         entry_points=[
             CallbackQueryHandler(callback=handlers_function.moderation_settings, pattern="^moderation$"),
         ],
         states={
 
-        }
-    )
+        },
+        fallbacks=[]
+    ))
 
     return handlers

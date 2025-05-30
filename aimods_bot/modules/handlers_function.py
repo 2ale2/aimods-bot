@@ -8,6 +8,7 @@ import telegram.error
 from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
 from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
+from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
 
 from automatic_tasks import create_and_send_recaps
@@ -915,10 +916,11 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
 
 
 async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(user_id=update.callback_query.from_user.id, context=context):
+    if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
         return
 
-    text = "⚙️ <b>Impostazioni – Moderazione Gruppo e Canale</b>"
+    text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
+            "🔹 Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di AIMods.")
 
     keyboard = [
         [
@@ -937,3 +939,9 @@ async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE
             InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")
         ],
     ]
+
+    await update.effective_message.edit_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.HTML
+    )
