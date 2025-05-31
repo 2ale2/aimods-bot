@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
-from constants import ChannelMessageForRecapFilter
+from constants import ChannelMessageForRecapFilter, ModerationSettingsStates
 
 import handlers_function
 import utils
@@ -28,7 +28,7 @@ def create_handlers() -> list:
     # - cattura post canale
     handlers.append(
         MessageHandler(
-            filters=channel_message_for_recap_filter & filters.Chat(chat_id=-1002544860500),
+            filters=filters.Chat(chat_id=-1002544860500) & channel_message_for_recap_filter,
             callback=handlers_function.catch_post_from_channel
         )
     )
@@ -76,7 +76,12 @@ def create_handlers() -> list:
             CallbackQueryHandler(callback=handlers_function.moderation_settings, pattern="^moderation$"),
         ],
         states={
-
+            ModerationSettingsStates.MAIN_MENU_CHOICE: [
+                CallbackQueryHandler(
+                    callback=handlers_function.moderation_settings,
+                    pattern="^(security_filters_settings|user_moderation_settings|media_contents_settings|community_settings)$"
+                )
+            ]
         },
         fallbacks=[]
     ))

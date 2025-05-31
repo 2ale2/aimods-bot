@@ -13,7 +13,7 @@ from telegram.ext import ConversationHandler
 
 from automatic_tasks import create_and_send_recaps
 from database_functions import add_to_table
-from constants import Permissions
+from constants import Permissions, ModerationSettingsStates
 from utils import *
 
 RULES_ACCEPTED = 0
@@ -43,8 +43,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         ]
         await context.bot.send_message(
-            text="👾 <b>Pannello di Controllo</b>\n\n"
-                 "🔸 Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
+            text="🎛 <b>Pannello di Controllo</b>\n\n"
+                 "▫️ Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
                  "🔹 Scegli un'opzione per cominciare.",
             chat_id=update.effective_user.id,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -917,31 +917,48 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
 
 async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
-        return
+        return ConversationHandler.END
 
-    text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
-            "🔹 Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di AIMods.")
+    match update.callback_query.data:
+        case "moderation":
+            text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
+                    "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di AIMods."
+                    "\n\n🔹 Scegli un'opzione.")
 
-    keyboard = [
-        [
-            InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data="security_filters_settings")
-        ],
-        [
-            InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data="user_moderation_settings")
-        ],
-        [
-            InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data="media_contents_settings")
-        ],
-        [
-            InlineKeyboardButton(text="💬 Comunicazioni Automatiche", callback_data="auto_communications_settings")
-        ],
-        [
-            InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")
-        ],
-    ]
+            keyboard = [
+                [InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data="security_filters_settings")],
+                [InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data="user_moderation_settings")],
+                [InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data="media_contents_settings")],
+                [InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")],
+            ]
 
-    await update.effective_message.edit_text(
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=ParseMode.HTML
-    )
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+
+            return ModerationSettingsStates.MAIN_MENU_CHOICE
+        case "security_filters_settings":
+            text = "<b>🔐 Sicurezza e Filtri</b>\n\n🔹 Scegli un'opzione."
+            keyboard = [
+                [InlineKeyboardButton(text="📨 Anti-Spam", callback_data="antispam_settings")],
+                [InlineKeyboardButton(text="🌊 Anti-Flood", callback_data="anti_flood_settings")],
+                [InlineKeyboardButton(text="🖊 Parole Bandite", callback_data="forbidden_words_settings")],
+                [InlineKeyboardButton(text="👁‍🗨 Controlli", callback_data="check_settings")],
+                [InlineKeyboardButton(text="🔞 Contenuti Inappropriati", callback_data="inappropriate_content_settings")],
+                [InlineKeyboardButton(text="📏 Lunghezza Messaggi", callback_data="inappropriate_content_settings")]
+            ]
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+        case "user_moderation_settings":
+            pass
+        case "media_contents_settings":
+            pass
+        case "community_settings":
+            pass
+
+    return None

@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 import telegram
 
 from utils import get_data_from_json
-from telegram import Video, Audio, Voice, Document, Sticker, Poll
 from telegram.ext.filters import MessageFilter, ChatType
 
 TOPICS = get_data_from_json("forum_topics")
@@ -100,24 +99,5 @@ class Permissions(IntEnum):
     can_send_voice_notes = 10
 
 
-@dataclass(frozen=True)
-class AttachmentType(IntEnum):
-    IMAGE = 0
-    VIDEO = 1
-    AUDIO = 2
-    VOICE = 4
-    DOCUMENT = 5
-    STICKER = 6
-    POLL = 7
-
-    @classmethod
-    async def get_attachment_type(cls, attachment):
-        match attachment:
-            case list(): return cls.IMAGE
-            case Video(): return cls.VIDEO
-            case Audio(): return cls.AUDIO
-            case Voice(): return cls.VOICE
-            case Document(): return cls.DOCUMENT
-            case Sticker(): return cls.STICKER
-            case Poll(): return cls.POLL
-            case _: raise ValueError("Tipo di allegato non supportato")
+class ModerationSettingsStates(IntEnum):
+    MAIN_MENU_CHOICE = 0
