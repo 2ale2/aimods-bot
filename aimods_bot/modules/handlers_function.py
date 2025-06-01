@@ -32,6 +32,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     La risposta dipende dall'utente: se è admin, allora stampo il pannello di controllo; altrimenti do il benvenuto.
     --> Basta semplicemente aggiungere un Benvenuto standard e, se Admin, aggiungere un bottone con "Settings"
     """
+    if not (edit_bool := True if update.callback_query else False):
+        await safe_delete(update=update, context=context)
     if await is_admin(update.effective_user.id, context):
         keyboard = [
             [
@@ -39,17 +41,31 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(text="⚙ Impostazioni", callback_data="settings")
             ],
             [
-                InlineKeyboardButton(text="❔ Gestione Richieste", callback_data="requests")
+                InlineKeyboardButton(text="❔ Gestione Richieste", callback_data="requests"),
+                InlineKeyboardButton(text="🔐 Chiudi", callback_data="close")
             ]
         ]
-        await context.bot.send_message(
-            text="🎛 <b>Pannello di Controllo</b>\n\n"
-                 "▫️ Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
-                 "🔹 Scegli un'opzione per cominciare.",
-            chat_id=update.effective_user.id,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
+        if not edit_bool:
+            await context.bot.send_message(
+                text="🎛 <b>Pannello di Controllo</b>\n\n"
+                     "▫️ Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
+                     "🔹 Scegli un'opzione per cominciare.",
+                chat_id=update.effective_user.id,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="HTML"
+            )
+        else:
+            await context.bot.edit_message_text(
+                message_id=update.effective_message.message_id,
+                text="🎛 <b>Pannello di Controllo</b>\n\n"
+                     "▫️ Questo è il pannello di controllo per l'amministrazione del canale e del gruppo.\n\n"
+                     "🔹 Scegli un'opzione per cominciare.",
+                chat_id=update.effective_user.id,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="HTML"
+            )
+
+        return ConversationHandler.END
     else:
         # stampa
         pass
@@ -919,26 +935,30 @@ async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
         return ConversationHandler.END
 
+    # scelta dal menu principale
+    if update.callback_query.data == "moderation":
+        text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
+                "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di "
+                "<i>AIMods</i>.\n\n🔹 Scegli un'opzione.")
+
+        keyboard = [
+            [InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data="security_filters_settings")],
+            [InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data="user_moderation_settings")],
+            [InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data="media_contents_settings")],
+            [InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")],
+            [InlineKeyboardButton(text="🏠 Home", callback_data="main_menu")]
+        ]
+
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        return ModerationSettingsStates.MAIN_MENU_CHOICE
+
+    # scelta secondaria
     match update.callback_query.data:
-        case "moderation":
-            text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
-                    "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di AIMods."
-                    "\n\n🔹 Scegli un'opzione.")
-
-            keyboard = [
-                [InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data="security_filters_settings")],
-                [InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data="user_moderation_settings")],
-                [InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data="media_contents_settings")],
-                [InlineKeyboardButton(text="👥 Gestione Community", callback_data="community_settings")],
-            ]
-
-            await update.effective_message.edit_text(
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.HTML
-            )
-
-            return ModerationSettingsStates.MAIN_MENU_CHOICE
         case "security_filters_settings":
             text = "<b>🔐 Sicurezza e Filtri</b>\n\n🔹 Scegli un'opzione."
             keyboard = [
@@ -947,13 +967,15 @@ async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE
                 [InlineKeyboardButton(text="🖊 Parole Bandite", callback_data="forbidden_words_settings")],
                 [InlineKeyboardButton(text="👁‍🗨 Controlli", callback_data="check_settings")],
                 [InlineKeyboardButton(text="🔞 Contenuti Inappropriati", callback_data="inappropriate_content_settings")],
-                [InlineKeyboardButton(text="📏 Lunghezza Messaggi", callback_data="inappropriate_content_settings")]
+                [InlineKeyboardButton(text="📏 Lunghezza Messaggi", callback_data="length_settings")],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="moderation")]
             ]
             await update.effective_message.edit_text(
                 text=text,
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode=ParseMode.HTML
             )
+            return ModerationSettingsStates.SECURITY_FILTERS_CHOICE
         case "user_moderation_settings":
             pass
         case "media_contents_settings":
@@ -961,4 +983,57 @@ async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE
         case "community_settings":
             pass
 
+    return None
+
+
+async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
+        return ConversationHandler.END
+
+    if update.callback_query.data == "antispam_settings":
+        text = ("📨 <b>Impostazioni Anti-Spam</b>"
+                "\n\nQui puoi configurare le <u>difese automatiche</u> contro <u>spammer e bot malevoli</u>. "
+                "Attiva solo ciò che serve per evitare falsi positivi.")
+
+        # aggiungere lo stato AntiSpan (on/off) nel messaggio di testo e aggiornarlo alla pressione del relativo tasto
+
+        keyboard = [
+            [
+                InlineKeyboardButton(text="On ☂️", callback_data="antispam_toggle_on"),
+                InlineKeyboardButton(text="Off 🌂", callback_data="antispam_toggle_off")
+            ],
+            [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antispam_set_punishment")],
+            [InlineKeyboardButton(text="⛓️‍💥 Blocco Link", callback_data="antispam_set_links")],
+            [InlineKeyboardButton(text="👥 Blocco Inoltro", callback_data="antispam_set_forward")],
+            [InlineKeyboardButton(text="🎞 Blocco Media", callback_data="antispam_set_media")],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="security_filters_settings")]
+        ]
+
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
+
+    match update.callback_query.data:
+        case "antispam_toggle_on":
+            # impostare l'antispam attivo
+            return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
+        case "antispam_toggle_off":
+            # impostare l'antispam disattivo
+            return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
+        case "antispam_set_punishment":
+            # menu impostazioni punizione
+            return None
+        case "antispam_set_links":
+            # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
+            return None
+        case "antispam_set_forward":
+            # menu impostazioni inoltro (attiva, disattiva, da dove)
+            return None
+        case "antispam_set_media":
+            # manu impostazioni media (attiva, disattiva, ...)
+            return None
     return None

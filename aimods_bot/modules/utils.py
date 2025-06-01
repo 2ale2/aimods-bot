@@ -7,7 +7,7 @@ import telegram
 import telegram.error
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatAction, ChatMemberStatus
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 import job_queue_functions
 from exceptions import AlertException
@@ -306,12 +306,17 @@ async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_T
     :return:
     """
     try:
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=update.callback_query.data.split(" ")[1]
-        )
+        if len(l := update.callback_query.data.split(" ")) > 1 and l[1].isnumeric():
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=l[1]
+            )
+        else:
+            await update.effective_message.delete()
     except telegram.error.BadRequest:
         pass
+
+    return ConversationHandler.END
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):

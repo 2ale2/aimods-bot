@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
+from aimods_bot.modules.handlers_function import antispam_settings
 from constants import ChannelMessageForRecapFilter, ModerationSettingsStates
 
 import handlers_function
@@ -43,7 +44,7 @@ def create_handlers() -> list:
 
     # - callback query handlers
     handlers.append(CallbackQueryHandler(callback=utils.open_private_alert,pattern="^alert.+$"))
-    handlers.append(CallbackQueryHandler(callback=utils.callback_close_message, pattern="^close.+$"))
+    handlers.append(CallbackQueryHandler(callback=utils.callback_close_message, pattern="^close.*$"))
 
     # - conversation handlers
     # -- double check at join
@@ -70,6 +71,25 @@ def create_handlers() -> list:
         persistent=True
     ))
 
+    antispam_settings_conversation_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(callback=handlers_function.antispam_settings, pattern="^antispam_settings$")],
+        states={
+            ModerationSettingsStates.ANTISPAM_MAIN_PANEL: [
+                CallbackQueryHandler(
+                    callback=handlers_function.antispam_settings,
+                    pattern="^(antispam_toggle_on|antispam_toggle_off|"
+                            "antispam_set_punishment|antispam_set_links|antispam_set_media)$"
+                )
+            ]
+        },
+        fallbacks=[],
+        map_to_parent={
+            ModerationSettingsStates.ANTISPAM_MAIN_PANEL: ModerationSettingsStates.MAIN_MENU_CHOICE
+        },
+        allow_reentry=True
+    )
+
     # -- moderation settings menu
     handlers.append(ConversationHandler(
         entry_points=[
@@ -79,11 +99,18 @@ def create_handlers() -> list:
             ModerationSettingsStates.MAIN_MENU_CHOICE: [
                 CallbackQueryHandler(
                     callback=handlers_function.moderation_settings,
-                    pattern="^(security_filters_settings|user_moderation_settings|media_contents_settings|community_settings)$"
-                )
-            ]
+                    pattern="^(security_filters_settings|user_moderation_settings|"
+                            "media_contents_settings|community_settings)$"
+                ),
+                CallbackQueryHandler(callback=handlers_function.start_command, pattern="^main_menu$")
+            ],
+            ModerationSettingsStates.SECURITY_FILTERS_CHOICE: [
+                antispam_settings_conversation_handler
+            ],
+
         },
-        fallbacks=[]
+        fallbacks=[],
+        allow_reentry=True
     ))
 
     return handlers

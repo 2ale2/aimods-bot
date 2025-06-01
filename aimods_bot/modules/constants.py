@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 import telegram
 
 from utils import get_data_from_json
-from telegram.ext.filters import MessageFilter, ChatType
+from telegram.ext.filters import MessageFilter
+from telegram.constants import ChatType
 
 TOPICS = get_data_from_json("forum_topics")
 
@@ -101,3 +102,5 @@ class Permissions(IntEnum):
 
 class ModerationSettingsStates(IntEnum):
     MAIN_MENU_CHOICE = 0
+    SECURITY_FILTERS_CHOICE = 1
+    ANTISPAM_MAIN_PANEL = 2

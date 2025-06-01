@@ -73,6 +73,8 @@ async def set_application_data(application: Application):
         name=autorecap_job_name
     )
 
+    bot_logger.info(f"Next autorecap settled at {job.next_t}")
+
     application.bot_data["jobs"] = {
         # settled to recover the auto recap job in case of forced arrest
         # example format "31_12_9999_23_59_59"
