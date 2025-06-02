@@ -1025,7 +1025,14 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # impostare l'antispam disattivo
             return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
         case "antispam_set_punishment":
-            # menu impostazioni punizione
+            keyboard = [
+                [InlineKeyboardButton(text="🚷 Ban", callback_data="antispam_set_punishment_ban")],
+                [InlineKeyboardButton(text="🦶 Kick", callback_data="antispam_set_punishment_kick")],
+                [InlineKeyboardButton(text="🤫 Mute", callback_data="antispam_set_punishment_mute")],
+                [InlineKeyboardButton(text="🟡 Warn", callback_data="antispam_set_punishment_warn")],
+                [InlineKeyboardButton(text="⏳ Imposta Durata Punizione", callback_data="antispam_set_punishment_duration")],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
+            ]
             return None
         case "antispam_set_links":
             # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
