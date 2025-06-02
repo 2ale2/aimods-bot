@@ -10,7 +10,6 @@ from telegram.constants import ChatAction, ChatMemberStatus
 from telegram.ext import ContextTypes, ConversationHandler
 
 import job_queue_functions
-from exceptions import AlertException
 from loggers import bot_logger
 from database_functions import execute_query
 
@@ -79,7 +78,7 @@ async def open_private_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     infos = update.callback_query.data.split("_")
     if len(infos) != 3:
-        raise AlertException()
+        bot_logger.error("Unable to open private alert (too few arguments).")
 
     recipient = int(infos[1])
     alert_id = infos[2]

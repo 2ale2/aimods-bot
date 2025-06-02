@@ -1,0 +1,7 @@
+---
+moderation:
+  antispam:
+    toggle: True
+    punishment:
+      type: "kick"
+      time: 100

@@ -133,5 +133,16 @@
       "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
       "AIMods Store MacOS": "#storemac"
     }
+  },
+  "configuration_structure": {
+    "moderation": {
+      "antispam": {
+        "toggle": {"type": "bool"},
+        "punishment": {
+          "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+          "time": {"type": "int"}
+        }
+      }
+    }
   }
 }

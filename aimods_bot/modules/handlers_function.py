@@ -22,9 +22,8 @@ locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # callback function of the TypeHandler, usable for testing and debugging purposes
-    await create_and_send_recaps(context=context)
-    pass
+    if update.callback_query:
+        print(f"{update.callback_query.data}")
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -990,12 +989,31 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
         return ConversationHandler.END
 
-    if update.callback_query.data == "antispam_settings":
-        text = ("📨 <b>Impostazioni Anti-Spam</b>"
-                "\n\nQui puoi configurare le <u>difese automatiche</u> contro <u>spammer e bot malevoli</u>. "
-                "Attiva solo ciò che serve per evitare falsi positivi.")
+    antispam_configuration = context.bot_data['configuration']['moderation']['antispam']
 
-        # aggiungere lo stato AntiSpan (on/off) nel messaggio di testo e aggiornarlo alla pressione del relativo tasto
+    if update.callback_query.data in ["antispam_settings", "antispam_toggle_on", "antispam_toggle_off"]:
+        if update.callback_query.data == "antispam_toggle_on":
+            antispam_configuration["toggle"] = True
+        elif update.callback_query.data == "antispam_toggle_off":
+            antispam_configuration["toggle"] = False
+
+        toggle = antispam_configuration['toggle']
+        punishment = antispam_configuration['punishment']['type']
+        punishment_emojis = {
+            "ban": "🚫",
+            "kick": "🥊",
+            "mute": "🔒",
+            "warn": "⚠️"
+        }
+
+        text = ("📨 <b>Impostazioni Anti-Spam</b>"
+                "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>spammer e bot malevoli</b>. "
+                "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
+                f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n\n"
+                "🔹 Scegli un'opzione.")
+
+        # aggiungere lo stato AntiSpam (on/off) nel messaggio di testo e aggiornarlo alla pressione del relativo tasto
 
         keyboard = [
             [
@@ -1018,18 +1036,15 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
 
     match update.callback_query.data:
-        case "antispam_toggle_on":
-            # impostare l'antispam attivo
-            return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
-        case "antispam_toggle_off":
-            # impostare l'antispam disattivo
-            return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
         case "antispam_set_punishment":
+            text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                    "↳ ⚖️ <i>Impostazioni Punizione</i>")
+            # da aggiungere lo stato attuale delle impostazioni
             keyboard = [
-                [InlineKeyboardButton(text="🚷 Ban", callback_data="antispam_set_punishment_ban")],
-                [InlineKeyboardButton(text="🦶 Kick", callback_data="antispam_set_punishment_kick")],
-                [InlineKeyboardButton(text="🤫 Mute", callback_data="antispam_set_punishment_mute")],
-                [InlineKeyboardButton(text="🟡 Warn", callback_data="antispam_set_punishment_warn")],
+                [InlineKeyboardButton(text="🚫 Ban", callback_data="antispam_set_punishment_ban")],
+                [InlineKeyboardButton(text="🥊 Kick", callback_data="antispam_set_punishment_kick")],
+                [InlineKeyboardButton(text="🔒 Mute", callback_data="antispam_set_punishment_mute")],
+                [InlineKeyboardButton(text="⚠️ Warn", callback_data="antispam_set_punishment_warn")],
                 [InlineKeyboardButton(text="⏳ Imposta Durata Punizione", callback_data="antispam_set_punishment_duration")],
                 [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
             ]
@@ -1043,4 +1058,18 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         case "antispam_set_media":
             # manu impostazioni media (attiva, disattiva, ...)
             return None
+
+    # da 'antispam_set_punishment'
+    match update.callback_query.data:
+        case "antispam_set_punishment_ban":
+            pass
+        case "antispam_set_punishment_kick":
+            pass
+        case "antispam_set_punishment_mute":
+            pass
+        case "antispam_set_punishment_warn":
+            pass
+        case "antispam_set_punishment_duration":
+            pass
+
     return None

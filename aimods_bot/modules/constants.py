@@ -1,9 +1,7 @@
 # contiene classi personalizzate che contengono valori di default usati dal bot
-# la classe Scopes è istaziata per consentire di aggiungere istanze di Scope personalizzate
 
-from typing import Set, Union
 from enum import IntEnum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import telegram
 
@@ -40,49 +38,6 @@ class ChannelMessageForRecapFilter(MessageFilter):
         if any(hashtag in message.text for hashtag in l):
             return True
         return False
-
-
-@dataclass
-class Scope:
-    name: str
-    topics: Set[int]
-
-    def add_topics_to_scope(self, new_topics: Union[Set[int], int]):
-        if isinstance(new_topics, int):
-            new_topics = {new_topics}
-        self.topics |= new_topics
-
-    def remove_topics_from_scope(self, topics_to_remove: Union[Set[int], int]):
-        if isinstance(topics_to_remove, int):
-            topics_to_remove = {topics_to_remove}
-        self.topics -= topics_to_remove
-
-
-@dataclass(frozen=True)
-class Scopes:
-    FORUM_SCOPE: Scope = field(
-        default_factory=lambda: Scope('FORUM_SCOPE', {topic["id"] for topic in TOPICS["all"].values()})
-    )
-    REQUESTS_SCOPE: Scope = field(
-        default_factory=lambda: Scope('REQUESTS_SCOPE', {topic["id"] for topic in TOPICS["richieste"].values()})
-    )
-    ASSISTENCE_SCOPE: Scope = field(
-        default_factory=lambda: Scope('ASSISTENCE_SCOPE', {topic["id"] for topic in TOPICS["assistenza"].values()})
-    )
-    OFF_TOPIC_SCOPE: Scope = field(
-        default_factory=lambda: Scope('OFF_TOPIC_SCOPE', {topic["id"] for topic in TOPICS["off_topic"].values()})
-    )
-
-    @classmethod
-    def create_single_topic_scope(cls, name: str, topic_name: str) -> Scope:
-        topic_id = next((topic["id"] for topic in TOPICS["all"].values()
-                         if topic["name"] == topic_name), None)
-        return Scope(name, {topic_id} if topic_id is not None else set())
-
-
-for topic in TOPICS["all"].values():
-    scope_name = topic["name"].replace(" ", "_").upper() + "_TOPIC_SCOPE"
-    setattr(Scopes, scope_name, Scopes.create_single_topic_scope(name=scope_name, topic_name=topic["name"]))
 
 
 @dataclass(frozen=True)

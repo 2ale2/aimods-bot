@@ -1,6 +1,7 @@
 # raccoglie tutti i dati che servono al funzionamento del bot
 
 import os
+import yaml
 
 from dotenv import load_dotenv
 from telegram.ext import Application
@@ -10,9 +11,68 @@ from pyrogram.errors import RPCError
 from automatic_tasks import create_and_send_recaps
 from loggers import bot_logger
 from utils import get_data_from_json, get_time_until_next_recap
+from exceptions import handle_validation_errors
 from datetime import timedelta
 
 load_dotenv()
+
+
+def _get_type_map():
+    return {
+        "str": str,
+        "int": int,
+        "bool": bool,
+        "float": float,
+        "dict": dict,
+        "list": list
+    }
+
+
+def validate_structure(data, raw_template):
+    type_map = _get_type_map()
+    template = _deserialize_template(raw_template, type_map)
+    return _check_structure(data, template)
+
+
+def _deserialize_template(template_json, type_map):
+    if isinstance(template_json, dict):
+        if "type" in template_json:
+            t = template_json["type"]
+            if isinstance(t, str) and t in type_map:
+                template_json["type"] = type_map[t]
+        return {k: _deserialize_template(v, type_map) for k, v in template_json.items()}
+    return template_json
+
+
+def _check_structure(data, template, path=""):
+    errors = []
+    for key, rule in template.items():
+        full_path = f"{path}{key}"
+        if key not in data:
+            errors.append(f"Missing key: {full_path}")
+            continue
+
+        value = data[key]
+
+        is_field_definition = isinstance(rule, dict) and "type" in rule and set(rule.keys()) <= {"type", "allowed"}
+
+        if isinstance(rule, dict) and not is_field_definition:
+            if not isinstance(value, dict):
+                errors.append(f"{full_path} should be a dict")
+            else:
+                errors.extend(_check_structure(value, rule, full_path + "."))
+        else:
+            expected_type = rule['type']
+            allowed_values = rule.get('allowed')
+
+            if expected_type is int:
+                if not (isinstance(value, int) and not isinstance(value, bool)):
+                    errors.append(f"{full_path} should be a real integer, got {type(value).__name__}")
+            elif not isinstance(value, expected_type):
+                errors.append(f"{full_path} should be of type {expected_type.__name__}, got {type(value).__name__}")
+            elif allowed_values and value not in allowed_values:
+                errors.append(f"{full_path} has invalid value '{value}', allowed: {allowed_values}")
+    return errors
 
 
 async def set_application_data(application: Application):
@@ -22,6 +82,20 @@ async def set_application_data(application: Application):
     Per esempio, se l'elenco admin viene modificato ma, dalla modifica all'arresto del bot, la persistenza non
     si aggiorna (nessun update), l'elenco all'avvio non risulta modificato. Questa funzione sopperisce alla mancanza.
     """
+
+    raw_template = get_data_from_json("configuration_structure")
+
+    try:
+        with open("aimods_bot/misc/BotConfigurationStructure.yml", "r") as stream:
+            yaml_data = yaml.load(stream, Loader=yaml.FullLoader)
+    except Exception as e:
+        raise e
+
+    errors = validate_structure(yaml_data, raw_template)
+    handle_validation_errors(errors)
+
+    application.bot_data["configuration"] = yaml_data
+
     group_chat_id = os.getenv("GROUP_CHAT_ID")
     if ('group_chat_id' not in application.bot_data or
             application.bot_data["group_chat_id"] != group_chat_id or
