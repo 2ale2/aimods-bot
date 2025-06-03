@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
-from aimods_bot.modules.handlers_function import antispam_settings, antispam_set_punishment_duration
 from constants import ChannelMessageForRecapFilter, ModerationSettingsStates
 
 import handlers_function
@@ -83,8 +82,8 @@ def create_handlers() -> list:
                 ),
                 CallbackQueryHandler(
                     callback=handlers_function.antispam_set_punishment_duration,
-                    pattern="antispam_set_punishment"
-                )
+                    pattern="^(antispam_set_punishment|antispam_set_punishment_duration_endless)$"
+                ),
             ]
         },
         fallbacks=[],

@@ -1127,7 +1127,16 @@ async def antispam_set_punishment_duration(update: Update, context: CallbackCont
                 "▫️ Puoi impostare da qui la durata della punizione comminata a chi spamma.\n\n"
                 "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
                 "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
-        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_punishment")]]
+        keyboard = [
+            [InlineKeyboardButton(
+                text="🕟 Tempo Indeterminato",
+                callback_data="antispam_set_punishment_duration_endless")
+            ],
+            [InlineKeyboardButton(
+                text="🔙 Indietro",
+                callback_data="antispam_set_punishment")
+            ]
+        ]
         await update.effective_message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -1136,6 +1145,11 @@ async def antispam_set_punishment_duration(update: Update, context: CallbackCont
         return ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT_DURATION
 
     elif update_data == "antispam_set_punishment" and update.callback_query:
+        await antispam_settings(update=update, context=context)
+        return ConversationHandler.END
+
+    elif update_data == "antispam_set_punishment_duration_endless" and update.callback_query:
+        context.bot_data['configuration']['moderation']['antispam']['punishment']['time'] = 1
         await antispam_settings(update=update, context=context)
         return ConversationHandler.END
 
