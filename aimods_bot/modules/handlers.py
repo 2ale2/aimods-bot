@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
-from aimods_bot.modules.handlers_function import antispam_settings
+from aimods_bot.modules.handlers_function import antispam_settings, antispam_set_punishment_duration
 from constants import ChannelMessageForRecapFilter, ModerationSettingsStates
 
 import handlers_function
@@ -71,6 +71,28 @@ def create_handlers() -> list:
         persistent=True
     ))
 
+    antispam_set_punishment_duration_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(
+            callback=handlers_function.antispam_set_punishment_duration,
+            pattern="antispam_set_punishment_duration")],
+        states={
+            ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT_DURATION: [
+                MessageHandler(
+                    callback=handlers_function.antispam_set_punishment_duration,
+                    filters=filters.TEXT
+                ),
+                CallbackQueryHandler(
+                    callback=handlers_function.antispam_set_punishment_duration,
+                    pattern="antispam_set_punishment"
+                )
+            ]
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationHandler.END: ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT
+        }
+    )
+
     antispam_settings_conversation_handler = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(callback=handlers_function.antispam_settings, pattern="^antispam_settings$")],
@@ -83,6 +105,7 @@ def create_handlers() -> list:
                 )
             ],
             ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT: [
+                antispam_set_punishment_duration_handler,
                 CallbackQueryHandler(
                     callback=handlers_function.antispam_settings,
                     pattern="^antispam_set_punishment_.*|^antispam_settings$"

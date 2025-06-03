@@ -177,21 +177,8 @@ async def parse_command(update: Update, context: ContextTypes.DEFAULT_TYPE, comm
                 extracted[param] = match.group(gidx)
             gidx += 1
 
-    duration_mapping = {
-        "giorno": "days", "giorni": "days",
-        "ora": "hours", "ore": "hours",
-        "minuto": "minutes", "minuti": "minutes",
-        "secondo": "seconds", "secondi": "seconds"
-    }
-
-    duration_kwargs = {key: 0 for key in duration_mapping.values()}  # ← Questa serve
-
     if "duration" in extracted:
-        for num, unit in re.findall(r"(\d+)\s*(giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)",
-                                    extracted["duration"]):
-            duration_kwargs[duration_mapping[unit]] += int(num)
-
-        extracted["duration"] = timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None
+        extracted["duration"] = await parse_duration(extracted["duration"])
 
     parsed = {}
     for el in extracted:
@@ -367,3 +354,20 @@ async def get_time_text(seconds: int):
     time_parts.append(pluralize(seconds, "secondo", "secondi"))
 
     return ', '.join(time_parts)
+
+
+async def parse_duration(duration_string: str):
+    duration_mapping = {
+        "giorno": "days", "giorni": "days",
+        "ora": "hours", "ore": "hours",
+        "minuto": "minutes", "minuti": "minutes",
+        "secondo": "seconds", "secondi": "seconds"
+    }
+
+    duration_kwargs = {key: 0 for key in duration_mapping.values()}
+
+    for num, unit in re.findall(r"(\d+)\s*(giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)",
+                                duration_string):
+        duration_kwargs[duration_mapping[unit]] += int(num)
+
+    return timedelta(**duration_kwargs) if any(duration_kwargs.values()) else None

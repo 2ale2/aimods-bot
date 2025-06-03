@@ -10,9 +10,9 @@ from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
 from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
 from telegram.constants import ParseMode
-from telegram.ext import ConversationHandler
+from telegram.ext import CallbackContext
 
-from automatic_tasks import create_and_send_recaps
+from aimods_bot.modules.job_queue_functions import send_temporary_message
 from database_functions import add_to_table
 from constants import Permissions, ModerationSettingsStates
 from utils import *
@@ -987,10 +987,13 @@ async def moderation_settings(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
+    if not await is_admin(user_id=update.effective_user.id, context=context):
         return ConversationHandler.END
 
-    callback_data = update.callback_query.data
+    if update.callback_query:
+        callback_data = update.callback_query.data
+    else:
+        callback_data = "antispam_set_punishment"
 
     punishment_emojis = {
         "ban": "🚫",
@@ -1003,7 +1006,7 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     toggle = antispam_configuration['toggle']
     punishment = antispam_configuration['punishment']['type']
     time_total_seconds = antispam_configuration['punishment']['time']
-    time_text = await get_time_text(time_total_seconds)
+    time_text = await get_time_text(time_total_seconds) if time_total_seconds > 30 else "A Tempo Indeterminato"
 
     if callback_data in ["antispam_settings", "antispam_toggle_on", "antispam_toggle_off"]:
         if callback_data == "antispam_toggle_on":
@@ -1016,8 +1019,13 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
                 f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
                 f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
-                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n"
-                "🔹 Scegli un'opzione.")
+                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n")
+
+        if time_total_seconds <= 30:
+            text += ("⚠️ <b>Per regole imposte da Telegram, "
+                     "un tempo inferiore a 30 secondi equivale a tempo indeterminato</b>.\n\n")
+
+        text += "🔹 Scegli un'opzione."
 
         keyboard = [
             [
@@ -1049,8 +1057,14 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
                 "▫️ Puoi scegliere da qui la punizione da comminare a chi spamma e impostarne la durata.\n\n"
                 f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
-                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n"
-                "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
+                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n")
+
+        if time_total_seconds <= 30:
+            text += ("⚠️ <b>Per regole imposte da Telegram, "
+                     "un tempo inferiore a 30 secondi equivale a tempo indeterminato</b>.\n\n")
+
+        text += "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>."
+
         keyboard = [
             [InlineKeyboardButton(text="⏳ Imposta Durata Punizione",
                                   callback_data="antispam_set_punishment_duration")],
@@ -1064,11 +1078,24 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ],
             [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
         ]
-        await update.effective_message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
-        )
+
+        if "settings_main_message" not in context.user_data:
+            # controllo necessario per evitare bad requests
+            if html.unescape(update.effective_message.text_html_urled) != text:
+                await update.effective_message.edit_text(
+                    text=text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.HTML
+                )
+        else:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=context.user_data['settings_main_message'],
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            del context.user_data['settings_main_message']
         return ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT
 
     match callback_data:
@@ -1086,3 +1113,53 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return ConversationHandler.END
 
     return None
+
+
+async def antispam_set_punishment_duration(update: Update, context: CallbackContext):
+    if not await is_admin(update.effective_user.id, context):
+        return ConversationHandler.END
+
+    update_data = update.callback_query.data if update.callback_query else update.effective_message.text
+    if update_data == "antispam_set_punishment_duration" and update.callback_query:
+        context.user_data["settings_main_message"] = update.effective_message.id
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                "↦ 🕔 <i>Tempo Punizione</i>\n\n"
+                "▫️ Puoi impostare da qui la durata della punizione comminata a chi spamma.\n\n"
+                "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
+                "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
+        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_punishment")]]
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT_DURATION
+
+    elif update_data == "antispam_set_punishment" and update.callback_query:
+        await antispam_settings(update=update, context=context)
+        return ConversationHandler.END
+
+    else:
+        await safe_delete(update=update, context=context)
+        parsed_duration = await parse_duration(update_data)
+        if parsed_duration is None:
+            await send_action_message_after(
+                update=update,
+                context=context,
+                text="⚠️ La sintassi non è corretta: non usare segni di punteggiatura o parole non necessarie.\n\n"
+                     "<b>Esempi</b>\n\t"
+                     "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
+                     "<code>1 giorno 2 minuti 32 ore</code>\n\t"
+                     "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
+                recipient_id=update.effective_user.id,
+                additional_job_data={
+                    "reply_markup": InlineKeyboardMarkup(
+                        [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+                    )
+                }
+            )
+            return ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT_DURATION
+        else:
+            context.bot_data['configuration']['moderation']['antispam']['punishment']['time'] = parsed_duration.total_seconds()
+            await antispam_settings(update=update, context=context)
+            return ConversationHandler.END
