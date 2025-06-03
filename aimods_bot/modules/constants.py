@@ -56,6 +56,11 @@ class Permissions(IntEnum):
 
 
 class ModerationSettingsStates(IntEnum):
+    # - menu principale
     MAIN_MENU_CHOICE = 0
+    # -- menu.sicurezza_e_filtri
     SECURITY_FILTERS_CHOICE = 1
+    # --- menu.sicurezza_e_filtri.antispam
     ANTISPAM_MAIN_PANEL = 2
+    # ---- menu.sicurezza_e_filtri.antispam.set_punishment
+    ANTISPAM_SET_PUNISHMENT = 3

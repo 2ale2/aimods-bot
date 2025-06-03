@@ -1,6 +1,7 @@
 import copy
 import locale
 import os
+import html
 from datetime import timezone
 
 import pytz
@@ -989,31 +990,34 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id=update.callback_query.from_user.id, context=context):
         return ConversationHandler.END
 
+    callback_data = update.callback_query.data
+
+    punishment_emojis = {
+        "ban": "🚫",
+        "kick": "🥊",
+        "mute": "🔒",
+        "warn": "⚠️"
+    }
+
     antispam_configuration = context.bot_data['configuration']['moderation']['antispam']
+    toggle = antispam_configuration['toggle']
+    punishment = antispam_configuration['punishment']['type']
+    time_total_seconds = antispam_configuration['punishment']['time']
+    time_text = await get_time_text(time_total_seconds)
 
-    if update.callback_query.data in ["antispam_settings", "antispam_toggle_on", "antispam_toggle_off"]:
-        if update.callback_query.data == "antispam_toggle_on":
-            antispam_configuration["toggle"] = True
-        elif update.callback_query.data == "antispam_toggle_off":
-            antispam_configuration["toggle"] = False
-
-        toggle = antispam_configuration['toggle']
-        punishment = antispam_configuration['punishment']['type']
-        punishment_emojis = {
-            "ban": "🚫",
-            "kick": "🥊",
-            "mute": "🔒",
-            "warn": "⚠️"
-        }
+    if callback_data in ["antispam_settings", "antispam_toggle_on", "antispam_toggle_off"]:
+        if callback_data == "antispam_toggle_on":
+            toggle = context.bot_data['configuration']['moderation']['antispam']['toggle'] = True
+        elif callback_data == "antispam_toggle_off":
+            toggle = context.bot_data['configuration']['moderation']['antispam']['toggle'] = False
 
         text = ("📨 <b>Impostazioni Anti-Spam</b>"
                 "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>spammer e bot malevoli</b>. "
                 "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
                 f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
-                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n"
                 "🔹 Scegli un'opzione.")
-
-        # aggiungere lo stato AntiSpam (on/off) nel messaggio di testo e aggiornarlo alla pressione del relativo tasto
 
         keyboard = [
             [
@@ -1027,28 +1031,47 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(text="🔙 Indietro", callback_data="security_filters_settings")]
         ]
 
+        # controllo necessario per evitare bad requests
+        if html.unescape(update.effective_message.text_html_urled) != text:
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+
+        return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
+
+    # menu.sicurezza_e_filtri.antispam.set_punishment
+    if callback_data.startswith("antispam_set_punishment"):
+        if any(x in callback_data.split('_')[-1] for x in ["ban", "warn", "mute", "kick"]):
+            punishment = context.bot_data['configuration']['moderation']['antispam']['punishment']['type'] = callback_data.split('_')[-1]
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
+                "▫️ Puoi scegliere da qui la punizione da comminare a chi spamma e impostarne la durata.\n\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Tempo</u> – 🕔 <i>{time_text}</i>\n\n"
+                "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
+        keyboard = [
+            [InlineKeyboardButton(text="⏳ Imposta Durata Punizione",
+                                  callback_data="antispam_set_punishment_duration")],
+            [
+                InlineKeyboardButton(text="🚫 Ban", callback_data="antispam_set_punishment_ban"),
+                InlineKeyboardButton(text="🥊 Kick", callback_data="antispam_set_punishment_kick")
+            ],
+            [
+                InlineKeyboardButton(text="🔒 Mute", callback_data="antispam_set_punishment_mute"),
+                InlineKeyboardButton(text="⚠️ Warn", callback_data="antispam_set_punishment_warn")
+            ],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
+        ]
         await update.effective_message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.HTML
         )
+        return ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT
 
-        return ModerationSettingsStates.ANTISPAM_MAIN_PANEL
-
-    match update.callback_query.data:
-        case "antispam_set_punishment":
-            text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                    "↳ ⚖️ <i>Impostazioni Punizione</i>")
-            # da aggiungere lo stato attuale delle impostazioni
-            keyboard = [
-                [InlineKeyboardButton(text="🚫 Ban", callback_data="antispam_set_punishment_ban")],
-                [InlineKeyboardButton(text="🥊 Kick", callback_data="antispam_set_punishment_kick")],
-                [InlineKeyboardButton(text="🔒 Mute", callback_data="antispam_set_punishment_mute")],
-                [InlineKeyboardButton(text="⚠️ Warn", callback_data="antispam_set_punishment_warn")],
-                [InlineKeyboardButton(text="⏳ Imposta Durata Punizione", callback_data="antispam_set_punishment_duration")],
-                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
-            ]
-            return None
+    match callback_data:
         case "antispam_set_links":
             # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
             return None
@@ -1058,18 +1081,8 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         case "antispam_set_media":
             # manu impostazioni media (attiva, disattiva, ...)
             return None
-
-    # da 'antispam_set_punishment'
-    match update.callback_query.data:
-        case "antispam_set_punishment_ban":
-            pass
-        case "antispam_set_punishment_kick":
-            pass
-        case "antispam_set_punishment_mute":
-            pass
-        case "antispam_set_punishment_warn":
-            pass
-        case "antispam_set_punishment_duration":
-            pass
+        case "security_filters_settings":
+            await moderation_settings(update=update, context=context)
+            return ConversationHandler.END
 
     return None

@@ -344,3 +344,26 @@ async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAU
     if res.status is ChatMemberStatus.BANNED:
         return True
     return False
+
+
+def pluralize(value: int, singular: str, plural: str):
+    return f"{value} {singular if value == 1 else plural}"
+
+
+async def get_time_text(seconds: int):
+    time_timedelta = timedelta(seconds=seconds)
+    days = time_timedelta.days
+    hours = time_timedelta.seconds // 3600
+    minutes = (time_timedelta.seconds % 3600) // 60
+    seconds = time_timedelta.seconds % 60
+
+    time_parts = []
+    if days > 0:
+        time_parts.append(pluralize(days, "giorno", "giorni"))
+    if hours > 0 or days > 0:
+        time_parts.append(pluralize(hours, "ora", "ore"))
+    if minutes > 0 or hours > 0 or days > 0:
+        time_parts.append(pluralize(minutes, "minuto", "minuti"))
+    time_parts.append(pluralize(seconds, "secondo", "secondi"))
+
+    return ', '.join(time_parts)

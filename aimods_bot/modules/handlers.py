@@ -79,13 +79,19 @@ def create_handlers() -> list:
                 CallbackQueryHandler(
                     callback=handlers_function.antispam_settings,
                     pattern="^(antispam_toggle_on|antispam_toggle_off|"
-                            "antispam_set_punishment|antispam_set_links|antispam_set_media)$"
+                            "antispam_set_punishment|antispam_set_links|antispam_set_media|security_filters_settings)$"
+                )
+            ],
+            ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT: [
+                CallbackQueryHandler(
+                    callback=handlers_function.antispam_settings,
+                    pattern="^antispam_set_punishment_.*|^antispam_settings$"
                 )
             ]
         },
         fallbacks=[],
         map_to_parent={
-
+            ConversationHandler.END: ModerationSettingsStates.SECURITY_FILTERS_CHOICE
         },
         allow_reentry=True
     )
