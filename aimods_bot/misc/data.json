@@ -142,6 +142,17 @@
           "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
           "time": {"type": "int"}
         }
+      },
+     "antiflood": {
+        "toggle": {"type": "bool"},
+        "settings": {
+          "number_messages": {"type": "int"},
+          "time_messages": {"type": "int"}
+        },
+        "punishment": {
+          "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+          "time": {"type": "int"}
+        }
       }
     }
   }

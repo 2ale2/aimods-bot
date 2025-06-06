@@ -1181,3 +1181,278 @@ async def antispam_set_punishment_duration(update: Update, context: CallbackCont
             context.bot_data['configuration']['moderation']['antispam']['punishment']['time'] = parsed_duration.total_seconds()
             await antispam_settings(update=update, context=context)
             return ConversationHandler.END
+
+async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(user_id=update.effective_user.id, context=context):
+        return ConversationHandler.END
+
+    if update.callback_query:
+        callback_data = update.callback_query.data
+    else:
+        callback_data = "antiflood_set_punishment"
+
+    punishment_emojis = {
+        "ban": "🚫",
+        "kick": "🥊",
+        "mute": "🔒",
+        "warn": "⚠️"
+    }
+
+    antiflood_configuration = context.bot_data['configuration']['moderation']['antiflood']
+    toggle = antiflood_configuration['toggle']
+    punishment = antiflood_configuration['punishment']['type']
+    time_total_seconds = antiflood_configuration['punishment']['time']
+    number_messages = antiflood_configuration['settings']['number_messages']
+    time_messages = antiflood_configuration['settings']['time_messages']
+    time_text = await get_time_text(time_total_seconds) if time_total_seconds > 30 else "♾️ A Tempo Indeterminato"
+
+    if callback_data in ["antiflood_settings", "aantiflood_toggle_on", "antiflood_toggle_off"]:
+        if callback_data == "antiflood_toggle_on":
+            toggle = context.bot_data['configuration']['moderation']['antiflood']['toggle'] = True
+        elif callback_data == "antiflood_toggle_off":
+            toggle = context.bot_data['configuration']['moderation']['antiflood']['toggle'] = False
+
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
+                "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il Flood</b>. "
+                "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
+                f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
+                f"🔸 <u>Messaggi Inviabili</u> – <i>{number_messages}</i>\n"
+                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i>\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
+
+        if time_total_seconds <= 30:
+            text += ("⚠️ <b>Per regole imposte da Telegram, "
+                     "un tempo inferiore a 30 secondi equivale a tempo indeterminato</b>.\n\n")
+
+        text += "🔹 Scegli un'opzione."
+
+        keyboard = [
+            [
+                InlineKeyboardButton(text="On ☂️", callback_data="antiflood_toggle_on"),
+                InlineKeyboardButton(text="Off 🌂", callback_data="antifloodtoggle_off")
+            ],
+            [InlineKeyboardButton(text="💬 Numero Messaggi", callback_data="antiflood_set_settings_numbermessage")],
+            [InlineKeyboardButton(text="🕔 Tempo Messaggi", callback_data="antiflood_set_settings_timemessage")],
+            [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antiflood_set_punishment")]
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="security_filters_settings")]
+        ]
+
+        # controllo necessario per evitare bad requests
+        if html.unescape(update.effective_message.text_html_urled) != text:
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+        return ModerationSettingsStates.ANTIFLOOD_MAIN_PANEL
+
+    # menu.sicurezza_e_filtri.antispam.set_punishment
+    if callback_data.startswith("antiflood_set_settings"):
+        if any(x in int(callback_data.split('_')[-1]) for x in [2,3,4,5,6,7,8,9,10,12,15,20]):
+            if callback_data.split('_')[-2] == "numbermessages":
+                number_messages = context.bot_data['configuration']['moderation']['antiflood']['settings']['number_messages'] = int(callback_data.split('_')[-1])
+            elif callback_data.split('_')[-2] == "timemessage":
+                time_messages = context.bot_data['configuration']['moderation']['antiflood']['settings']['time_messages'] = int(callback_data.split('_')[-1])
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
+                "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il Flood</b>. "
+                "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
+                f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
+                f"🔸 <u>Messaggi Inviabili</u> – <i>{number_messages}</i>\n"
+                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i>\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
+        
+        if callback_data.split('_')[-1] == "numbermessage":
+            keyboard = [
+                [
+                    InlineKeyboardButton(text="2", callback_data="antiflood_set_settings_numbermessages_2"),
+                    InlineKeyboardButton(text="3", callback_data="antiflood_set_settings_numbermessages_3"),
+                    InlineKeyboardButton(text="4", callback_data="antiflood_set_settings_numbermessages_4"),
+                    InlineKeyboardButton(text="5", callback_data="antiflood_set_settings_numbermessages_5")
+                ],
+                [
+                    InlineKeyboardButton(text="6", callback_data="antiflood_set_settings_numbermessages_6"),
+                    InlineKeyboardButton(text="7", callback_data="antiflood_set_settings_numbermessages_7"),
+                    InlineKeyboardButton(text="8", callback_data="antiflood_set_settings_numbermessages_8"),
+                    InlineKeyboardButton(text="9", callback_data="antiflood_set_settings_numbermessages_9")
+                ],
+                [
+                    InlineKeyboardButton(text="10", callback_data="antiflood_set_settings_numbermessages_10"),
+                    InlineKeyboardButton(text="12", callback_data="antiflood_set_settings_numbermessages_12"),
+                    InlineKeyboardButton(text="15", callback_data="antiflood_set_settings_numbermessages_15"),
+                    InlineKeyboardButton(text="20", callback_data="antiflood_set_settings_numbermessages_20")
+                ],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
+            ]
+        if callback_data.split('_')[-1] == "timemessage":
+            keyboard = [
+                [
+                    InlineKeyboardButton(text="2", callback_data="antiflood_set_settings_timemessage_2"),
+                    InlineKeyboardButton(text="3", callback_data="antiflood_set_settings_timemessage_3"),
+                    InlineKeyboardButton(text="4", callback_data="antiflood_set_settings_timemessage_4"),
+                    InlineKeyboardButton(text="5", callback_data="antiflood_set_settings_timemessage_5")
+                ],
+                [
+                    InlineKeyboardButton(text="6", callback_data="antiflood_set_settings_timemessage_6"),
+                    InlineKeyboardButton(text="7", callback_data="antiflood_set_settings_timemessage_7"),
+                    InlineKeyboardButton(text="8", callback_data="antiflood_set_settings_timemessage_8"),
+                    InlineKeyboardButton(text="9", callback_data="antiflood_set_settings_timemessage_9")
+                ],
+                [
+                    InlineKeyboardButton(text="10", callback_data="antiflood_set_settings_timemessage_10"),
+                    InlineKeyboardButton(text="12", callback_data="antiflood_set_settings_timemessage_12"),
+                    InlineKeyboardButton(text="15", callback_data="antiflood_set_settings_timemessage_15"),
+                    InlineKeyboardButton(text="20", callback_data="antiflood_set_settings_timemessage_20")
+                ],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
+            ]
+
+        if "settings_main_message" not in context.user_data:
+            # controllo necessario per evitare bad requests
+            if html.unescape(update.effective_message.text_html_urled) != text:
+                await update.effective_message.edit_text(
+                    text=text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.HTML
+                )
+        else:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=context.user_data['settings_main_message'],
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            del context.user_data['settings_main_message']
+        return ModerationSettingsStates.ANTIFLOOD_SET_SETTINGS
+    
+    # menu.sicurezza_e_filtri.antispam.set_punishment
+    if callback_data.startswith("antiflood_set_punishment"):
+        if any(x in callback_data.split('_')[-1] for x in ["ban", "warn", "mute", "kick"]):
+            punishment = context.bot_data['configuration']['moderation']['antiflood']['punishment']['type'] = callback_data.split('_')[-1]
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
+                "\n\n▫️ Qui puoi configurare il <b>Numero di Messaggi</b> contro <b>il Flood</b>\n\n"
+                f"🔸 <u>Messaggi Inviabili</u> – <i>{number_messages}</i>\n"
+                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i>\n"
+                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
+        
+        keyboard = [
+            [InlineKeyboardButton(text="💬 Imposta Intervallo Temporale",
+                                  callback_data="antiflood_set_punishment_duration")],
+            [
+                InlineKeyboardButton(text="🚫 Ban", callback_data="antiflood_set_punishment_ban"),
+                InlineKeyboardButton(text="🥊 Kick", callback_data="antiflood_set_punishment_kick")
+            ],
+            [
+                InlineKeyboardButton(text="🔒 Mute", callback_data="antiflood_set_punishment_mute"),
+                InlineKeyboardButton(text="⚠️ Warn", callback_data="antiflood_set_punishment_warn")
+            ],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
+        ]
+
+        if "settings_main_message" not in context.user_data:
+            # controllo necessario per evitare bad requests
+            if html.unescape(update.effective_message.text_html_urled) != text:
+                await update.effective_message.edit_text(
+                    text=text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.HTML
+                )
+        else:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=context.user_data['settings_main_message'],
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            del context.user_data['settings_main_message']
+        return ModerationSettingsStates.ANTIFLOOD_SET_PUNISHMENT
+
+    # Teoria son da cancellare?
+
+    match callback_data:
+        case "antispam_set_links":
+            # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
+            keyboard = [
+                [
+
+                ]
+            ]
+            return None
+        case "antispam_set_forward":
+            # menu impostazioni inoltro (attiva, disattiva, da dove)
+            return None
+        case "antispam_set_media":
+            # manu impostazioni media (attiva, disattiva, ...)
+            return None
+        case "security_filters_settings":
+            await moderation_settings(update=update, context=context)
+            return ConversationHandler.END
+
+    return None
+
+async def antiflood_set_punishment_duration(update: Update, context: CallbackContext):
+    if not await is_admin(update.effective_user.id, context):
+        return ConversationHandler.END
+
+    update_data = update.callback_query.data if update.callback_query else update.effective_message.text
+    if update_data == "antiflood_set_punishment_duration" and update.callback_query:
+        context.user_data["settings_main_message"] = update.effective_message.id
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>\n\n"
+                "↦ 🕔 <i>Tempo Punizione</i>\n\n"
+                "▫️ Puoi impostare da qui la durata della punizione comminata a chi floodda.\n\n"
+                "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
+                "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
+        keyboard = [
+            [InlineKeyboardButton(
+                text="♾️ Tempo Indeterminato",
+                callback_data="antiflood_set_punishment_duration_endless")
+            ],
+            [InlineKeyboardButton(
+                text="🔙 Indietro",
+                callback_data="antiflood_set_punishment")
+            ]
+        ]
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return ModerationSettingsStates.ANTIFLOOD_SET_PUNISHMENT_DURATION
+
+    elif update_data == "antiflood_set_punishment" and update.callback_query:
+        await antiflood_settings(update=update, context=context)
+        return ConversationHandler.END
+
+    elif update_data == "antiflood_set_punishment_duration_endless" and update.callback_query:
+        context.bot_data['configuration']['moderation']['antiflood']['punishment']['time'] = 1
+        await antiflood_settings(update=update, context=context)
+        return ConversationHandler.END
+
+    else:
+        await safe_delete(update=update, context=context)
+        parsed_duration = await parse_duration(str(update_data))
+        if parsed_duration is None:
+            await send_action_message_after(
+                update=update,
+                context=context,
+                text="⚠️ La sintassi non è corretta: non usare segni di punteggiatura o parole non necessarie.\n\n"
+                     "<b>Esempi</b>\n\t"
+                     "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
+                     "<code>1 giorno 2 minuti 32 ore</code>\n\t"
+                     "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
+                recipient_id=update.effective_user.id,
+                additional_job_data={
+                    "reply_markup": InlineKeyboardMarkup(
+                        [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+                    )
+                }
+            )
+            return ModerationSettingsStates.ANTIFLOOD_SET_PUNISHMENT_DURATION
+        else:
+            context.bot_data['configuration']['moderation']['antiflood']['punishment']['time'] = parsed_duration.total_seconds()
+            await antiflood_settings(update=update, context=context)
+            return ConversationHandler.END
