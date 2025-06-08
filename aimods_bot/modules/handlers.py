@@ -70,25 +70,25 @@ def create_handlers() -> list:
         persistent=True
     ))
 
-    antispam_set_punishment_duration_handler = ConversationHandler(
+    set_punishment_duration_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(
-            callback=handlers_function.antispam_set_punishment_duration,
+            callback=handlers_function.set_punishment_duration,
             pattern="antispam_set_punishment_duration")],
         states={
-            ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT_DURATION: [
+            ModerationSettingsStates.SET_PUNISHMENT_DURATION: [
                 MessageHandler(
-                    callback=handlers_function.antispam_set_punishment_duration,
+                    callback=handlers_function.set_punishment_duration,
                     filters=filters.TEXT
                 ),
                 CallbackQueryHandler(
-                    callback=handlers_function.antispam_set_punishment_duration,
+                    callback=handlers_function.set_punishment_duration,
                     pattern="^(antispam_set_punishment|antispam_set_punishment_duration_endless)$"
                 ),
             ]
         },
         fallbacks=[],
         map_to_parent={
-            ConversationHandler.END: ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT
+            ConversationHandler.END: ModerationSettingsStates.SET_PUNISHMENT
         }
     )
 
@@ -103,8 +103,8 @@ def create_handlers() -> list:
                             "antispam_set_punishment|antispam_set_links|antispam_set_media|security_filters_settings)$"
                 )
             ],
-            ModerationSettingsStates.ANTISPAM_SET_PUNISHMENT: [
-                antispam_set_punishment_duration_handler,
+            ModerationSettingsStates.SET_PUNISHMENT: [
+                set_punishment_duration_handler,
                 CallbackQueryHandler(
                     callback=handlers_function.antispam_settings,
                     pattern="^antispam_set_punishment_.*|^antispam_settings$"
@@ -117,6 +117,21 @@ def create_handlers() -> list:
         },
         allow_reentry=True
     )
+
+    handlers.append(ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(callback=handlers_function.antiflood_settings, pattern="^antiflood_settings$"),
+        ],
+        states={
+            ModerationSettingsStates.ANTIFLOOD_MAIN_PANEL: [
+                CallbackQueryHandler(
+                    callback=handlers_function.antiflood_settings,
+                    pattern="^(antiflood_toggle_.*|antiflood_set_.*|security_filters_settings)$"
+                )
+            ]
+        },
+        fallbacks=[]
+    ))
 
     # -- moderation settings menu
     handlers.append(ConversationHandler(

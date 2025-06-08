@@ -353,7 +353,7 @@ async def get_time_text(seconds: int):
         time_parts.append(pluralize(minutes, "minuto", "minuti"))
     time_parts.append(pluralize(seconds, "secondo", "secondi"))
 
-    return '🕔' + ', '.join(time_parts)
+    return '🕔 ' + ', '.join(time_parts)
 
 
 async def parse_duration(duration_string: str):

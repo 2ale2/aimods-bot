@@ -5,3 +5,13 @@ moderation:
     punishment:
       type: "kick"
       time: 100
+  antiflood:
+    toggle: True
+    settings: {
+      number_messages: 10,
+      time_messages: 5
+    }
+    punishment: {
+      type: "kick",
+      time: 100
+    }

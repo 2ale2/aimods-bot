@@ -62,7 +62,10 @@ class ModerationSettingsStates(IntEnum):
     SECURITY_FILTERS_CHOICE = 1
     # --- menu.sicurezza_e_filtri.antispam
     ANTISPAM_MAIN_PANEL = 2
-    # ---- menu.sicurezza_e_filtri.antispam.set_punishment
-    ANTISPAM_SET_PUNISHMENT = 3
-    # ----- menu.sicurezza_e_filtri.antispam.set_punishment.set_punishment_duration
-    ANTISPAM_SET_PUNISHMENT_DURATION = 4
+    # ---- imposta punizione
+    SET_PUNISHMENT = 3
+    # ----- durata punizione
+    SET_PUNISHMENT_DURATION = 4
+
+    # -- menu.sicurezza_e_filtri.antiflood
+    ANTIFLOOD_MAIN_PANEL = 5
