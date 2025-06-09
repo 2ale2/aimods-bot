@@ -73,7 +73,7 @@ def create_handlers() -> list:
     set_punishment_duration_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(
             callback=handlers_function.set_punishment_duration,
-            pattern="antispam_set_punishment_duration")],
+            pattern=".*_set_punishment_duration$")],
         states={
             ModerationSettingsStates.SET_PUNISHMENT_DURATION: [
                 MessageHandler(
@@ -82,8 +82,8 @@ def create_handlers() -> list:
                 ),
                 CallbackQueryHandler(
                     callback=handlers_function.set_punishment_duration,
-                    pattern="^(antispam_set_punishment|antispam_set_punishment_duration_endless)$"
-                ),
+                    pattern=".*_set_punishment_.*|.*_set_punishment$"
+                )
             ]
         },
         fallbacks=[],
@@ -128,9 +128,23 @@ def create_handlers() -> list:
                     callback=handlers_function.antiflood_settings,
                     pattern="^(antiflood_toggle_.*|antiflood_set_.*|security_filters_settings)$"
                 )
+            ],
+            ModerationSettingsStates.SET_PUNISHMENT: [
+                set_punishment_duration_handler,
+                CallbackQueryHandler(
+                    callback=handlers_function.antiflood_settings,
+                    pattern="^antiflood_set_punishment_.*"
+                )
+            ],
+            ModerationSettingsStates.ANTIFLOOD_SET_LIMITS: [
+                CallbackQueryHandler(
+                    callback=handlers_function.antiflood_settings,
+                    pattern="^(antiflood_set_timemessages_.+|antiflood_set_numbermessages_.+)$"
+                )
             ]
         },
-        fallbacks=[]
+        fallbacks=[],
+        allow_reentry=True
     ))
 
     # -- moderation settings menu

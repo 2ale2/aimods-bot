@@ -69,3 +69,5 @@ class ModerationSettingsStates(IntEnum):
 
     # -- menu.sicurezza_e_filtri.antiflood
     ANTIFLOOD_MAIN_PANEL = 5
+    # --- menu.sicurezza_e_filtri.antiflood.set_limits
+    ANTIFLOOD_SET_LIMITS = 6

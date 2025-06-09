@@ -94,7 +94,9 @@ async def set_application_data(application: Application):
     errors = validate_structure(yaml_data, raw_template)
     handle_validation_errors(errors)
 
-    application.bot_data["configuration"] = yaml_data
+    if (("configuration" not in application.bot_data) or
+            ("configuration" in application.bot_data and yaml_data != application.bot_data["configuration"])):
+        application.bot_data["configuration"] = yaml_data
 
     group_chat_id = os.getenv("GROUP_CHAT_ID")
     if ('group_chat_id' not in application.bot_data or

@@ -1153,7 +1153,7 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
                 "antiflood": {
                     "icon": "🌊",
                     "text": "Anti-Flood",
-                    "who": "a chi flooda"
+                    "who": "a chi fa flooding"
                 }
             }
             settings_items = settings_dict[setting]
@@ -1237,19 +1237,19 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
     time_messages = antiflood_configuration['settings']['time_messages']
     time_text = await get_time_text(time_total_seconds) if time_total_seconds > 30 else "♾️ A Tempo Indeterminato"
 
-    if callback_data in ["antiflood_settings", "aantiflood_toggle_on", "antiflood_toggle_off"]:
+    if callback_data in ["antiflood_settings", "antiflood_toggle_on", "antiflood_toggle_off"]:
         if callback_data == "antiflood_toggle_on":
             toggle = context.bot_data['configuration']['moderation']['antiflood']['toggle'] = True
         elif callback_data == "antiflood_toggle_off":
             toggle = context.bot_data['configuration']['moderation']['antiflood']['toggle'] = False
 
-        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
-                "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il flooding</b>\n\n"
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>\n\n"
+                "▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il flooding</b>.\n\n"
                 f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
                 f"🔸 <u>Limite Messaggi</u> – <i>{number_messages}</i>\n"
-                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i> secondi\n"
+                f"🔸 <u>Limite di Tempo</u> – <i>{time_messages}</i> secondi\n"
                 f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
-                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
+                f"🔸 <u>Tempo della Punizione</u> – <i>{time_text}</i>\n\n")
 
         if time_total_seconds <= 30:
             text += ("⚠️ <b>Per regole imposte da Telegram, "
@@ -1260,7 +1260,7 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
         keyboard = [
             [
                 InlineKeyboardButton(text="On ☂️", callback_data="antiflood_toggle_on"),
-                InlineKeyboardButton(text="Off 🌂", callback_data="antifloodtoggle_off")
+                InlineKeyboardButton(text="Off 🌂", callback_data="antiflood_toggle_off")
             ],
             [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antiflood_set_punishment")],
             [InlineKeyboardButton(text="💬 Numero Messaggi", callback_data="antiflood_set_numbermessages")],
@@ -1277,103 +1277,25 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         return ModerationSettingsStates.ANTIFLOOD_MAIN_PANEL
 
-    if callback_data.startswith("antiflood_set_"):
-        if any(x in int(callback_data.split('_')[-1]) for x in [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20]):
-            if (i := callback_data.split('_')[-2]) == "numbermessages":
-                number_messages = context.bot_data['configuration']['moderation']['antiflood']['settings'][
-                    'number_messages'] = i
-            elif (i := callback_data.split('_')[-2]) == "timemessages":
-                time_messages = context.bot_data['configuration']['moderation']['antiflood']['settings'][
-                    'time_messages'] = i
-
-        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
-                "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il flooding</b>\n\n"
-                f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
-                f"🔸 <u>Limite Messaggi</u> – <i>{number_messages}</i>\n"
-                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i> secondi\n"
-                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
-                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
-
-        if "numbermessages" in callback_data.split('_'):
-            keyboard = [
-                [
-                    InlineKeyboardButton(text="2", callback_data="antiflood_set_numbermessages_2"),
-                    InlineKeyboardButton(text="3", callback_data="antiflood_set_numbermessages_3"),
-                    InlineKeyboardButton(text="4", callback_data="antiflood_set_numbermessages_4"),
-                    InlineKeyboardButton(text="5", callback_data="antiflood_set_numbermessages_5")
-                ],
-                [
-                    InlineKeyboardButton(text="6", callback_data="antiflood_set_numbermessages_6"),
-                    InlineKeyboardButton(text="7", callback_data="antiflood_set_numbermessages_7"),
-                    InlineKeyboardButton(text="8", callback_data="antiflood_set_numbermessages_8"),
-                    InlineKeyboardButton(text="9", callback_data="antiflood_set_numbermessages_9")
-                ],
-                [
-                    InlineKeyboardButton(text="10", callback_data="antiflood_set_numbermessages_10"),
-                    InlineKeyboardButton(text="12", callback_data="antiflood_set_numbermessages_12"),
-                    InlineKeyboardButton(text="15", callback_data="antiflood_set_numbermessages_15"),
-                    InlineKeyboardButton(text="20", callback_data="antiflood_set_numbermessages_20")
-                ],
-                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
-            ]
-        elif "timemessages" in callback_data.split('_'):
-            keyboard = [
-                [
-                    InlineKeyboardButton(text="2", callback_data="antiflood_set_timemessages_2"),
-                    InlineKeyboardButton(text="3", callback_data="antiflood_set_timemessages_3"),
-                    InlineKeyboardButton(text="4", callback_data="antiflood_set_timemessages_4"),
-                    InlineKeyboardButton(text="5", callback_data="antiflood_set_timemessages_5")
-                ],
-                [
-                    InlineKeyboardButton(text="6", callback_data="antiflood_set_timemessages_6"),
-                    InlineKeyboardButton(text="7", callback_data="antiflood_set_timemessages_7"),
-                    InlineKeyboardButton(text="8", callback_data="antiflood_set_timemessages_8"),
-                    InlineKeyboardButton(text="9", callback_data="antiflood_set_timemessages_9")
-                ],
-                [
-                    InlineKeyboardButton(text="10", callback_data="antiflood_set_timemessages_10"),
-                    InlineKeyboardButton(text="12", callback_data="antiflood_set_timemessages_12"),
-                    InlineKeyboardButton(text="15", callback_data="antiflood_set_timemessages_15"),
-                    InlineKeyboardButton(text="20", callback_data="antiflood_set_timemessages_20")
-                ],
-                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
-            ]
-
-        if "settings_main_message" not in context.user_data:
-            # controllo necessario per evitare bad requests
-            if html.unescape(update.effective_message.text_html_urled) != text:
-                # noinspection PyUnboundLocalVariable
-                await update.effective_message.edit_text(
-                    text=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode=ParseMode.HTML
-                )
-        else:
-            # noinspection PyUnboundLocalVariable
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=context.user_data['settings_main_message']['message_id'],
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.HTML
-            )
-            del context.user_data['settings_main_message']
-        return ModerationSettingsStates.ANTIFLOOD_SET_SETTINGS
-
     # menu.sicurezza_e_filtri.antispam.set_punishment
     if callback_data.startswith("antiflood_set_punishment"):
         if any(x in callback_data.split('_')[-1] for x in ["ban", "warn", "mute", "kick"]):
             punishment = context.bot_data['configuration']['moderation']['antiflood']['punishment']['type'] = \
                 callback_data.split('_')[-1]
-        text = ("🌊 <b>Impostazioni Anti-Flood</b>"
-                "\n\n▫️ Qui puoi configurare il <b>Numero di Messaggi</b> contro <b>il Flood</b>\n\n"
-                f"🔸 <u>Messaggi Inviabili</u> – <i>{number_messages}</i>\n"
-                f"🔸 <u>Intervallo di Tempo</u> – <i>{time_messages}</i>\n"
+        text = ("🌊 <b>Impostazioni Anti-Flood</b>\n\n"
+                "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
+                "▫️ Qui puoi configurare la punzione comminata chi fa <b>flooding</b>.\n\n"
                 f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
-                f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
+                f"🔸 <u>Tempo</u> – <i>{time_text}</i>")
+
+        if time_total_seconds <= 30:
+            text += ("\n\n⚠️ <b>Per regole imposte da Telegram, un tempo inferiore a 30 secondi equivale a tempo "
+                     "indeterminato</b>.")
+
+        text += "\n\nℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>."
 
         keyboard = [
-            [InlineKeyboardButton(text="💬 Imposta Intervallo Temporale",
+            [InlineKeyboardButton(text="⏳ Imposta Durata Punizione",
                                   callback_data="antiflood_set_punishment_duration")],
             [
                 InlineKeyboardButton(text="🚫 Ban", callback_data="antiflood_set_punishment_ban"),
@@ -1397,13 +1319,87 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
         else:
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
-                message_id=context.user_data['settings_main_message'],
+                message_id=context.user_data['settings_main_message']['message_id'],
                 text=text,
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode=ParseMode.HTML
             )
             del context.user_data['settings_main_message']
         return ModerationSettingsStates.SET_PUNISHMENT
+
+    callback_data_list = callback_data.split("_")
+    if callback_data.startswith("antiflood_set_"):
+        if (n := callback_data_list[-1]).isnumeric():
+            if callback_data_list[-2] == "numbermessages":
+                number_messages = context.bot_data['configuration']['moderation']['antiflood']['settings'][
+                    'number_messages'] = int(n)
+            elif callback_data_list[-2] == "timemessages":
+                time_messages = context.bot_data['configuration']['moderation']['antiflood']['settings'][
+                    'time_messages'] = int(n)
+
+        text = "🌊 <b>Impostazioni Anti-Flood</b>"
+
+        if "numbermessages" in callback_data_list:
+            text += ("\n\n↦ 💬 <i>Impostazione Limite Messaggi</i>\n\n"
+                     f"▫️ Qui puoi configurare il <b>limite di messaggi inviabili in {time_messages} secondi</b>."
+                     f"\n\n🔸 <u>Limite Messaggi</u> – <i>{number_messages}</i> messaggi\n\n"
+                     f"🔹 Scegli un'opzione.")
+            keyboard = [
+                [
+                    InlineKeyboardButton(text="2", callback_data="antiflood_set_numbermessages_2"),
+                    InlineKeyboardButton(text="3", callback_data="antiflood_set_numbermessages_3"),
+                    InlineKeyboardButton(text="4", callback_data="antiflood_set_numbermessages_4"),
+                    InlineKeyboardButton(text="5", callback_data="antiflood_set_numbermessages_5")
+                ],
+                [
+                    InlineKeyboardButton(text="6", callback_data="antiflood_set_numbermessages_6"),
+                    InlineKeyboardButton(text="7", callback_data="antiflood_set_numbermessages_7"),
+                    InlineKeyboardButton(text="8", callback_data="antiflood_set_numbermessages_8"),
+                    InlineKeyboardButton(text="9", callback_data="antiflood_set_numbermessages_9")
+                ],
+                [
+                    InlineKeyboardButton(text="10", callback_data="antiflood_set_numbermessages_10"),
+                    InlineKeyboardButton(text="12", callback_data="antiflood_set_numbermessages_12"),
+                    InlineKeyboardButton(text="15", callback_data="antiflood_set_numbermessages_15"),
+                    InlineKeyboardButton(text="20", callback_data="antiflood_set_numbermessages_20")
+                ],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
+            ]
+        elif "timemessages" in callback_data_list:
+            text += ("\n\n↦ 🕔 <i>Impostazione Limite di Tempo</i>\n\n"
+                     f"▫️ Qui puoi configurare il <b>tempo in secondi in cui è possibile mandare "
+                     f"{number_messages} messaggi</b>.\n\n🔸 <u>Limite di Tempo</u> – <i>{time_messages}</i> "
+                     f"secondi\n\n🔹 Scegli un'opzione.")
+            keyboard = [
+                [
+                    InlineKeyboardButton(text="2", callback_data="antiflood_set_timemessages_2"),
+                    InlineKeyboardButton(text="3", callback_data="antiflood_set_timemessages_3"),
+                    InlineKeyboardButton(text="4", callback_data="antiflood_set_timemessages_4"),
+                    InlineKeyboardButton(text="5", callback_data="antiflood_set_timemessages_5")
+                ],
+                [
+                    InlineKeyboardButton(text="6", callback_data="antiflood_set_timemessages_6"),
+                    InlineKeyboardButton(text="7", callback_data="antiflood_set_timemessages_7"),
+                    InlineKeyboardButton(text="8", callback_data="antiflood_set_timemessages_8"),
+                    InlineKeyboardButton(text="9", callback_data="antiflood_set_timemessages_9")
+                ],
+                [
+                    InlineKeyboardButton(text="10", callback_data="antiflood_set_timemessages_10"),
+                    InlineKeyboardButton(text="12", callback_data="antiflood_set_timemessages_12"),
+                    InlineKeyboardButton(text="15", callback_data="antiflood_set_timemessages_15"),
+                    InlineKeyboardButton(text="20", callback_data="antiflood_set_timemessages_20")
+                ],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antiflood_settings")]
+            ]
+
+        if html.unescape(update.effective_message.text_html_urled) != text:
+            # noinspection PyUnboundLocalVariable
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+        return ModerationSettingsStates.ANTIFLOOD_SET_LIMITS
 
     # Teoria son da cancellare?
 
