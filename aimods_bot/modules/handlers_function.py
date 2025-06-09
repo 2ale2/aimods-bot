@@ -992,6 +992,10 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id=update.effective_user.id, context=context):
         return ConversationHandler.END
 
+    if update.callback_query and update.callback_query.data == "security_filters_settings":
+        await moderation_settings(update, context)
+        return ConversationHandler.END
+
     if update.callback_query:
         callback_data = update.callback_query.data
     else:
@@ -1170,13 +1174,15 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
                     "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
 
             keyboard = [
-                [InlineKeyboardButton(
-                    text="♾️ Tempo Indeterminato",
-                    callback_data=f"{setting}_set_punishment_duration_endless")
+                [
+                    InlineKeyboardButton(
+                        text="♾️ Tempo Indeterminato",
+                        callback_data=f"{setting}_set_punishment_duration_endless")
                 ],
-                [InlineKeyboardButton(
-                    text="🔙 Indietro",
-                    callback_data=f"{setting}_set_punishment")
+                [
+                    InlineKeyboardButton(
+                        text="🔙 Indietro",
+                        callback_data=f"{setting}_set_punishment")
                 ]
             ]
 
@@ -1208,13 +1214,18 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
             return ModerationSettingsStates.SET_PUNISHMENT_DURATION
         else:
             setting = context.user_data["settings_main_message"]["setting"]
-            context.bot_data['configuration']['moderation'][setting]['punishment']['time'] = parsed_duration.total_seconds()
+            context.bot_data['configuration']['moderation'][setting]['punishment'][
+                'time'] = parsed_duration.total_seconds()
             await globals()[setting + "_settings"](update, context)
             return ConversationHandler.END
 
 
 async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id=update.effective_user.id, context=context):
+        return ConversationHandler.END
+
+    if update.callback_query.data == "security_filters_settings":
+        await moderation_settings(update, context)
         return ConversationHandler.END
 
     if update.callback_query:
@@ -1400,26 +1411,5 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 parse_mode=ParseMode.HTML
             )
         return ModerationSettingsStates.ANTIFLOOD_SET_LIMITS
-
-    # Teoria son da cancellare?
-
-    match callback_data:
-        case "antispam_set_links":
-            # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
-            keyboard = [
-                [
-
-                ]
-            ]
-            return None
-        case "antispam_set_forward":
-            # menu impostazioni inoltro (attiva, disattiva, da dove)
-            return None
-        case "antispam_set_media":
-            # manu impostazioni media (attiva, disattiva, ...)
-            return None
-        case "security_filters_settings":
-            await moderation_settings(update=update, context=context)
-            return ConversationHandler.END
 
     return None

@@ -118,7 +118,7 @@ def create_handlers() -> list:
         allow_reentry=True
     )
 
-    handlers.append(ConversationHandler(
+    antiflood_settings_conversation_handler = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(callback=handlers_function.antiflood_settings, pattern="^antiflood_settings$"),
         ],
@@ -144,8 +144,11 @@ def create_handlers() -> list:
             ]
         },
         fallbacks=[],
-        allow_reentry=True
-    ))
+        allow_reentry=True,
+        map_to_parent={
+            ConversationHandler.END: ModerationSettingsStates.SECURITY_FILTERS_CHOICE
+        }
+    )
 
     # -- moderation settings menu
     handlers.append(ConversationHandler(
@@ -162,7 +165,8 @@ def create_handlers() -> list:
                 CallbackQueryHandler(callback=handlers_function.start_command, pattern="^main_menu$")
             ],
             ModerationSettingsStates.SECURITY_FILTERS_CHOICE: [
-                antispam_settings_conversation_handler
+                antispam_settings_conversation_handler,
+                antiflood_settings_conversation_handler
             ],
 
         },
