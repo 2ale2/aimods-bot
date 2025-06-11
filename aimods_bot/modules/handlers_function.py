@@ -1039,7 +1039,8 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(text="Off 🌂", callback_data="antispam_toggle_off")
             ],
             [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antispam_set_punishment")],
-            [InlineKeyboardButton(text="⛓️‍💥 Blocco Link e Menzioni", callback_data="antispam_set_links")],
+            [InlineKeyboardButton(text="⛓️‍💥 Blocco Link", callback_data="antispam_set_links")],
+            [InlineKeyboardButton(text="💬 Blocco Menzioni", callback_data="antispam_set_links")],
             [InlineKeyboardButton(text="👥 Blocco Inoltro", callback_data="antispam_set_forward")],
             [InlineKeyboardButton(text="🎞 Blocco Media", callback_data="antispam_set_media")],
             [InlineKeyboardButton(text="🔙 Indietro", callback_data="security_filters_settings")]
@@ -1107,13 +1108,28 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     match callback_data:
         case "antispam_set_links":
-            # manu impostazioni link (attiva, disattiva, blacklist e whitelist, ...)
+            allow_after = context.bot_data['configuration']['moderation']['antispam']['link']['allow_after']
             keyboard = [
+                [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antispam_set_link_punishment")],
+                [InlineKeyboardButton(text="⌛️ Consenti Dopo", callback_data="antispam_set_link_allow_after")],
                 [
-
-                ]
+                    InlineKeyboardButton(text="📄 Whitelist", callback_data="antispam_set_link_whitelist"),
+                    InlineKeyboardButton(text="📓 Blacklist", callback_data="antispam_set_link_blacklist")
+                ],
+                [InlineKeyboardButton(text="🧙‍♂️ Greylist", callback_data="antispam_set_link_greylist")],
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_settings")]
             ]
-            return None
+            text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                    "↦ ⛓️‍💥 <i>Blocco Link</i>\n\n"
+                    "▫️ Da qui puoi impostare le regole di gestione dei link.\n\n"
+                    f"🔸 <u>Consenti Link Dopo</u>: <i>{allow_after} secondi</i>\n\n"
+                    f"🔹 Scegli un'opzione.")
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            return ModerationSettingsStates.ANTISPAM_SET_LINK
         case "antispam_set_forward":
             # menu impostazioni inoltro (attiva, disattiva, da dove)
             return None
@@ -1127,97 +1143,67 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return None
 
 
-async def set_punishment_duration(update: Update, context: CallbackContext):
-    if not await is_admin(update.effective_user.id, context):
+async def antispam_set_link_list(update: Update, context: CallbackContext):
+    if not await is_admin(user_id=update.effective_user.id, context=context):
         return ConversationHandler.END
 
-    update_data = update.callback_query.data if update.callback_query else update.effective_message.text
-    update_data_list = update_data.split("_")
+    callback_data = update.callback_query.data
+    if callback_data == "antispam_set_links":
+        await antispam_settings(update, context)
+        return ConversationHandler.END
 
-    if update.callback_query:
-        setting = update_data_list[0]
-
-        if update_data.endswith("_set_punishment"):
-            await globals()[setting + "_settings"](update, context)
-            return ConversationHandler.END
-
-        if update_data_list[-1] == "endless":
-            context.bot_data['configuration']['moderation'][setting]['punishment']['time'] = 1
-            await globals()[setting + "_settings"](update, context)
-            return ConversationHandler.END
-
-        # noinspection PyInconsistentReturns
-        if update_data_list[-1] == "duration":
-            settings_dict = {
-                "antispam": {
-                    "icon": "📨",
-                    "text": "Anti-Spam",
-                    "who": "a chi spamma"
-                },
-                "antiflood": {
-                    "icon": "🌊",
-                    "text": "Anti-Flood",
-                    "who": "a chi fa flooding"
-                }
-            }
-            settings_items = settings_dict[setting]
-
-            context.user_data["settings_main_message"] = {
-                "setting": setting,
-                "message_id": update.effective_message.message_id
-            }
-
-            text = (f"{settings_items['icon']} <b>Impostazioni {settings_items['text']}</b>\n\n"
-                    "↦ 🕔 <i>Tempo Punizione</i>\n\n"
-                    f"▫️ Puoi impostare da qui la durata della punizione comminata {settings_items['who']}.\n\n"
-                    "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
-                    "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
-
-            keyboard = [
-                [
-                    InlineKeyboardButton(
-                        text="♾️ Tempo Indeterminato",
-                        callback_data=f"{setting}_set_punishment_duration_endless")
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="🔙 Indietro",
-                        callback_data=f"{setting}_set_punishment")
+    callback_data_list = callback_data.split("_")
+    list_to_edit = callback_data_list[-1]
+    if callback_data.startswith("antispam_set_link_"):
+        match list_to_edit:
+            case "whitelist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 📄 <i>Blocco Link – Whitelist</i>\n\n"
+                        "▫️ Da qui puoi gestire la whitelist dei link.\n\n"
+                        "ℹ I prefissi aggiunti a questa lista non verranno puniti se spammati.")
+                keyboard = [
+                    [InlineKeyboardButton(text="👁 Visiona Whitelist", callback_data="antispam_view_whitelist")],
+                    [
+                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_whitelist"),
+                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_whitelist")
+                    ],
+                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
                 ]
-            ]
-
-            await update.effective_message.edit_text(
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.HTML
-            )
-            return ModerationSettingsStates.SET_PUNISHMENT_DURATION
-    else:
-        await safe_delete(update=update, context=context)
-        parsed_duration = await parse_duration(str(update_data))
-        if parsed_duration is None:
-            await send_action_message_after(
-                update=update,
-                context=context,
-                text="⚠️ La sintassi non è corretta: non usare segni di punteggiatura o parole non necessarie.\n\n"
-                     "<b>Esempi</b>\n\t"
-                     "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
-                     "<code>1 giorno 2 minuti 32 ore</code>\n\t"
-                     "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
-                recipient_id=update.effective_user.id,
-                additional_job_data={
-                    "reply_markup": InlineKeyboardMarkup(
-                        [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-                    )
-                }
-            )
-            return ModerationSettingsStates.SET_PUNISHMENT_DURATION
-        else:
-            setting = context.user_data["settings_main_message"]["setting"]
-            context.bot_data['configuration']['moderation'][setting]['punishment'][
-                'time'] = parsed_duration.total_seconds()
-            await globals()[setting + "_settings"](update, context)
-            return ConversationHandler.END
+            case "blacklist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 📓 <i>Blocco Link – Blacklist</i>\n\n"
+                        "▫️ Da qui puoi gestire la blacklist dei link.\n\n"
+                        "ℹ I prefissi aggiunti a questa lista verranno puniti con la punizione "
+                        "impostata per lo spam dei link.")
+                keyboard = [
+                    [InlineKeyboardButton(text="👁 Visiona Blacklist", callback_data="antispam_view_blacklist")],
+                    [
+                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_blacklist"),
+                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_blacklist")
+                    ],
+                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
+                ]
+            case "greylist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 🧙‍♂️ <i>Blocco Link – Greylist</i>\n\n"
+                        "▫️ Da qui puoi gestire la greylist dei link.\n\n"
+                        "ℹ I prefissi aggiunti a questa lista verranno gestiti in base ai criteri scelti.")
+                keyboard = [
+                    [InlineKeyboardButton(text="👁 Visiona Greylist", callback_data="antispam_view_greylist")],
+                    [
+                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_greylist"),
+                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_greylist")
+                    ],
+                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
+                ]
+        # noinspection PyUnboundLocalVariable
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return ModerationSettingsStates.ANTISPAM_EDIT_LIST
+    pass
 
 
 async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1412,4 +1398,98 @@ async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         return ModerationSettingsStates.ANTIFLOOD_SET_LIMITS
 
+    # qua in realtà potrei togliere, perché l'ultimo if è coercitivo, ma lascio per ordine
     return None
+
+
+async def set_punishment_duration(update: Update, context: CallbackContext):
+    if not await is_admin(update.effective_user.id, context):
+        return ConversationHandler.END
+
+    update_data = update.callback_query.data if update.callback_query else update.effective_message.text
+    update_data_list = update_data.split("_")
+
+    if update.callback_query:
+        setting = update_data_list[0]
+
+        if update_data.endswith("_set_punishment"):
+            await globals()[setting + "_settings"](update, context)
+            return ConversationHandler.END
+
+        if update_data_list[-1] == "endless":
+            context.bot_data['configuration']['moderation'][setting]['punishment']['time'] = 1
+            await globals()[setting + "_settings"](update, context)
+            return ConversationHandler.END
+
+        # noinspection PyInconsistentReturns
+        if update_data_list[-1] == "duration":
+            settings_dict = {
+                "antispam": {
+                    "icon": "📨",
+                    "text": "Anti-Spam",
+                    "who": "a chi spamma"
+                },
+                "antiflood": {
+                    "icon": "🌊",
+                    "text": "Anti-Flood",
+                    "who": "a chi fa flooding"
+                }
+            }
+            settings_items = settings_dict[setting]
+
+            context.user_data["settings_main_message"] = {
+                "setting": setting,
+                "message_id": update.effective_message.message_id
+            }
+
+            text = (f"{settings_items['icon']} <b>Impostazioni {settings_items['text']}</b>\n\n"
+                    "↦ 🕔 <i>Tempo Punizione</i>\n\n"
+                    f"▫️ Puoi impostare da qui la durata della punizione comminata {settings_items['who']}.\n\n"
+                    "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
+                    "ℹ️ Il tempo non viene considerato se la punzione scelta è <i>Kick</i>.")
+
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        text="♾️ Tempo Indeterminato",
+                        callback_data=f"{setting}_set_punishment_duration_endless")
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🔙 Indietro",
+                        callback_data=f"{setting}_set_punishment")
+                ]
+            ]
+
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            return ModerationSettingsStates.SET_PUNISHMENT_DURATION
+    else:
+        await safe_delete(update=update, context=context)
+        parsed_duration = await parse_duration(str(update_data))
+        if parsed_duration is None:
+            await send_action_message_after(
+                update=update,
+                context=context,
+                text="⚠️ La sintassi non è corretta: non usare segni di punteggiatura o parole non necessarie.\n\n"
+                     "<b>Esempi</b>\n\t"
+                     "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
+                     "<code>1 giorno 2 minuti 32 ore</code>\n\t"
+                     "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
+                recipient_id=update.effective_user.id,
+                additional_job_data={
+                    "reply_markup": InlineKeyboardMarkup(
+                        [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+                    )
+                }
+            )
+            return ModerationSettingsStates.SET_PUNISHMENT_DURATION
+        else:
+            setting = context.user_data["settings_main_message"]["setting"]
+            context.bot_data['configuration']['moderation'][setting]['punishment'][
+                'time'] = parsed_duration.total_seconds()
+            await globals()[setting + "_settings"](update, context)
+            return ConversationHandler.END

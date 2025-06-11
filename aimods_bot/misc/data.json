@@ -141,6 +141,16 @@
         "punishment": {
           "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
           "time": {"type": "int"}
+        },
+        "link": {
+          "punishment": {
+            "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+            "time": {"type": "int"}
+          },
+          "allow_after": {"type": "int"},
+          "whitelist": {"type": "list"},
+          "blacklist": {"type": "list"},
+          "greylist": {"type": "dict"}
         }
       },
      "antiflood": {

@@ -1,6 +1,6 @@
 # contiene classi personalizzate che contengono valori di default usati dal bot
 
-from enum import IntEnum
+from enum import IntEnum, auto
 from dataclasses import dataclass
 
 import telegram
@@ -57,17 +57,21 @@ class Permissions(IntEnum):
 
 class ModerationSettingsStates(IntEnum):
     # - menu principale
-    MAIN_MENU_CHOICE = 0
+    MAIN_MENU_CHOICE = auto()
     # -- menu.sicurezza_e_filtri
-    SECURITY_FILTERS_CHOICE = 1
+    SECURITY_FILTERS_CHOICE = auto()
     # --- menu.sicurezza_e_filtri.antispam
-    ANTISPAM_MAIN_PANEL = 2
+    ANTISPAM_MAIN_PANEL = auto()
+    # ---- menu.sicurezza_e_filtri.antispam.blocco_link
+    ANTISPAM_SET_LINK = auto()
+    # ---- menu.sicurezza_e_filtri.antispam.blocco_link
+    ANTISPAM_EDIT_LIST = auto()
     # ---- imposta punizione
-    SET_PUNISHMENT = 3
+    SET_PUNISHMENT = auto()
     # ----- durata punizione
-    SET_PUNISHMENT_DURATION = 4
+    SET_PUNISHMENT_DURATION = auto()
 
     # -- menu.sicurezza_e_filtri.antiflood
-    ANTIFLOOD_MAIN_PANEL = 5
+    ANTIFLOOD_MAIN_PANEL = auto()
     # --- menu.sicurezza_e_filtri.antiflood.set_limits
-    ANTIFLOOD_SET_LIMITS = 6
+    ANTIFLOOD_SET_LIMITS = auto()

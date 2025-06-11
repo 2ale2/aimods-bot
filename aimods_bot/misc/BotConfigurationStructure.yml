@@ -5,6 +5,14 @@ moderation:
     punishment:
       type: "kick"
       time: 100
+    link:
+      punishment:
+        type: "kick"
+        time: 100
+      allow_after: 100
+      whitelist: []
+      blacklist: []
+      greylist: {}
   antiflood:
     toggle: True
     settings: {
