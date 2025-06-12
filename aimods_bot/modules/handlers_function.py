@@ -1306,6 +1306,24 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
                 )
                 return ModerationSettingsStates.ANTISPAM_EDIT_LIST
         return None
+
+    if callback_data.startswith("antispam_add_"):
+        match callback_data_list[-1]:
+            case "whitelist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 📄 <i>Blocco Link – Whitelist</i>\n\n"
+                        "➕ Scrivi il <b>prefisso da aggiungere</b> alla Whitelist.")
+                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_whitelist")]]
+            case "blacklist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 📓 <i>Blocco Link – Blacklist</i>\n\n"
+                        "➕ Scrivi il <b>prefisso da aggiungere</b> alla Blacklist.")
+                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_blacklist")]]
+            case "greylist":
+                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                        "↦ 🧙‍♂️ <i>Blocco Link – Greylist</i>\n\n"
+                        "➕ Scrivi il <b>prefisso da impostare</b> nella Greylist.")
+                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_greylist")]]
     return None
 
 
