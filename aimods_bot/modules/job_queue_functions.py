@@ -1,8 +1,10 @@
+import os
+
 import telegram.error
-from pyrogram.filters import media
 from telegram import Update
 from telegram.ext import ContextTypes
 import asyncio
+from contextlib import nullcontext
 from uuid import uuid4
 from telegram.constants import ChatAction
 
@@ -23,41 +25,55 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     data = job.data
-    media_bool = data["media"]
+    send_media = data.get("media", {}).get("send", False)
 
-    if "chat_id" not in data or "text" not in data:
+    if not all(k in data for k in ("chat_id", "text")):
         job_queue_logger.warn("'chat_id' or 'text' are missing in JobQueue data.")
         return
 
-    job_to_edit = None
-    for j in context.bot_data["jobs"]:
-        if j == job.name:
-            job_to_edit = j
-            break
+    job_to_edit = next((j for j in context.bot_data["jobs"] if j == job.name), None)
 
     try:
-        if media_bool:
-            message = await context.bot.send_media_group(
-                chat_id=data["chat_id"],
-                media=data["attachments"],  # must be a list
-                caption=data["text"],
-                reply_parameters=data["reply_parameters"],
-                message_thread_id=data["thread_id"] if "thread_id" in data else None,
-                parse_mode="HTML"
-            )
-            message = message[0]
+        common_kwargs = {
+            "chat_id": data["chat_id"],
+            "reply_parameters": data.get("reply_parameters"),
+            "reply_markup": data.get("reply_markup"),
+            "message_thread_id": data.get("thread_id"),
+            "parse_mode": "HTML"
+        }
+
+        if send_media:
+            d = data["media"]["send"]
+            if data["media"].get("send_as_document"):
+                document = (open(d, "rb") if isinstance(d, str)
+                            else d if not isinstance(d, (list, set, tuple, dict)) else d[0])
+                async with document if hasattr(document, "__aenter__") else nullcontext(document) as doc:
+                    message = await context.bot.send_document(
+                        document=doc,
+                        caption=data["text"],
+                        **common_kwargs
+                    )
+                if isinstance(d, str):
+                    os.remove(d)
+            else:
+                message = await context.bot.send_media_group(
+                    media=data["attachments"],
+                    caption=data["text"],
+                    **common_kwargs
+                )
+                d = data["media"]["send"]
+                if not isinstance(d, (list, set, tuple, dict)):
+                    message = message[0]
         else:
             message = await context.bot.send_message(
-                chat_id=data["chat_id"], text=data["text"],
-                reply_parameters=data["reply_parameters"] if "reply_parameters" in data else None,
-                reply_markup=data["reply_markup"] if "reply_markup" in data else None,
-                message_thread_id=data["thread_id"] if "thread_id" in data else None,
-                parse_mode="HTML"
+                text=data["text"],
+                **common_kwargs
             )
 
         if job_to_edit:
             context.bot_data["jobs"][job_to_edit]["returned_value"] = message.id
             context.bot_data["jobs"][job_to_edit]["done"] = True
+
     except telegram.error.TelegramError as e:
         if job_to_edit:
             context.bot_data["jobs"].pop(job_to_edit, None)

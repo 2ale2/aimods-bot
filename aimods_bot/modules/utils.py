@@ -115,19 +115,23 @@ async def send_action_message_after(update: Update,
     else:
         t_id = await get_thread_id(update)
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id,
-                                       message_thread_id=t_id,
-                                       action=ChatAction.TYPING)
-
     job_data = (additional_job_data if additional_job_data is not None else {}) | {
         "text": text,
         "chat_id": recipient_id if recipient_id is not None else update.effective_chat.id,
     }
 
-    if "attachments" in additional_job_data and additional_job_data["attachments"]:
-        job_data["media"] = True
+    if "attachments" in additional_job_data:
+        job_data["media"] = {
+            "send": additional_job_data["attachments"]["files"],
+            "send_as_document": bool(additional_job_data["attachments"]["send_as_document"])
+        }
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id,
+                                           message_thread_id=t_id,
+                                           action=ChatAction.UPLOAD_DOCUMENT)
     else:
-        job_data["media"] = False
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id,
+                                           message_thread_id=t_id,
+                                           action=ChatAction.TYPING)
 
     job_id = str(uuid4())
     job = context.job_queue.run_once(
@@ -302,7 +306,8 @@ async def callback_close_message(update: Update, context: ContextTypes.DEFAULT_T
     except telegram.error.BadRequest:
         pass
 
-    return ConversationHandler.END
+    if update.callback_query.data == "close_menu":
+        return ConversationHandler.END
 
 
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE):
