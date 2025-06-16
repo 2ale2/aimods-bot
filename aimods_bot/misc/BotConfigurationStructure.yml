@@ -12,7 +12,7 @@ moderation:
       allow_after: 100
       whitelist: []
       blacklist: []
-      greylist: {}
+      greylist: []
   antiflood:
     toggle: True
     settings: {

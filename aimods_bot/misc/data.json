@@ -150,7 +150,7 @@
           "allow_after": {"type": "int"},
           "whitelist": {"type": "list"},
           "blacklist": {"type": "list"},
-          "greylist": {"type": "dict"}
+          "greylist": {"type": "list"}
         }
       },
      "antiflood": {

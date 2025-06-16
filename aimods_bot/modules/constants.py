@@ -66,6 +66,8 @@ class ModerationSettingsStates(IntEnum):
     ANTISPAM_SET_LINK = auto()
     # ---- menu.sicurezza_e_filtri.antispam.blocco_link
     ANTISPAM_EDIT_LIST = auto()
+    # ---- menu.sicurezza_e_filtri.antispam.blocco_link.white/black/greylist
+    ANTISPAM_ADD_LINK_LIST = auto()
     # ---- imposta punizione
     SET_PUNISHMENT = auto()
     # ----- durata punizione

@@ -3,12 +3,13 @@ import locale
 import os
 import html
 from datetime import timezone
+from urllib.parse import urlparse
 
 import pytz
 import telegram.error
 from pyrogram import utils
 from pyrogram.errors import PeerIdInvalid
-from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument
+from telegram import InputMediaPhoto, InputMediaAudio, InputMediaVideo, InputMediaDocument, MessageEntity
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
@@ -1146,60 +1147,124 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return None
 
 
+# noinspection HttpUrlsUsage
 async def antispam_set_link_list(update: Update, context: CallbackContext):
     if not await is_admin(user_id=update.effective_user.id, context=context):
         return ConversationHandler.END
 
+    icons = {
+        "whitelist": "📨",
+        "blacklist": "📓",
+        "greylist": "🧙‍♂️"
+    }
+
+    titles = {
+        "whitelist": "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati.",
+        "blacklist": "I domini aggiunti a questa lista verranno <b>puniti con il ban, "
+                     "indipendentemente dalla punizione impostata</b>.",
+        "greylist": "I link aggiunti a questa lista <b>non verranno puniti</b>."
+    }
+
+    if not update.callback_query:
+        await safe_delete(update, context, update.effective_message)
+        list_to_edit = context.user_data["add_antispam_link"]["list"]
+        if list_to_edit != "greylist":
+            what = {"singular": "dominio", "plural": "domini"}
+        else:
+            what = {"singular": "link", "plural": "link"}
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                f"↦ {icons[list_to_edit]} <i>Blocco Link – {list_to_edit.capitalize()}</i>\n\n")
+        if not any(x.type in MessageEntity.URL for x in update.effective_message.entities):
+            text = ("⚠ Il messaggio non contiene link. Invia uno più " +
+                    ("domini." if list_to_edit != "greylist" else "link."))
+            keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+            await send_action_message_after(
+                update=update,
+                context=context,
+                text=text,
+                additional_job_data={
+                    "reply_markup": InlineKeyboardMarkup(keyboard)
+                }
+            )
+            return ModerationSettingsStates.ANTISPAM_ADD_LINK_LIST
+
+        links = []
+        for n, el in enumerate(update.effective_message.entities):
+            if el.type != MessageEntity.URL:
+                continue
+            en = update.effective_message.entities[n]
+            link = update.effective_message.text[en.offset:en.offset + en.length]
+            parsed = urlparse(link)
+            links.append((parsed.netloc or parsed.path.split("/")[0]).removeprefix("www.")
+                         if list_to_edit != "greylist" else link)
+
+        current = context.bot_data['configuration']['moderation']['antispam']['link'].get(list_to_edit)
+        added = []
+        for el in links:
+            if el not in current:
+                context.bot_data['configuration']['moderation']['antispam']['link'].get(list_to_edit).append(el)
+                added.append(el)
+
+        if len(added) == 0:
+            text += f"❕ Tutti i {what['plural']} indicati sono <b>già presenti</b> nella {list_to_edit.capitalize()}."
+        else:
+            if len(added) == 1:
+                text += f"✅ {what['singular']} <code>{added[0]}</code> <b>aggiunto correttamente</b>."
+            else:
+                text += (f"✅ {what['plural']} {', '.join(f'<code>{el}</code>' for el in added)} "
+                         f"<b>aggiunti correttamente</b>.")
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    text=f"➕ Aggiungi Altro {what['singular']}",
+                    callback_data=f"antispam_add_{list_to_edit}")
+            ],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"antispam_set_link_{list_to_edit}")]
+        ]
+        await context.bot.edit_message_text(
+            message_id=context.user_data['add_antispam_link']['message_id'],
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        return ModerationSettingsStates.ANTISPAM_EDIT_LIST
+
     callback_data = update.callback_query.data
+    callback_data_list = callback_data.split("_")
+    list_to_edit = callback_data_list[-1]
+    if list_to_edit in ["whitelist", "blacklist", "greylist"]:
+        if list_to_edit != "greylist":
+            what = {"singular": "dominio", "plural": "domini"}
+        else:
+            what = {"singular": "link", "plural": "link"}
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                f"↦ {icons[list_to_edit]} <i>Blocco Link – {list_to_edit.capitalize()}</i>\n\n")
+
     if callback_data == "antispam_set_links":
         await antispam_settings(update, context)
         return ConversationHandler.END
 
-    callback_data_list = callback_data.split("_")
-    list_to_edit = callback_data_list[-1]
     if callback_data.startswith("antispam_set_link_"):
-        match list_to_edit:
-            case "whitelist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 📄 <i>Blocco Link – Whitelist</i>\n\n"
-                        "▫️ Da qui puoi gestire la whitelist dei link.\n\n"
-                        "ℹ I prefissi aggiunti a questa lista non verranno puniti se spammati.")
-                keyboard = [
-                    [InlineKeyboardButton(text="👁 Visiona Whitelist", callback_data="antispam_view_whitelist")],
-                    [
-                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_whitelist"),
-                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_whitelist")
-                    ],
-                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
-                ]
-            case "blacklist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 📓 <i>Blocco Link – Blacklist</i>\n\n"
-                        "▫️ Da qui puoi gestire la blacklist dei link.\n\n"
-                        "ℹ I prefissi aggiunti a questa lista verranno puniti con la punizione "
-                        "impostata per lo spam dei link.")
-                keyboard = [
-                    [InlineKeyboardButton(text="👁 Visiona Blacklist", callback_data="antispam_view_blacklist")],
-                    [
-                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_blacklist"),
-                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_blacklist")
-                    ],
-                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
-                ]
-            case "greylist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 🧙‍♂️ <i>Blocco Link – Greylist</i>\n\n"
-                        "▫️ Da qui puoi gestire la greylist dei link.\n\n"
-                        "ℹ I prefissi aggiunti a questa lista verranno gestiti in base ai criteri scelti.")
-                keyboard = [
-                    [InlineKeyboardButton(text="👁 Visiona Greylist", callback_data="antispam_view_greylist")],
-                    [
-                        InlineKeyboardButton(text="➕ Aggiungi Elemento", callback_data="antispam_add_greylist"),
-                        InlineKeyboardButton(text="➖ Rimuovi Elemento", callback_data="antispam_remove_greylist")
-                    ],
-                    [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
-                ]
-        # noinspection PyUnboundLocalVariable
+        text += (f"▫️ Da qui puoi gestire la {list_to_edit.capitalize()} dei link.\n\n"
+                f"ℹ {titles[list_to_edit]}")
+        keyboard = [
+            [InlineKeyboardButton(
+                text=f"👁 Visiona {list_to_edit.capitalize()}",
+                callback_data=f"antispam_view_{list_to_edit}")
+            ],
+            [
+                InlineKeyboardButton(
+                    text="➕ Aggiungi Elemento",
+                    callback_data=f"antispam_add_{list_to_edit}"),
+                InlineKeyboardButton(
+                    text="➖ Rimuovi Elemento",
+                    callback_data=f"antispam_remove_{list_to_edit}")
+            ],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
+        ]
         await update.effective_message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -1208,123 +1273,62 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
         return ModerationSettingsStates.ANTISPAM_EDIT_LIST
 
     if callback_data.startswith("antispam_view_"):
-        match callback_data_list[-1]:
-            case "whitelist":
-                whitelist = context.bot_data['configuration']['moderation']['antispam']['link']['whitelist']
-                if len(whitelist) == 0:
-                    keyboard = [
-                        [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_whitelist")],
-                    ]
-                    await update.effective_message.edit_text(
-                        text=("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                              "↦ 📄 <i>Blocco Link – Whitelist</i>\n\n"
-                              "0️⃣ <b>La Whitelist è attualmente vuota</b>."),
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode=ParseMode.HTML
-                    )
-                    return ConversationHandler.END
-                with open("./whitelist.txt", "w") as f:
-                    for s in whitelist:
-                        f.write(s)
-                await send_action_message_after(
-                    update=update,
-                    context=context,
-                    text="📄 Ecco la lista di prefissi aggiunti alla <b>Whitelist</b>.",
-                    additional_job_data={
-                        "attachments": {
-                            "files": "./whitelist.txt",
-                            "send_as_document": True
-                        },
-                        "reply_markup": InlineKeyboardMarkup(
-                            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-                        )
-                    }
+        li = context.bot_data['configuration']['moderation']['antispam']['link'][list_to_edit]
+        if len(li) == 0:
+            keyboard = [
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"antispam_set_link_{list_to_edit}")],
+            ]
+            await update.effective_message.edit_text(
+                text=("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                      f"↦ {icons[list_to_edit]} <i>Blocco Link – {list_to_edit.capitalize()}</i>\n\n"
+                      f"0️⃣ <b>La {list_to_edit.capitalize()} è attualmente vuota</b>."),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            return ConversationHandler.END
+
+        with open(filename := f"./{list_to_edit}.txt", "w") as f:
+            for s in li:
+                f.write(s + "\n")
+
+        await send_action_message_after(
+            update=update,
+            context=context,
+            text=f"{icons[list_to_edit]} Ecco la lista di {what['plural']} aggiunti alla "
+                 f"<b>{list_to_edit.capitalize()}</b>.",
+            additional_job_data={
+                "attachments": {
+                    "files": filename,
+                    "send_as_document": True,
+                    "delete_after_sending": True
+                },
+                "reply_markup": InlineKeyboardMarkup(
+                    [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
                 )
-                return ModerationSettingsStates.ANTISPAM_EDIT_LIST
-            case "blacklist":
-                blacklist = context.bot_data['configuration']['moderation']['antispam']['link']['blacklist']
-                if len(blacklist) == 0:
-                    keyboard = [
-                        [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_blacklist")],
-                    ]
-                    await update.effective_message.edit_text(
-                        text=("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                              "↦ 📓 <i>Blocco Link – Blacklist</i>\n\n"
-                              "0️⃣ <b>La Blacklist è attualmente vuota</b>."),
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode=ParseMode.HTML
-                    )
-                    return ConversationHandler.END
-                with open("./blacklist.txt", "w") as f:
-                    for s in blacklist:
-                        f.write(s)
-                await send_action_message_after(
-                    update=update,
-                    context=context,
-                    text="📓 Ecco la lista di prefissi aggiunti alla <b>Blacklist</b>.",
-                    additional_job_data={
-                        "attachments": {
-                            "files": "./blacklist.txt",
-                            "send_as_document": True
-                        },
-                        "reply_markup": InlineKeyboardMarkup(
-                            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-                        )
-                    }
-                )
-                return ModerationSettingsStates.ANTISPAM_EDIT_LIST
-            case "greylist":
-                greylist = context.bot_data['configuration']['moderation']['antispam']['link']['greylist']
-                if len(greylist) == 0:
-                    keyboard = [
-                        [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_greylist")],
-                    ]
-                    await update.effective_message.edit_text(
-                        text=("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                              "↦ 🧙‍♂️ <i>Blocco Link – Greylist</i>\n\n"
-                              "0️⃣ <b>La Greylist è attualmente vuota</b>."),
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode=ParseMode.HTML
-                    )
-                    return ConversationHandler.END
-                with open("./greylist.txt", "w") as f:
-                    for s in greylist:
-                        f.write(s)
-                await send_action_message_after(
-                    update=update,
-                    context=context,
-                    text="🧙‍♂️ Ecco la lista di prefissi aggiunti alla <b>Greylist</b> con le punizioni associate.",
-                    additional_job_data={
-                        "attachments": {
-                            "files": "./greylist.txt",
-                            "send_as_document": True
-                        },
-                        "reply_markup": InlineKeyboardMarkup(
-                            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-                        )
-                    }
-                )
-                return ModerationSettingsStates.ANTISPAM_EDIT_LIST
-        return None
+            }
+        )
+        return ModerationSettingsStates.ANTISPAM_EDIT_LIST
 
     if callback_data.startswith("antispam_add_"):
-        match callback_data_list[-1]:
-            case "whitelist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 📄 <i>Blocco Link – Whitelist</i>\n\n"
-                        "➕ Scrivi il <b>prefisso da aggiungere</b> alla Whitelist.")
-                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_whitelist")]]
-            case "blacklist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 📓 <i>Blocco Link – Blacklist</i>\n\n"
-                        "➕ Scrivi il <b>prefisso da aggiungere</b> alla Blacklist.")
-                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_blacklist")]]
-            case "greylist":
-                text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-                        "↦ 🧙‍♂️ <i>Blocco Link – Greylist</i>\n\n"
-                        "➕ Scrivi il <b>prefisso da impostare</b> nella Greylist.")
-                keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_link_greylist")]]
-    return None
+        text += (f"ℹ {titles[list_to_edit]}\n\n"
+                f"➕ Scrivi i <b>{'domini' if list_to_edit != 'greylist' else 'link'} da aggiungere"
+                f"</b> alla {list_to_edit.capitalize()}.")
+        keyboard = [[InlineKeyboardButton(
+            text="🔙 Indietro",
+            callback_data=f"antispam_set_link_{list_to_edit}")
+        ]]
+
+        # noinspection PyUnboundLocalVariable
+        message = await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        context.user_data["add_antispam_link"] = {
+            "message_id": message.id,
+            "list": list_to_edit
+        }
+        return ModerationSettingsStates.ANTISPAM_ADD_LINK_LIST
 
 
 async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):

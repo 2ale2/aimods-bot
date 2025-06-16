@@ -123,7 +123,9 @@ async def send_action_message_after(update: Update,
     if "attachments" in additional_job_data:
         job_data["media"] = {
             "send": additional_job_data["attachments"]["files"],
-            "send_as_document": bool(additional_job_data["attachments"]["send_as_document"])
+            "send_as_document": bool(additional_job_data["attachments"]["send_as_document"]),
+            "delete_after_sending": (additional_job_data["attachments"]["delete_after_sending"]
+                                        if "delete_after_sending" in additional_job_data else False)
         }
         await context.bot.send_chat_action(chat_id=update.effective_chat.id,
                                            message_thread_id=t_id,

@@ -1,12 +1,12 @@
+import asyncio
 import os
+from contextlib import nullcontext
+from uuid import uuid4
 
 import telegram.error
 from telegram import Update
-from telegram.ext import ContextTypes
-import asyncio
-from contextlib import nullcontext
-from uuid import uuid4
 from telegram.constants import ChatAction
+from telegram.ext import ContextTypes
 
 from loggers import job_queue_logger
 
@@ -53,7 +53,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
                         caption=data["text"],
                         **common_kwargs
                     )
-                if isinstance(d, str):
+                if "delete_after_sending" in data["media"]:
                     os.remove(d)
             else:
                 message = await context.bot.send_media_group(
