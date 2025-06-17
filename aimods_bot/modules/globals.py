@@ -1,5 +1,4 @@
 # contiene classi personalizzate che contengono valori di default usati dal bot
-
 from enum import IntEnum, auto
 from dataclasses import dataclass
 
@@ -24,6 +23,8 @@ scope
     ogni topic ha un single topic scope
 '''
 
+pyro_instance = None
+active_jobs = {}
 
 class ChannelMessageForRecapFilter(MessageFilter):
     def filter(self, message: telegram.Message):
@@ -67,7 +68,7 @@ class ModerationSettingsStates(IntEnum):
     # ---- menu.sicurezza_e_filtri.antispam.blocco_link
     ANTISPAM_EDIT_LIST = auto()
     # ---- menu.sicurezza_e_filtri.antispam.blocco_link.white/black/greylist
-    ANTISPAM_ADD_LINK_LIST = auto()
+    ANTISPAM_EDIT_LINK_LIST = auto()
     # ---- imposta punizione
     SET_PUNISHMENT = auto()
     # ----- durata punizione

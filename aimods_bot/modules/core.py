@@ -2,6 +2,7 @@
 
 import os
 import yaml
+import globals
 
 from dotenv import load_dotenv
 from telegram.ext import Application
@@ -94,8 +95,7 @@ async def set_application_data(application: Application):
     errors = validate_structure(yaml_data, raw_template)
     handle_validation_errors(errors)
 
-    if (("configuration" not in application.bot_data) or
-            ("configuration" in application.bot_data and yaml_data != application.bot_data["configuration"])):
+    if "configuration" not in application.bot_data:
         application.bot_data["configuration"] = yaml_data
 
     group_chat_id = os.getenv("GROUP_CHAT_ID")
@@ -136,6 +136,8 @@ async def set_application_data(application: Application):
                 # eseguo il recap sedutastante
                 await create_and_send_recaps(application)
                 del application.bot_data["jobs"][autorecap_job_name]
+    else:
+        application.bot_data["jobs"] = {}
 
     # programmo i prossimi recap automatici
     time_until_recap = await get_time_until_next_recap()
@@ -172,12 +174,16 @@ async def set_application_data(application: Application):
         bot_logger.error(e)
         raise
 
-    application.bot_data["pyro_instance"] = pyro_instance
-
     await pyro_instance.start()
+
+    globals.pyro_instance = pyro_instance
 
     if "ban_list" not in application.bot_data:
         application.bot_data["ban_list"] = {}
+
+
+async def post_shutdown(application: Application):
+    await globals.pyro_instance.stop()
 
 
 async def get_admins(app: Application):

@@ -25,7 +25,10 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     data = job.data
-    send_media = data.get("media", {}).get("send", False)
+    send_media = data.get("media", {})
+
+    if isinstance(send_media, dict):
+        send_media = send_media.get("send", False)
 
     if not all(k in data for k in ("chat_id", "text")):
         job_queue_logger.warn("'chat_id' or 'text' are missing in JobQueue data.")
@@ -151,7 +154,6 @@ async def send_temporary_message(
     )
 
     context.bot_data["jobs"][job_id] = {
-        "job": job,
         "returned_value": None,
         "done": False
     }

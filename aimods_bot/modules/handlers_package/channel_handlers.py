@@ -1,6 +1,6 @@
 from aimods_bot.modules import handlers_function
 from telegram.ext import MessageHandler, filters
-from aimods_bot.modules.constants import ChannelMessageForRecapFilter
+from aimods_bot.modules.globals import ChannelMessageForRecapFilter
 
 channel_message_for_recap_filter = ChannelMessageForRecapFilter()
 

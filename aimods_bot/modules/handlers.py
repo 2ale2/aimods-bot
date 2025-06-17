@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler,
                           ConversationHandler, ChatJoinRequestHandler, filters, TypeHandler)
 
-from constants import ModerationSettingsStates
+from globals import ModerationSettingsStates
 from handlers_package.moderation import antispam_handlers, antiflood_handlers
 from handlers_package.channel_handlers import *
 from handlers_package.commands_handlers import *

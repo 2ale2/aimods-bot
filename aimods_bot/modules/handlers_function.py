@@ -1,5 +1,6 @@
 import copy
 import locale
+import globals
 import os
 import html
 from datetime import timezone
@@ -14,7 +15,7 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
 from database_functions import add_to_table
-from constants import Permissions, ModerationSettingsStates
+from globals import Permissions, ModerationSettingsStates
 from utils import *
 
 RULES_ACCEPTED = 0
@@ -81,7 +82,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         else:
             until_date = None
             rome_until_date = None
-        await context.bot_data["pyro_instance"].ban_chat_member(
+        await globals.pyro_instance.ban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=uid,
             until_date=until_date
@@ -390,7 +391,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     # resolving del peer
     try:
-        user = await context.bot_data["pyro_instance"].get_users(
+        user = await globals.pyro_instance.get_users(
             user_ids=parsed["user"] or replied.from_user.id
         )
     except PeerIdInvalid:
@@ -457,7 +458,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         # sono gestite con clausola 'except Exception' (vedi sopra).
 
         # noinspection PyUnboundLocalVariable
-        member = await context.bot_data["pyro_instance"].get_chat_member(
+        member = await globals.pyro_instance.get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=user.id
         )
@@ -645,7 +646,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     elif command == "ban" or command == "unban":
         if command == "ban":
             try:
-                await context.bot_data["pyro_instance"].ban_chat_member(
+                await globals.pyro_instance.ban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=user.id,
                     until_date=until_date
@@ -677,7 +678,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 # Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
                 if user.id in context.bot_data.get("ban_list", {}):
                     context.bot_data.get("ban_list", {}).pop(user.id, None)
-                await context.bot_data["pyro_instance"].unban_chat_member(
+                await globals.pyro_instance.unban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=user.id
                 )
@@ -757,7 +758,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         if warns_count >= max_warns:
             try:
-                await context.bot_data["pyro_instance"].ban_chat_member(
+                await globals.pyro_instance.ban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=member.user.id,
                     until_date=until_date
@@ -1167,13 +1168,15 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
 
     if not update.callback_query:
         await safe_delete(update, context, update.effective_message)
-        list_to_edit = context.user_data["add_antispam_link"]["list"]
+        list_to_edit = context.user_data["edit_antispam_link"]["list"]
+        remove = True if context.user_data["edit_antispam_link"]["action"] == "remove" else False
         if list_to_edit != "greylist":
             what = {"singular": "dominio", "plural": "domini"}
         else:
             what = {"singular": "link", "plural": "link"}
         text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
                 f"↦ {icons[list_to_edit]} <i>Blocco Link – {list_to_edit.capitalize()}</i>\n\n")
+
         if not any(x.type in MessageEntity.URL for x in update.effective_message.entities):
             text = ("⚠ Il messaggio non contiene link. Invia uno più " +
                     ("domini." if list_to_edit != "greylist" else "link."))
@@ -1186,7 +1189,7 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
                     "reply_markup": InlineKeyboardMarkup(keyboard)
                 }
             )
-            return ModerationSettingsStates.ANTISPAM_ADD_LINK_LIST
+            return ModerationSettingsStates.ANTISPAM_EDIT_LINK_LIST
 
         links = []
         for n, el in enumerate(update.effective_message.entities):
@@ -1199,31 +1202,48 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
                          if list_to_edit != "greylist" else link)
 
         current = context.bot_data['configuration']['moderation']['antispam']['link'].get(list_to_edit)
-        added = []
+        items = []
         for el in links:
-            if el not in current:
+            if el not in current and not remove:
                 context.bot_data['configuration']['moderation']['antispam']['link'].get(list_to_edit).append(el)
-                added.append(el)
+                items.append(el)
+            elif el in current and remove:
+                context.bot_data['configuration']['moderation']['antispam']['link'].get(list_to_edit).remove(el)
+                items.append(el)
 
-        if len(added) == 0:
-            text += f"❕ Tutti i {what['plural']} indicati sono <b>già presenti</b> nella {list_to_edit.capitalize()}."
-        else:
-            if len(added) == 1:
-                text += f"✅ {what['singular']} <code>{added[0]}</code> <b>aggiunto correttamente</b>."
+        if len(items) == 0:
+            if not remove:
+                text += (f"❕ Tutti i {what['plural']} indicati sono <b>già presenti</b> "
+                         f"nella {list_to_edit.capitalize()}.")
             else:
-                text += (f"✅ {what['plural']} {', '.join(f'<code>{el}</code>' for el in added)} "
-                         f"<b>aggiunti correttamente</b>.")
+                text += (f"❕ Tutti i {what['plural']} indicati <b>non sono presenti</b> "
+                         f"nella {list_to_edit.capitalize()}.")
+        else:
+            if len(items) == 1:
+                text += (f"✅ {what['singular'].capitalize()} <code>{items[0]}</code> "
+                         f"<b>{'aggiunto' if not remove else 'rimosso'} correttamente</b>.")
+            else:
+                text += (f"✅ {what['plural'].capitalize()} {', '.join(f'<code>{el}</code>' for el in items)} "
+                         f"<b>{'aggiunti' if not remove else 'rimossi'} correttamente</b>.")
+
+        if not remove:
+            button = InlineKeyboardButton(
+                        text=f"➕ Aggiungi Altro {what['singular']}",
+                        callback_data=f"antispam_add_{list_to_edit}"
+            )
+        else:
+            button = InlineKeyboardButton(
+                text=f"➖ Rimuovi Altro {what['singular']}",
+                callback_data=f"antispam_remove_{list_to_edit}"
+            )
 
         keyboard = [
-            [
-                InlineKeyboardButton(
-                    text=f"➕ Aggiungi Altro {what['singular']}",
-                    callback_data=f"antispam_add_{list_to_edit}")
-            ],
+            [button],
             [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"antispam_set_link_{list_to_edit}")]
         ]
+
         await context.bot.edit_message_text(
-            message_id=context.user_data['add_antispam_link']['message_id'],
+            message_id=context.user_data['edit_antispam_link']['message_id'],
             chat_id=update.effective_chat.id,
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -1324,11 +1344,54 @@ async def antispam_set_link_list(update: Update, context: CallbackContext):
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode=ParseMode.HTML
         )
-        context.user_data["add_antispam_link"] = {
+        context.user_data["edit_antispam_link"] = {
+            "action": "add",
             "message_id": message.id,
             "list": list_to_edit
         }
-        return ModerationSettingsStates.ANTISPAM_ADD_LINK_LIST
+
+        return ModerationSettingsStates.ANTISPAM_EDIT_LINK_LIST
+
+    if callback_data.startswith("antispam_remove_"):
+        li = context.bot_data['configuration']['moderation']['antispam']['link'][list_to_edit]
+        if len(li) == 0:
+            keyboard = [
+                [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"antispam_set_link_{list_to_edit}")],
+            ]
+            await update.effective_message.edit_text(
+                text=("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                      f"↦ {icons[list_to_edit]} <i>Blocco Link – {list_to_edit.capitalize()}</i>\n\n"
+                      f"0️⃣ <b>La {list_to_edit.capitalize()} è attualmente vuota</b>."),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+            return ConversationHandler.END
+
+        text += f"▫ Ecco la lista attuale.\n\n"
+
+        for el in li:
+            text += f"   – <code>{el}</code>\n"
+
+        text += f"\n➖ Indica il <b>{what['singular']} da rimuovere</b>."
+
+        keyboard = [[InlineKeyboardButton(
+            text="🔙 Indietro",
+            callback_data=f"antispam_set_link_{list_to_edit}")
+        ]]
+
+        message = await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        context.user_data["edit_antispam_link"] = {
+            "action": "remove",
+            "message_id": message.id,
+            "list": list_to_edit
+        }
+
+        return ModerationSettingsStates.ANTISPAM_EDIT_LINK_LIST
 
 
 async def antiflood_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -136,14 +136,13 @@ async def send_action_message_after(update: Update,
                                            action=ChatAction.TYPING)
 
     job_id = str(uuid4())
-    job = context.job_queue.run_once(
+    context.job_queue.run_once(
         callback=job_queue_functions.scheduled_send_message,
         data=job_data,
         when=time,
         name=job_id
     )
     context.bot_data["jobs"][job_id] = {
-        "job": job,
         "returned_value": None,
         "done": False
     }
