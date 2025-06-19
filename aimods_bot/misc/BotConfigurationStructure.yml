@@ -9,7 +9,7 @@ moderation:
       punishment:
         type: "kick"
         time: 100
-      allow_after: 100
+      allow_after: 3600
       whitelist: []
       blacklist: []
       greylist: []

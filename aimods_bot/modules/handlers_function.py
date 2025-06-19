@@ -1,6 +1,6 @@
 import copy
 import locale
-import globals
+import constants
 import os
 import html
 from datetime import timezone
@@ -15,7 +15,7 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
 from database_functions import add_to_table
-from globals import Permissions, ModerationSettingsStates
+from constants import Permissions, ModerationSettingsStates
 from utils import *
 
 RULES_ACCEPTED = 0
@@ -35,6 +35,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     if not (edit_bool := True if update.callback_query else False):
         await safe_delete(update=update, context=context)
+
     if await is_admin(update.effective_user.id, context):
         keyboard = [
             [
@@ -106,7 +107,7 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
         else:
             until_date = None
             rome_until_date = None
-        await globals.pyro_instance.ban_chat_member(
+        await constants.pyro_instance.ban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=uid,
             until_date=until_date
@@ -415,7 +416,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
     # resolving del peer
     try:
-        user = await globals.pyro_instance.get_users(
+        user = await constants.pyro_instance.get_users(
             user_ids=parsed["user"] or replied.from_user.id
         )
     except PeerIdInvalid:
@@ -482,7 +483,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
         # sono gestite con clausola 'except Exception' (vedi sopra).
 
         # noinspection PyUnboundLocalVariable
-        member = await globals.pyro_instance.get_chat_member(
+        member = await constants.pyro_instance.get_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=user.id
         )
@@ -670,7 +671,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
     elif command == "ban" or command == "unban":
         if command == "ban":
             try:
-                await globals.pyro_instance.ban_chat_member(
+                await constants.pyro_instance.ban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=user.id,
                     until_date=until_date
@@ -702,7 +703,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
                 # Aggiunto rimozione dalla blacklist in caso di unban di un utente blacklistato
                 if user.id in context.bot_data.get("ban_list", {}):
                     context.bot_data.get("ban_list", {}).pop(user.id, None)
-                await globals.pyro_instance.unban_chat_member(
+                await constants.pyro_instance.unban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=user.id
                 )
@@ -782,7 +783,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, command
 
         if warns_count >= max_warns:
             try:
-                await globals.pyro_instance.ban_chat_member(
+                await constants.pyro_instance.ban_chat_member(
                     chat_id=update.effective_chat.id,
                     user_id=member.user.id,
                     until_date=until_date
@@ -1040,6 +1041,7 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     antispam_configuration = context.bot_data['configuration']['moderation']['antispam']
     toggle = antispam_configuration['toggle']
     punishment = antispam_configuration['punishment']['type']
+    punishment_text = f"{punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>"
     time_total_seconds = antispam_configuration['punishment']['time']
     time_text = await get_time_text(time_total_seconds) if time_total_seconds > 30 else "♾️ A Tempo Indeterminato"
 
@@ -1090,10 +1092,11 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if any(x in callback_data.split('_')[-1] for x in ["ban", "warn", "mute", "kick"]):
             punishment = context.bot_data['configuration']['moderation']['antispam']['punishment']['type'] = \
                 callback_data.split('_')[-1]
+            punishment_text = f"{punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>"
         text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
                 "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
                 "▫️ Puoi scegliere da qui la punizione da comminare a chi spamma e impostarne la durata.\n\n"
-                f"🔸 <u>Punizione</u> – {punishment_emojis[punishment]} <i>{punishment.capitalize()}</i>\n"
+                f"🔸 <u>Punizione</u> – {punishment_text}\n"
                 f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
 
         if time_total_seconds <= 30:
@@ -1138,6 +1141,16 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     match callback_data:
         case "antispam_set_links":
             allow_after = context.bot_data['configuration']['moderation']['antispam']['link']['allow_after']
+            if allow_after == 0:
+                allow_after_text = "🆓 Nessun Limite"
+            elif allow_after <= 1800:
+                allow_after_text = f"{int(allow_after / 60)} {'Minuti' if allow_after > 60 else 'Minuto'}"
+            elif allow_after <= 43200:
+                allow_after_text = f"{int(allow_after / 3600)} {'Ore' if allow_after > 3600 else 'Ora'}"
+            elif allow_after <= 432000:
+                allow_after_text = f"{int(allow_after / 86400)} {'Giorni' if allow_after > 86400 else 'Giorno'}"
+            else:
+                allow_after_text = "Una settimana"
             keyboard = [
                 [InlineKeyboardButton(text="⚖️ Punizione", callback_data="antispam_set_link_punishment")],
                 [InlineKeyboardButton(text="⌛️ Consenti Dopo", callback_data="antispam_set_link_allow_after")],
@@ -1151,7 +1164,7 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
                     "↦ ⛓️‍💥 <i>Blocco Link</i>\n\n"
                     "▫️ Da qui puoi impostare le regole di gestione dei link.\n\n"
-                    f"🔸 <u>Consenti Link Dopo</u>: <i>{allow_after} secondi</i>\n\n"
+                    f"🔸 <u>Consenti Link Dopo</u>: <i>{allow_after_text}</i>\n\n"
                     f"🔹 Scegli un'opzione.")
             await update.effective_message.edit_text(
                 text=text,
@@ -1168,6 +1181,73 @@ async def antispam_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         case "security_filters_settings":
             await moderation_settings(update=update, context=context)
             return ConversationHandler.END
+
+    if callback_data.startswith("antispam_set_link_allow_after"):
+        if callback_data.startswith("antispam_set_link_allow_after_"):
+            duration_list = callback_data.split("_")[-2:]
+            if duration_list[-1] == "off":
+                new_duration = 0
+            elif duration_list[-1] == "min":
+                new_duration = int(duration_list[0]) * 60
+            elif duration_list[-1] == "hour":
+                new_duration = int(duration_list[0]) * 3600
+            elif duration_list[-1] == "day":
+                new_duration = int(duration_list[0]) * 86400
+            else:
+                new_duration = 604800
+            context.bot_data['configuration']['moderation']['antispam']['link']['allow_after'] = new_duration
+
+        allow_after = context.bot_data['configuration']['moderation']['antispam']['link']['allow_after']
+        if allow_after == 0:
+            allow_after_text = "🆓 Nessun Limite"
+        elif allow_after <= 1800:
+            allow_after_text = f"{int(allow_after / 60)} {'Minuti' if allow_after > 60 else 'Minuto'}"
+        elif allow_after <= 43200:
+            allow_after_text = f"{int(allow_after / 3600)} {'Ore' if allow_after > 3600 else 'Ora'}"
+        elif allow_after <= 432000:
+            allow_after_text = f"{int(allow_after / 86400)} {'Giorni' if allow_after > 86400 else 'Giorno'}"
+        else:
+            allow_after_text = "Una settimana"
+
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                "↦ ⌛️ <i>Blocco Link – Consenti Dopo</i>\n\n"
+                "▫ Da qui puoi impostare <b>dopo quanto tempo dall'ingresso nel gruppo un utente può mandare un "
+                "qualsiasi link, a prescindere che questo debba essere punito o meno</b>.\n\n"
+                f"☝️ La punizione comminata sarà quella "
+                f"<b>impostata per lo spamming dei link</b> ({punishment_text}).\n\n"
+                f"⌛️ <b>Consenti Dopo</b> – <i>{allow_after_text}</i>\n\n"
+                f"🔹 Scegli una durata tra quelle proposte.")
+        keyboard = [
+            [InlineKeyboardButton(text="🆓 Nessun Limite", callback_data="antispam_set_link_allow_after_off")],
+            [
+                InlineKeyboardButton(text="1 Minuto", callback_data="antispam_set_link_allow_after_1_min"),
+                InlineKeyboardButton(text="2 Minuti", callback_data="antispam_set_link_allow_after_2_min"),
+                InlineKeyboardButton(text="️3 Minuti", callback_data="antispam_set_link_allow_after_3_min")
+            ],
+            [
+                InlineKeyboardButton(text="️5 Minuti", callback_data="antispam_set_link_allow_after_5_min"),
+                InlineKeyboardButton(text="10 Minuti", callback_data="antispam_set_link_allow_after_10_min"),
+                InlineKeyboardButton(text="30 Minuti", callback_data="antispam_set_link_allow_after_30_min")
+            ],
+            [
+                InlineKeyboardButton(text="1 Ora", callback_data="antispam_set_link_allow_after_1_hour"),
+                InlineKeyboardButton(text="5 Ore", callback_data="antispam_set_link_allow_after_5_hour"),
+                InlineKeyboardButton(text="12 Ore", callback_data="antispam_set_link_allow_after_12_hour")
+            ],
+            [
+                InlineKeyboardButton(text="1 Giorno", callback_data="antispam_set_link_allow_after_1_day"),
+                InlineKeyboardButton(text="5 Giorni", callback_data="antispam_set_link_allow_after_5_day"),
+                InlineKeyboardButton(text="1 Settimana", callback_data="antispam_set_link_allow_after_1_week")
+            ],
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="antispam_set_links")]
+        ]
+        if html.unescape(update.effective_message.text_html_urled) != text:
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+        return ModerationSettingsStates.ANTISPAM_SET_LINK
 
     return None
 

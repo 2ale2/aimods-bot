@@ -2,7 +2,7 @@
 
 import os
 import yaml
-import globals
+import constants
 
 from dotenv import load_dotenv
 from telegram.ext import Application
@@ -14,6 +14,7 @@ from loggers import bot_logger
 from utils import get_data_from_json, get_time_until_next_recap
 from exceptions import handle_validation_errors
 from datetime import timedelta
+
 
 load_dotenv()
 
@@ -95,6 +96,10 @@ async def set_application_data(application: Application):
     errors = validate_structure(yaml_data, raw_template)
     handle_validation_errors(errors)
 
+    for el in application.user_data:
+        if "settings_main_message" in application.user_data[el]:
+            del application.user_data[el]["settings_main_message"]
+
     if "configuration" not in application.bot_data:
         application.bot_data["configuration"] = yaml_data
 
@@ -164,7 +169,7 @@ async def set_application_data(application: Application):
 
     # setto l'istanza di pyrotgfork
     try:
-        pyro_instance = Client(
+        pyro_inst = Client(
             name="bridge_bot",
             api_id=os.getenv("API_ID"),
             api_hash=os.getenv("API_HASH"),
@@ -174,16 +179,18 @@ async def set_application_data(application: Application):
         bot_logger.error(e)
         raise
 
-    await pyro_instance.start()
+    _pyro_instance = pyro_inst
 
-    globals.pyro_instance = pyro_instance
+    constants.pyro_instance = _pyro_instance
+
+    await constants.pyro_instance.start()
 
     if "ban_list" not in application.bot_data:
         application.bot_data["ban_list"] = {}
 
 
 async def post_shutdown(application: Application):
-    await globals.pyro_instance.stop()
+    await constants.pyro_instance.stop()
 
 
 async def get_admins(app: Application):

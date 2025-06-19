@@ -1,5 +1,5 @@
 from telegram.ext import ConversationHandler, CallbackQueryHandler
-from aimods_bot.modules.globals import ModerationSettingsStates
+from aimods_bot.modules.constants import ModerationSettingsStates
 from aimods_bot.modules import handlers_function
 from aimods_bot.modules.handlers_package.moderation.punishment_duration_handler import set_punishment_duration_handler
 
