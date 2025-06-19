@@ -68,6 +68,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return ConversationHandler.END
     else:
+        keyboard = [
+            [
+                InlineKeyboardButton(text="❔ Effettua una Richiesta", callback_data="requests"),
+            ]
+        ]
+        if not edit_bool:
+            await context.bot.send_message(
+                text="🎛 <b>Benvenuto Utente</b>\n\n"
+                     "▫️ Questo è il bot ufficiale di Aimods.\n\n"
+                     "🔹 Scegli un'opzione per cominciare.",
+                chat_id=update.effective_user.id,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="HTML"
+            )
+        else:
+            await context.bot.edit_message_text(
+                message_id=update.effective_message.message_id,
+                text="🎛 <b>Benvenuto Utente</b>\n\n"
+                     "▫️ Questo è il bot ufficiale di Aimods.\n\n"
+                     "🔹 Scegli un'opzione per cominciare.",
+                chat_id=update.effective_user.id,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="HTML"
+            )
         # stampa
         pass
 
