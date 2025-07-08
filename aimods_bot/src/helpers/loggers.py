@@ -27,4 +27,4 @@ console_handler.setFormatter(file_formatter)
 logger.addHandler(console_handler)
 
 # Silenzia il root logger se non serve
-logging.getLogger().setLevel(logging.WARNING)
+# logging.getLogger().setLevel(logging.WARNING)

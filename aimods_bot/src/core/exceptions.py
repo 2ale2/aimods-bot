@@ -1,0 +1,56 @@
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild("exceptions")
+
+
+class BotException(Exception):
+    """Eccezione base per tutte le eccezioni del bot."""
+    def __init__(self, message: str = "Si è verificato un errore generico."):
+        super().__init__(message)
+
+
+# ========== DATABASE ==========
+class DatabaseBotException(BotException):
+    """Errore durante le operazioni col database."""
+    def __init__(self, message: str = "Errore nel database.", code: int = None):
+        self.code = code
+        super().__init__(message)
+
+
+# ========== DATABASE ==========
+class JobDataMissingException(BotException):
+    """Informazioni mancanti nei dati del Job"""
+    def __init__(self, message: str = "Dati mancanti nel job.", code: int = None):
+        self.code = code
+        super().__init__(message)
+
+
+# ========== CONFIGURAZIONE ==========
+class ConfigValidationException(BotException):
+    """Errore nella validazione della configurazione."""
+    def __init__(self, errors: list[str]):
+        self.errors = errors
+        message = f"Validazione configurazione fallita con {len(errors)} errore(i)."
+        super().__init__(message)
+
+
+def handle_validation_errors(errors: list[str]):
+    """
+    Logga e solleva eccezione se presenti errori nella validazione della configurazione.
+    """
+    if errors:
+        for err in errors:
+            log.error(f"[ConfigValidation] {err}")
+        raise ConfigValidationException(errors)
+
+
+# ========== TELEGRAM / CALLBACK ==========
+class TelegramDataException(BotException):
+    """Errore nei dati ricevuti da Telegram."""
+    pass
+
+
+# ========== PERMESSI / SICUREZZA ==========
+class UnauthorizedAccessException(BotException):
+    """L'utente non ha i permessi per eseguire l'azione richiesta."""
+    pass
