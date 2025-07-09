@@ -2,7 +2,7 @@ import asyncio
 import os
 from contextlib import nullcontext
 from uuid import uuid4
-from typing import Optional
+from typing import Optional, Any
 
 import telegram.error
 from telegram import Update
@@ -11,18 +11,12 @@ from telegram.ext import ContextTypes
 
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import JobDataMissingException
+from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild("job_queue")
 
 
 # ========== UTILITÀ ==========
-
-def get_valid_thread_id(update: Update) -> Optional[int]:
-    thread_id = update.effective_message.message_thread_id
-    if thread_id is not None and thread_id < 20:
-        return thread_id
-    return None
-
 
 def register_job(context, job_id: str):
     context.bot_data.setdefault("jobs", {})
@@ -85,6 +79,57 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
         if job_to_edit:
             context.bot_data["jobs"].pop(job_to_edit, None)
         log.error(f"❌ Errore nell'invio programmato: {e}")
+
+
+async def send_action_message_after(update: Update,
+                                    context: ContextTypes.DEFAULT_TYPE,
+                                    text: str,
+                                    recipient_id: Optional[int] = None,
+                                    time: int = 1,
+                                    additional_job_data: Optional[dict] = None):
+    """
+        Invia un messaggio dopo un certo tempo, mostrando prima l'azione di scrittura o upload.
+    """
+
+    thread_id = additional_job_data.get("thread_id") if additional_job_data and "thread_id" in additional_job_data \
+        else get_valid_thread_id(update)
+
+    job_data: dict[str, Any] = (additional_job_data or {}) | {
+        "text": text,
+        "chat_id": recipient_id or update.effective_chat.id
+    }
+
+    if additional_job_data and "attachments" in additional_job_data:
+        job_data["media"] = {
+            "send": additional_job_data["attachments"]["files"],
+            "send_as_document": bool(additional_job_data["attachments"].get("send_as_document", False)),
+            "delete_after_sending": additional_job_data["attachments"].get("delete_after_sending", False)
+        }
+        await context.bot.send_chat_action(
+            chat_id=job_data["chat_id"],
+            message_thread_id=thread_id,
+            action=ChatAction.UPLOAD_DOCUMENT
+        )
+    else:
+        await context.bot.send_chat_action(
+            chat_id=job_data["chat_id"],
+            message_thread_id=thread_id,
+            action=ChatAction.TYPING
+        )
+
+    job_id = str(uuid4())
+    context.job_queue.run_once(
+        callback=scheduled_send_message,
+        data=job_data,
+        when=time,
+        name=job_id
+    )
+
+    context.bot_data.setdefault("jobs", {})
+    context.bot_data["jobs"][job_id] = {
+        "returned_value": None,
+        "done": False
+    }
 
 
 async def _send_media_message(context, data, kwargs):
