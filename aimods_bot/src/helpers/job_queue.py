@@ -39,8 +39,7 @@ def mark_job_done(context, job_id: str, message_id: int):
 async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
     if "chat_id" not in data or "message_id" not in data:
-        log.error("❗ 'chat_id' o 'message_id' mancanti nei dati del job.")
-        return
+        raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id'")
 
     try:
         await context.bot.delete_message(
@@ -117,8 +116,7 @@ async def _send_media_message(context, data, kwargs):
 async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
     if not all(k in data for k in ("chat_id", "message_id", "text")):
-        log.warning("❗ 'chat_id', 'message_id' o 'text' mancano nel job.")
-        return
+        raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id' o 'text'")
 
     try:
         await context.bot.edit_message_text(
@@ -131,3 +129,55 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
         log.info(f"✏️ Messaggio modificato in {data['chat_id']}")
     except telegram.error.TelegramError as e:
         log.error(f"❌ Errore durante la modifica del messaggio: {e}")
+
+
+async def send_temporary_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    text: str,
+    additional_job_data: Optional[dict] = None,
+    delay_before: int = 2,
+    delay_delete: int = 10
+):
+    """
+    Invia un messaggio temporaneo che viene eliminato dopo un certo tempo.
+    """
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        message_thread_id=get_valid_thread_id(update),
+        action=ChatAction.TYPING
+    )
+
+    job_id = str(uuid4())
+    media_bool = additional_job_data.get("media", False) if additional_job_data else False
+
+    context.job_queue.run_once(
+        callback=scheduled_send_message,
+        when=delay_before,
+        name=job_id,
+        data={
+            "chat_id": update.effective_chat.id,
+            "thread_id": get_valid_thread_id(update),
+            "text": text,
+            "reply_markup": additional_job_data.get("reply_markup") if additional_job_data else None,
+            "media": additional_job_data if media_bool else False
+        }
+    )
+
+    register_job(context, job_id)
+    await _wait_for_job_completion(context, job_id)
+
+    message_id = context.bot_data["jobs"][job_id]["returned_value"]
+    context.bot_data["jobs"].pop(job_id, None)
+
+    context.job_queue.run_once(
+        callback=scheduled_delete_message,
+        when=delay_delete,
+        data={"chat_id": update.effective_chat.id, "message_id": message_id}
+    )
+
+
+async def _wait_for_job_completion(context, job_id: str):
+    while not context.bot_data["jobs"][job_id]["done"]:
+        await asyncio.sleep(0.1)
