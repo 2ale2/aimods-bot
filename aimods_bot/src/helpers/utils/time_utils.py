@@ -1,6 +1,7 @@
 import re
 from datetime import timedelta, datetime
 
+
 def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
@@ -37,6 +38,7 @@ async def parse_duration(duration_string: str) -> timedelta | None:
         kwargs[mapping[unit]] += int(num)
 
     return timedelta(**kwargs) if any(kwargs.values()) else None
+
 
 async def get_time_until_next_recap():
     # in futuro potrebbe implementare adattamento a giorno e ora personalizzabili

@@ -22,6 +22,44 @@ async def connect_to_database() -> Connection:
         raise DatabaseBotException("Errore connessione al database.") from e
 
 
+async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
+    """
+    Revoca l'ultima azione attiva e non ancora revocata di un utente, se presente.
+
+    Args:
+        table: nome della tabella (es. 'bans', 'mutes', ecc.).
+        user_id: ID dell'utente.
+
+    Returns:
+        dict con i dati dell'azione revocata, oppure None se non c'è nulla da revocare.
+    """
+    select_query = f"""
+            SELECT * FROM {table}
+            WHERE user_id = $1
+            AND (expires_at IS NULL OR expires_at > now())
+            AND revoked_at IS NULL
+            ORDER BY issued_at DESC
+            LIMIT 1
+        """
+
+    rows = await fetch_query(select_query, params=[user_id])
+    if not rows:
+        return None  # nessuna azione da revocare
+
+    action = dict(rows[0])
+    action_id = action["id"]
+
+    update_query = f"UPDATE {table} SET revoked_at = now() WHERE id = $1"
+    success = await execute_query(update_query, params=[action_id])
+
+    if success:
+        log.debug(f"✅ Revocata azione '{action_id}' per user {user_id} in '{table}'")
+        return action
+
+    log.warning(f"⚠️ Fallita revoca di azione {action_id} in '{table}'")
+    return None
+
+
 async def get_columns_order(table_name: str) -> list[str]:
     """
     Recupera l'ordine delle colonne di una tabella.

@@ -1,11 +1,11 @@
+from typing import Optional, Any
+
 import telegram
-from aimods_bot.src.helpers.loggers import logger
-from uuid import uuid4
-from typing import Optional
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.helpers.job_queue import send_action_message_after
+from aimods_bot.src.core.exceptions import CallbackDataException
+from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("telegram_utils")
 
@@ -40,53 +40,72 @@ async def safe_delete(update: Update, context: ContextTypes.DEFAULT_TYPE, messag
         log.error(f"Errore inatteso durante l'eliminazione del messaggio: {e}", exc_info=True)
 
 
-async def send_private_alert(update: Update,
-                             context: ContextTypes.DEFAULT_TYPE,
-                             text: str,
-                             button_text="Open It Privately 💬",
-                             delay=2):
+def validate_callback_structure(
+    callback_data: str,
+    expected_fields: list[dict],
+    separator: str = "_",
+    should_be: str = None
+) -> list[Any]:
     """
-        Invia un messaggio privato in una chat pubblica apribile solo dal destinatario.
+        Valida la struttura del callback_data e ne converte i valori secondo specifiche.
 
         Args:
-            text (str): Il testo del messaggio di alert.
-            button_text (str): Il testo del pulsante inline (default: "Open It Privately 💬").
-            delay (int): Tempo in secondi prima di inviare il messaggio (default: 2s).
-    """
+            callback_data: la stringa di callback ricevuta.
+            expected_fields: lista di dict, ognuno con:
+                - "type": type o "literal"
+                - "value": se type == "literal"
+                Tutti gli elementi sono obbligatori: la loro assenza produce eccezioni.
+            separator: separatore tra i campi.
+            should_be: stringa per messaggio d’errore.
 
-    if "alerts" not in context.user_data:
-        context.user_data["alerts"] = {}
+        Returns:
+            Lista di valori convertiti (o None se opzionali mancanti).
 
-    alert_id = str(uuid4())
-    context.user_data["alerts"][alert_id] = text
+        Raises:
+            CallbackDataException
+        """
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                button_text,
-                callback_data=f"alert_{update.effective_user.id}_{alert_id}"
-            )
-        ]
-    ]
+    parts = callback_data.split(separator)
 
-    message_text = f"🔐 Message for {update.effective_user.name}"
-    thread_id = get_valid_thread_id(update)
+    if len(parts) != len(expected_fields):
+        raise CallbackDataException(callback_data, should_be=should_be)
 
-    if delay > 0:
-        await send_action_message_after(
-            update=update,
-            context=context,
-            text=message_text,
-            time=delay,
-            additional_job_data={
-                "thread_id": thread_id,
-                "reply_markup": InlineKeyboardMarkup(keyboard)
-            }
-        )
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            message_thread_id=thread_id,
-            text=message_text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+    result = []
+
+    for i, spec in enumerate(expected_fields):
+        raw_value = parts[i]
+        field_type = spec["type"]  # Se non c'è, genero eccezione
+
+        # Caso 1: valore letterale (fisso)
+        if field_type == "literal":
+            expected_value = spec.get("value")
+            if raw_value != expected_value:
+                raise CallbackDataException(callback_data, should_be)
+            result.append(raw_value)
+
+        # Caso 2: tipo singolo (int, str)
+        elif isinstance(field_type, type):
+            try:
+                result.append(field_type(raw_value))
+            except Exception:
+                raise CallbackDataException(callback_data, should_be)
+
+        # Caso 3: lista di tipi alternativi [int, str]
+        elif isinstance(field_type, list):
+            converted = None
+            # Ordine sequenziale
+            # Se il tipo è preferibile che sia int (str), int (str) dovrebbe essere il primo della lista
+            for t in field_type:
+                try:
+                    converted = t(raw_value)
+                    break
+                except Exception:
+                    continue
+            if converted is None:
+                raise CallbackDataException(callback_data, should_be)
+            result.append(converted)
+
+        else:
+            raise ValueError(f"Tipo di campo non gestito: {field_type}")
+
+    return result

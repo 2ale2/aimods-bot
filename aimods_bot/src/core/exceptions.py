@@ -34,6 +34,24 @@ class ConfigValidationException(BotException):
         super().__init__(message)
 
 
+# ========== CONFIGURAZIONE ==========
+class CallbackDataException(BotException):
+    """Errore nella struttura dei dati di callback."""
+    def __init__(self, callback_data: str, should_be=None):
+        self.callback_data = callback_data
+        message = (f"Struttura dei dati di callback '{callback_data}' errata"
+                   f"{f'. Dovrebbe essere: {should_be}' if should_be else '.'}")
+        super().__init__(message)
+
+
+class MissingConfigurationException(BotException):
+    """Configurazione mancante (inesistente o con sintassi errata)."""
+    def __init__(self, what: str):
+        self.what = what
+        message = f"Configurazione mancante o con sintassi errata per l'elemento '{what}'."
+        super().__init__(message)
+
+
 def handle_validation_errors(errors: list[str]):
     """
     Logga e solleva eccezione se presenti errori nella validazione della configurazione.
