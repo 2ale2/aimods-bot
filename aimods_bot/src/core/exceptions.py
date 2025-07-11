@@ -34,6 +34,13 @@ class ConfigValidationException(BotException):
         super().__init__(message)
 
 
+class ConfigError(Exception):
+    def __init__(self, errors):
+        self.errors = errors
+        message = f"Configuration validation failed with {len(errors)} error(s)."
+        super().__init__(message)
+
+
 # ========== CONFIGURAZIONE ==========
 class CallbackDataException(BotException):
     """Errore nella struttura dei dati di callback."""
