@@ -188,9 +188,14 @@ async def send_temporary_message(
     Invia un messaggio temporaneo che viene eliminato dopo un certo tempo.
     """
 
+    chat_id = additional_job_data.get("chat_id") \
+        if additional_job_data and "chat_id" in additional_job_data \
+        else update.effective_chat.id
+    thread_id = get_valid_thread_id(update)
+
     await context.bot.send_chat_action(
-        chat_id=update.effective_chat.id,
-        message_thread_id=get_valid_thread_id(update),
+        chat_id=chat_id,
+        message_thread_id=thread_id,
         action=ChatAction.TYPING
     )
 
@@ -202,8 +207,8 @@ async def send_temporary_message(
         when=delay_before,
         name=job_id,
         data={
-            "chat_id": update.effective_chat.id,
-            "thread_id": get_valid_thread_id(update),
+            "chat_id": chat_id,
+            "thread_id": thread_id,
             "text": text,
             "reply_markup": additional_job_data.get("reply_markup") if additional_job_data else None,
             "media": additional_job_data if media_bool else False
@@ -219,7 +224,7 @@ async def send_temporary_message(
     context.job_queue.run_once(
         callback=scheduled_delete_message,
         when=delay_delete,
-        data={"chat_id": update.effective_chat.id, "message_id": message_id}
+        data={"chat_id": chat_id, "message_id": message_id}
     )
 
 

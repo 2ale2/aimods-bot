@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ContextTypes, ConversationHandler, CallbackContext
+from telegram.ext import ContextTypes, ConversationHandler
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 
 

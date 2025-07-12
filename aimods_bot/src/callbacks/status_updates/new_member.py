@@ -17,8 +17,7 @@ TIMEOUT_SECONDS = 5
 async def new_member_joined_forum(update, context):
     uid = update.effective_user.id
 
-    if await _handle_if_blacklisted(update, context, uid):
-        return ConversationHandler.END
+    await _handle_if_blacklisted(update, context, uid)
 
     if await _handle_if_banned(update, context, uid):
         return ConversationHandler.END
@@ -64,6 +63,7 @@ async def _handle_if_blacklisted(update, context, uid: int) -> bool:
         update=update,
         context=context,
         text=text,
+        additional_job_data={"chat_id": context.bot_data["group_chat_id"]},
         delay_delete=300
     )
 
