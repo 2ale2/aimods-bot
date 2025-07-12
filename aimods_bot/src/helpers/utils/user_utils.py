@@ -1,3 +1,4 @@
+from telegram import Update
 from telegram.ext import ContextTypes
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
