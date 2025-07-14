@@ -42,25 +42,27 @@ async def add_to_table(table_name: str, content: dict):
     if not isinstance(content, dict) or not content:
         raise ValueError("Il contenuto da inserire deve essere un dizionario non vuoto.")
 
-    async with await connect_to_database() as conn:
-        try:
-            columns_order = await get_columns_order(conn, table_name)
-            ordered_content = {col: content[col] for col in columns_order if col in content}
+    conn = await connect_to_database()
+    try:
+        columns_order = await get_columns_order(conn, table_name)
+        ordered_content = {col: content[col] for col in columns_order if col in content}
 
-            if not ordered_content:
-                raise DatabaseBotException(f"'content' non contiene colonne valide per {table_name}.")
+        if not ordered_content:
+            raise DatabaseBotException(f"'content' non contiene colonne valide per {table_name}.")
 
-            columns = list(ordered_content.keys())
-            values = list(ordered_content.values())
-            placeholders = ', '.join(f"${i+1}" for i in range(len(values)))
+        columns = list(ordered_content.keys())
+        values = list(ordered_content.values())
+        placeholders = ', '.join(f"${i+1}" for i in range(len(values)))
 
-            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
-            await conn.execute(query, *values)
+        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+        await conn.execute(query, *values)
 
-        except Exception as e:
-            db_logger.exception(f"Errore durante l'inserimento in {table_name}")
-            bot_logger.error("Errore nel database. Vedi i log del database.")
-            raise
+    except Exception as e:
+        db_logger.exception(f"Errore durante l'inserimento in {table_name}")
+        bot_logger.error("Errore nel database. Vedi i log del database.")
+        raise
+    finally:
+        await conn.close()
 
 
 async def execute_query(query: str, for_value=False, params: list = None):

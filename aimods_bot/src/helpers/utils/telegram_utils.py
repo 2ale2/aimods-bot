@@ -121,3 +121,11 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
         log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
         return None
     return member
+
+
+def is_username(string) -> bool:
+    if string.isdigit():
+        return False
+    if not string.startswith("@"):
+        return False
+    return True

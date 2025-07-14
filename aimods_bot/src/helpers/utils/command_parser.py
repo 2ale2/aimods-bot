@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import MissingConfigurationException
 
@@ -75,8 +75,10 @@ async def parse_command(
         if replied:
             extracted["member"] = _normalize_user(replied.from_user)
         else:
+            # se match, allora extracted["user"]
+            # noinspection PyUnboundLocalVariable
             extracted["member"] = {
-                "id": extracted["user"] if (i := extracted["user"].isdigit()) else None,
+                "id": extracted["user"] if (i := not is_username(extracted["user"])) else None,
                 "username": extracted["user"] if not i else None,
                 "first_name": "",
                 "source": "unknown"

@@ -3,10 +3,10 @@ from datetime import datetime, timezone
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime
 
 
-def format_user_mention(user_id: str | int, username: str | None) -> str:
+def format_user_mention(user_id: str | int, username: str | None, first_name: str) -> str:
     if username:
-        return f"@{username} (<code>{user_id}</code>)" if username else f"<code>{user_id}</code>"
-    return f"<code>{user_id}</code>"
+        return f"{'@' + username.removeprefix('@')} (<code>{user_id}</code>)"
+    return f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
 
 
 def get_until_date(duration) -> datetime:

@@ -24,7 +24,7 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
         return
 
     member = parsed["member"]
-    uid = member["username"] or member["id"]
+    uid = member.get("username") or member.get("id")
 
     if uid is None:
         await send_private_alert(
@@ -49,14 +49,14 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
         context.bot_data["ban_list"][member["id"]] = {
             "expires_at": until.astimezone(pytz.UTC) if until != zero_datetime() else None,
             "reason": reason or None,
-            "admin": message.from_user.id
+            "admin": update.effective_user.id
         }
 
         await send_temporary_message(
             update,
             context,
-            text=(f"🖊 Utente {format_user_mention(member["id"], member["username"])} <b>aggiunto in blacklist</b>. "
-                  f"Verrà bannato al primo ingresso.\n\n"
+            text=(f"🖊 Utente {format_user_mention(member["id"], member["username"], member["first_name"])} "
+                  f"<b>aggiunto in blacklist</b>. Verrà bannato al primo ingresso.\n\n"
                   f"ℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."),
             delay_delete=300
         )
@@ -88,11 +88,11 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
             "expires_at": until if until != zero_datetime() else None
         })
 
-    if delete_flag:
+    if delete_flag and message.reply_to_message:
         await safe_delete(update, context, message.reply_to_message)
 
     text = (
-        f"🚫 Utente {format_user_mention(member["id"], member["username"])} <b>bannato</b> "
+        f"🚫 Utente {format_user_mention(member["id"], member["username"], member["first_name"])} <b>bannato</b> "
         f"{format_time_as_rome(until)}"
     )
     if reason:
@@ -100,7 +100,6 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
 
     text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
     await send_temporary_message(update, context, text, delay_delete=300)
-
 
 
 async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
@@ -140,7 +139,7 @@ async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
 
     reason = parsed["message"]
 
-    text = (f"⛓️‍💥 Utente {format_user_mention(member["id"], member["username"])} "
+    text = (f"⛓️‍💥 Utente {format_user_mention(member["id"], member["username"], member["first_name"])} "
             f"<b>{'sbannato' if not popped else 'rimosso dalla blacklist'}</b>.")
     if reason:
         text += f"\n<b>Motivo</b>: {reason}."
