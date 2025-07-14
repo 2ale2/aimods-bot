@@ -1,4 +1,4 @@
-from aimods_bot.src.helpers import constants
+import aimods_bot.src.helpers.constants.constants as constants
 from telegram.ext import Application
 
 

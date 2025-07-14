@@ -1,5 +1,5 @@
 import os
-import aimods_bot.src.helpers.constants as constants
+import aimods_bot.src.helpers.constants.constants as constants
 from datetime import timedelta
 from telegram.ext import Application
 from pyrogram import Client
@@ -104,7 +104,9 @@ async def set_application_data(application: Application):
         log.error(f"Failed to initialize Pyrogram client: {e}")
         raise
 
-    constants.pyro_instance = pyro_inst
+    _pyro_instance = pyro_inst
+
+    constants.pyro_instance = _pyro_instance
     await constants.pyro_instance.start()
 
     # Initialize ban list

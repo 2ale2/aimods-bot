@@ -1,11 +1,11 @@
 from typing import Optional, Any
-
 import telegram
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.exceptions import CallbackDataException
 from aimods_bot.src.helpers.loggers import logger
+import aimods_bot.src.helpers.constants.constants as constants
 
 log = logger.getChild("telegram_utils")
 
@@ -109,3 +109,15 @@ def validate_callback_structure(
             raise ValueError(f"Tipo di campo non gestito: {field_type}")
 
     return result
+
+
+async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifier: int | str):
+    try:
+        member = await constants.pyro_instance.get_chat_member(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=user_identifier
+        )
+    except Exception as e:
+        log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
+        return None
+    return member

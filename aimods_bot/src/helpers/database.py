@@ -94,8 +94,11 @@ async def add_to_table(table_name: str, content: dict) -> bool:
     if not filtered:
         raise DatabaseBotException(f"Nessuna colonna valida trovata per '{table_name}'.")
 
-    query = (f"INSERT INTO {table_name} ({', '.join(filtered.keys())}) "
-             f"VALUES ({', '.join(f'${i+1}' for i in range(len(filtered)))} )")
+    columns = list(filtered.keys())
+    values = list(filtered.values())
+    placeholders = ', '.join(f"${i + 1}" for i in range(len(values)))
+
+    query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
     success = await execute_query(query, list(filtered.values()))
 
     if success:
@@ -110,25 +113,29 @@ async def execute_query(query: str, params: Optional[list] = None) -> bool:
     """
     Esegue una query arbitraria di tipo EXECUTE (insert/update/delete).
     """
-    async with await connect_to_database() as conn:
-        try:
-            await conn.execute(query, *(params or []))
-            log.debug(f"✅ Eseguita: {query} | Params: {params}")
-            return True
-        except Exception as e:
-            log.exception(f"❌ Errore durante l'esecuzione della query: {e}")
-            return False
+    conn = await connect_to_database()
+    try:
+        await conn.execute(query, *(params or []))
+        log.debug(f"✅ Eseguita: {query} | Params: {params}")
+        return True
+    except Exception as e:
+        log.exception(f"❌ Errore durante l'esecuzione di {query}: {e}")
+        return False
+    finally:
+        await conn.close()
 
 
 async def fetch_query(query: str, params: Optional[list] = None) -> Optional[list[asyncpg.Record]]:
     """
     Esegue una query di tipo FETCH (select).
     """
-    async with await connect_to_database() as conn:
-        try:
-            result = await conn.fetch(query, *(params or []))
-            log.debug(f"📥 Fetched: {len(result)} record(s)")
-            return result
-        except Exception as e:
-            log.exception(f"❌ Errore durante il fetch della query: {e}")
-            return None
+    conn = await connect_to_database()
+    try:
+        result = await conn.fetch(query, *(params or []))
+        log.debug(f"📥 Fetched: {len(result)} record(s)")
+        return result
+    except Exception as e:
+        log.exception(f"❌ Errore durante il fetch della query: {e}")
+        return None
+    finally:
+        await conn.close()

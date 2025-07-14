@@ -1,5 +1,6 @@
 import logging
 import os
+import locale
 import sys
 from telegram.ext import ApplicationBuilder
 from aimods_bot.src.core.persistence import PostgresPersistence
@@ -8,6 +9,8 @@ from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
 from aimods_bot.src.handlers.collect import all_handlers
+
+locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
 log = logger.getChild("init")
 

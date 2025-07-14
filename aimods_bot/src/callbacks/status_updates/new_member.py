@@ -26,12 +26,11 @@ async def new_member_joined_forum(update, context):
     return NewUserState.WAITING_RULES_ACCEPTANCE
 
 
-
 async def _handle_if_blacklisted(update, context, uid: int) -> bool:
     if uid not in context.bot_data.get("ban_list", {}):
         return False
 
-    ban_data = context.bot_data["ban_list"][uid]
+    ban_data = context.bot_data["ban_list"].pop(uid)
     until_date = ban_data["expires_at"]
     rome_until = until_date.astimezone(pytz.timezone('Europe/Rome')) if until_date else None
 

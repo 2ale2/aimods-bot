@@ -1,5 +1,5 @@
 import re
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 
 def pluralize(value: int, singular: str, plural: str) -> str:
@@ -52,4 +52,8 @@ async def get_time_until_next_recap():
     return next_recap_time - now
 
 
-
+def zero_datetime() -> datetime:
+    """
+    Restituisce un datetime "zero" (1 gennaio 1970 UTC), usato come valore predefinito per "tempo indeterminato".
+    """
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
