@@ -7,7 +7,7 @@ from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.command_parser import parse_command
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete, normalize_user
 
 log = logger.getChild("kick")
 
@@ -16,7 +16,8 @@ ERROR_MESSAGES = {
     "no_user": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",
     "user_not_found": "⚠️ Warning\n\n▪️ Non riesco a risolvere l'utente specificato, riprova.",
     "user_not_in_group": "⚠️ Warning\n\n▪️ L'utente non è nel gruppo.",
-    "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è bannato."
+    "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è bannato.",
+    "kick_error": "⚠️ Warning\n\n▪️ Errore durante il kick dell'utente (loggato). Riprova."
 }
 
 
@@ -49,36 +50,23 @@ async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
         )
         return
 
-    user = chat_member.user
+    user = normalize_user(chat_member.user)
 
-    try:
-        await context.bot.unban_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
-            user_id=uid
-        )
-        log.debug(f"Utente {uid} kickato con successo.")
-    except Exception as e:
-        log.error(f"Errore durante il kick dell'utente {uid}: {e}")
+    kick_result = await _attempt_kick_user(context, uid)
+    if kick_result["status"] == "error":
         await send_private_alert(
             update=update,
             context=context,
-            text="⚠️ Warning\n\n▪️ Errore durante il kick dell'utente (loggato). Riprova."
+            text=kick_result["message"]
         )
         return
 
     if delete_flag and message.reply_to_message:
         await safe_delete(update, context, message.reply_to_message)
 
-    mention = format_user_mention(user.id, user.username, user.first_name)
+    await _save_kick_to_database(update.effective_user.id, user["id"], parsed.get("message", ""))
 
-    confirmation_text = f"🥊 Utente {mention} <b>kickato</b>."
-
-    if parsed["message"]:
-        confirmation_text += f"\n<b>Motivo</b>: {parsed['message']}."
-
-    await _save_kick_to_database(update.effective_user.id, user.id, parsed.get("message", ""))
-
-    confirmation_text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
+    confirmation_text = _build_confirmation_message(user, parsed["message"])
     await send_temporary_message(update, context, confirmation_text, delay_delete=300)
 
 
@@ -104,6 +92,25 @@ def _validate_user_status(chat_member) -> str | None:
     return None
 
 
+async def _attempt_kick_user(context: ContextTypes.DEFAULT_TYPE, uid: int | str):
+    """
+        Tenta di kickare un utente.
+
+        Returns:
+            dict: {"status": "success"|"error", "message": str}
+        """
+    try:
+        await context.bot.unban_chat_member(
+            chat_id=context.bot_data["group_chat_id"],
+            user_id=uid
+        )
+        log.debug(f"Utente {uid} kickato con successo.")
+        return {"status": "success", "message": ""}
+    except Exception as e:
+        log.error(f"Errore durante il kick dell'utente {uid}: {e}")
+        return {"status": "error", "message": ERROR_MESSAGES["kick_error"]}
+
+
 async def _save_kick_to_database(admin_id: int, user_id: int, reason: str):
     """
     Salva i dati del kick nel database.
@@ -121,3 +128,21 @@ async def _save_kick_to_database(admin_id: int, user_id: int, reason: str):
         })
     except Exception as e:
         log.error(f"Errore durante il salvataggio del kick nel database: {e}")
+
+
+def _build_confirmation_message(member, reason=None):
+    """Costruisce il messaggio di conferma del kick."""
+
+    user_mention = format_user_mention(
+        member["id"],
+        member["username"],
+        member["first_name"]
+    )
+
+    text = f"🥊 Utente {user_mention} <b>kickato</b>."
+
+    if reason:
+        text += f"\n<b>Motivo</b>: {reason}."
+
+    text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
+    return text

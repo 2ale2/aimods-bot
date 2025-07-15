@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username, normalize_user
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import MissingConfigurationException
 
@@ -64,16 +64,16 @@ async def parse_command(
     if "duration" in extracted:
         extracted["duration"] = await parse_duration(extracted["duration"])
 
-    member = await resolve_chat_member(context=context, user_identifier=extracted["user"])
+    response = await resolve_chat_member(context=context, user_identifier=extracted["user"])
 
-    if member:
-        extracted["member"] = _normalize_user(member.user)
+    if response["status"] == "success":
+        extracted["member"] = normalize_user(response["member"])
     else:
         replied = update.effective_message.reply_to_message
         replied = replied if replied and replied.forum_topic_created is None else None
 
         if replied:
-            extracted["member"] = _normalize_user(replied.from_user)
+            extracted["member"] = normalize_user(replied.from_user)
         else:
             # se match, allora extracted["user"]
             # noinspection PyUnboundLocalVariable
@@ -115,12 +115,3 @@ def _extract_permissions(raw: str) -> list[int]:
         return [p for p in map(int, raw.split(",")) if 0 <= p <= 11]
     except Exception:
         return []
-
-
-def _normalize_user(user) -> dict:
-    return {
-        "id": user.id,
-        "username": getattr(user, "username", None),
-        "first_name": getattr(user, "first_name", ""),
-        "source": user.__class__.__name__
-    }

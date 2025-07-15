@@ -1,11 +1,15 @@
-from typing import Optional, Any
+import pyrogram.types
 import telegram
+
+import aimods_bot.src.helpers.constants.constants as constants
+from typing import Optional, Any
+from pyrogram.errors import UserNotParticipant, UserKicked
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.exceptions import CallbackDataException
 from aimods_bot.src.helpers.loggers import logger
-import aimods_bot.src.helpers.constants.constants as constants
 
 log = logger.getChild("telegram_utils")
 
@@ -117,10 +121,24 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
             chat_id=context.bot_data["group_chat_id"],
             user_id=user_identifier
         )
+    except UserNotParticipant or UserKicked as e:
+        if user_identifier.isdigit():
+            try:
+                member = await context.bot.get_chat_member(
+                    chat_id=context.bot_data["group_chat_id"],
+                    user_id=user_identifier
+                )
+            except TelegramError as e:
+                log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
+                return {"status": "failed", "error": "cannot_resolve", "member": None}
+            return {"status": "success", "error": "", "member": member}
+        else:
+            log.debug(f"{user_identifier} non è membro del gruppo")
+        return {"status": "failed", "error": "user_not_participant", "member": None}
     except Exception as e:
         log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
-        return None
-    return member
+        return {"status": "failed", "error": "cannot_resolve", "member": None}
+    return {"status": "success", "error": "", "member": member}
 
 
 def is_username(string) -> bool:
@@ -129,3 +147,15 @@ def is_username(string) -> bool:
     if not string.startswith("@"):
         return False
     return True
+
+
+def normalize_user(user) -> dict:
+    """Funzione utility per normalizzare il tipo ritornata da classi di ritorno diverse."""
+    if isinstance(user, telegram.ChatMember) or isinstance(user, pyrogram.types.ChatMember):
+        user = user.user
+    return {
+        "id": user.id,
+        "username": getattr(user, "username", None),
+        "first_name": getattr(user, "first_name", ""),
+        "source": user.__class__.__name__
+    }

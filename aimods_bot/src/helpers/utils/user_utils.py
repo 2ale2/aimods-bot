@@ -1,7 +1,9 @@
 from telegram.ext import ContextTypes
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
-
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
+from telegram.constants import ChatMemberStatus as ChatMemberStatusPTB
+from pyrogram.enums import ChatMemberStatus as ChatMemberStatusPyro
 
 log = logger.getChild("user_utils")
 
@@ -21,16 +23,19 @@ async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT
     return member.status not in ("left", "kicked")
 
 
-async def user_is_banned(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool | None:
     """
         Verifica se l'utente è bannato (presente in una lista ban).
     """
-    res = await context.bot.get_chat_member(
-        user_id=user_id,
-        chat_id=chat_id
-    )
+    response = await resolve_chat_member(context, user_id)
+    if response["status"] == "failed":
+        log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
+        return None
+    member = response["member"]
     ban_list = context.bot_data.get("ban_list", {})
-    return res.status == "kicked" or str(user_id) in ban_list
+    return (member.status == ChatMemberStatusPTB.BANNED or
+            member.status == ChatMemberStatusPyro.BANNED or
+            str(user_id) in ban_list)
 
 
 async def get_user_warnings(user_id: int) -> int | None:

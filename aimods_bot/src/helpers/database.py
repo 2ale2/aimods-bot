@@ -56,7 +56,7 @@ async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
         log.debug(f"✅ Revocata azione '{action_id}' per user {user_id} in '{table}'")
         return action
 
-    log.warning(f"⚠️ Fallita revoca di azione {action_id} in '{table}'")
+    log.error(f"Fallita revoca di azione {action_id} in '{table}'")
     return None
 
 
