@@ -72,7 +72,6 @@ async def _handle_if_blacklisted(update, context, uid: int) -> bool:
 async def _handle_if_banned(update, context, uid: int) -> bool:
     is_banned = await user_is_banned(
         user_id=uid,
-        chat_id=context.bot_data["group_chat_id"],
         context=context
     )
     if is_banned:

@@ -1,13 +1,12 @@
-import pyrogram.types
 import telegram
 
-import aimods_bot.src.helpers.constants.constants as constants
-from typing import Optional, Any
-from pyrogram.errors import UserNotParticipant, UserKicked
-from telegram import Update
-from telegram.error import TelegramError
+from typing import Optional, Any, Union, Dict
+from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
+from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
+from telegram import Update, ChatMember as PTBChatMember
 from telegram.ext import ContextTypes
 
+import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
 
@@ -115,30 +114,96 @@ def validate_callback_structure(
     return result
 
 
-async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifier: int | str):
+async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifier: Union[int, str]) -> Dict[str, Any]:
+    """Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback."""
+
+    if not user_identifier:
+        log.warning("user_identifier vuoto fornito a resolve_chat_member")
+        return _create_error_response("invalid_identifier")
+
+    chat_id = context.bot_data["group_chat_id"]
+    user_id_str = str(user_identifier)
+
+    pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)
+
+    if pyro_result["status"] == "success" or pyro_result["error"] == "username_404":
+        return pyro_result
+
+    if is_user_id(user_id_str):
+        resolved_id = user_id_str
+    else:
+        user_obj = await _try_pyrogram_user_resolve(user_identifier)
+        resolved_id = user_obj.id if user_obj else None
+
+    if resolved_id:
+        ptb_result = await _try_ptb_resolve(context, chat_id, resolved_id)
+        if ptb_result["status"] == "success":
+            return ptb_result
+
+    log.debug(f"Impossibile risolvere ChatMember per {user_identifier}")
+    return pyro_result
+
+
+async def _try_pyrogram_chat_member_resolve(chat_id: Union[int, str], user_identifier: Union[int, str]) -> Dict[str, Any]:
+    """Tenta di risolvere un ChatMember usando pyrogram."""
+
     try:
         member = await constants.pyro_instance.get_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
+            chat_id=chat_id,
             user_id=user_identifier
         )
-    except UserNotParticipant or UserKicked as e:
-        if user_identifier.isdigit():
-            try:
-                member = await context.bot.get_chat_member(
-                    chat_id=context.bot_data["group_chat_id"],
-                    user_id=user_identifier
-                )
-            except TelegramError as e:
-                log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
-                return {"status": "failed", "error": "cannot_resolve", "member": None}
-            return {"status": "success", "error": "", "member": member}
-        else:
-            log.debug(f"{user_identifier} non è membro del gruppo")
-        return {"status": "failed", "error": "user_not_participant", "member": None}
+        log.debug(f"ChatMember risolto con successo per {user_identifier} (pyrogram)")
+        return _create_success_response(member)
+
+    except (UserNotParticipant, UserKicked) as e:
+        log.debug(f"Utente {user_identifier} non è partecipante del gruppo: {e}")
+        return _create_error_response("user_not_participant")
+    except UsernameNotOccupied:
+        log.debug(f"Utente {user_identifier} non esiste.")
+        return _create_error_response("username_404")
     except Exception as e:
-        log.warning(f"Non è stato possibile ottenere ChatMember per {user_identifier}: {e}")
-        return {"status": "failed", "error": "cannot_resolve", "member": None}
-    return {"status": "success", "error": "", "member": member}
+        log.warning(f"Errore pyrogram durante risoluzione ChatMember per {user_identifier}: {e}")
+        return _create_error_response("cannot_resolve")
+
+
+async def _try_pyrogram_user_resolve(user_identifier: Union[int, str]) -> Optional[PyroUser]:
+    try:
+        return await constants.pyro_instance.get_users(user_ids=user_identifier)
+    except Exception as e:
+        log.warning(f"Errore pyrogram durante risoluzione ChatMember per {user_identifier}: {e}")
+        return None
+
+
+async def _try_ptb_resolve(context: ContextTypes.DEFAULT_TYPE, chat_id: Union[int, str],
+                           user_identifier: Union[int, str]) -> Dict[str, Any]:
+    """Tenta di risolvere un ChatMember usando PTB."""
+    try:
+        member = await context.bot.get_chat_member(
+            chat_id=chat_id,
+            user_id=int(user_identifier)
+        )
+        log.debug(f"ChatMember risolto con successo per {user_identifier} (telegram bot fallback)")
+        return _create_success_response(member)
+
+    except Exception as e:
+        log.warning(f"Errore PTB durante risoluzione ChatMember per {user_identifier}: {e}")
+        return _create_error_response("cannot_resolve")
+
+
+def _create_success_response(member) -> Dict[str, Any]:
+    return {
+        "status": "success",
+        "error": "",
+        "member": member
+    }
+
+
+def _create_error_response(error_code: str) -> Dict[str, Any]:
+    return {
+        "status": "failed",
+        "error": error_code,
+        "member": None
+    }
 
 
 def is_username(string) -> bool:
@@ -153,12 +218,15 @@ def is_user_id(string) -> bool:
 
 def normalize_user(user) -> dict:
     """Funzione utility per normalizzare il tipo ritornata da classi di ritorno diverse."""
-    if isinstance(user, telegram.ChatMember) or isinstance(user, pyrogram.types.ChatMember):
-        user = user.user
+    chat_member = isinstance(user, (PTBChatMember, PyroChatMember))
+    chat_member_obj = user.user if chat_member else user
+
     return {
-        "id": user.id,
-        "username": getattr(user, "username", None),
-        "first_name": getattr(user, "first_name", ""),
+        "id": chat_member_obj.id,
+        "username": chat_member_obj.username,
+        "first_name": chat_member_obj.first_name,
+        "chat_member_instance": user if chat_member else None,
+        "user_instance": chat_member_obj,
         "source": user.__class__.__name__
     }
 

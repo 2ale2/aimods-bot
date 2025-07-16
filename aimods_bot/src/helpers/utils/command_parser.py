@@ -61,9 +61,18 @@ async def parse_command(
 
     if response["status"] == "success":
         extracted["member"] = normalize_user(response["member"])
+    elif response["error"] == "username_404":
+        extracted["member"] = {
+            "id": None,
+            "username": extracted["user"],
+            "first_name": "",
+            "chat_member_instance": None,
+            "user_instance": None,
+            "source": "unknown"
+        }
     else:
         replied = update.effective_message.reply_to_message
-        replied = replied if replied and replied.forum_topic_created is None else None
+        replied = replied if replied and not replied.forum_topic_created else None
 
         if replied:
             extracted["member"] = normalize_user(replied.from_user)
@@ -74,6 +83,8 @@ async def parse_command(
                 "id": extracted["user"] if (i := not is_username(extracted["user"])) else None,
                 "username": extracted["user"] if not i else None,
                 "first_name": "",
+                "chat_member_instance": None,
+                "user_instance": None,
                 "source": "unknown"
             }
             if not i:
