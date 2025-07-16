@@ -59,6 +59,13 @@ class MissingConfigurationException(BotException):
         super().__init__(message)
 
 
+class UserMentionException(BotException):
+    """Non si hanno abbastanza elementi per creare una menzione testuale dell'utente."""
+    def __init__(self):
+        message = f"Non è possibile formulare una menzione senza username o user ID."
+        super().__init__(message)
+
+
 def handle_validation_errors(errors: list[str]):
     """
     Logga e solleva eccezione se presenti errori nella validazione della configurazione.

@@ -5,12 +5,11 @@ from pyrogram.errors import PeerIdInvalid
 from datetime import datetime
 
 import aimods_bot.src.helpers.constants.constants as constants
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, resolve_chat_member, normalize_user
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, resolve_chat_member, normalize_user, is_username, format_user_mention
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
-from . import get_until_date, format_time_as_rome, format_user_mention
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.command_parser import parse_command
-from aimods_bot.src.helpers.utils.time_utils import zero_datetime
+from aimods_bot.src.helpers.utils.time_utils import zero_datetime, get_until_date, format_time_as_rome
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
@@ -34,6 +33,9 @@ ERROR_MESSAGES = {
 
 async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
     message = update.effective_message
+
+    if delete_flag and message.reply_to_message:
+        await safe_delete(update, context, message.reply_to_message)
 
     parsed = await parse_command(update, context, "ban", full_command)
     if not parsed:
@@ -70,12 +72,12 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
     if parsed["username_not_participant"]:
         member = await _resolve_member_for_logging(context, member, update)
         if member is None:
+            confirmation_text = _build_confirmation_message(uid, until, reason)
+            await send_temporary_message(update, context, confirmation_text, delay_delete=300)
+            await send_private_alert(update, context, ERROR_MESSAGES["db_log_error"])
             return
 
     await _log_ban_to_database(member, update.effective_user.id, reason, until)
-
-    if delete_flag and message.reply_to_message:
-        await safe_delete(update, context, message.reply_to_message)
 
     confirmation_text = _build_confirmation_message(member, until, reason)
     await send_temporary_message(update, context, confirmation_text, delay_delete=300)
@@ -148,18 +150,16 @@ async def _resolve_member_for_logging(context, member, update):
             context=context,
             user_identifier=member["username"]
         )
+        if resolving_attempt["status"] == "success":
+            return normalize_user(resolving_attempt["member"])
 
-        if resolving_attempt:
-            return normalize_user(resolving_attempt.user)
-        else:
-            # Username non trovato anche se il ban è andato a buon fine
-            await send_private_alert(
-                update=update,
-                context=context,
-                text=ERROR_MESSAGES["db_log_error"]
-            )
-            return None
-
+        # Username non trovato anche se il ban è andato a buon fine
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES["db_log_error"]
+        )
+        return None
     except Exception as e:
         log.error(f"Errore durante la risoluzione del membro {member['username']}: {e}")
         await send_private_alert(
@@ -186,7 +186,6 @@ async def _log_ban_to_database(member, admin_id, reason, until):
             "expires_at": until if until != zero_datetime() else None
         })
         log.info(f"Ban dell'utente {member['id']} loggato nel database")
-
     except Exception as e:
         log.error(f"Errore durante il logging del ban nel database: {e}")
 
@@ -250,25 +249,25 @@ async def _attempt_unban_user(context, member, uid, admin_id):
     if not await user_is_banned(context, uid):
         return {"status": "error", "message": ERROR_MESSAGES["user_already_unbanned"]}
 
-    db_result = await revoke_last_action("bans", int(member["id"]))
-
-    if db_result is False:
-        return {"status": "error", "message": ERROR_MESSAGES["no_ban_found"]}
-    elif not db_result:
-        log.error(f"Errore database durante revoca ban per utente {member['id']}")
-        return {"status": "error", "message": ERROR_MESSAGES["db_error"]}
-
     try:
         await constants.pyro_instance.unban_chat_member(
             chat_id=context.bot_data["group_chat_id"],
             user_id=uid
         )
         log.info(f"Utente {uid} sbannato con successo da {admin_id}")
-        return {"status": "success", "message": ""}
-
     except Exception as e:
         log.exception(f"Errore in fase di unban dell'utente {uid}: {e}")
         return {"status": "error", "message": ERROR_MESSAGES["unban_error"]}
+
+    db_result = await revoke_last_action("bans", int(member["id"]))
+
+    if db_result is False:
+        return {"status": "success", "database_error": ERROR_MESSAGES["no_ban_found"]}
+    elif not db_result:
+        log.error(f"Errore database durante revoca ban per utente {member['id']}")
+        return {"status": "success", "database_error": ERROR_MESSAGES["db_error"]}
+
+    return {"status": "success", "database_error": None}
 
 
 # ====== UTILITIES ======
@@ -276,11 +275,17 @@ async def _attempt_unban_user(context, member, uid, admin_id):
 def _build_confirmation_message(member, until, reason=None, unban=False, popped=None):
     """Costruisce il messaggio di conferma del ban."""
 
-    user_mention = format_user_mention(
-        member["id"],
-        member["username"],
-        member["first_name"]
-    )
+    if isinstance(member, dict):
+        user_mention = format_user_mention(
+            member["id"],
+            member["username"],
+            member["first_name"]
+        )
+    else:
+        if is_username(member):
+            user_mention = format_user_mention(user_id=None, username=member, first_name=None)
+        else:
+            user_mention = format_user_mention(user_id=member, username=None, first_name=None)
 
     if not unban:
         text = (
@@ -288,7 +293,7 @@ def _build_confirmation_message(member, until, reason=None, unban=False, popped=
             f"{format_time_as_rome(until)}"
         )
     else:
-        text = (f"⛓️‍💥 Utente {format_user_mention(member["id"], member["username"], member["first_name"])} "
+        text = (f"⛓️‍💥 Utente {user_mention} <b>bannato</b> "
                 f"<b>{'sbannato' if not popped else 'rimosso dalla blacklist'}</b>.")
 
     if reason:

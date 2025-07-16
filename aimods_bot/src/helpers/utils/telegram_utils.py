@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.core.exceptions import CallbackDataException
+from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("telegram_utils")
@@ -159,3 +159,15 @@ def normalize_user(user) -> dict:
         "first_name": getattr(user, "first_name", ""),
         "source": user.__class__.__name__
     }
+
+
+def format_user_mention(user_id: str | int | None, username: str | None, first_name: str | None) -> str:
+    if username:
+        if user_id:
+            return f"{'@' + username.removeprefix('@')} (<code>{user_id}</code>)"
+        return f"{'@' + username.removeprefix('@')}"
+    if user_id:
+        if first_name:
+            f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
+        return f"<code>{user_id}</code>"
+    raise UserMentionException

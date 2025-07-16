@@ -1,4 +1,5 @@
 import re
+import pytz
 from datetime import timedelta, datetime, timezone
 
 
@@ -57,3 +58,20 @@ def zero_datetime() -> datetime:
     Restituisce un datetime "zero" (1 gennaio 1970 UTC), usato come valore predefinito per "tempo indeterminato".
     """
     return datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def get_until_date(duration) -> datetime:
+    """Ritorna la scadenza di un'azione se la durata viene specificata, zero_datetime() altrimenti."""
+    if not duration:
+        return zero_datetime()
+    now_utc = datetime.now(timezone.utc)
+    return now_utc + duration
+
+
+def format_time_as_rome(until: datetime) -> str:
+    """Formatta il testo nel fuso orario italiano se diverso da zero_datetime(), altrimenti a tempo indeterminato."""
+    if until == zero_datetime():
+        return "a <b>tempo indeterminato</b>."
+    rome_time = until.astimezone(pytz.timezone('Europe/Rome'))
+    return (f"fino al <b>{rome_time.strftime('%d %B %Y')}</b> "
+            f"alle {rome_time.strftime('%H:%M')}.")
