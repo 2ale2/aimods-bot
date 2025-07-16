@@ -2,7 +2,6 @@ import re
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username, normalize_user
 from aimods_bot.src.helpers.loggers import logger
@@ -39,12 +38,6 @@ async def parse_command(
     match = re.match(pattern, full_command)
     if not match:
         log.warning(f"⚠️ Comando non valido: {full_command}")
-        await send_private_alert(
-            update=update,
-            context=context,
-            text="⚠️ Sintassi del comando non corretta."
-        )
-        # Potremmo in qualche modo linkare un manuale di utilizzo
         return None
 
     extracted = {"action": match.group(1), "username_not_participant": False}

@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.callbacks.commands.admin import format_user_mention
+from aimods_bot.src.helpers.utils.telegram_utils import format_user_mention
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert

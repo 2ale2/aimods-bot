@@ -24,18 +24,19 @@ async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT
 
 
 async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool | None:
-    """
-        Verifica se l'utente è bannato (presente in una lista ban).
-    """
+    """Verifica se l'utente è bannato (o presente in una lista ban)."""
+
+    ban_list = context.bot_data.get("ban_list", {})
+    if str(user_id) in ban_list:
+        return True
+
     response = await resolve_chat_member(context, user_id)
     if response["status"] == "failed":
         log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
         return None
     member = response["member"]
-    ban_list = context.bot_data.get("ban_list", {})
-    return (member.status == ChatMemberStatusPTB.BANNED or
-            member.status == ChatMemberStatusPyro.BANNED or
-            str(user_id) in ban_list)
+
+    return member.status == ChatMemberStatusPTB.BANNED or member.status == ChatMemberStatusPyro.BANNED
 
 
 async def get_user_warnings(user_id: int) -> int | None:

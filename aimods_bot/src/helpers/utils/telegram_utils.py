@@ -142,11 +142,13 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
 
 
 def is_username(string) -> bool:
-    if string.isdigit():
-        return False
-    if not string.startswith("@"):
-        return False
-    return True
+    """Se string è una stringa alfanumerica, ritorna True."""
+    return not (not string or string.isdigit())
+
+
+def is_user_id(string) -> bool:
+    """Se è una stringa numerica o un intero, ritorna True."""
+    return string and (isinstance(string, int) or string.isdigit())
 
 
 def normalize_user(user) -> dict:

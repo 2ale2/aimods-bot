@@ -1,7 +1,7 @@
 import pytz
 from telegram import Update
 from telegram.ext import ContextTypes
-from pyrogram.errors import PeerIdInvalid
+from pyrogram.errors import PeerIdInvalid, UsernameNotOccupied
 from datetime import datetime
 
 import aimods_bot.src.helpers.constants.constants as constants
@@ -19,14 +19,19 @@ log = logger.getChild("ban_command")
 
 ERROR_MESSAGES = {
     "no_user": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",
+    "username_404": "⚠️ Warning\n\n▪️ Lo username {} non esiste.",
     "user_already_unbanned": "⚠️ Warning\n\n▪️ L'utente è già sbannato.",
     "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è già bannato.",
-    "ban_error": "❌ Errore in fase di ban dell'utente (loggato).",
+    "ban_error": "❌ Error\n\n▪️ Errore in fase di ban dell'utente (loggato).",
     "db_log_error": ("⚠️ Warning\n\n▪️ L'utente è stato bannato con successo, ma non è stato possibile "
                      "loggare nel database. Contatta subito l'amministratore di sistema per risolvere il problema."),
-    "no_ban_found": "⚠️ Nessun ban attivo trovato per questo utente.",
-    "db_error": "❌ Errore durante la revoca del ban nel DB (loggato).",
-    "unban_error": "❌ Errore in fase di unban dell'utente (loggato)."
+    "no_ban_found": "⚠️ Warning\n\n▪️ Nessun ban attivo trovato per questo utente.",
+    "db_error": "❌ Error\n\n▪️ Errore durante la revoca del ban nel DB (loggato).",
+    "unban_error": "❌ Error\n\n▪️ Errore in fase di unban dell'utente (loggato).",
+    "unable_to_blacklist": "⚠️ Warning\n\n▪️ Non posso aggiungere uno username in backlist: prova usando uno User ID."
+                           "\n\nNota – Questo è un probabile errore, contatta l'amministratore.",
+    "cannot_define_banned_status": "⚠️ Warning\n\n▪️ Non riesco a determinare lo stato dell'utente.\n\n"
+                                   "💡 Prova col suo username, oppure sbannalo manualmente (non verrà loggato nel db)."
 }
 
 # ====== BAN ======
@@ -39,6 +44,12 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
 
     parsed = await parse_command(update, context, "ban", full_command)
     if not parsed:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="⚠️ Sintassi del comando non corretta."
+        )
+        # Potremmo in qualche modo linkare un manuale di utilizzo
         return
 
     member = parsed["member"]
@@ -112,7 +123,9 @@ async def _attempt_ban_user(
     except PeerIdInvalid:
         log.warning(f"PeerIdInvalid per utente {uid}, aggiunta a blacklist")
         return await _add_to_blacklist(context, member, until, reason, admin_id)
-
+    except UsernameNotOccupied:
+        log.warning(f"Lo username {uid} non esiste.")
+        return {"status": "error", "message": ERROR_MESSAGES["username_404"].format(uid)}
     except Exception as e:
         log.exception(f"Errore in fase di ban dell'utente {uid}: {e}")
         return {"status": "error", "message": ERROR_MESSAGES["ban_error"]}
@@ -123,6 +136,9 @@ async def _add_to_blacklist(context, member, until, reason, admin_id):
     Aggiunge un utente alla blacklist come fallback.
     """
     context.bot_data.setdefault("ban_list", {})
+    if not member["id"]:
+        return {"status": "error", "message": ERROR_MESSAGES["unable_to_blacklist"]}
+
     context.bot_data["ban_list"][member["id"]] = {
         "expires_at": until.astimezone(pytz.UTC) if until != zero_datetime() else None,
         "reason": reason or None,
@@ -246,8 +262,12 @@ async def _attempt_unban_user(context, member, uid, admin_id):
     Returns:
         dict: {"status": "success"|"error", "message": str}
     """
-    if not await user_is_banned(context, uid):
+    user_banned = await user_is_banned(context, uid)
+    if user_banned is False:
         return {"status": "error", "message": ERROR_MESSAGES["user_already_unbanned"]}
+
+    if user_banned is None:
+        return {"status": "error", "message": ERROR_MESSAGES["cannot_define_banned_status"]}
 
     try:
         await constants.pyro_instance.unban_chat_member(
@@ -293,7 +313,7 @@ def _build_confirmation_message(member, until, reason=None, unban=False, popped=
             f"{format_time_as_rome(until)}"
         )
     else:
-        text = (f"⛓️‍💥 Utente {user_mention} <b>bannato</b> "
+        text = (f"⛓️‍💥 Utente {user_mention} "
                 f"<b>{'sbannato' if not popped else 'rimosso dalla blacklist'}</b>.")
 
     if reason:
