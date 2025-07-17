@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 from pyrogram.enums import ChatMemberStatus as ChatMemberStatusPyro
 from telegram.constants import ChatMemberStatus as ChatMemberStatusPTB
 from telegram.ext import ContextTypes
@@ -78,7 +78,7 @@ async def get_user_warnings(user_id: int) -> Optional[dict]:
     return {i: result[i] for i in range(0, len(result))}
 
 
-async def get_user_warnings_count(user_id: int) -> Union[int, bool, None]:
+async def get_user_warnings_count(user_id: int) -> Optional[int]:
     """Restituisce il numero di warning attivi per un utente."""
 
     response = await get_user_warnings(user_id=user_id)

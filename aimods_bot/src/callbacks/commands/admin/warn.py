@@ -181,20 +181,6 @@ async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_c
     )
 
 
-async def _attempt_unwarn_user(member: dict) -> dict:
-    user_id = member["user_instance"].id
-
-    response = await revoke_last_action(table="warnings", user_id=user_id)
-    if response is False:
-        return _create_error_response(ERROR_MESSAGES["no_warns"])
-    if response is None:
-        return _create_error_response(ERROR_MESSAGES["revoke_action_error"])
-
-    count = await get_user_warnings_count(user_id=user_id)
-
-    return _create_success_response(action="unwarn", warn_count=count)
-
-
 async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
     """Valida lo status dell'utente e restituisce un messaggio di errore se necessario."""
 
@@ -253,6 +239,20 @@ async def _attempt_warn_user(
         return _create_success_response(action="banned", warn_count=count)
 
     return _create_success_response(action="warned", warn_count=count)
+
+
+async def _attempt_unwarn_user(member: dict) -> dict:
+    user_id = member["user_instance"].id
+
+    response = await revoke_last_action(table="warnings", user_id=user_id)
+    if response is False:
+        return _create_error_response(ERROR_MESSAGES["no_warns"])
+    if response is None:
+        return _create_error_response(ERROR_MESSAGES["revoke_action_error"])
+
+    count = await get_user_warnings_count(user_id=user_id)
+
+    return _create_success_response(action="unwarn", warn_count=count)
 
 
 def _create_error_response(error_message: str) -> dict:
