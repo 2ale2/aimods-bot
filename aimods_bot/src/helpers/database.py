@@ -1,7 +1,7 @@
 import os
 import asyncpg
 from asyncpg import Connection
-from typing import Optional
+from typing import Optional, Union
 
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.loggers import logger
@@ -22,7 +22,7 @@ async def connect_to_database() -> Connection:
         raise DatabaseBotException("Errore connessione al database.") from e
 
 
-async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
+async def revoke_last_action(table: str, user_id: int) -> Union[dict, bool, None]:
     """
     Revoca l'ultima azione attiva e non ancora revocata di un utente, se presente.
 
@@ -49,8 +49,7 @@ async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
     action = dict(rows[0])
     action_id = action["id"]
 
-    update_query = f"UPDATE {table} SET revoked_at = now() WHERE id = $1"
-    success = await execute_query(update_query, params=[action_id])
+    success = await revoke_action_by_id(table=table, record_id=action_id)
 
     if success:
         log.debug(f"✅ Revocata azione '{action_id}' per user {user_id} in '{table}'")
@@ -60,7 +59,12 @@ async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
     return None
 
 
-async def get_columns_order(table_name: str) -> list[str]:
+async def revoke_action_by_id(table: str, record_id: int) -> bool:
+    update_query = f"UPDATE {table} SET revoked_at = now() WHERE id = $1"
+    return await execute_query(update_query, params=[record_id])
+
+
+async def get_columns_order(table_name: str) -> Optional[list[str]]:
     """
     Recupera l'ordine delle colonne di una tabella.
     """

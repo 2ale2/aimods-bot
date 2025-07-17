@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 
 # Rotating file handler
 file_handler = RotatingFileHandler(LOG_FILE, maxBytes=2_000_000, backupCount=3)
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)
 file_formatter = logging.Formatter(
     "%(asctime)s | %(name)s | %(levelname)s | %(message)s",
     "%Y-%m-%d %H:%M:%S"

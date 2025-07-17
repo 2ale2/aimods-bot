@@ -70,6 +70,8 @@ def get_until_date(duration) -> datetime:
 
 def format_time_as_rome(until: datetime) -> str:
     """Formatta il testo nel fuso orario italiano se diverso da zero_datetime(), altrimenti a tempo indeterminato."""
+    if until is None:
+        return ""
     if until == zero_datetime():
         return "a <b>tempo indeterminato</b>."
     rome_time = until.astimezone(pytz.timezone('Europe/Rome'))

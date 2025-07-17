@@ -8,13 +8,17 @@ from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.constants import constants as constants
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.command_parser import parse_command
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, format_user_mention
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, get_until_date, format_time_as_rome
-from aimods_bot.src.helpers.utils.user_utils import get_user_warnings
+from aimods_bot.src.helpers.utils.user_utils import get_user_warnings_count, erase_user_warnings
+
+
+log = logger.getChild("warn")
 
 ERROR_MESSAGES = constants.ERROR_MESSAGES | {
     "warn_error": "⚠️ Warning\n\n▪️ Errore durante il warn dell'utente (loggato). Riprova.",
@@ -23,7 +27,8 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
     "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è già bannato.",
     "ban_error": "❌ Error\n\n▪️ Errore in fase di ban dell'utente (loggato).",
     "revoke_action_error": "❌ Error\n\n▪️ Non sono riuscito a revocare l'ultimo worn per {} (loggato).",
-    "no_warns": "⚠️ Warning\n\n▪️ L'utente non ha ammonizioni attive."
+    "no_warns": "⚠️ Warning\n\n▪️ L'utente non ha ammonizioni attive.",
+    "missing_reason": "⚠️ Warning\n\n▪️ Devi indicare una motivazione."
 }
 
 MAX_WARNS = 3
@@ -45,6 +50,14 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
             update=update,
             context=context,
             text=ERROR_MESSAGES["username_404"].format(parsed["user"]),
+        )
+        return
+
+    if not parsed["message"]:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES["missing_reason"]
         )
         return
 
@@ -84,7 +97,7 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
         await send_private_alert(
             update=update,
             context=context,
-            text=ERROR_MESSAGES[response["message"]]
+            text=response["message"]
         )
         return
 
@@ -143,12 +156,12 @@ async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_c
         )
         return
 
-    response = await _attempt_unwarn_user(context=context, member=member)
+    response = await _attempt_unwarn_user(member=member)
     if response["status"] == "error":
         await send_private_alert(
             update=update,
             context=context,
-            text=ERROR_MESSAGES[response["message"]]
+            text=response["message"]
         )
         return
 
@@ -168,10 +181,7 @@ async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_c
     )
 
 
-async def _attempt_unwarn_user(
-        context: ContextTypes.DEFAULT_TYPE,
-        member: dict
-) -> dict:
+async def _attempt_unwarn_user(member: dict) -> dict:
     user_id = member["user_instance"].id
 
     response = await revoke_last_action(table="warnings", user_id=user_id)
@@ -180,7 +190,7 @@ async def _attempt_unwarn_user(
     if response is None:
         return _create_error_response(ERROR_MESSAGES["revoke_action_error"])
 
-    count = await get_user_warnings(user_id=user_id)
+    count = await get_user_warnings_count(user_id=user_id)
 
     return _create_success_response(action="unwarn", warn_count=count)
 
@@ -220,7 +230,7 @@ async def _attempt_warn_user(
     if not response:
         return _create_error_response(ERROR_MESSAGES["unable_to_add_warning_to_table"])
 
-    count = await get_user_warnings(user_id=user_id)
+    count = await get_user_warnings_count(user_id=user_id)
     if count is None:
         return _create_error_response(ERROR_MESSAGES["warn_count_error"].format(user_id))
 
@@ -235,6 +245,11 @@ async def _attempt_warn_user(
         )
         if response["status"] == "error":
             return _create_error_response(ERROR_MESSAGES[response["message"]])
+
+        errors = await erase_user_warnings(user_id=user_id)
+        if errors:
+            log.warning(f"Non è stato possibile revocare le ammonizioni {', '.join(errors)} per l'utente {user_id}.")
+
         return _create_success_response(action="banned", warn_count=count)
 
     return _create_success_response(action="warned", warn_count=count)
@@ -260,9 +275,10 @@ def _build_confirmation_message(
         until: Optional[datetime],
         reason: Optional[str],
         action: Optional[str],
-        warn_count: int,
-        unwarn=False
+        warn_count: int
 ) -> str:
+
+    unwarn = bool(action == "unwarn")
 
     if not unwarn and not action:
         raise MissingParameterException("Se 'unwarn' è False, 'action' deve essere definito.")
