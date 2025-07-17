@@ -1,12 +1,12 @@
 import pytz
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 from telegram.ext import ContextTypes
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 
 from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
-from aimods_bot.src.helpers.database import add_to_table
+from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
 from aimods_bot.src.helpers.constants import constants as constants
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
@@ -20,7 +20,9 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
     "unable_to_add_warning_to_table": "❌ Error\n\n▪️ Errore durante l'aggiunta del warn al database (loggato).",
     "warn_count_error": "❌ Error\n\n▪️ Errore durante il conteggio dei warn dell'utente {} (loggato).",
     "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è già bannato.",
-    "ban_error": "❌ Error\n\n▪️ Errore in fase di ban dell'utente (loggato)."
+    "ban_error": "❌ Error\n\n▪️ Errore in fase di ban dell'utente (loggato).",
+    "revoke_action_error": "❌ Error\n\n▪️ Non sono riuscito a revocare l'ultimo worn per {} (loggato).",
+    "no_warns": "⚠️ Warning\n\n▪️ L'utente non ha ammonizioni attive."
 }
 
 MAX_WARNS = 3
@@ -101,6 +103,66 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
     )
 
 
+async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+    message = update.effective_message
+
+    if delete_flag and message.reply_to_message:
+        await safe_delete(update, context, message.reply_to_message)
+
+    parsed = await parse_command(update, context, "warn", full_command)
+    if not parsed:
+        return
+
+    member = parsed["member"]
+    if not member["id"]:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES["username_404"].format(parsed["user"]),
+        )
+        return
+
+    uid = member.get("id")
+    username = member.get("username")
+
+    if not uid and not username:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES["no_user"]
+        )
+        return
+
+    error_text = await _validate_user_status(member["chat_member_instance"])
+    if error_text:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=error_text
+        )
+        return
+
+    admin_id = update.effective_user.id
+
+
+async def _attempt_unwarn_user(
+        context: ContextTypes.DEFAULT_TYPE,
+        member: dict,
+        admin_id: int
+) -> dict:
+    user_id = member["user_instance"].id
+
+    response = await revoke_last_action(table="warnings", user_id=user_id)
+    if response is False:
+        return _create_error_response(ERROR_MESSAGES["no_warns"])
+    if response is None:
+        return _create_error_response(ERROR_MESSAGES["revoke_action_error"])
+
+    count = await get_user_warnings(user_id=user_id)
+
+
+
+
 async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
     """Valida lo status dell'utente e restituisce un messaggio di errore se necessario."""
 
@@ -173,10 +235,11 @@ def _create_success_response(action: str, warn_count: int) -> dict:
 
 def _build_confirmation_message(
         user: Union[PyroUser, PTBUser],
-        until: datetime,
-        reason: str,
-        action: str,
-        warn_count: int
+        until: Optional[str],
+        reason: Optional[str],
+        action: Optional[str],
+        warn_count: int,
+        unwarn=False
 ) -> str:
     uid = user.id
     username = user.username
@@ -184,19 +247,21 @@ def _build_confirmation_message(
 
     mention = format_user_mention(user_id=uid, username=username, first_name=first_name)
 
-    if action == "warned":
-        text = (
-            f"⚠️ Utente {mention} <b>ammonito</b> ({warn_count}/{MAX_WARNS}) "
-            f"{format_time_as_rome(until)}"
-        )
+    if not unwarn:
+        if action == "warned":
+            text = (
+                f"⚠️ Utente {mention} <b>ammonito</b> ({warn_count}/{MAX_WARNS}) "
+                f"{format_time_as_rome(until)}"
+            )
+        else:
+            text = (
+                f"🚫 Utente {mention} ammonito ({warn_count}/{MAX_WARNS} → <b>bannato</b>) "
+                f"{format_time_as_rome(until)}"
+            )
+        if reason:
+            text += f"\n\n<b>Motivo</b>: {reason}."
     else:
-        text = (
-            f"🚫 Utente {mention} ammonito ({warn_count}/{MAX_WARNS} → <b>bannato</b>) "
-            f"{format_time_as_rome(until)}"
-        )
-
-    if reason:
-        text += f"\n\n<b>Motivo</b>: {reason}."
+        text = f"✅ <b>Ammonizione rimossa</b> per {mention} ({warn_count}/{MAX_WARNS})."
 
     text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
     return text

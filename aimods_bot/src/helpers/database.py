@@ -44,7 +44,7 @@ async def revoke_last_action(table: str, user_id: int) -> Optional[dict]:
 
     rows = await fetch_query(select_query, params=[user_id])
     if not rows:
-        return None  # nessuna azione da revocare
+        return False  # nessuna azione da revocare
 
     action = dict(rows[0])
     action_id = action["id"]
