@@ -6,6 +6,7 @@ from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 
 from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
 from aimods_bot.src.helpers.constants import constants as constants
 from aimods_bot.src.helpers.job_queue import send_temporary_message
@@ -142,13 +143,34 @@ async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_c
         )
         return
 
-    admin_id = update.effective_user.id
+    response = await _attempt_unwarn_user(context=context, member=member)
+    if response["status"] == "error":
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES[response["message"]]
+        )
+        return
+
+    confirmation_text = _build_confirmation_message(
+        user=member["user_instance"],
+        reason=None,
+        until=None,
+        action=response["action"],
+        warn_count=response["warn_count"]
+    )
+
+    await send_temporary_message(
+        update=update,
+        context=context,
+        text=confirmation_text,
+        delay_delete=300
+    )
 
 
 async def _attempt_unwarn_user(
         context: ContextTypes.DEFAULT_TYPE,
-        member: dict,
-        admin_id: int
+        member: dict
 ) -> dict:
     user_id = member["user_instance"].id
 
@@ -160,7 +182,7 @@ async def _attempt_unwarn_user(
 
     count = await get_user_warnings(user_id=user_id)
 
-
+    return _create_success_response(action="unwarn", warn_count=count)
 
 
 async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
@@ -235,12 +257,16 @@ def _create_success_response(action: str, warn_count: int) -> dict:
 
 def _build_confirmation_message(
         user: Union[PyroUser, PTBUser],
-        until: Optional[str],
+        until: Optional[datetime],
         reason: Optional[str],
         action: Optional[str],
         warn_count: int,
         unwarn=False
 ) -> str:
+
+    if not unwarn and not action:
+        raise MissingParameterException("Se 'unwarn' è False, 'action' deve essere definito.")
+
     uid = user.id
     username = user.username
     first_name = user.first_name

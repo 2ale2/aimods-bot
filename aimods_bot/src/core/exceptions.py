@@ -66,6 +66,13 @@ class UserMentionException(BotException):
         super().__init__(message)
 
 
+class MissingParameterException(BotException):
+    """Ci sono alcune funzioni in cui almeno uno dei parametri falcoltativi deve essere presente."""
+    def __init__(self, explanation: str):
+        self.explanation = explanation
+        super().__init__(explanation)
+
+
 def handle_validation_errors(errors: list[str]):
     """
     Logga e solleva eccezione se presenti errori nella validazione della configurazione.
