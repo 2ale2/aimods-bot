@@ -53,9 +53,18 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
         return
 
     member = parsed["member"]
-    uid = member.get("username") or member.get("id")
+    if not member["id"]:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text=ERROR_MESSAGES["username_404"].format(parsed["user"]),
+        )
+        return
 
-    if uid is None:
+    uid = member.get("id")
+    username = member.get("username")
+
+    if not uid and not username:
         await send_private_alert(
             update=update,
             context=context,
@@ -66,7 +75,7 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
     reason = parsed["message"]
     until = get_until_date(parsed["duration"])
 
-    ban_result = await _attempt_ban_user(context, uid, until, member, reason, update.effective_user.id)
+    ban_result = await attempt_ban_user(context, uid, until, member, reason, update.effective_user.id)
 
     if ban_result["status"] == "blacklisted":
         await send_temporary_message(
@@ -94,7 +103,7 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
     await send_temporary_message(update, context, confirmation_text, delay_delete=300)
 
 
-async def _attempt_ban_user(
+async def attempt_ban_user(
         context: ContextTypes.DEFAULT_TYPE,
         uid: int | str,
         until: datetime,

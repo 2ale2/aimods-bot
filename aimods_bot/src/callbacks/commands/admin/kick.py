@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from telegram.ext import ContextTypes
 from pyrogram.types import ChatMember as PyroChatMember
 from telegram import Update, ChatMember as PTBChatMember
@@ -14,13 +14,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, format_user
 log = logger.getChild("kick")
 
 
-ERROR_MESSAGES = {
-    "no_user": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",
-    "user_not_found": "⚠️ Warning\n\n▪️ Non riesco a risolvere l'utente specificato, riprova.\n\n"
-                      "🔍 Tipicamente significa che l'utente non è nel gruppo.",
-    "username_404": "⚠️ Warning\n\n▪️ Lo username {} non esiste.",
-    "user_not_in_group": "⚠️ Warning\n\n▪️ L'utente non è nel gruppo.",
-    "user_already_banned": "⚠️ Warning\n\n▪️ L'utente è bannato.",
+ERROR_MESSAGES = constants.ERROR_MESSAGES | {
     "kick_error": "⚠️ Warning\n\n▪️ Errore durante il kick dell'utente (loggato). Riprova."
 }
 
@@ -28,8 +22,17 @@ ERROR_MESSAGES = {
 async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
     message = update.effective_message
 
+    if delete_flag and message.reply_to_message:
+        await safe_delete(update, context, message.reply_to_message)
+
     parsed = await parse_command(update, context, "kick", full_command)
     if not parsed:
+        await send_private_alert(
+            update=update,
+            context=context,
+            text="⚠️ Sintassi del comando non corretta."
+        )
+        # Potremmo in qualche modo linkare un manuale di utilizzo
         return
 
     member = parsed["member"]
@@ -48,11 +51,11 @@ async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
         await send_private_alert(
             update=update,
             context=context,
-            text=ERROR_MESSAGES["no_user"]
+            text=ERROR_MESSAGES["no_user_provided"]
         )
         return
 
-    error_text = _validate_user_status(member)
+    error_text = _validate_user_status(member["chat_member_instance"])
     if error_text:
         await send_private_alert(
             update=update,
@@ -81,19 +84,17 @@ async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
     await send_temporary_message(update, context, confirmation_text, delay_delete=300)
 
 
-def _validate_user_status(chat_member) -> Optional[str]:
+def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]) -> Optional[str]:
     """Valida lo status dell'utente e restituisce un messaggio di errore se necessario."""
 
-    chat_member = chat_member["chat_member_instance"]
+    if not member:
+        return ERROR_MESSAGES["cannot_parse_user"]
 
-    if not chat_member:
-        return ERROR_MESSAGES["user_not_found"]
-
-    if chat_member.status == "left":
+    if member.status == "left":
         return ERROR_MESSAGES["user_not_in_group"]
 
-    if chat_member.status == "banned" or chat_member.status == "kicked":
-        return ERROR_MESSAGES["user_already_banned"]
+    if member.status == "banned" or member.status == "kicked":
+        return ERROR_MESSAGES["user_banned"]
 
     return None
 
