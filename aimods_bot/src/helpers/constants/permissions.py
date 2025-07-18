@@ -1,3 +1,6 @@
+from telegram import ChatPermissions as PTBChatPermissions
+from pyrogram.types import ChatPermissions as PyroChatPermissions
+
 from dataclasses import dataclass
 from enum import IntEnum, auto
 
@@ -14,6 +17,44 @@ class Permissions(IntEnum):
     can_send_videos = auto()
     can_send_video_notes = auto()
     can_send_voice_notes = auto()
+
+
+default_permissions = {
+    "can_send_messages": None,
+    "can_send_polls": None,
+    "can_send_other_messages": None,
+    "can_add_web_page_previews": None,
+    "can_invite_users": None,
+    "can_send_audios": None,
+    "can_send_documents": None,
+    "can_send_photos": None,
+    "can_send_videos": None,
+    "can_send_video_notes": None,
+    "can_send_voice_notes": None
+}
+
+
+def set_default_permissions(to: bool):
+    return {i: to for i in default_permissions.keys()}
+
+
+PTBFalsePermissions = PTBChatPermissions().no_permissions()
+PTBTruePermissions = PTBChatPermissions().all_permissions()
+
+PyroFalsePermissions = PyroChatPermissions(**(set_default_permissions(False)))
+PyroTruePermissions = PyroChatPermissions(**(set_default_permissions(False)))
+
+
+def get_pyro_permissions(b: bool):
+    if b:
+        return PTBTruePermissions
+    return PTBFalsePermissions
+
+
+def get_ptb_permissions(b: bool):
+    if b:
+        return PTBTruePermissions
+    return PTBFalsePermissions
 
 
 permissions_texts = {
