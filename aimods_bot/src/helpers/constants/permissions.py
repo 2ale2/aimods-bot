@@ -42,7 +42,7 @@ PTBFalsePermissions = PTBChatPermissions().no_permissions()
 PTBTruePermissions = PTBChatPermissions().all_permissions()
 
 PyroFalsePermissions = PyroChatPermissions(**(set_default_permissions(False)))
-PyroTruePermissions = PyroChatPermissions(**(set_default_permissions(False)))
+PyroTruePermissions = PyroChatPermissions(**(set_default_permissions(True)))
 
 
 def get_pyro_permissions(b: bool):
