@@ -19,6 +19,21 @@ class Permissions(IntEnum):
     can_send_voice_notes = auto()
 
 
+permissions_texts = {
+    "can_send_messages": "Inviare messaggi",
+    "can_send_polls": "Inviare sondaggi",
+    "can_send_other_messages": "Inviare stickers e GIFs",
+    "can_add_web_page_previews": "Aggiungere Web Previews",
+    "can_invite_users": "Invitare altri membri",
+    "can_send_audios": "Inviare file audio",
+    "can_send_documents": "Inviare documenti",
+    "can_send_photos": "Inviare foto",
+    "can_send_videos": "Inviare video",
+    "can_send_video_notes": "Inviare note video",
+    "can_send_voice_notes": "Inviare note vocali"
+}
+
+
 default_permissions = {
     "can_send_messages": None,
     "can_send_polls": None,
@@ -55,18 +70,3 @@ def get_ptb_permissions(b: bool):
     if b:
         return PTBTruePermissions
     return PTBFalsePermissions
-
-
-permissions_texts = {
-            0: "Inviare messaggi",
-            1: "Inviare sondaggi",
-            2: "Inviare stickers e GIFs",
-            3: "Aggiungere Web Previews",
-            4: "Invitare altri membri",
-            5: "Inviare file audio",
-            6: "Inviare documenti",
-            7: "Inviare foto",
-            8: "Inviare video",
-            9: "Inviare note video",
-            10: "Inviare note vocali"
-        }

@@ -241,3 +241,7 @@ def format_user_mention(user_id: str | int | None, username: str | None, first_n
             f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
         return f"<code>{user_id}</code>"
     raise UserMentionException
+
+
+def add_fucking_at(s: str) -> str:
+    return '@' + s.removeprefix("@")

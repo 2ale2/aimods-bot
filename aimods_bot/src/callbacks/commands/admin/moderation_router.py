@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from aimods_bot.src.callbacks.commands.admin.ban import ban_user, unban_user
 from aimods_bot.src.callbacks.commands.admin.kick import kick_user
+from aimods_bot.src.callbacks.commands.admin.limit import limit_user
 from aimods_bot.src.callbacks.commands.admin.warn import warn_user, unwarn_user
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
@@ -13,7 +14,8 @@ action_map = {
     "unban": unban_user,
     "kick": kick_user,
     "warn": warn_user,
-    "unwarn": unwarn_user
+    "unwarn": unwarn_user,
+    "limit": limit_user
 }
 
 

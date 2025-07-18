@@ -1,11 +1,15 @@
-from typing import Optional
+from typing import Optional, Union
 from pyrogram.enums import ChatMemberStatus as ChatMemberStatusPyro
+from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
+from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
 from telegram.constants import ChatMemberStatus as ChatMemberStatusPTB
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
+from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 
 log = logger.getChild("user_utils")
 
@@ -84,3 +88,42 @@ async def get_user_warnings_count(user_id: int) -> Optional[int]:
     response = await get_user_warnings(user_id=user_id)
 
     return len(response) if response is not None else None
+
+
+async def get_member_permissions(
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_member: Union[PyroChatMember, PTBChatMember],
+) -> Union[PTBChatPermissions, PyroChatPermissions]:
+
+    pyro = isinstance(chat_member, PyroChatMember)
+
+    chat_id = context.bot_data["group_chat_id"]
+
+    if chat_member.status in ("restricted", "administrator"):
+        included_fields = default_permissions.keys()
+        actual_permissions = {
+            attr: getattr(chat_member, attr)
+            for attr in dir(chat_member)
+            if (
+                    not attr.startswith("_") and
+                    attr in included_fields and
+                    isinstance(getattr(chat_member, attr), bool)
+            )
+        }
+        if pyro:
+            actual_permissions = PyroChatPermissions(**actual_permissions)
+        else:
+            actual_permissions = PTBChatPermissions(**actual_permissions)
+
+    elif chat_member.status == "member":
+        actual_permissions = await get_chat_permissions(context=context, chat_id=chat_id)
+        if pyro:
+            actual_permissions = PyroChatPermissions(**actual_permissions.to_dict())
+
+    else:  # chat_member.status == "owner"
+        if pyro:
+            actual_permissions = get_pyro_permissions(True)
+        else:
+            actual_permissions = get_ptb_permissions(True)
+
+    return actual_permissions
