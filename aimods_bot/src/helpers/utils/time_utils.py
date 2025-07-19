@@ -60,6 +60,10 @@ def zero_datetime() -> datetime:
     return datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
+def timedelta_to_seconds(t: timedelta) -> int:
+    return int(t.total_seconds())
+
+
 def get_until_date(duration) -> datetime:
     """Ritorna la scadenza di un'azione se la durata viene specificata, zero_datetime() altrimenti."""
     if not duration:

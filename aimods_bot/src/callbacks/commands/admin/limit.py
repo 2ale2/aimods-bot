@@ -30,7 +30,13 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
 }
 
 
-async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def limit_user(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        full_command: str,
+        delete_flag=False,
+        mute_flag=False
+) -> bool:
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -46,7 +52,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=ERROR_MESSAGES["command_syntax_error"],
         )
-        return
+        return False
 
     member = parsed["member"]
     if not member["id"]:
@@ -55,7 +61,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=ERROR_MESSAGES["username_404"].format(parsed["user"]),
         )
-        return
+        return False
 
     uid = member.get("id")
     username = member.get("username")
@@ -70,7 +76,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=ERROR_MESSAGES["no_user"]
         )
-        return
+        return False
 
     if not permissions:
         await send_private_alert(
@@ -78,7 +84,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=ERROR_MESSAGES["missing_permissions"]
         )
-        return
+        return False
 
     error_text = await _validate_user_status(member["chat_member_instance"])
     if error_text:
@@ -87,7 +93,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=error_text
         )
-        return
+        return False
 
     old_permissions = await get_member_permissions(
         context=context,
@@ -108,7 +114,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=response["message"]
         )
-        return
+        return False
 
     new_member = await resolve_chat_member(context=context, user_identifier=username or uid)
     new_permissions = await get_member_permissions(context=context, chat_member=new_member.get("member"))
@@ -121,7 +127,7 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
             context=context,
             text=ERROR_MESSAGES["no_changes"]
         )
-        return
+        return False
 
     await _log_limit_to_database(
         admin_id=admin_id,
@@ -132,21 +138,24 @@ async def limit_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
         unlimit=is_unlimit
     )
 
-    confirmation_text = _build_confirmation_text(
-        member=member,
-        old_permissions=old_permissions,
-        new_permissions=response["permissions"],
-        until_date=get_until_date(until_date),
-        reason=reason,
-        unlimit=is_unlimit
-    )
+    if not mute_flag:
+        confirmation_text = _build_confirmation_text(
+            member=member,
+            old_permissions=old_permissions,
+            new_permissions=response["permissions"],
+            until_date=get_until_date(until_date),
+            reason=reason,
+            unlimit=is_unlimit
+        )
 
-    await send_temporary_message(
-        update=update,
-        context=context,
-        text=confirmation_text,
-        delay_delete=300
-    )
+        await send_temporary_message(
+            update=update,
+            context=context,
+            text=confirmation_text,
+            delay_delete=300
+        )
+
+    return True
 
 
 async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
@@ -396,6 +405,6 @@ def _build_confirmation_text(
     if reason:
         confirmation_text += f"\n<b>Motivo</b>: {reason}\n"
 
-    confirmation_text += "\nℹ Questo messaggio verrà rimosso in 5 minuti."
+    confirmation_text += "\nℹ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
 
     return confirmation_text

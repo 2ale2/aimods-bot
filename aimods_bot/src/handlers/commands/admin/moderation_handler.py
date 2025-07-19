@@ -4,6 +4,6 @@ from aimods_bot.src.callbacks.commands.admin.moderation_router import moderation
 
 moderation_handler = PrefixHandler(
     [".", "!", "/"],
-    ["ban", "unban", "kick", "warn", "unwarn", "limit", "unlimit"],
+    ["ban", "unban", "kick", "warn", "unwarn", "limit", "unlimit", "mute", "unmute"],
     moderation_command_router
 )
