@@ -15,7 +15,8 @@ action_map = {
     "kick": kick_user,
     "warn": warn_user,
     "unwarn": unwarn_user,
-    "limit": limit_user
+    "limit": limit_user,
+    "unlimit": limit_user
 }
 
 

@@ -2,8 +2,8 @@ import telegram
 
 from typing import Optional, Any, Union, Dict
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
-from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
-from telegram import Update, ChatMember as PTBChatMember
+from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
+from telegram import Update, ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
 from telegram.ext import ContextTypes
 
 import aimods_bot.src.helpers.constants.constants as constants
@@ -245,3 +245,13 @@ def format_user_mention(user_id: str | int | None, username: str | None, first_n
 
 def add_fucking_at(s: str) -> str:
     return '@' + s.removeprefix("@")
+
+
+def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChatPermissions]):
+    if isinstance(permissions, PyroChatPermissions):
+        return {
+            attr: getattr(permissions, attr)
+            for attr in permissions.__dict__
+            if isinstance(getattr(permissions, attr), bool)
+        }
+    return permissions.to_dict()

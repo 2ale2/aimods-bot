@@ -4,6 +4,7 @@ TOPICS = get_data_from_json("forum_topics")
 pyro_instance = None
 
 ERROR_MESSAGES = {
+    "command_syntax_error": "⚠️ Warning\n\n▪️ Sintassi del comando non corretta.",
     "no_user_provided": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",
     "cannot_parse_user": "⚠️ Warning\n\n▪️ Non riesco a risolvere l'utente specificato, riprova.\n\n"
                       "🔍 Tipicamente significa che l'utente non è nel gruppo.",

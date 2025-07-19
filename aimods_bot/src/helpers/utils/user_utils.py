@@ -97,9 +97,12 @@ async def get_member_permissions(
 
     pyro = isinstance(chat_member, PyroChatMember)
 
+    if pyro and chat_member.status.value == "restricted":
+        return chat_member.permissions
+
     chat_id = context.bot_data["group_chat_id"]
 
-    if chat_member.status in ("restricted", "administrator"):
+    if chat_member.status.value in ("restricted", "administrator"):
         included_fields = default_permissions.keys()
         actual_permissions = {
             attr: getattr(chat_member, attr)
@@ -115,7 +118,7 @@ async def get_member_permissions(
         else:
             actual_permissions = PTBChatPermissions(**actual_permissions)
 
-    elif chat_member.status == "member":
+    elif (chat_member.status if not pyro else chat_member.status.value) == "member":
         actual_permissions = await get_chat_permissions(context=context, chat_id=chat_id)
         if pyro:
             actual_permissions = PyroChatPermissions(**actual_permissions.to_dict())

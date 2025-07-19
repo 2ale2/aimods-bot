@@ -2,21 +2,21 @@ from telegram import ChatPermissions as PTBChatPermissions
 from pyrogram.types import ChatPermissions as PyroChatPermissions
 
 from dataclasses import dataclass
-from enum import IntEnum, auto
+from enum import IntEnum
 
 @dataclass(frozen=True)
 class Permissions(IntEnum):
-    can_send_messages = auto()
-    can_send_polls = auto()
-    can_send_other_messages = auto()
-    can_add_web_page_previews = auto()
-    can_invite_users = auto()
-    can_send_audios = auto()
-    can_send_documents = auto()
-    can_send_photos = auto()
-    can_send_videos = auto()
-    can_send_video_notes = auto()
-    can_send_voice_notes = auto()
+    can_send_messages = 0
+    can_send_polls = 1
+    can_send_other_messages = 2
+    can_add_web_page_previews = 3
+    can_invite_users = 4
+    can_send_audios = 5
+    can_send_documents = 6
+    can_send_photos = 7
+    can_send_videos = 8
+    can_send_video_notes = 9
+    can_send_voice_notes = 10
 
 
 permissions_texts = {
@@ -62,8 +62,8 @@ PyroTruePermissions = PyroChatPermissions(**(set_default_permissions(True)))
 
 def get_pyro_permissions(b: bool):
     if b:
-        return PTBTruePermissions
-    return PTBFalsePermissions
+        return PyroTruePermissions
+    return PyroFalsePermissions
 
 
 def get_ptb_permissions(b: bool):
