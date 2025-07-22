@@ -30,7 +30,6 @@ class MsgDict(TypedDict):
     media_id: str
     caption: str
     post_id: int
-    sender_id: int
     thread_id: int
 
 
@@ -119,7 +118,7 @@ def _get_single_attachment(message: Message) -> Optional[List]:
 
 async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     job_data = cast(List[MsgDict], context.job.data)
-    media_group_sender_id = context.job.data[0]["sender_id"]
+    media_group_sender_id = update.effective_user.id
 
     echo_element = _check_echo_command_in_group_media(job_data)
 
@@ -193,9 +192,8 @@ async def handle_media_group(update: Update, context: ContextTypes.DEFAULT_TYPE)
     msg_dict = {
         "media_type": media_type,
         "media_id": media_id,
-        "caption": message.caption_html,
+        "caption": message.caption_html_urled,
         "post_id": message.message_id,
-        "sender_id": message.from_user.id,
         "thread_id": message.message_thread_id
     }
     jobs = context.job_queue.get_jobs_by_name(str(message.media_group_id))

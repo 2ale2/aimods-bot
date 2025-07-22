@@ -1,13 +1,15 @@
-import telegram
-
 from typing import Optional, Any, Union, Dict
+import telegram
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import Update, ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
+from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode as PTBParseMode
+from pyrogram.enums import ParseMode as PyroParseMode
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
+from aimods_bot.src.helpers.constants.constants import PanelDict
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("telegram_utils")
@@ -269,3 +271,26 @@ def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChat
             if isinstance(getattr(permissions, attr), bool)
         }
     return permissions.to_dict()
+
+
+async def render_panel(panel: PanelDict, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = panel["keyboard"]
+    text = panel["text"]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=reply_markup,
+            parse_mode=PTBParseMode.HTML
+        )
+    except Exception:
+        try:
+            await constants.pyro_instance.send_message(
+                chat_id=update.effective_chat.id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode=PyroParseMode.HTML
+            )
+        except Exception as e:
+            log.error(f"Non è stato possibile renderizzare il pannello: {e}")

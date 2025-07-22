@@ -1,4 +1,7 @@
 import re
+from typing import TypedDict, List
+
+from telegram import InlineKeyboardButton
 
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
@@ -19,3 +22,7 @@ ERROR_MESSAGES = {
 _commands = get_data_from_json("commands")
 
 echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
+
+class PanelDict(TypedDict):
+    text: str
+    keyboard: List[List[InlineKeyboardButton]]
