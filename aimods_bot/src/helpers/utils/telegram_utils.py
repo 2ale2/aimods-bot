@@ -20,23 +20,37 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     return None
 
 
-async def safe_delete(update: Update, context: ContextTypes.DEFAULT_TYPE, message: telegram.Message = None):
+async def safe_delete(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        message: telegram.Message = None,
+        message_id: int = None
+):
     """
     Tenta di eliminare un messaggio Telegram in modo sicuro.
-    Se viene fornito 'message', tenta di eliminare quello.
+    Se viene fornito 'message' o 'message_id' tenta di eliminare quello.
     Altrimenti, tenta di eliminare update.effective_message.
     Ignora errori di tipo BadRequest (es. messaggio già eliminato o non trovato).
     """
-    message_to_delete = message if message is not None else update.effective_message
 
-    if message_to_delete is None:
+    if message:
+        message_id_to_delete = message.message_id
+    elif message_id:
+        message_id_to_delete = message_id
+    else:
+        message_id_to_delete = update.effective_message.message_id
+
+    if message_id_to_delete is None:
         log.warning("Nessun messaggio valido da eliminare è stato fornito o trovato.")
         return
 
     try:
-        await message_to_delete.delete()
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=message_id_to_delete
+        )
     except telegram.error.BadRequest as e:
-        log.warning(f"Impossibile eliminare il messaggio (ID: {message_to_delete.message_id if hasattr(message_to_delete, 'message_id') else 'N/A'}): {e}")
+        log.warning(f"Impossibile eliminare il messaggio (ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'}): {e}")
     except AttributeError:
         log.error(f"L'oggetto fornito non è un telegram.Message valido e non ha il metodo delete.")
     except Exception as e:

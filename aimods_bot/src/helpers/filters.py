@@ -16,3 +16,10 @@ class ChannelMessageForRecapFilter(MessageFilter):
         if any(hashtag in message.text for hashtag in l):
             return True
         return False
+
+
+class MediaGroupIDMessageFilter(MessageFilter):
+    def filter(self, message: telegram.Message):
+        if message.media_group_id:
+            return True
+        return False
