@@ -1,21 +1,20 @@
-from telegram.ext import PrefixHandler, MessageHandler
+from telegram.ext import MessageHandler, filters
+
+from aimods_bot.src.helpers.constants.constants import echo_pattern
 from aimods_bot.src.helpers.filters import MediaGroupIDMessageFilter
-from aimods_bot.src.callbacks.commands.admin.service_router import service_command_router, handle_media_group
+from aimods_bot.src.callbacks.commands.admin.service_router import service_command_router
+
 
 # Tutti i messaggi a eccezione di quelli che possiedono più di un allegato
-service_handler = PrefixHandler(
-    [".", "!", "/"],
-    ["annuncio", "echo"],
-    service_command_router
+service_handler = MessageHandler(
+    filters=filters.CaptionRegex(pattern=echo_pattern) | filters.Regex(pattern=echo_pattern),
+    callback=service_command_router
 )
-
 
 # Messaggi contenenti più di un allegato
 media_group_id_message_filer = MediaGroupIDMessageFilter()
 
 multi_media_echo_handler = MessageHandler(
     filters=media_group_id_message_filer,
-    callback=handle_media_group
+    callback=service_command_router
 )
-
-

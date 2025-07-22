@@ -60,10 +60,12 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     common_kwargs = {
         "chat_id": data["chat_id"],
         "reply_parameters": data.get("reply_parameters"),
-        "reply_markup": data.get("reply_markup"),
         "message_thread_id": data.get("thread_id"),
         "parse_mode": "HTML"
     }
+
+    if not send_media:
+        common_kwargs["reply_markup"] = data.get("reply_markup")
 
     try:
         if send_media:
@@ -74,6 +76,8 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
                 **common_kwargs
             )
         if job_to_edit:
+            if isinstance(message, tuple):
+                message = message[0]
             mark_job_done(context, job_to_edit, message.message_id)
     except telegram.error.TelegramError as e:
         if job_to_edit:
@@ -147,7 +151,7 @@ async def _send_media_message(context, data, kwargs):
         return message
     else:
         message = await context.bot.send_media_group(
-            media=data["attachments"],
+            media=data["attachments"]["files"],
             caption=data["text"],
             **kwargs
         )

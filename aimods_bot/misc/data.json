@@ -112,6 +112,14 @@
     "unwarn": {
       "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
       "parameters": ["mention"]
+    },
+    "echo": {
+      "pattern": "^[./!](annuncio|echo)\\b",
+      "parameters": ["message"]
+    },
+    "annuncio": {
+      "pattern": "^[./!](annuncio|echo)\\b",
+      "parameters": ["message"]
     }
   },
   "hashtags": {

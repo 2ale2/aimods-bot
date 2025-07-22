@@ -1,3 +1,5 @@
+import re
+
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 TOPICS = get_data_from_json("forum_topics")
@@ -12,3 +14,8 @@ ERROR_MESSAGES = {
     "user_not_in_group": "⚠️ Warning\n\n▪️ L'utente non è nel gruppo.",
     "user_banned": "⚠️ Warning\n\n▪️ L'utente è bannato.",
 }
+
+
+_commands = get_data_from_json("commands")
+
+echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
