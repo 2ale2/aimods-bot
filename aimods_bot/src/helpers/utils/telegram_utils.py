@@ -271,26 +271,3 @@ def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChat
             if isinstance(getattr(permissions, attr), bool)
         }
     return permissions.to_dict()
-
-
-async def render_panel(panel: PanelDict, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = panel["keyboard"]
-    text = panel["text"]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    try:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=text,
-            reply_markup=reply_markup,
-            parse_mode=PTBParseMode.HTML
-        )
-    except Exception:
-        try:
-            await constants.pyro_instance.send_message(
-                chat_id=update.effective_chat.id,
-                text=text,
-                reply_markup=reply_markup,
-                parse_mode=PyroParseMode.HTML
-            )
-        except Exception as e:
-            log.error(f"Non è stato possibile renderizzare il pannello: {e}")

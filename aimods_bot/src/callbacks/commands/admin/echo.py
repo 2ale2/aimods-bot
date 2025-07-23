@@ -168,7 +168,7 @@ async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _check_echo_command_in_group_media(message_data: List[MsgDict]) -> Optional[MsgDict]:
     """
-        Controlla la lista di media, verificando la presenza di una descrizone che comincia col comando
+        Controlla la lista di media, verificando la presenza di una descrizione che comincia col comando
         'echo' o 'annuncio'. Se lo trova, ritorna l'elemento della lista che contiene tale descrizione.
     """
     for el in message_data:

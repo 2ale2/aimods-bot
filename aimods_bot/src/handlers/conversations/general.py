@@ -2,7 +2,8 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as pcs
+# noinspection PyPep8Naming
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 
 alert_handler = CallbackQueryHandler(
@@ -15,8 +16,8 @@ private_conversation_handler = ConversationHandler(
         PrefixHandler([".", "/", "!"], "start", start)
     ],
     states={
-        pcs.USER_CONVERSATION: [],  # User main router
-        pcs.ADMIN_CONVERSATION: []  # Admin main router
+        PCS.USER_CONVERSATION: [],  # User main router
+        PCS.ADMIN_CONVERSATION: []  # Admin main router
     },
     fallbacks=[]
 )
