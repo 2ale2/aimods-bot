@@ -81,3 +81,8 @@ def format_time_as_rome(until: datetime) -> str:
     rome_time = until.astimezone(pytz.timezone('Europe/Rome'))
     return (f"fino al <b>{rome_time.strftime('%d %B %Y')}</b> "
             f"alle {rome_time.strftime('%H:%M')}.")
+
+
+def sec_value_defined(sec: int):
+    # Se sec non appartiene a questo intervallo, Telegram non lo considera.
+    return 30 <= sec <= 60*60*24*365

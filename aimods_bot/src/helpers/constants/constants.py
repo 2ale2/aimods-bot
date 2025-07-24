@@ -1,7 +1,10 @@
 import re
-from typing import TypedDict, List
+from typing import List, Optional
+from dataclasses import dataclass
 
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup
+from telegram.constants import ParseMode
+from telegram.ext import CallbackContext
 
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
@@ -18,11 +21,80 @@ ERROR_MESSAGES = {
     "user_banned": "⚠️ Warning\n\n▪️ L'utente è bannato.",
 }
 
+PUNISHMENT_EMOJIS = {
+        "ban": "🚫",
+        "kick": "🥊",
+        "mute": "🔒",
+        "warn": "⚠️"
+    }
+
 
 _commands = get_data_from_json("commands")
 
 echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
 
-class PanelDict(TypedDict):
+
+@dataclass
+class ButtonItem:
     text: str
-    keyboard: List[List[InlineKeyboardButton]]
+    callback_key: Optional[str]
+
+
+@dataclass
+class PanelConfig:
+    base_path: str
+    text: str
+    keyboard: List[List[ButtonItem]]
+
+
+class Panel:
+    """Classe base per generare pannelli di menu con testo e tastiera inline."""
+    def __init__(self, config: PanelConfig, send=False):
+        self.base_path = config.base_path
+        self.text = config.text
+        self.keyboard = config.keyboard
+        self.send = send
+
+    def build_text(self) -> str:
+        """Costruisce il testo del messaggio."""
+        return self.text
+
+    def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        """Costruisce la tastiera inline."""
+        keyboard = []
+        for sublist in self.keyboard:
+            subkeyboard = []
+            for button in sublist:
+               subkeyboard.append(
+                   InlineKeyboardButton(
+                       text=button.text,
+                       callback_data=self.generate_path(button.callback_key)
+                   )
+               )
+            keyboard.append(subkeyboard)
+        return keyboard
+
+    def generate_path(self, subpath: Optional[str]) -> str:
+        """Genera il percorso per il callback_data."""
+        if not subpath:
+            s = self.base_path.split("/")
+            return f"{'/'.join(s[:-1])}"
+        if not self.base_path:
+            return subpath
+        return f"{self.base_path}/{subpath}"
+
+    async def render(self, update: Update, context: CallbackContext):
+        """Renderizza il pannello nel chat."""
+        if self.send:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=self.build_text(),
+                reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            await update.effective_message.edit_text(
+                text=self.build_text(),
+                reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                parse_mode=ParseMode.HTML
+            )

@@ -1,38 +1,45 @@
-from typing import Optional, List
-
-from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import CallbackContext
-from telegram.constants import ParseMode
 
+from aimods_bot.src.helpers.constants.constants import Panel, PanelConfig, ButtonItem
 
-def _build_text() -> str:
-    text = ("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
-            "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di "
-            "<i>AIMods</i>.\n\n🔹 Scegli un'opzione.")
-    return text
-
-
-def _build_keyboard() -> List[List[InlineKeyboardButton]]:
-    keyboard = [
-        [InlineKeyboardButton(text="🔐 Sicurezza e Filtri", callback_data=_generate_path("security_filters"))],
-        [InlineKeyboardButton(text="⚠️ Moderazione Utenti", callback_data=_generate_path("user_moderation"))],
-        [InlineKeyboardButton(text="🎞 Messaggi e Contenuti", callback_data=_generate_path("media_contents"))],
-        [InlineKeyboardButton(text="👥 Gestione Community", callback_data=_generate_path("community_settings"))],
-        [InlineKeyboardButton(text="🏠 Home", callback_data=_generate_path(None))]
-    ]
-    return keyboard
-
-
-def _generate_path(s: Optional[str]) -> str:
-    if not s:
-        return "moderation/"
-    return f"moderation/{s}"
-
-
-async def render_panel(update: Update, context: CallbackContext):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=_build_text(),
-        reply_markup=InlineKeyboardMarkup(_build_keyboard()),
-        parse_mode=ParseMode.HTML
+moderation_panel = Panel(
+    PanelConfig(
+        base_path="moderation",
+        text=("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
+              "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di "
+              "<i>AIMods</i>.\n\n🔹 Scegli un'opzione."),
+        keyboard=[
+            [ButtonItem(text="🔐 Sicurezza e Filtri", callback_key="security_filters")],
+            [ButtonItem(text="⚠️ Moderazione Utenti", callback_key="user_moderation")],
+            [ButtonItem(text="🎞 Messaggi e Contenuti", callback_key="media_contents")],
+            [ButtonItem(text="👥 Gestione Community", callback_key="community")],
+            [ButtonItem(text="🏠 Home", callback_key="main_menu")]
+        ]
     )
+)
+
+security_filters_panel = Panel(
+    PanelConfig(
+        base_path="moderation/security_filters",
+        text="<b>🔐 Sicurezza e Filtri</b>\n\n🔹 Scegli un'opzione.",
+        keyboard=[
+            [ButtonItem(text="📨 Anti-Spam", callback_key="antispam")],
+            [ButtonItem(text="🌊 Anti-Flood", callback_key="antiflood")],
+            [ButtonItem(text="🖊 Parole Bandite", callback_key="forbidden_words")],
+            [ButtonItem(text="👁‍🗨 Controlli", callback_key="checks")],
+            [ButtonItem(text="🔞 Contenuti Inappropriati", callback_key="inappropriate_content")],
+            [ButtonItem(text="📏 Lunghezza Messaggi", callback_key="length")],
+            [ButtonItem(text="🔙 Indietro", callback_key="moderation")]
+        ]
+    )
+)
+
+
+async def render_moderation_panel(update: Update, context: CallbackContext):
+    await moderation_panel.render(update, context)
+
+
+async def render_security_filters_panel(update: Update, context: CallbackContext):
+    await security_filters_panel.render(update, context)
+
