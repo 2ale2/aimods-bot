@@ -2,7 +2,6 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
-# noinspection PyPep8Naming
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 
@@ -17,7 +16,8 @@ private_conversation_handler = ConversationHandler(
     ],
     states={
         PCS.USER_CONVERSATION: [],  # User main router
-        PCS.ADMIN_CONVERSATION: []  # Admin main router
+        PCS.ADMIN_CONVERSATION: [],  # Admin main router
+        PCS.SET_PUNISHMENT_DURATION: [],  # Settaggio durata punizioni
     },
     fallbacks=[]
 )

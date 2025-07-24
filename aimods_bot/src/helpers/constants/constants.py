@@ -1,4 +1,5 @@
 import re
+import html
 from typing import List, Optional
 from dataclasses import dataclass
 
@@ -26,12 +27,25 @@ PUNISHMENT_EMOJIS = {
         "kick": "🥊",
         "mute": "🔒",
         "warn": "⚠️"
-    }
+}
 
 
 _commands = get_data_from_json("commands")
 
 echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
+
+
+@dataclass
+class DisplayItem:
+    display_icon: str
+    display_name: str
+    target_description: str
+
+
+MODERATION_DISPLAY_ITEMS = {
+    "antispam": DisplayItem("📨", "Anti-Spam", "a chi spamma"),
+    "antiflood": DisplayItem("🌊", "Anti-Flood", "a chi fa flooding")
+}
 
 
 @dataclass
@@ -93,8 +107,10 @@ class Panel:
                 parse_mode=ParseMode.HTML
             )
         else:
-            await update.effective_message.edit_text(
-                text=self.build_text(),
-                reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
-                parse_mode=ParseMode.HTML
-            )
+            text = self.build_text()
+            if html.unescape(update.effective_message.text_html_urled) != text:
+                await update.effective_message.edit_text(
+                    text=self.build_text(),
+                    reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                    parse_mode=ParseMode.HTML
+                )

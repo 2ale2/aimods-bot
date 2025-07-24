@@ -20,7 +20,7 @@ async def render_antiflood_panel(update: Update, context: CallbackContext):
                 ],
                 [ButtonItem(text="⚖️ Punizione", callback_key="set_punishment")],
                 [ButtonItem(text="⛓️‍💥 Blocco Link", callback_key="set_links")],
-                [ButtonItem(text="💬 Blocco Menzioni", callback_key="set_links")],
+                [ButtonItem(text="💬 Blocco Menzioni", callback_key="set_mentions")],
                 [ButtonItem(text="👥 Blocco Inoltro", callback_key="set_forward")],
                 [ButtonItem(text="🎞 Blocco Media", callback_key="set_media")],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]

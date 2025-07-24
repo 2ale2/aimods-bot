@@ -1,0 +1,89 @@
+from telegram import Update
+from telegram.ext import CallbackContext
+
+from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.helpers.constants.constants import (Panel, PanelConfig, ButtonItem,
+                                                        PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS)
+from aimods_bot.src.helpers.utils.time_utils import sec_value_defined, get_time_text
+
+
+async def render_punishment_panel(update: Update, context: CallbackContext, setting: str):
+    text = _build_punishment_text(context=context, setting=setting)
+
+    punishment_panel = Panel(
+        PanelConfig(
+            base_path=update.callback_query.data,
+            text=text,
+            keyboard=[
+                [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
+                [
+                    ButtonItem(text="🚫 Ban", callback_key="ban"),
+                    ButtonItem(text="🥊 Kick", callback_key="kick")
+                ],
+                [
+                    ButtonItem(text="🔒 Mute", callback_key="mute"),
+                    ButtonItem(text="⚠️ Warn", callback_key="warn")
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await punishment_panel.render(update=update, context=context)
+
+
+async def render_punishment_duration_panel(update: Update, context: CallbackContext, setting: str):
+    text = _build_punishment_text(context=context, setting=setting)
+
+    punishment_duration_panel = Panel(
+        PanelConfig(
+            base_path=update.callback_query.data,
+            text=text,
+            keyboard=[
+                [ButtonItem(text="♾️ Tempo Indeterminato", callback_key="endless")],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await punishment_duration_panel.render(update=update, context=context)
+
+
+def _build_punishment_text(context: CallbackContext, setting: str):
+    config = get_value(context, f"moderation.{setting}")
+    time_total_seconds = config["punishment"]["time"]
+    punishment = config["punishment"]["type"]
+
+    punishment_limited = sec_value_defined(time_total_seconds)
+    time_text = (
+        get_time_text(time_total_seconds) if punishment_limited
+        else "♾️ A Tempo Indeterminato"
+    )
+
+    display_item = MODERATION_DISPLAY_ITEMS.get(setting)
+    display_icon = display_item.display_icon
+    display_name = display_item.display_name
+    target_description = display_item.target_description
+
+    text = (f"{display_icon} <b>Impostazioni {display_name}</b>\n\n"
+            "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
+            f"▫️ Qui puoi configurare la punizione comminata {target_description}.\n\n"
+            f"🔸 <u>Punizione</u> – {PUNISHMENT_EMOJIS[punishment]} <i>{punishment.capitalize()}</i>\n"
+            f"🔸 <u>Tempo</u> – <i>{time_text}</i>")
+
+    return text
+
+
+def _build_punishment_duration_text(context: CallbackContext, setting: str):
+    display_item = MODERATION_DISPLAY_ITEMS.get(setting)
+    display_icon = display_item.display_icon
+    display_name = display_item.display_name
+    target_description = display_item.target_description
+
+    text = (f"{display_icon} <b>Impostazioni {display_name}</b>\n\n"
+            "↦ 🕔 <i>Tempo Punizione</i>\n\n"
+            f"▫️ Puoi impostare da qui la durata della punizione comminata {target_description}.\n\n"
+            "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
+            "ℹ️ Il tempo non viene considerato se la punizione scelta è <i>Kick</i>.")
+
+    return text
