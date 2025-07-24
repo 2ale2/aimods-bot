@@ -3,8 +3,8 @@ from typing import Optional, Any, Union, Dict
 import telegram
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import Update, ChatMember as PTBChatMember
-from telegram.ext import ContextTypes
+from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ContextTypes, CallbackContext
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
@@ -18,6 +18,10 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     if thread_id is not None and thread_id < 20:
         return thread_id
     return None
+
+
+async def safe_delete_wrapper(update: Update, context: CallbackContext):
+    await safe_delete(update, context, update.effective_message)
 
 
 async def safe_delete(
@@ -269,3 +273,13 @@ def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChat
             if isinstance(getattr(permissions, attr), bool)
         }
     return permissions.to_dict()
+
+
+async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="⚠ Funzionalità non ancora implementata.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="🚮 Chiude", callback_data="close")]]
+        )
+    )

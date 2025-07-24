@@ -83,6 +83,21 @@ def format_time_as_rome(until: datetime) -> str:
             f"alle {rome_time.strftime('%H:%M')}.")
 
 
-def sec_value_defined(sec: int):
+def sec_value_limited(sec: int):
     # Se sec non appartiene a questo intervallo, Telegram non lo considera.
     return 30 <= sec <= 60*60*24*365
+
+
+def get_allow_after_text(allow_after: int) -> str:
+    if allow_after == 0:
+        allow_after_text = "🆓 Nessun Limite"
+    elif allow_after <= 1800:
+        allow_after_text = f"{int(allow_after / 60)} {'Minuti' if allow_after > 60 else 'Minuto'}"
+    elif allow_after <= 43200:
+        allow_after_text = f"{int(allow_after / 3600)} {'Ore' if allow_after > 3600 else 'Ora'}"
+    elif allow_after <= 432000:
+        allow_after_text = f"{int(allow_after / 86400)} {'Giorni' if allow_after > 86400 else 'Giorno'}"
+    else:
+        allow_after_text = "Una settimana"
+
+    return allow_after_text

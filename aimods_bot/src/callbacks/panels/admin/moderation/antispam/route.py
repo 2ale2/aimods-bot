@@ -1,28 +1,33 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antiflood.render import render_antiflood_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.antiflood.handle import toggle_antiflood
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import toggle_antispam
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import render_antispam_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
-async def antiflood_route(update: Update, context: CallbackContext, path: list[str]):
+async def antispam_route(update: Update, context: CallbackContext, path: list[str]):
     if len(path) == 0:
-        await render_antiflood_panel(update=update, context=context)
+        await render_antispam_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
 
     if "toggle" in path[0]:
-        await toggle_antiflood(update=update, context=context)
-        await render_antiflood_panel(update=update, context=context)
+        await toggle_antispam(update=update, context=context)
+        await render_antispam_panel(update=update, context=context)
+        return PCS.ADMIN_CONVERSATION
 
     match path[0]:
         case "punishment":
             return await punishment_route(update=update, context=context, setting="antiflood", path=path[1:])
-        case "message_number":
+        case "links":
             await not_implemented_yet(update=update, context=context)
-        case "message_time":
+        case "mentions":
+            await not_implemented_yet(update=update, context=context)
+        case "forward":
+            await not_implemented_yet(update=update, context=context)
+        case "media":
             await not_implemented_yet(update=update, context=context)
 
     return PCS.ADMIN_CONVERSATION

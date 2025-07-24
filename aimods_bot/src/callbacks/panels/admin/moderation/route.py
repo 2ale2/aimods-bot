@@ -5,6 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.render import render_moder
     render_security_filters_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.antiflood.route import antiflood_route
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
 async def moderation_router(update: Update, context: CallbackContext, path: list[str]):
@@ -14,26 +15,27 @@ async def moderation_router(update: Update, context: CallbackContext, path: list
 
     match path[0]:
         case "security_filters":
-            await render_security_filters_panel(update=update, context=context)
+            await security_and_filters_router(update=update, context=context, path=path[1:])
             return PCS.ADMIN_CONVERSATION
         case "user_moderation":
-            pass
+            await not_implemented_yet(update=update, context=context)
         case "media_contents":
-            pass
+            await not_implemented_yet(update=update, context=context)
         case "community_settings":
-            pass
+            await not_implemented_yet(update=update, context=context)
 
 
 async def security_and_filters_router(update: Update, context: CallbackContext, path: list[str]):
-    match path[0]:
-        case "antispam":
-            await antiflood_route(update=update, context=context, path=path[1:])
-            pass
-        case "antiflood":
-            pass
-        case "forbidden_words":
-            pass
-        case "length":
-            pass
+    if len(path):
+        match path[0]:
+            case "antispam":
+                await not_implemented_yet(update=update, context=context)
+            case "antiflood":
+                return await antiflood_route(update=update, context=context, path=path[1:])
+            case "forbidden_words":
+                await not_implemented_yet(update=update, context=context)
+            case "length":
+                await not_implemented_yet(update=update, context=context)
 
+    await render_security_filters_panel(update=update, context=context)
     return PCS.ADMIN_CONVERSATION

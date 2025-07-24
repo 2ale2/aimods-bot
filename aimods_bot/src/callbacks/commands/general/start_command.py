@@ -52,16 +52,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await safe_delete(update=update, context=context)
 
     if await is_admin(user_id=user_id, context=context):
-        await _render_admin_panel(update=update, context=context)
+        await admin_panel.render(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
     else:
-        await _render_user_panel(update=update, context=context)
+        await user_panel.render(update=update, context=context)
         return PCS.USER_CONVERSATION
-
-
-async def _render_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await admin_panel.render(update=update, context=context)
-
-
-async def _render_user_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await user_panel.render(update=update, context=context)

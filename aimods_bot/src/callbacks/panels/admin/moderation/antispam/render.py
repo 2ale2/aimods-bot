@@ -6,12 +6,12 @@ from aimods_bot.src.helpers.constants.constants import Panel, PanelConfig, PUNIS
 from aimods_bot.src.helpers.utils.time_utils import get_time_text, sec_value_limited
 
 
-async def render_antiflood_panel(update: Update, context: CallbackContext):
+async def render_antispam_panel(update: Update, context: CallbackContext):
     text = await _build_text(context=context)
 
-    antiflood_panel = Panel(
+    antispam_panel = Panel(
         PanelConfig(
-            base_path="moderation/security_filters/antiflood",
+            base_path="moderation/security_filters/antispam",
             text=text,
             keyboard=[
                 [
@@ -19,24 +19,24 @@ async def render_antiflood_panel(update: Update, context: CallbackContext):
                     ButtonItem(text="Off 🌂", callback_key="toggle_off")
                 ],
                 [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
-                [ButtonItem(text="💬 Numero Messaggi", callback_key="message_number")],
-                [ButtonItem(text="🕔 Tempo Messaggi", callback_key="message_time")],
+                [ButtonItem(text="⛓️‍💥 Blocco Link", callback_key="links")],
+                [ButtonItem(text="💬 Blocco Menzioni", callback_key="mentions")],
+                [ButtonItem(text="👥 Blocco Inoltro", callback_key="forward")],
+                [ButtonItem(text="🎞 Blocco Media", callback_key="media")],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )
 
-    await antiflood_panel.render(update=update, context=context)
+    await antispam_panel.render(update=update, context=context)
 
 
 async def _build_text(context: CallbackContext):
-    antiflood_config = get_value(context, "moderation.antiflood")
+    antispam_config = get_value(context, "moderation.antispam")
 
-    toggle = antiflood_config["toggle"]
-    punishment = antiflood_config["punishment"]["type"]
-    time_total_seconds = antiflood_config["punishment"]["time"]
-    number_messages = antiflood_config["settings"]["number_messages"]
-    time_messages = antiflood_config["settings"]["time_messages"]
+    toggle = antispam_config["toggle"]
+    punishment = antispam_config["punishment"]["type"]
+    time_total_seconds = antispam_config["punishment"]["time"]
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
@@ -45,14 +45,12 @@ async def _build_text(context: CallbackContext):
     )
 
     text = (
-        "🌊 <b>Impostazioni Anti-Flood</b>\n\n"
-        "▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>il flooding</b>.\n\n"
+        "📨 <b>Impostazioni Anti-Spam</b>"
+        "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>spammer e bot malevoli</b>. "
+        "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
         f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
-        f"🔸 <u>Limite Messaggi</u> – <i>{number_messages}</i>\n"
-        f"🔸 <u>Limite di Tempo</u> – <i>{time_messages}</i> secondi\n"
         f"🔸 <u>Punizione</u> – {PUNISHMENT_EMOJIS[punishment]} <i>{punishment.capitalize()}</i>\n"
-        f"🔸 <u>Tempo della Punizione</u> – <i>{time_text}</i>\n\n"
-    )
+        f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
 
     if punishment_limited:
         text += (

@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.constants import (Panel, PanelConfig, ButtonItem,
                                                         PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS)
-from aimods_bot.src.helpers.utils.time_utils import sec_value_defined, get_time_text
+from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_time_text
 
 
 async def render_punishment_panel(update: Update, context: CallbackContext, setting: str):
@@ -33,7 +33,7 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
 
 
 async def render_punishment_duration_panel(update: Update, context: CallbackContext, setting: str):
-    text = _build_punishment_text(context=context, setting=setting)
+    text = _build_punishment_duration_text(setting=setting)
 
     punishment_duration_panel = Panel(
         PanelConfig(
@@ -46,6 +46,8 @@ async def render_punishment_duration_panel(update: Update, context: CallbackCont
         )
     )
 
+    context.chat_data['setting_duration'] = setting
+
     await punishment_duration_panel.render(update=update, context=context)
 
 
@@ -54,7 +56,7 @@ def _build_punishment_text(context: CallbackContext, setting: str):
     time_total_seconds = config["punishment"]["time"]
     punishment = config["punishment"]["type"]
 
-    punishment_limited = sec_value_defined(time_total_seconds)
+    punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
         get_time_text(time_total_seconds) if punishment_limited
         else "♾️ A Tempo Indeterminato"
@@ -74,7 +76,7 @@ def _build_punishment_text(context: CallbackContext, setting: str):
     return text
 
 
-def _build_punishment_duration_text(context: CallbackContext, setting: str):
+def _build_punishment_duration_text(setting: str):
     display_item = MODERATION_DISPLAY_ITEMS.get(setting)
     display_icon = display_item.display_icon
     display_name = display_item.display_name
