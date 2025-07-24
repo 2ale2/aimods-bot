@@ -2,22 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from aimods_bot.src.helpers.constants.constants import PanelConfig, Panel, ButtonItem
-
-list_detail = {
-        "whitelist": {
-            "icon": "📨",
-            "desc": "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
-        },
-        "blacklist": {
-            "icon": "📓",
-            "desc": "I domini aggiunti a questa lista verranno <b>puniti con il ban, "
-                    "indipendentemente dalla punizione impostata</b>."
-        },
-        "greylist": {
-            "icon": "🧙‍♂️",
-            "desc": "I link aggiunti a questa lista <b>non verranno puniti</b>."
-        }
-    }
+from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
 
 
 async def render_antispam_links_list_panel(update: Update, context: CallbackContext, l: str):
@@ -43,7 +28,7 @@ async def render_antispam_links_list_panel(update: Update, context: CallbackCont
 
 
 def _build_text(l: str):
-    list_item = list_detail[l]
+    list_item = LIST_DETAILS[l]
 
     text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
             f"↦ {list_item['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n"

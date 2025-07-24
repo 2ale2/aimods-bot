@@ -2,3 +2,4 @@ class PrivateConversationState:
     USER_CONVERSATION = 0
     ADMIN_CONVERSATION = 1
     SET_PUNISHMENT_DURATION = 2
+    EDIT_LIST = 3

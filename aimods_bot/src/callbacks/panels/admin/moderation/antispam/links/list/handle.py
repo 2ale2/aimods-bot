@@ -1,0 +1,279 @@
+from typing import Optional, Literal
+from urllib.parse import urlparse
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Message
+from telegram.constants import ParseMode
+from telegram.ext import CallbackContext
+
+from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.job_queue import send_action_message_after
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+
+log = logger.getChild("antispam_link_list")
+
+domain_types = {
+    "greylist": {"singular": "link", "plural": "link"},
+    "default": {"singular": "dominio", "plural": "domini"}
+}
+
+
+async def view_list(update: Update, context: CallbackContext, l: str):
+    l_item = LIST_DETAILS[l]
+    domain_type = domain_types.get(l, domain_types["default"])
+
+    if await _handle_if_list_empty(update=update, context=context, l=l):
+        return PCS.ADMIN_CONVERSATION
+
+    filename = _make_temp_file(context=context, l=l)
+    if not filename:
+        text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
+        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/antispam/link/{l}")]]
+
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        return PCS.ADMIN_CONVERSATION
+
+    await send_action_message_after(
+        update=update,
+        context=context,
+        text=f"{l_item['icon']} Ecco la lista di {domain_type['plural']} aggiunti alla <b>{l.capitalize()}</b>.",
+        additional_job_data={
+            "attachments": {
+                "files": filename,
+                "send_as_document": True,
+                "delete_after_sending": True
+            },
+            "reply_markup": InlineKeyboardMarkup(
+                [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+            )
+        }
+    )
+
+    return PCS.ADMIN_CONVERSATION
+
+
+async def edit_list(update: Update, context: CallbackContext, action: Literal["add", "remove"]):
+    l = context.chat_data.pop('list')
+    l_item = LIST_DETAILS[l]
+    domain_type = domain_types.get(l, domain_types["default"])
+    message = update.effective_message
+
+    if await _handle_if_list_empty(update=update, context=context, l=l):
+        return PCS.ADMIN_CONVERSATION
+
+    header = _get_text_header(l)
+
+    text = header + f"ℹ {l_item['desc']}\n\n"
+
+    if action == "add":
+        text += f"➕ Scrivi i <b>{domain_type['plural']} da aggiungere</b> alla {l.capitalize()}."
+    else:  # Remove
+        text += f"➖ Scrivi i <b>{domain_type['plural']} da rimuovere</b> dalla {l.capitalize()}."
+
+    keyboard = [[InlineKeyboardButton(
+        text="🔙 Indietro",
+        callback_data=f"moderation/security_filters/antispam/link/{l}")
+    ]]
+
+    await message.edit_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.HTML
+    )
+
+    context.chat_data['list_info'] = {
+        "action": action,
+        "message_id": message.id,
+        "list": l
+    }
+
+    return PCS.EDIT_LIST
+
+
+async def handle_user_input(update: Update, context: CallbackContext):
+    await safe_delete(update=update, context=context)
+
+    d = context.chat_data.pop('list_info')
+    l = d['list']
+    action = d['action']
+    message_id = d['message_id']
+
+    l_conf = _get_list(context=context, l=l)
+    domain_type = domain_types.get(l, domain_types["default"])
+
+    uin = update.effective_message
+    if not _validate_input(uin):
+        await _send_validation_error(update, context, domain_type)
+        return PCS.EDIT_LIST
+
+    links = _extract_links(uin, l)
+    if not links:
+        await _send_validation_error(update, context, domain_type)
+        return PCS.EDIT_LIST
+
+    text = _get_text_header(l=l)
+    new_items = _process_links(links, l_conf, action)
+
+    text += _generate_response_message(new_items, domain_type, action, l)
+
+    keyboard = _create_response_keyboard(action, domain_type, l)
+
+    await context.bot.edit_message_text(
+        message_id=message_id,
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.HTML
+    )
+
+    return PCS.ADMIN_CONVERSATION
+
+
+def _extract_links(message: Message, list_type: str) -> list[str]:
+    """Estrae e processa i link dal messaggio"""
+    links = []
+
+    if not message.entities:
+        return links
+
+    for entity in message.entities:
+        if entity.type != MessageEntity.URL:
+            continue
+
+        link = message.text[entity.offset:entity.offset + entity.length]
+
+        if list_type == "greylist":
+            links.append(link)
+        else:
+            parsed = urlparse(link)
+            domain = (parsed.netloc or parsed.path.split("/")[0]).removeprefix("www.")
+            links.append(domain)
+
+    return links
+
+
+def _process_links(links: list, l_conf: list, action: str) -> list:
+    """Processa i link basandosi sull'azione (add/remove)"""
+    new_items = []
+
+    if action == 'add':
+        for link in links:
+            if link not in l_conf:
+                new_items.append(link)
+                l_conf.append(link)
+    else:  # remove
+        for link in links:
+            if link in l_conf:
+                new_items.append(link)
+                l_conf.remove(link)
+
+    return new_items
+
+
+def _generate_response_message(new_items: list, domain_type: dict, action: str, list_name: str):
+    """Genera il messaggio di risposta basato sui risultati"""
+    if len(new_items) == 0:
+        if action == 'add':
+            return f"❕ Tutti i {domain_type['plural']} indicati sono <b>già presenti</b> nella {list_name.capitalize()}."
+        else:
+            return f"❕ Tutti i {domain_type['plural']} indicati <b>non sono presenti</b> nella {list_name.capitalize()}."
+
+    action_text = "aggiunto" if action == 'add' else "rimosso"
+    action_text_plural = "aggiunti" if action == 'add' else "rimossi"
+
+    if len(new_items) == 1:
+        return f"✅ {domain_type['singular'].capitalize()} <code>{new_items[0]}</code> <b>{action_text} correttamente</b>."
+    else:
+        items_formatted = ', '.join(f'<code>{item}</code>' for item in new_items)
+        return f"✅ {domain_type['plural'].capitalize()} {items_formatted} <b>{action_text_plural} correttamente</b>."
+
+
+def _create_response_keyboard(action: str, domain_type: dict, list_name: str):
+    """Crea la keyboard per la risposta"""
+    button_text = f"{'➖ Rimuovi Altro' if action == 'remove' else '➕ Aggiungi Altro'} {domain_type['singular']}"
+
+    return [
+        [InlineKeyboardButton(
+            text=button_text,
+            callback_data=f"moderation/security_filters/antispam/links/{action}_{list_name}"
+        )],
+        [InlineKeyboardButton(
+            text="🔙 Indietro",
+            callback_data=f"moderation/security_filters/antispam/links/{list_name}"
+        )]
+    ]
+
+
+async def _send_validation_error(update: Update, context: CallbackContext, domain_type: dict):
+    """Invia messaggio di errore per validazione fallita"""
+    text = f"⚠ Il messaggio non contiene link. Invia uno o più {domain_type['plural']}."
+    keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+
+    await send_action_message_after(
+        update=update,
+        context=context,
+        text=text,
+        additional_job_data={
+            "reply_markup": InlineKeyboardMarkup(keyboard)
+        }
+    )
+
+
+async def _validate_input(uin: Message) -> bool:
+    return any(x.type in MessageEntity.URL for x in uin.entities)
+
+
+def _get_list(context: CallbackContext, l: str) -> list:
+    return get_value(context=context, path=f"moderation.antispam.link.{l}")
+
+
+def _check_list_empty(context: CallbackContext, l: str) -> bool:
+    l_conf = _get_list(context=context, l=l)
+    return len(l_conf) == 0
+
+
+async def _make_temp_file(context: CallbackContext, l: str) -> Optional[str]:
+    """Crea un file temporaneo con il contenuto della lista indicata."""
+    l_conf = _get_list(context=context, l=l)
+    try:
+        with open(filename := f"./{l}.txt", "w") as f:
+            for s in l_conf:
+                f.write(s + "\n")
+        return filename
+    except (FileNotFoundError, PermissionError, OSError) as e:
+        log.error(f"Errore durante la scrittura del file {filename}: {e}")
+        return None
+
+
+async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str) -> bool:
+    l_item = LIST_DETAILS[l]
+
+    if _check_list_empty(context=context, l=l):
+        text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+                f"↦ {l_item['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n"
+                f"0️⃣ <b>La {l.capitalize()} è attualmente vuota</b>.")
+        keyboard = [
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/link/{l}")]
+        ]
+
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+
+        return True
+    return False
+
+
+def _get_text_header(l: str) -> str:
+    domain_type = domain_types.get(l, domain_types["default"])
+    return ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+            f"↦ {domain_type['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n")

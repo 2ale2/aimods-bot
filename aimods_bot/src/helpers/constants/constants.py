@@ -30,6 +30,23 @@ PUNISHMENT_EMOJIS = {
 }
 
 
+LIST_DETAILS = {
+        "whitelist": {
+            "icon": "📨",
+            "desc": "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
+        },
+        "blacklist": {
+            "icon": "📓",
+            "desc": "I domini aggiunti a questa lista verranno <b>puniti con il ban, "
+                    "indipendentemente dalla punizione impostata</b>."
+        },
+        "greylist": {
+            "icon": "🧙‍♂️",
+            "desc": "I link aggiunti a questa lista <b>non verranno puniti</b>."
+        }
+    }
+
+
 _commands = get_data_from_json("commands")
 
 echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
