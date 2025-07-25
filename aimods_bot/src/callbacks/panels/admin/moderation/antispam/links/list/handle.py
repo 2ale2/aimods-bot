@@ -27,7 +27,7 @@ async def view_list(update: Update, context: CallbackContext, l: str):
     if await _handle_if_list_empty(update=update, context=context, l=l):
         return PCS.ADMIN_CONVERSATION
 
-    filename = _make_temp_file(context=context, l=l)
+    filename = await _make_temp_file(context=context, l=l)
     if not filename:
         text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
         keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/antispam/link/{l}")]]
@@ -59,13 +59,12 @@ async def view_list(update: Update, context: CallbackContext, l: str):
     return PCS.ADMIN_CONVERSATION
 
 
-async def edit_list(update: Update, context: CallbackContext, action: Literal["add", "remove"]):
-    l = context.chat_data.pop('list')
+async def edit_list(update: Update, context: CallbackContext, l: str, action: Literal["add", "remove"]):
     l_item = LIST_DETAILS[l]
     domain_type = domain_types.get(l, domain_types["default"])
     message = update.effective_message
 
-    if await _handle_if_list_empty(update=update, context=context, l=l):
+    if action == "remove" and await _handle_if_list_empty(update=update, context=context, l=l):
         return PCS.ADMIN_CONVERSATION
 
     header = _get_text_header(l)
@@ -109,7 +108,7 @@ async def handle_user_input(update: Update, context: CallbackContext):
     domain_type = domain_types.get(l, domain_types["default"])
 
     uin = update.effective_message
-    if not _validate_input(uin):
+    if not await _validate_input(uin):
         await _send_validation_error(update, context, domain_type)
         return PCS.EDIT_LIST
 
@@ -202,7 +201,7 @@ def _create_response_keyboard(action: str, domain_type: dict, list_name: str):
     return [
         [InlineKeyboardButton(
             text=button_text,
-            callback_data=f"moderation/security_filters/antispam/links/{action}_{list_name}"
+            callback_data=f"moderation/security_filters/antispam/links/{action}"
         )],
         [InlineKeyboardButton(
             text="🔙 Indietro",
@@ -260,7 +259,7 @@ async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str
                 f"↦ {l_item['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n"
                 f"0️⃣ <b>La {l.capitalize()} è attualmente vuota</b>.")
         keyboard = [
-            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/link/{l}")]
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/links/{l}")]
         ]
 
         await update.effective_message.edit_text(
@@ -274,6 +273,6 @@ async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str
 
 
 def _get_text_header(l: str) -> str:
-    domain_type = domain_types.get(l, domain_types["default"])
+    l_item = LIST_DETAILS[l]
     return ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-            f"↦ {domain_type['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n")
+            f"↦ {l_item['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n")

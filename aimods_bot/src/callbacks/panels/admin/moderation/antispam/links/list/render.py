@@ -13,11 +13,11 @@ async def render_antispam_links_list_panel(update: Update, context: CallbackCont
             base_path=update.callback_query.data,
             text=text,
             keyboard=[
-                [ButtonItem(text=f"👁 Visiona {l.capitalize()}", callback_key=f"view_{l}")
+                [ButtonItem(text=f"👁 Visiona {l.capitalize()}", callback_key="view")
                 ],
                 [
-                    ButtonItem(text="➕ Aggiungi Elemento", callback_key=f"add_{l}"),
-                    ButtonItem(text="➖ Rimuovi Elemento",  callback_key=f"remove_{l}")
+                    ButtonItem(text="➕ Aggiungi Elemento", callback_key="add"),
+                    ButtonItem(text="➖ Rimuovi Elemento",  callback_key="remove")
                 ],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]

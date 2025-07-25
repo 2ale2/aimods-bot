@@ -11,11 +11,10 @@ async def antispam_links_list_route(update: Update, context: CallbackContext, l:
         await render_antispam_links_list_panel(update=update, context=context, l=l)
         return PCS.ADMIN_CONVERSATION
 
-    s = path[-1].split("_")
-    match s[0]:
+    match path[0]:
         case "view":
             return await view_list(update=update, context=context, l=l)
         case "add":
-            return await edit_list(update=update, context=context, action="add")
+            return await edit_list(update=update, context=context, l=l, action="add")
         case "remove":
-            return await edit_list(update=update, context=context, action="remove")
+            return await edit_list(update=update, context=context, l=l, action="remove")

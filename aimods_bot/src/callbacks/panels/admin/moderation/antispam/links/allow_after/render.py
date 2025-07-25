@@ -11,7 +11,7 @@ async def render_antispam_links_allow_after_panel(update: Update, context: Callb
 
     antispam_link_allow_after_panel = Panel(
         PanelConfig(
-            base_path="moderation/security_filters/antispam/links",
+            base_path="moderation/security_filters/antispam/links/allow_after",
             text=text,
             keyboard=[
                 [ButtonItem(text="🆓 Nessun Limite", callback_key="off")],
@@ -35,7 +35,7 @@ async def render_antispam_links_allow_after_panel(update: Update, context: Callb
                     ButtonItem(text="5 Giorni", callback_key="5_day"),
                     ButtonItem(text="1 Settimana", callback_key="1_week")
                 ],
-                [ButtonItem(text="🔙 Indietro", callback_key="antispam_set_links")]
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )

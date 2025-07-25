@@ -23,8 +23,8 @@ async def antispam_links_route(update: Update, context: CallbackContext, path: l
         case "whitelist":
             return await antispam_links_list_route(update=update, context=context, l="whitelist", path=path[1:])
         case "blacklist":
-            await not_implemented_yet(update=update, context=context)
+            return await antispam_links_list_route(update=update, context=context, l="blacklist", path=path[1:])
         case "greylist":
-            await not_implemented_yet(update=update, context=context)
+            return await antispam_links_list_route(update=update, context=context, l="greylist", path=path[1:])
 
     return PCS.ADMIN_CONVERSATION

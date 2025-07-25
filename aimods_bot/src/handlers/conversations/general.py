@@ -1,22 +1,35 @@
-from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandler, MessageHandler, filters
+from telegram import Update
+from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandler, MessageHandler, filters, TypeHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import edit_list
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import handle_user_input
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
-from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper
+from aimods_bot.src.helpers.utils.alerts import open_private_alert
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper, test
 
 alert_handler = CallbackQueryHandler(
     callback=open_private_alert,
     pattern=r"^alert_.+"
 )
 
+
+class TestHandler:
+    def __init__(self, callback):
+        self.callback = callback
+
+    def get(self):
+        return TypeHandler(
+            type=Update,
+            callback=self.callback
+        )
+
 close_button_handler = CallbackQueryHandler(
     pattern=r"close.*",
     callback=safe_delete_wrapper
 )
+
 
 private_conversation_handler = ConversationHandler(
     entry_points=[
@@ -33,10 +46,12 @@ private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.EDIT_LIST: [
+            # TestHandler(callback=test),
             MessageHandler(
                 filters=filters.TEXT,
-                callback=edit_list
+                callback=handle_user_input
             ),
+            close_button_handler,
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },

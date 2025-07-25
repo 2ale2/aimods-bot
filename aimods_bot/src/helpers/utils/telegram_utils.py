@@ -283,3 +283,8 @@ async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE
             [[InlineKeyboardButton(text="🚮 Chiude", callback_data="close")]]
         )
     )
+
+
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print()
+    pass
