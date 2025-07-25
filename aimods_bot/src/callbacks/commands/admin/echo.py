@@ -2,27 +2,22 @@ import asyncio
 import re
 from functools import partial
 from typing import Union, Optional, TypedDict, Literal, cast, List
-from telegram import Update, Message, TextQuote, ReplyParameters, InputMediaAudio, InputMediaDocument, InputMediaPhoto, InputMediaVideo
+
+from telegram import Update, Message, TextQuote, ReplyParameters
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 from telegram.helpers import effective_message_type
 
+from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.constants.constants import echo_pattern
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
-from aimods_bot.src.helpers.utils.user_utils import is_admin
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.user_utils import is_admin
 
 log = logger.getChild("echo")
-
-
-MEDIA_GROUP_TYPES = {
-    "audio": InputMediaAudio,
-    "document": InputMediaDocument,
-    "photo": InputMediaPhoto,
-    "video": InputMediaVideo,
-}
 
 
 class MsgDict(TypedDict):
@@ -46,17 +41,13 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command:
     text = _get_echo_text(message)
     attachments = _get_single_attachment(message)
 
-    additional_job_data = {
-        "reply_parameters": reply_parameters,
-        "message_thread_id": message.message_thread_id
-    }
+    additional_job_data = JobData(
+        reply_parameters=reply_parameters,
+        thread_id=message.message_thread_id
+    )
 
     if attachments:
-        # noinspection PyTypeChecker
-        additional_job_data["attachments"] = {
-            "files": attachments,
-            "send_as_document": False
-        }
+        additional_job_data.files = attachments
 
     await send_action_message_after(
         update=update,
@@ -102,7 +93,7 @@ def _get_echo_text(message: Union[Message, str]):
 
     s = text.split(None, 1)
     if s[0].lower().endswith(("annuncio", "announce", "echo")):
-        return s[1]
+        return s[1] if len(s) > 1 else ""
     return text
 
 
@@ -150,13 +141,11 @@ async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not media:
         return
 
-    additional_job_data = {
-        "message_thread_id": echo_element["thread_id"],
-        "attachments": {
-            "files": media,
-            "send_as_document": False
-        }
-    }
+    additional_job_data = JobData(
+        thread_id=echo_element["thread_id"],
+        files=media,
+        send_as_document=False
+    )
 
     await send_action_message_after(
         update=update,

@@ -1,5 +1,12 @@
 import json
-from typing import Any
+import mimetypes
+import os
+from typing import Any, List, Literal, Union, Tuple
+
+from telegram import InputMedia, InputMediaDocument
+
+from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
+from aimods_bot.src.helpers.constants.models import MediaItem
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("file_utils")
@@ -45,3 +52,49 @@ def get_data_from_json(key: str, file_path: str = "aimods_bot/misc/data.json") -
         raise KeyError(f"Chiave '{key}' mancante in '{file_path}'")
 
     return content[key]
+
+
+# noinspection PyTypeChecker
+def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", "audio", "video", "gif"]:
+    if isinstance(file, InputMedia):
+        t = file.type.lower() if file.type.lower() in ("photo", "audio", "video", "gif") else "document"
+        return t
+
+    mime, _ = mimetypes.guess_type(file)
+
+    if mime is None:
+        return "document"
+
+    if mime.startswith("image/"):
+        if mime == "image/gif":
+            return "gif"
+        else:
+            return "photo"
+    elif mime.startswith("video/"):
+        return "video"
+    elif mime.startswith("audio/"):
+        return "audio"
+    else:
+        return "document"
+
+
+async def normalize_files(items: List[MediaItem]) -> List[Tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]]:
+    output = []
+
+    for el in items:
+        if isinstance(el.item, InputMedia):
+            if el.as_doc:
+                output.append(("document", InputMediaDocument(el.item.media)))
+            else:
+                output.append((el.type, el.item))
+        else:  # el.item è una stringa
+            if not os.path.exists(el.item):
+                log.error(f"Directory o file non trovato: {el.item}")
+                continue
+            with open(el.item, "rb") as fp:
+                if el.as_doc:
+                    output.append((el.type, InputMediaDocument(fp)))
+                else:
+                    output.append((el.type, MEDIA_GROUP_TYPES[el.type](fp)))
+
+    return output

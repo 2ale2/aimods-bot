@@ -2,6 +2,7 @@ from uuid import uuid4
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import get_valid_thread_id, send_action_message_after
 from aimods_bot.src.helpers.utils.telegram_utils import validate_callback_structure, safe_delete
 
@@ -39,10 +40,10 @@ async def send_private_alert(update: Update,
             context=context,
             text=message_text,
             time=delay,
-            additional_job_data={
-                "thread_id": thread_id,
-                "reply_markup": InlineKeyboardMarkup(keyboard)
-            }
+            additional_job_data=JobData(
+                thread_id=thread_id,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
         )
     else:
         await context.bot.send_message(

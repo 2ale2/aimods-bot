@@ -8,6 +8,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
@@ -44,16 +45,12 @@ async def view_list(update: Update, context: CallbackContext, l: str):
         update=update,
         context=context,
         text=f"{l_item['icon']} Ecco la lista di {domain_type['plural']} aggiunti alla <b>{l.capitalize()}</b>.",
-        additional_job_data={
-            "attachments": {
-                "files": filename,
-                "send_as_document": True,
-                "delete_after_sending": True
-            },
-            "reply_markup": InlineKeyboardMarkup(
-                [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-            )
-        }
+        additional_job_data=JobData(
+            files=filename,
+            send_as_document=True,
+            delete_after_sending=True,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+        )
     )
 
     return PCS.ADMIN_CONVERSATION
@@ -219,9 +216,7 @@ async def _send_validation_error(update: Update, context: CallbackContext, domai
         update=update,
         context=context,
         text=text,
-        additional_job_data={
-            "reply_markup": InlineKeyboardMarkup(keyboard)
-        }
+        additional_job_data=JobData(reply_markup=InlineKeyboardMarkup(keyboard))
     )
 
 

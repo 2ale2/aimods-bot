@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from aimods_bot.src.helpers.constants.constants import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
 
 

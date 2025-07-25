@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from aimods_bot.src.helpers.constants.constants import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 
 moderation_panel = Panel(
     PanelConfig(

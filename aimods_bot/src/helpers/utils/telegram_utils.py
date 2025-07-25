@@ -286,5 +286,4 @@ async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print()
     pass

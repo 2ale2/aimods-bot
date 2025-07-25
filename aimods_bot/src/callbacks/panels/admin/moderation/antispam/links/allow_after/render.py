@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
-from aimods_bot.src.helpers.constants.constants import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 
 

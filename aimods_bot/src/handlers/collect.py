@@ -1,10 +1,12 @@
 from aimods_bot.src.handlers.commands.admin.moderation_handler import moderation_handler
 from aimods_bot.src.handlers.commands.admin.service_handler import multi_media_echo_handler, service_handler
 from aimods_bot.src.handlers.conversations.general import alert_handler, private_conversation_handler, \
-    close_button_handler
+    close_button_handler, TestHandler
 from aimods_bot.src.handlers.conversations.user.join_handler import new_member_handler
+from aimods_bot.src.helpers.utils.telegram_utils import test
 
 all_handlers = [
+    # TestHandler(callback=test).get(),
     new_member_handler,
     moderation_handler,
     service_handler,

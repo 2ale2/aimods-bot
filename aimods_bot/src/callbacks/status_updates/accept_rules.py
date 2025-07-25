@@ -1,5 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
+
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 
 
@@ -55,5 +57,7 @@ async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TY
             "Lo staff di <i>AiMods</i> ti dà il benvenuto. "
             "Grazie per averci scelto 😃"
         ),
-        additional_job_data={"reply_markup": keyboard}
+        additional_job_data=JobData(
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Vai al Gruppo ↗️", url=clean_url)]])
+        )
     )

@@ -1,16 +1,17 @@
 import asyncio
 import os
-from contextlib import nullcontext
+from typing import Optional, Any, Dict
 from uuid import uuid4
-from typing import Optional, Any
 
 import telegram.error
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import JobDataMissingException
+from aimods_bot.src.helpers.constants.models import ScheduledJobData, JobData, MediaItem
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild("job_queue")
@@ -49,30 +50,29 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 
 async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
-    data = job.data
-    send_media = data.get("media", {}).get("send", False) if isinstance(data.get("media"), dict) else False
+    data_model = job.data
 
-    if "chat_id" not in data or "text" not in data:
+    send_media = data_model.additional_data.files is not None
+
+    if (not data_model.text and not send_media) or not data_model.chat_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'text'")
 
     job_to_edit = next((j for j in context.bot_data["jobs"] if j == job.name), None)
 
     common_kwargs = {
-        "chat_id": data["chat_id"],
-        "reply_parameters": data.get("reply_parameters"),
-        "message_thread_id": data.get("thread_id"),
+        "chat_id": data_model.chat_id,
+        "reply_parameters": data_model.additional_data.reply_parameters,
+        "message_thread_id": data_model.additional_data.thread_id,
+        "reply_markup": data_model.additional_data.reply_markup,
         "parse_mode": "HTML"
     }
 
-    if not send_media:
-        common_kwargs["reply_markup"] = data.get("reply_markup")
-
     try:
         if send_media:
-            message = await _send_media_message(context, data, common_kwargs)
+            message = await _send_media_message(context, data_model, common_kwargs)
         else:
             message = await context.bot.send_message(
-                text=data["text"],
+                text=data_model.text,
                 **common_kwargs
             )
         if job_to_edit:
@@ -90,36 +90,25 @@ async def send_action_message_after(update: Update,
                                     text: str,
                                     recipient_id: Optional[int] = None,
                                     time: int = 1,
-                                    additional_job_data: Optional[dict] = None):
+                                    additional_job_data: Optional[JobData] = None):
     """
         Invia un messaggio dopo un certo tempo, mostrando prima l'azione di scrittura o upload.
     """
 
-    thread_id = additional_job_data.get("thread_id") if additional_job_data and "thread_id" in additional_job_data \
-        else get_valid_thread_id(update)
+    thread_id = additional_job_data.thread_id if additional_job_data else get_valid_thread_id(update)
+    recipient = recipient_id or update.effective_chat.id
 
-    job_data: dict[str, Any] = (additional_job_data or {}) | {
-        "text": text,
-        "chat_id": recipient_id or update.effective_chat.id
-    }
+    job_data = ScheduledJobData(
+        text=text,
+        chat_id=recipient,
+        additional_data=additional_job_data
+    )
 
-    if additional_job_data and "attachments" in additional_job_data:
-        job_data["media"] = {
-            "send": additional_job_data["attachments"]["files"],
-            "send_as_document": bool(additional_job_data["attachments"].get("send_as_document", False)),
-            "delete_after_sending": additional_job_data["attachments"].get("delete_after_sending", False)
-        }
-        await context.bot.send_chat_action(
-            chat_id=job_data["chat_id"],
-            message_thread_id=thread_id,
-            action=ChatAction.UPLOAD_DOCUMENT
-        )
-    else:
-        await context.bot.send_chat_action(
-            chat_id=job_data["chat_id"],
-            message_thread_id=thread_id,
-            action=ChatAction.TYPING
-        )
+    await context.bot.send_chat_action(
+        chat_id=recipient,
+        message_thread_id=thread_id,
+        action=ChatAction.UPLOAD_DOCUMENT if additional_job_data.files else ChatAction.TYPING
+    )
 
     job_id = str(uuid4())
     context.job_queue.run_once(
@@ -136,26 +125,69 @@ async def send_action_message_after(update: Update,
     }
 
 
-async def _send_media_message(context, data, kwargs):
-    d = data["media"]["send"]
-    if data["media"].get("send_as_document"):
-        document = open(d, "rb") if isinstance(d, str) else d if not isinstance(d, (list, set, tuple, dict)) else d[0]
-        async with document if hasattr(document, "__aenter__") else nullcontext(document) as doc:
+async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
+    d_media = data_model.additional_data
+    d = d_media.files
+    as_doc = d_media.send_as_document
+    if isinstance(d, str):
+        d = [d]
+    l = [MediaItem(item=el, type=get_file_type(el), as_doc=as_doc) for el in d]
+    normalized_l = await normalize_files(l)
+    if len(normalized_l) == 1:
+        # normalized_l = [(tipo, input_media), ...]
+        item = normalized_l[0]
+        file = item[1]
+        ftype = item[0]
+        text = data_model.text
+        if as_doc or ftype == "document":
             message = await context.bot.send_document(
-                document=doc,
-                caption=data["text"],
+                document=file.media,
+                caption=text,
                 **kwargs
             )
-        if data["media"].get("delete_after_sending") and isinstance(d, str):
-            os.remove(d)
-        return message
+            if d_media.delete_after_sending and isinstance(d_media.files, str):
+                try:
+                    os.remove(d_media.files)
+                    log.warning()
+                except Exception as e:
+                    log.warning(f"Non è stato possibile rimuovere il file: {e}")
+                    pass
+            return message
+        else:
+            match ftype:
+                case "photo":
+                    await context.bot.send_photo(
+                        photo=file,
+                        caption=text,
+                        **kwargs
+                    )
+                case "audio":
+                    await context.bot.send_audio(
+                        audio=file,
+                        caption=text,
+                        **kwargs
+                    )
+                case "video":
+                    await context.bot.send_video(
+                        video=file,
+                        caption=text,
+                        **kwargs
+                    )
+                case _:  # GIF
+                    await context.bot.send_animation(
+                        animation=file,
+                        caption=text,
+                        **kwargs
+                    )
     else:
+        if "reply_markup" in kwargs:
+            del kwargs["reply_markup"]
         message = await context.bot.send_media_group(
-            media=data["attachments"]["files"],
-            caption=data["text"],
+            media=[el[1] for el in normalized_l],
+            caption=data_model.text,
             **kwargs
         )
-        if not isinstance(data["media"]["send"], (list, set, tuple, dict)):
+        if not isinstance(d, (list, set, tuple, dict)):
             message = message[0]
         return message
 

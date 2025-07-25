@@ -4,6 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
@@ -35,11 +36,9 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
                      "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
                      "<code>1 giorno 2 minuti 32 ore</code>\n\t"
                      "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
-                additional_job_data={
-                    "reply_markup": InlineKeyboardMarkup(
-                        [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
-                    )
-                }
+                additional_job_data=JobData(
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+                )
             )
 
             return PCS.SET_PUNISHMENT_DURATION

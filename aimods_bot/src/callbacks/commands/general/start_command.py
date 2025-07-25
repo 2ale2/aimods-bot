@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import is_admin
-from aimods_bot.src.helpers.constants.constants import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 log = logger.getChild("start_command")
