@@ -1,3 +1,5 @@
+import copy
+
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.exceptions import handle_validation_errors
@@ -24,10 +26,11 @@ def get_value(context, path: str, default=None):
 
 def set_value(context, path: str, value):
     config = get_config(context)
+    config_copy = copy.copy(config)
     keys = path.split(".")
     for key in keys[:-1]:
-        config = config[key]
-    config[keys[-1]] = value
+        config_copy = config_copy[key]
+    config_copy[keys[-1]] = value
 
     raw_template = get_data_from_json("configuration_structure")
 

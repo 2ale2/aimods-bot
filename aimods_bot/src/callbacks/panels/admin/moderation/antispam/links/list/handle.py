@@ -60,6 +60,7 @@ async def edit_list(update: Update, context: CallbackContext, l: str, action: Li
     l_item = LIST_DETAILS[l]
     domain_type = domain_types.get(l, domain_types["default"])
     message = update.effective_message
+    l_conf = _get_list(context=context, l=l)
 
     if action == "remove" and await _handle_if_list_empty(update=update, context=context, l=l):
         return PCS.ADMIN_CONVERSATION
@@ -71,11 +72,14 @@ async def edit_list(update: Update, context: CallbackContext, l: str, action: Li
     if action == "add":
         text += f"➕ Scrivi i <b>{domain_type['plural']} da aggiungere</b> alla {l.capitalize()}."
     else:  # Remove
-        text += f"➖ Scrivi i <b>{domain_type['plural']} da rimuovere</b> dalla {l.capitalize()}."
+        text += "🔍 Ecco gli elementi presenti:\n\n"
+        for el in l_conf:
+            text += f"     ▪<code>{el}</code>\n"
+        text += f"\n➖ Scrivi i <b>{domain_type['plural']} da rimuovere</b> dalla {l.capitalize()}."
 
     keyboard = [[InlineKeyboardButton(
         text="🔙 Indietro",
-        callback_data=f"moderation/security_filters/antispam/link/{l}")
+        callback_data=f"moderation/security_filters/antispam/links/{l}")
     ]]
 
     await message.edit_text(
@@ -96,7 +100,7 @@ async def edit_list(update: Update, context: CallbackContext, l: str, action: Li
 async def handle_user_input(update: Update, context: CallbackContext):
     await safe_delete(update=update, context=context)
 
-    d = context.chat_data.pop('list_info')
+    d = context.chat_data["list_info"]
     l = d['list']
     action = d['action']
     message_id = d['message_id']
@@ -119,7 +123,7 @@ async def handle_user_input(update: Update, context: CallbackContext):
 
     text += _generate_response_message(new_items, domain_type, action, l)
 
-    keyboard = _create_response_keyboard(action, domain_type, l)
+    keyboard = _create_response_keyboard(action, domain_type, l, _get_list(context=context, l=l))
 
     await context.bot.edit_message_text(
         message_id=message_id,
@@ -128,6 +132,11 @@ async def handle_user_input(update: Update, context: CallbackContext):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode=ParseMode.HTML
     )
+
+    try:
+        del context.chat_data["list_info"]
+    except KeyError:
+        pass
 
     return PCS.ADMIN_CONVERSATION
 
@@ -191,20 +200,24 @@ def _generate_response_message(new_items: list, domain_type: dict, action: str, 
         return f"✅ {domain_type['plural'].capitalize()} {items_formatted} <b>{action_text_plural} correttamente</b>."
 
 
-def _create_response_keyboard(action: str, domain_type: dict, list_name: str):
+def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_conf: list[str]):
     """Crea la keyboard per la risposta"""
-    button_text = f"{'➖ Rimuovi Altro' if action == 'remove' else '➕ Aggiungi Altro'} {domain_type['singular']}"
 
-    return [
-        [InlineKeyboardButton(
-            text=button_text,
-            callback_data=f"moderation/security_filters/antispam/links/{action}"
-        )],
+    keyboard = [
         [InlineKeyboardButton(
             text="🔙 Indietro",
             callback_data=f"moderation/security_filters/antispam/links/{list_name}"
         )]
     ]
+
+    if len(l_conf) != 0:
+        button_text = f"{'➖ Rimuovi Altro' if action == 'remove' else '➕ Aggiungi Altro'} {domain_type['singular']}"
+        keyboard.insert(0, [InlineKeyboardButton(
+            text=button_text,
+            callback_data=f"moderation/security_filters/antispam/links/{list_name}/{action}"
+        )])
+
+    return keyboard
 
 
 async def _send_validation_error(update: Update, context: CallbackContext, domain_type: dict):

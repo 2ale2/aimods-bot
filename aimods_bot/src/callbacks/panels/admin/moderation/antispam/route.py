@@ -21,7 +21,7 @@ async def antispam_route(update: Update, context: CallbackContext, path: list[st
 
     match path[0]:
         case "punishment":
-            return await punishment_route(update=update, context=context, setting="antiflood", path=path[1:])
+            return await punishment_route(update=update, context=context, setting="antispam", path=path[1:])
         case "links":
             return await antispam_links_route(update=update, context=context, path=path[1:])
         case "mentions":

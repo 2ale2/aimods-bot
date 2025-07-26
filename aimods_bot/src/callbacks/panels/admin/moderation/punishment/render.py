@@ -8,11 +8,20 @@ from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_time_
 
 
 async def render_punishment_panel(update: Update, context: CallbackContext, setting: str):
-    text = _build_punishment_text(context=context, setting=setting)
+    text = await _build_punishment_text(context=context, setting=setting)
+
+    if update.callback_query:
+        data = update.callback_query.data
+        if data.endswith(("ban", "kick", "mute", "warn", "duration")):
+            data = '/'.join(data.split('/')[:-1])
+        elif data.endswith("endless"):
+            data = '/'.join(data.split('/')[:-2])
+    else:
+        data = f"moderation/security_filters/{setting}/punishment"
 
     punishment_panel = Panel(
         PanelConfig(
-            base_path=update.callback_query.data,
+            base_path=data,
             text=text,
             keyboard=[
                 [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
@@ -29,7 +38,13 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
         )
     )
 
-    await punishment_panel.render(update=update, context=context)
+    temp_data = context.chat_data.get('setting_duration')
+    message_id = None
+    if temp_data:
+        message_id = temp_data.get('message_id')
+        context.chat_data.pop('setting_duration')
+
+    await punishment_panel.render(update=update, context=context, message_id=message_id)
 
 
 async def render_punishment_duration_panel(update: Update, context: CallbackContext, setting: str):
@@ -46,19 +61,19 @@ async def render_punishment_duration_panel(update: Update, context: CallbackCont
         )
     )
 
-    context.chat_data['setting_duration'] = setting
+    context.chat_data['setting_duration'] = {'setting': setting, 'message_id': update.effective_message.message_id}
 
     await punishment_duration_panel.render(update=update, context=context)
 
 
-def _build_punishment_text(context: CallbackContext, setting: str):
+async def _build_punishment_text(context: CallbackContext, setting: str):
     config = get_value(context, f"moderation.{setting}")
     time_total_seconds = config["punishment"]["time"]
     punishment = config["punishment"]["type"]
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
-        get_time_text(time_total_seconds) if punishment_limited
+        await get_time_text(time_total_seconds) if punishment_limited
         else "♾️ A Tempo Indeterminato"
     )
 
@@ -85,7 +100,7 @@ def _build_punishment_duration_text(setting: str):
     text = (f"{display_icon} <b>Impostazioni {display_name}</b>\n\n"
             "↦ 🕔 <i>Tempo Punizione</i>\n\n"
             f"▫️ Puoi impostare da qui la durata della punizione comminata {target_description}.\n\n"
-            "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>\n\n"
+            "❓ Indica una durata del tipo <code>52 giorni 4 ore 100 minuti 20 secondi</code>.\n\n"
             "ℹ️ Il tempo non viene considerato se la punizione scelta è <i>Kick</i>.")
 
     return text

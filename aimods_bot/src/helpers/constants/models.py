@@ -87,20 +87,29 @@ class Panel:
             return subpath
         return f"{self.base_path}/{subpath}"
 
-    async def render(self, update: Update, context: CallbackContext):
+    async def render(self, update: Update, context: CallbackContext, message_id: int = None):
         """Renderizza il pannello nel chat."""
+        text = self.build_text()
         if self.send:
             await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=self.build_text(),
+                chat_id=message_id or update.effective_chat.id,
+                text=text,
                 reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
                 parse_mode=ParseMode.HTML
             )
         else:
-            text = self.build_text()
             if html.unescape(update.effective_message.text_html_urled) != text:
-                await update.effective_message.edit_text(
-                    text=self.build_text(),
-                    reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
-                    parse_mode=ParseMode.HTML
-                )
+                if message_id:
+                    await context.bot.edit_message_text(
+                        chat_id=update.effective_chat.id,
+                        message_id=message_id,
+                        text=text,
+                        reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                        parse_mode=ParseMode.HTML
+                    )
+                else:
+                    await update.effective_message.edit_text(
+                        text=text,
+                        reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                        parse_mode=ParseMode.HTML
+                    )

@@ -18,9 +18,7 @@ async def punishment_route(update: Update, context: CallbackContext, setting: st
             await render_punishment_duration_panel(update=update, context=context, setting=setting)
             return PCS.SET_PUNISHMENT_DURATION
         case "endless":
-            await set_punishment_duration(update=update, context=context)
-            await render_punishment_panel(update=update, context=context, setting=setting)
-            return PCS.ADMIN_CONVERSATION
+            return await set_punishment_duration(update=update, context=context)
 
     # L'utente ha premuto un tipo di punizione
     await set_punishment_type(context=context, setting=setting, punishment=path[-1])

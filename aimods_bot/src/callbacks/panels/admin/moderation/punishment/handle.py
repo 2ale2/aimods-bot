@@ -19,10 +19,12 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
         Gestisce i messaggi per l'impostazione della durata di una punizione,
         in accordo con le impostazioni di moderazione.
     """
-    setting = context.chat_data.get('setting_duration')
+    temp = context.chat_data.get('setting_duration')
+    setting = temp['setting']
+
     if update.callback_query:
         # L'utente ha scelto endless.
-        set_value(context=context, path=f"moderation.{setting}.punishment.time", value=1)
+        set_value(context=context, path=f"moderation.{setting}.punishment.time", value=int(1))
     else:
         await safe_delete(update=update, context=context)
 
@@ -43,7 +45,11 @@ async def set_punishment_duration(update: Update, context: CallbackContext):
 
             return PCS.SET_PUNISHMENT_DURATION
         else:
-            set_value(context=context, path=f"moderation.{setting}.punishment.time", value=parsed_duration.total_seconds())
+            set_value(
+                context=context,
+                path=f"moderation.{setting}.punishment.time",
+                value=int(parsed_duration.total_seconds())
+            )
 
     await render_punishment_panel(update=update, context=context, setting=setting)
     return PCS.ADMIN_CONVERSATION

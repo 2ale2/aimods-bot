@@ -25,7 +25,7 @@ logging.basicConfig(
 def main():
     application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).persistence(
         PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL"))
-    ).post_init(set_application_data).post_shutdown(post_shutdown).build()
+    ).arbitrary_callback_data(True).post_init(set_application_data).post_shutdown(post_shutdown).build()
 
     application.add_handlers(all_handlers)
     try:

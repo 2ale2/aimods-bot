@@ -49,7 +49,7 @@ async def _build_text(context: CallbackContext):
         "📨 <b>Impostazioni Anti-Spam</b>"
         "\n\n▫️ Qui puoi configurare le <b>difese automatiche</b> contro <b>spammer e bot malevoli</b>. "
         "Attiva solo ciò che serve per evitare falsi positivi.\n\n"
-        f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{toggle}</i>\n"
+        f"🔸 <u>Stato</u> – {'☂️' if toggle else '🌂'} <i>{'On' if toggle else 'Off'}</i>\n"
         f"🔸 <u>Punizione</u> – {PUNISHMENT_EMOJIS[punishment]} <i>{punishment.capitalize()}</i>\n"
         f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n")
 

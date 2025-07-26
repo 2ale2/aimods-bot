@@ -63,6 +63,10 @@ async def set_application_data(application: Application):
         if "settings_main_message" in application.user_data[el]:
             del application.user_data[el]["settings_main_message"]
 
+    for el in application.chat_data:
+        if "setting_duration" in application.chat_data[el]:
+            del application.chat_data[el]["setting_duration"]
+
     # Set up autorecap job
     autorecap_job_name = "auto_recap"
     if "jobs" in application.bot_data:
