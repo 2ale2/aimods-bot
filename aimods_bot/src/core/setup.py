@@ -4,6 +4,9 @@ from datetime import timedelta
 from telegram.ext import Application
 from pyrogram import Client
 from pyrogram.errors import RPCError
+
+from aimods_bot.src.core.exceptions import handle_validation_errors
+from aimods_bot.src.core.validation import validate_structure
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
@@ -22,8 +25,15 @@ async def set_application_data(application: Application):
     """
 
     # Load configuration
-    if "configuration" not in application.bot_data:
+    # IL CONTROLLO SUL FATTO CHE SIA DIVERSA DEVE ESSERE TOLTO DOPO IL DEPLOYING!!!!
+    configuration = load_configuration()
+    if "configuration" not in application.bot_data or configuration != application.bot_data["configuration"]:
         application.bot_data["configuration"] = load_configuration()
+
+    raw_template = get_data_from_json("configuration_structure")
+
+    errors = validate_structure(application.bot_data["configuration"], raw_template)
+    handle_validation_errors(errors)
 
     # Set group chat ID
     group_chat_id = os.getenv("GROUP_CHAT_ID")

@@ -101,3 +101,14 @@ def get_allow_after_text(allow_after: int) -> str:
         allow_after_text = "Una settimana"
 
     return allow_after_text
+
+
+def get_rate_limit_text(time_limit: int) -> str:
+    if time_limit == 1:
+        return "1 Secondo"
+    if time_limit < 60:
+        return f"{time_limit} Secondi"
+    if time_limit == 60:
+        return "1 Minuto"
+    # time_limit < 3600
+    return f"{int(time_limit / 60)} Minuti"

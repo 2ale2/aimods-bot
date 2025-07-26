@@ -13,6 +13,23 @@ moderation:
       whitelist: []
       blacklist: []
       greylist: []
+    mention:
+      punishment:
+        type: "kick"
+        time: 100
+      allow_after: 3600
+      rate_limit:
+        time: 600
+        mentions: 3
+      user_toggle: True
+      group_toggle: True
+      channel_toggle: True
+      bot_toggle: True
+      whitelist:
+        user: []
+        group: []
+        channel: []
+        bot: []
   antiflood:
     toggle: True
     settings: {

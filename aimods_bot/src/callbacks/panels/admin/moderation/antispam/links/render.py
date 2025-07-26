@@ -11,7 +11,7 @@ async def render_antispam_links_panel(update: Update, context: CallbackContext):
 
     antispam_panel = Panel(
         PanelConfig(
-            base_path="moderation/security_filters/antispam/links",
+            base_path="moderation/security_filters/antispam/link",
             text=text,
             keyboard=[
                 [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],

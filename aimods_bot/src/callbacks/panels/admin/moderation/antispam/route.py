@@ -2,7 +2,8 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import toggle_antispam
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.route import antispam_links_route
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.route import antispam_link_route
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.route import antispam_mention_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import render_antispam_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
@@ -22,10 +23,10 @@ async def antispam_route(update: Update, context: CallbackContext, path: list[st
     match path[0]:
         case "punishment":
             return await punishment_route(update=update, context=context, setting="antispam", path=path[1:])
-        case "links":
-            return await antispam_links_route(update=update, context=context, path=path[1:])
-        case "mentions":
-            await not_implemented_yet(update=update, context=context)
+        case "link":
+            return await antispam_link_route(update=update, context=context, path=path[1:])
+        case "mention":
+            return await antispam_mention_route(update=update, context=context, path=path[1:])
         case "forward":
             await not_implemented_yet(update=update, context=context)
         case "media":

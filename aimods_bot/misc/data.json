@@ -159,6 +159,27 @@
           "whitelist": {"type": "list"},
           "blacklist": {"type": "list"},
           "greylist": {"type": "list"}
+        },
+        "mention": {
+          "punishment": {
+            "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+            "time": {"type": "int"}
+          },
+          "allow_after": {"type": "int"},
+          "rate_limit": {
+            "time": {"type": "int"},
+            "mentions": {"type": "int"}
+          },
+          "user_toggle": {"type": "bool"},
+          "group_toggle": {"type": "bool"},
+          "channel_toggle": {"type": "bool"},
+          "bot_toggle": {"type": "bool"},
+          "whitelist": {
+            "user": {"type": "list"},
+            "group": {"type": "list"},
+            "channel": {"type": "list"},
+            "bot": {"type": "list"}
+          }
         }
       },
      "antiflood": {

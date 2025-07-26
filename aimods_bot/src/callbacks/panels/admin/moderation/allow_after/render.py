@@ -4,14 +4,15 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
+from aimods_bot.src.helpers.constants.constants import MODERATION_DISPLAY_ITEMS
 
 
-async def render_antispam_links_allow_after_panel(update: Update, context: CallbackContext):
-    text = await _build_text(context=context)
+async def render_antispam_links_allow_after_panel(update: Update, context: CallbackContext, setting: str):
+    text = await _build_text(context=context, setting=setting)
 
     antispam_link_allow_after_panel = Panel(
         PanelConfig(
-            base_path="moderation/security_filters/antispam/links/allow_after",
+            base_path=f"moderation/security_filters/{setting}/allow_after",
             text=text,
             keyboard=[
                 [ButtonItem(text="🆓 Nessun Limite", callback_key="off")],
@@ -43,16 +44,24 @@ async def render_antispam_links_allow_after_panel(update: Update, context: Callb
     await antispam_link_allow_after_panel.render(update=update, context=context)
 
 
-async def _build_text(context: CallbackContext):
-    antispam_config = get_value(context, "moderation.antispam.link")
+async def _build_text(context: CallbackContext, setting: str) -> str:
+    map_to_word = {
+        "link": "link",
+        "mention": "menzione"
+    }
+    ssetting = setting.split('/')
+    antispam_config = get_value(context, f"moderation.{'.'.join(ssetting)}")
 
     allow_after = antispam_config['allow_after']
     allow_after_text = get_allow_after_text(allow_after)
+    
+    setting_item = MODERATION_DISPLAY_ITEMS[ssetting[0]]
+    sub_setting = map_to_word[ssetting[1]]
 
-    text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-            "↦ ⌛️ <i>Blocco Link – Consenti Dopo</i>\n\n"
-            "▫ Da qui puoi impostare <b>dopo quanto tempo dall'ingresso nel gruppo un utente può mandare un "
-            "qualsiasi link, a prescindere che questo debba essere punito o meno</b>.\n\n"
+    text = (f"{setting_item.display_icon} <b>Impostazioni {setting_item.display_name}</b>\n\n"
+            f"↦ ⌛️ <i>Blocco {sub_setting.capitalize()} – Consenti Dopo</i>\n\n"
+            "▫ Da qui puoi impostare <b>dopo quanto tempo dall'ingresso nel gruppo un utente può mandare "
+            f"qualsiasi {sub_setting}, a prescindere che questo debba essere punito o meno</b>.\n\n"
             # La punizione granulare verrà implementata in seguito
             # f"☝️ La punizione comminata sarà quella "
             # f"<b>impostata per lo spamming dei link</b> ({punishment_text}).\n\n"
