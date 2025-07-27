@@ -19,8 +19,9 @@ moderation:
         time: 100
       allow_after: 3600
       rate_limit:
+        toggle: True
         time: 600
-        mentions: 3
+        mention: 3
       user_toggle: True
       group_toggle: True
       channel_toggle: True

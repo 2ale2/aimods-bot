@@ -81,7 +81,13 @@ async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
     await _save_kick_to_database(update.effective_user.id, user.id, parsed.get("message", ""))
 
     confirmation_text = _build_confirmation_message(member, parsed["message"])
-    await send_temporary_message(update, context, confirmation_text, delay_delete=300)
+    await send_temporary_message(
+        update=update,
+        context=context,
+        text=confirmation_text,
+        recipient_id=None,
+        delay_delete=300
+    )
 
 
 def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]) -> Optional[str]:
@@ -192,7 +198,7 @@ def _build_confirmation_message(member, reason=None):
     text = f"🥊 Utente {user_mention} <b>kickato</b>."
 
     if reason:
-        text += f"\n<b>Motivo</b>: {reason}."
+        text += f"\n\n<b>Motivo</b>: {reason}."
 
     text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
     return text

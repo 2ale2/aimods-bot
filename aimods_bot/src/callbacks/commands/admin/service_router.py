@@ -27,7 +27,12 @@ async def service_command_router(update: Update, context: ContextTypes.DEFAULT_T
 
     # ⛔ Solo admin/moderatori
     if not await is_admin(update.effective_user.id, context):
-        return await send_temporary_message(update, context, "⛔ Solo gli admin possono usare questo comando.")
+        return await send_temporary_message(
+            update=update,
+            context=context,
+            recipient_id=None,
+            text="⛔ Solo gli admin possono usare questo comando."
+        )
 
     if cmd not in action_map:
         return await send_private_alert(update, context, "❌ Comando non riconosciuto.")

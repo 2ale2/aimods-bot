@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.core.exceptions import JobDataMissingException
+from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.helpers.constants.models import ScheduledJobData, JobData, MediaItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files
@@ -33,15 +33,22 @@ def mark_job_done(context, job_id: str, message_id: int):
 
 async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
-    if "chat_id" not in data or "message_id" not in data:
+
+    if not isinstance(data, ScheduledJobData):
+        raise WrongTypeException(data, "data", "ScheduledJobData")
+
+    chat_id = data.chat_id
+    message_id = data.additional_data.message_to_delete
+
+    if not data.chat_id or not data.additional_data.message_to_delete:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id'")
 
     try:
         await context.bot.delete_message(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"]
+            chat_id=data.chat_id,
+            message_id=data.additional_data.message_to_delete
         )
-        log.info(f"🗑️ Messaggio {data['message_id']} eliminato da {data['chat_id']}")
+        log.info(f"🗑️ Messaggio {message_id} eliminato da {chat_id}")
     except telegram.error.TelegramError as e:
         log.warning(f"⚠️ Errore nell'eliminazione programmata: {e}")
 
@@ -52,7 +59,12 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     data_model = job.data
 
-    send_media = data_model.additional_data.files is not None
+    if not isinstance(data_model, ScheduledJobData):
+        raise WrongTypeException(data_model, "data_model", "ScheduledJobData")
+
+    additional_data = data_model.additional_data
+
+    send_media = additional_data and additional_data.files is not None
 
     if (not data_model.text and not send_media) or not data_model.chat_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'text'")
@@ -61,9 +73,9 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
 
     common_kwargs = {
         "chat_id": data_model.chat_id,
-        "reply_parameters": data_model.additional_data.reply_parameters,
-        "message_thread_id": data_model.additional_data.thread_id,
-        "reply_markup": data_model.additional_data.reply_markup,
+        "reply_parameters": additional_data.reply_parameters if additional_data else None,
+        "message_thread_id": additional_data.thread_id if additional_data else None,
+        "reply_markup": additional_data.reply_markup if additional_data else None,
         "parse_mode": "HTML"
     }
 
@@ -196,6 +208,9 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
 
 async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
+
+    if not isinstance(data, ScheduledJobData):
+        raise WrongTypeException(data, "data", "ScheduledJobData")
     if not all(k in data for k in ("chat_id", "message_id", "text")):
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id' o 'text'")
 
@@ -216,7 +231,8 @@ async def send_temporary_message(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     text: str,
-    additional_job_data: Optional[dict] = None,
+    recipient_id: Optional[int],
+    additional_job_data: Optional[JobData] = None,
     delay_before: int = 2,
     delay_delete: int = 10
 ):
@@ -224,9 +240,7 @@ async def send_temporary_message(
     Invia un messaggio temporaneo che viene eliminato dopo un certo tempo.
     """
 
-    chat_id = additional_job_data.get("chat_id") \
-        if additional_job_data and "chat_id" in additional_job_data \
-        else update.effective_chat.id
+    chat_id = recipient_id if recipient_id else update.effective_chat.id
     thread_id = get_valid_thread_id(update)
 
     await context.bot.send_chat_action(
@@ -236,19 +250,18 @@ async def send_temporary_message(
     )
 
     job_id = str(uuid4())
-    media_bool = additional_job_data.get("media", False) if additional_job_data else False
+
+    job_data = ScheduledJobData(
+        chat_id=chat_id,
+        text=text,
+        additional_data=additional_job_data
+    )
 
     context.job_queue.run_once(
         callback=scheduled_send_message,
         when=delay_before,
         name=job_id,
-        data={
-            "chat_id": chat_id,
-            "thread_id": thread_id,
-            "text": text,
-            "reply_markup": additional_job_data.get("reply_markup") if additional_job_data else None,
-            "media": additional_job_data if media_bool else False
-        }
+        data=job_data
     )
 
     register_job(context, job_id)
@@ -260,7 +273,13 @@ async def send_temporary_message(
     context.job_queue.run_once(
         callback=scheduled_delete_message,
         when=delay_delete,
-        data={"chat_id": chat_id, "message_id": message_id}
+        data=ScheduledJobData(
+            chat_id=chat_id,
+            text=None,
+            additional_data=JobData(
+                message_to_delete=message_id
+            )
+        )
     )
 
 

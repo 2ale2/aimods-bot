@@ -113,6 +113,7 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
         update=update,
         context=context,
         text=confirmation_text,
+        recipient_id=None,
         delay_delete=300
     )
 
@@ -177,6 +178,7 @@ async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_c
         update=update,
         context=context,
         text=confirmation_text,
+        recipient_id=None,
         delay_delete=300
     )
 

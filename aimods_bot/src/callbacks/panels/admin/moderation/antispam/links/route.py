@@ -18,12 +18,21 @@ async def antispam_link_route(update: Update, context: CallbackContext, path: li
             # La punizione in base a cosa viene spammato verrà sviluppata in seguito
             await not_implemented_yet(update=update, context=context)
         case "allow_after":
-            return await antispam_link_allow_after_route(
+            if len(path) == 1:
+                return await antispam_link_allow_after_route(
+                    update=update,
+                    context=context,
+                    setting="antispam/link",
+                    path=path[1:]
+                )
+            await antispam_link_allow_after_route(
                 update=update,
                 context=context,
                 setting="antispam/link",
                 path=path[1:]
             )
+            await render_antispam_links_panel(update=update, context=context)
+            return PCS.ADMIN_CONVERSATION
         case "whitelist":
             return await antispam_links_list_route(update=update, context=context, l="whitelist", path=path[1:])
         case "blacklist":

@@ -14,7 +14,8 @@ commands_list = [
     "delban",
     "delwarn",
     "dellimit",
-    "delmute"
+    "delmute",
+    "delkick"
 ]
 
 moderation_handler = PrefixHandler(

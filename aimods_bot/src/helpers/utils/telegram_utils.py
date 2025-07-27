@@ -285,5 +285,9 @@ async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 
+def get_toggle_text(b: bool) -> str:
+    return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
+
+
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     del context.chat_data['setting_duration']

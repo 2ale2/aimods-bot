@@ -2,6 +2,8 @@ import html
 
 from dataclasses import dataclass
 from typing import Optional, List, Union, Literal
+
+import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
@@ -10,6 +12,7 @@ from telegram.ext import CallbackContext
 @dataclass
 class JobData:
     files: Union[str, InputMedia, List[Union[str, InputMedia]]] = None
+    message_to_delete: Optional[int | telegram.Message] = None
     send_as_document: bool = False
     delete_after_sending: bool = False
     thread_id: Optional[int] = None
@@ -20,7 +23,7 @@ class JobData:
 @dataclass
 class ScheduledJobData:
     chat_id: int
-    text: str
+    text: Optional[str]
     additional_data: Optional[JobData] = None
 
 

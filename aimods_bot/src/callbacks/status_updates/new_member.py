@@ -62,7 +62,7 @@ async def _handle_if_blacklisted(update, context, uid: int) -> bool:
         update=update,
         context=context,
         text=text,
-        additional_job_data={"chat_id": context.bot_data["group_chat_id"]},
+        recipient_id=context.bot_data["group_chat_id"],
         delay_delete=300
     )
 
@@ -78,6 +78,7 @@ async def _handle_if_banned(update, context, uid: int) -> bool:
         await send_temporary_message(
             update=update,
             context=context,
+            recipient_id=None,
             text="❌ Il tuo ID è stato <b>bannato</b>.\n\nNon puoi unirti al gruppo.",
             delay_delete=10
         )
@@ -119,4 +120,3 @@ async def _send_rules_and_schedule_expiry(update, context, uid: int):
         when=TIMEOUT_SECONDS,
         name=f'captcha_failed_{uid}'
     )
-

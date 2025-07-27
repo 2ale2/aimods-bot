@@ -81,6 +81,7 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
         await send_temporary_message(
             update,
             context,
+            recipient_id=None,
             text=ban_result["message"],
             delay_delete=300
         )
@@ -93,14 +94,26 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
         member = await _resolve_member_for_logging(context, member, update)
         if member is None:
             confirmation_text = _build_confirmation_message(uid, until, reason)
-            await send_temporary_message(update, context, confirmation_text, delay_delete=300)
+            await send_temporary_message(
+                update=update,
+                context=context,
+                text=confirmation_text,
+                recipient_id=None,
+                delay_delete=300
+            )
             await send_private_alert(update, context, ERROR_MESSAGES["db_log_error"])
             return
 
     await _log_ban_to_database(member, update.effective_user.id, reason, until)
 
     confirmation_text = _build_confirmation_message(member, until, reason)
-    await send_temporary_message(update, context, confirmation_text, delay_delete=300)
+    await send_temporary_message(
+        update=update,
+        context=context,
+        text=confirmation_text,
+        recipient_id=None,
+        delay_delete=300
+    )
 
 
 async def attempt_ban_user(
@@ -248,7 +261,13 @@ async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
 
     reason = parsed["message"]
     confirmation_text = _build_confirmation_message(member, unban_type, reason, popped=blacklist_removed, unban=True)
-    await send_temporary_message(update, context, confirmation_text, delay_delete=300)
+    await send_temporary_message(
+        update=update,
+        context=context,
+        text=confirmation_text,
+        recipient_id=None,
+        delay_delete=300
+    )
 
 
 def _remove_from_blacklist(context, user_id):

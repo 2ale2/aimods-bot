@@ -152,6 +152,7 @@ async def limit_user(
             update=update,
             context=context,
             text=confirmation_text,
+            recipient_id=None,
             delay_delete=300
         )
 

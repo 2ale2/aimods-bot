@@ -7,10 +7,10 @@ from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 from aimods_bot.src.helpers.constants.constants import MODERATION_DISPLAY_ITEMS
 
 
-async def render_antispam_links_allow_after_panel(update: Update, context: CallbackContext, setting: str):
+async def render_allow_after_panel(update: Update, context: CallbackContext, setting: str):
     text = await _build_text(context=context, setting=setting)
 
-    antispam_link_allow_after_panel = Panel(
+    allow_after_panel = Panel(
         PanelConfig(
             base_path=f"moderation/security_filters/{setting}/allow_after",
             text=text,
@@ -41,7 +41,7 @@ async def render_antispam_links_allow_after_panel(update: Update, context: Callb
         )
     )
 
-    await antispam_link_allow_after_panel.render(update=update, context=context)
+    await allow_after_panel.render(update=update, context=context)
 
 
 async def _build_text(context: CallbackContext, setting: str) -> str:
@@ -61,7 +61,9 @@ async def _build_text(context: CallbackContext, setting: str) -> str:
     text = (f"{setting_item.display_icon} <b>Impostazioni {setting_item.display_name}</b>\n\n"
             f"↦ ⌛️ <i>Blocco {sub_setting.capitalize()} – Consenti Dopo</i>\n\n"
             "▫ Da qui puoi impostare <b>dopo quanto tempo dall'ingresso nel gruppo un utente può mandare "
-            f"qualsiasi {sub_setting}, a prescindere che questo debba essere punito o meno</b>.\n\n"
+            f"qualsiasi {sub_setting} non presente nella relativa Whitelist</b>. Una <b>violazione</b> a tale limite "
+            f"comporta il <b>ban immediato</b>, a prescindere dalla punizione impostata per il settaggio "
+            f"{setting_item.display_name.lower()}.\n\n"
             # La punizione granulare verrà implementata in seguito
             # f"☝️ La punizione comminata sarà quella "
             # f"<b>impostata per lo spamming dei link</b> ({punishment_text}).\n\n"

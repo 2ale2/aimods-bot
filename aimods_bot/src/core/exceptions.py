@@ -1,3 +1,5 @@
+from typing import Any
+
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("exceptions")
@@ -17,13 +19,22 @@ class DatabaseBotException(BotException):
         super().__init__(message)
 
 
-# ========== DATABASE ==========
+# ========== JOBQUEUE ==========
 class JobDataMissingException(BotException):
     """Informazioni mancanti nei dati del Job"""
     def __init__(self, message: str = "Dati mancanti nel job.", code: int = None):
         self.code = code
         super().__init__(message)
 
+
+class WrongTypeException(BotException):
+    """La variabile non è del tipo corretto."""
+    def __init__(self, variable: Any, variabile_name: str, should_be: str):
+        self.variabile_name = variabile_name
+        self.variable = variable
+        self.should_be = should_be
+        message = f"La variabile '{variabile_name}' è di tipo {type(variable)}, ma dovrebbe essere di tipo {should_be}."
+        super().__init__(message)
 
 # ========== CONFIGURAZIONE ==========
 class ConfigValidationException(BotException):

@@ -3,4 +3,5 @@ from telegram.ext import Application
 
 
 async def post_shutdown(application: Application):
-    await constants.pyro_instance.stop()
+    if constants.pyro_instance:
+        await constants.pyro_instance.stop()

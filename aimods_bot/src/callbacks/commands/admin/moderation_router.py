@@ -31,14 +31,21 @@ async def moderation_command_router(update: Update, context: ContextTypes.DEFAUL
     if cmd_raw.startswith("del"):
         delete_flag = True
         cmd = cmd_raw.removeprefix("del")
+        command = update.effective_message.text.replace(cmd_raw, cmd)
     else:
         cmd = cmd_raw
+        command = update.effective_message.text
 
     # ⛔ Solo admin/moderatori
     if not await is_admin(update.effective_user.id, context):
-        return await send_temporary_message(update, context, "⛔ Solo gli admin possono usare questo comando.")
+        return await send_temporary_message(
+            update=update,
+            context=context,
+            recipient_id=None,
+            text="⛔ Solo gli admin possono usare questo comando."
+        )
 
     if cmd not in action_map:
         return await send_private_alert(update, context, "❌ Comando non riconosciuto.")
 
-    await action_map[cmd](update, context, update.message.text, delete_flag=delete_flag)
+    await action_map[cmd](update, context, command, delete_flag=delete_flag)

@@ -127,6 +127,7 @@ async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_temporary_message(
             update=update,
             context=context,
+            recipient_id=None,
             text="⛔ Solo gli admin possono usare questo comando."
         )
         return

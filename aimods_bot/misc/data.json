@@ -167,8 +167,9 @@
           },
           "allow_after": {"type": "int"},
           "rate_limit": {
+            "toggle": {"type": "bool"},
             "time": {"type": "int"},
-            "mentions": {"type": "int"}
+            "mention": {"type": "int"}
           },
           "user_toggle": {"type": "bool"},
           "group_toggle": {"type": "bool"},
