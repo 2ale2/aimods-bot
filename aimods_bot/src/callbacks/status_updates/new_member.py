@@ -1,8 +1,9 @@
 import pytz
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions
-from telegram.ext import ConversationHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
+from telegram.ext import ConversationHandler, ContextTypes
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.helpers.constants.models import JobData, ScheduledJobData
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message, scheduled_edit_message
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
@@ -14,7 +15,7 @@ TIMEOUT_SECONDS = 5
 
 
 # main function (callback)
-async def new_member_joined_forum(update, context):
+async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
 
     await _handle_if_blacklisted(update, context, uid)
@@ -26,7 +27,7 @@ async def new_member_joined_forum(update, context):
     return NewUserState.WAITING_RULES_ACCEPTANCE
 
 
-async def _handle_if_blacklisted(update, context, uid: int) -> bool:
+async def _handle_if_blacklisted(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int) -> bool:
     if uid not in context.bot_data.get("ban_list", {}):
         return False
 
@@ -69,7 +70,7 @@ async def _handle_if_blacklisted(update, context, uid: int) -> bool:
     return True
 
 
-async def _handle_if_banned(update, context, uid: int) -> bool:
+async def _handle_if_banned(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int) -> bool:
     is_banned = await user_is_banned(
         user_id=uid,
         context=context
@@ -86,7 +87,7 @@ async def _handle_if_banned(update, context, uid: int) -> bool:
     return False
 
 
-async def _send_rules_and_schedule_expiry(update, context, uid: int):
+async def _send_rules_and_schedule_expiry(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int):
     if update.callback_query:
         await safe_delete(update, context)
 
@@ -110,13 +111,15 @@ async def _send_rules_and_schedule_expiry(update, context, uid: int):
 
     context.job_queue.run_once(
         callback=scheduled_edit_message,
-        data={
-            'chat_id': uid,
-            'message_id': message.message_id,
-            'text': '⚠️ <b>Non hai completato la verifica</b>.\n\n'
-                    'Per ricaricare la doppia verifica, puoi premere il tasto sotto.',
-            'reply_markup': timeout_keyboard
-        },
+        data=ScheduledJobData(
+            chat_id=uid,
+            text='⚠️ <b>Non hai completato la verifica</b>.\n\n'
+                 'Per ricaricare la doppia verifica, puoi premere il tasto sotto.',
+            additional_data=JobData(
+                reply_markup=timeout_keyboard,
+                message_id=message.message_id
+            )
+        ),
         when=TIMEOUT_SECONDS,
         name=f'captcha_failed_{uid}'
     )

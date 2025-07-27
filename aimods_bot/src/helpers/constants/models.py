@@ -12,7 +12,7 @@ from telegram.ext import CallbackContext
 @dataclass
 class JobData:
     files: Union[str, InputMedia, List[Union[str, InputMedia]]] = None
-    message_to_delete: Optional[int | telegram.Message] = None
+    message_id: Optional[int | telegram.Message] = None
     send_as_document: bool = False
     delete_after_sending: bool = False
     thread_id: Optional[int] = None

@@ -38,15 +38,15 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
         raise WrongTypeException(data, "data", "ScheduledJobData")
 
     chat_id = data.chat_id
-    message_id = data.additional_data.message_to_delete
+    message_id = data.additional_data.message_id
 
-    if not data.chat_id or not data.additional_data.message_to_delete:
+    if not data.chat_id or not data.additional_data.message_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id'")
 
     try:
         await context.bot.delete_message(
             chat_id=data.chat_id,
-            message_id=data.additional_data.message_to_delete
+            message_id=data.additional_data.message_id
         )
         log.info(f"🗑️ Messaggio {message_id} eliminato da {chat_id}")
     except telegram.error.TelegramError as e:
@@ -208,21 +208,26 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
 
 async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
+    text = data.text
+    chat_id = data.chat_id
+    message_id = data.additional_data.message_id
+    additional_job_data = data.additional_data
+    reply_markup = additional_job_data.reply_markup if additional_job_data and additional_job_data.reply_markup else None
 
     if not isinstance(data, ScheduledJobData):
         raise WrongTypeException(data, "data", "ScheduledJobData")
-    if not all(k in data for k in ("chat_id", "message_id", "text")):
+    if not text or not chat_id or not message_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id' o 'text'")
 
     try:
         await context.bot.edit_message_text(
-            chat_id=data["chat_id"],
-            message_id=data["message_id"],
-            text=data["text"],
-            reply_markup=data.get("reply_markup"),
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=reply_markup,
             parse_mode="HTML"
         )
-        log.info(f"✏️ Messaggio modificato in {data['chat_id']}")
+        log.info(f"✏️ Messaggio modificato in {chat_id}")
     except telegram.error.TelegramError as e:
         log.error(f"❌ Errore durante la modifica del messaggio: {e}")
 
@@ -277,7 +282,7 @@ async def send_temporary_message(
             chat_id=chat_id,
             text=None,
             additional_data=JobData(
-                message_to_delete=message_id
+                message_id=message_id
             )
         )
     )
