@@ -62,7 +62,7 @@ async def _build_text(context: CallbackContext) -> str:
             f"      📢 <b>Canali</b> – {channel_toggle}\n"
             f"      🤖 <b>Bot</b> – {bot_toggle}\n\n"
             f"🔸 <u>Consenti Dopo</u> – <i>{allow_after_text}</i>\n"
-            f"🔸 <u>Menzioni per Messaggio</u> – <i>{pluralize(per_message, 'Menzione', 'Menzione')}</u>\n\n"
+            f"🔸 <u>Menzioni per Messaggio</u> – <i>{pluralize(per_message, 'Menzione', 'Menzioni')}</i>\n"
             f"🔸 <u>Rate-Limit</u> – <i>{pluralize(rate_mentions, 'Menzione', 'Menzioni')} in "
             f"{get_rate_limit_text(rate_limit['time'])}</i>\n\n"
             "🔹 Scegli un'opzione.")
@@ -87,7 +87,8 @@ async def render_antispam_mention_per_message_panel(update: Update, context: Cal
                     ButtonItem(text="4 Menzioni", callback_key="4"),
                     ButtonItem(text="5 Menzioni", callback_key="5"),
                     ButtonItem(text="10 Menzioni", callback_key="10")
-                ]
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )
@@ -102,10 +103,11 @@ def _build_per_message_text(context: CallbackContext) -> str:
     text = (
         "📨 <b>Impostazioni Anti-Spam</b>\n\n"
         f"↦ ⏱️ <i>Blocco Menzioni</i> – <i>Menzioni Per Messaggio</i>\n\n"
-        "▫ Indica il numero di menzioni che possono essere inserite in un unico messaggio."
-        "La violazione di questo limite comporta il ban immediato, a prescindere dall'impostazione settata per "
-        "l'antispam. Le menzioni presenti in Whitelist non vengono conteggiate.\n\n"
-        f"🔸 <u>Menzioni per Messaggio</u> – {pluralize(per_message, 'Menzione', 'Menzioni')} per Messaggio\n\n"
+        "▫ Indica il <b>numero di menzioni che possono essere inserite in un unico messaggio</b>. "
+        "La <b>violazione</b> di questo limite comporta il <b>ban immediato</b>, a prescindere dall'impostazione "
+        "settata per l'antispam. Le menzioni presenti in Whitelist non vengono conteggiate.\n\n"
+        f"🔸 <u>Menzioni per Messaggio</u> – <i>{pluralize(per_message, 'Menzione', 'Menzioni')} "
+        f"per Messaggio</i>\n\n"
     )
 
     return text

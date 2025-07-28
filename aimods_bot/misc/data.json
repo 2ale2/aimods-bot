@@ -166,6 +166,7 @@
             "time": {"type": "int"}
           },
           "allow_after": {"type": "int"},
+          "per_message": {"type": "int"},
           "rate_limit": {
             "toggle": {"type": "bool"},
             "time": {"type": "int"},

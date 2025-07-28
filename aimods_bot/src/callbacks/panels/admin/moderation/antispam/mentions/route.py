@@ -41,7 +41,9 @@ async def antispam_mention_route(update: Update, context: CallbackContext, path:
         case "per_message":
             if len(path) > 1:
                 await set_per_message(update=update, context=context, value=int(path[1]))
-            await render_antispam_mention_panel(update=update, context=context)
+                await render_antispam_mention_panel(update=update, context=context)
+            else:
+                await render_antispam_mention_per_message_panel(update=update, context=context)
             return PCS.ADMIN_CONVERSATION
         case "group":
             await not_implemented_yet(update=update, context=context)
