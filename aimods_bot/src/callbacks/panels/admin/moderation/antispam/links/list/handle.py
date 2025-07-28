@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Literal
 from urllib.parse import urlparse
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Message
@@ -11,6 +11,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import make_temp_file
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 log = logger.getChild("antispam_link_list")
@@ -28,10 +29,11 @@ async def view_list(update: Update, context: CallbackContext, l: str):
     if await _handle_if_list_empty(update=update, context=context, l=l):
         return PCS.ADMIN_CONVERSATION
 
-    filename = await _make_temp_file(context=context, l=l)
+    l_conf = _get_list(context=context, l=l)
+    filename = await make_temp_file(content=l_conf)
     if not filename:
         text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
-        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/antispam/link/{l}")]]
+        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/link/{l}")]]
 
         await update.effective_message.edit_text(
             text=text,
@@ -94,7 +96,7 @@ async def edit_list(update: Update, context: CallbackContext, l: str, action: Li
         "list": l
     }
 
-    return PCS.EDIT_LIST
+    return PCS.EDIT_ANTISPAM_LINK_LIST
 
 
 async def handle_user_input(update: Update, context: CallbackContext):
@@ -111,12 +113,12 @@ async def handle_user_input(update: Update, context: CallbackContext):
     uin = update.effective_message
     if not await _validate_input(uin):
         await _send_validation_error(update, context, domain_type)
-        return PCS.EDIT_LIST
+        return PCS.EDIT_ANTISPAM_LINK_LIST
 
     links = _extract_links(uin, l)
     if not links:
         await _send_validation_error(update, context, domain_type)
-        return PCS.EDIT_LIST
+        return PCS.EDIT_ANTISPAM_LINK_LIST
 
     text = _get_text_header(l=l)
     new_items = _process_links(links, l_conf, action)
@@ -244,19 +246,6 @@ def _get_list(context: CallbackContext, l: str) -> list:
 def _check_list_empty(context: CallbackContext, l: str) -> bool:
     l_conf = _get_list(context=context, l=l)
     return len(l_conf) == 0
-
-
-async def _make_temp_file(context: CallbackContext, l: str) -> Optional[str]:
-    """Crea un file temporaneo con il contenuto della lista indicata."""
-    l_conf = _get_list(context=context, l=l)
-    try:
-        with open(filename := f"./{l}.txt", "w") as f:
-            for s in l_conf:
-                f.write(s + "\n")
-        return filename
-    except (FileNotFoundError, PermissionError, OSError) as e:
-        log.error(f"Errore durante la scrittura del file {filename}: {e}")
-        return None
 
 
 async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str) -> bool:

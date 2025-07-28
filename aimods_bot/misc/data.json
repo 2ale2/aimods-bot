@@ -172,10 +172,10 @@
             "time": {"type": "int"},
             "mention": {"type": "int"}
           },
-          "user_toggle": {"type": "bool"},
-          "group_toggle": {"type": "bool"},
-          "channel_toggle": {"type": "bool"},
-          "bot_toggle": {"type": "bool"},
+          "user": {"type": "bool"},
+          "group": {"type": "bool"},
+          "channel": {"type": "bool"},
+          "bot": {"type": "bool"},
           "whitelist": {
             "user": {"type": "list"},
             "group": {"type": "list"},

@@ -41,10 +41,10 @@ async def _build_text(context: CallbackContext) -> str:
     allow_after = antispam_mention_config['allow_after']
     allow_after_text = get_allow_after_text(allow_after)
     rate_limit = antispam_mention_config['rate_limit']
-    user_toggle = antispam_mention_config['user_toggle']
-    group_toggle = antispam_mention_config['group_toggle']
-    channel_toggle = antispam_mention_config['channel_toggle']
-    bot_toggle = antispam_mention_config['bot_toggle']
+    user_toggle = antispam_mention_config['user']
+    group_toggle = antispam_mention_config['group']
+    channel_toggle = antispam_mention_config['channel']
+    bot_toggle = antispam_mention_config['bot']
     per_message = antispam_mention_config['per_message']
 
     user_toggle = get_toggle_text(user_toggle)

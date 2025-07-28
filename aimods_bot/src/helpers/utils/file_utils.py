@@ -1,7 +1,7 @@
 import json
 import mimetypes
 import os
-from typing import Any, List, Literal, Union, Tuple
+from typing import Any, List, Literal, Union, Tuple, Optional
 
 from telegram import InputMedia, InputMediaDocument
 
@@ -98,3 +98,17 @@ async def normalize_files(items: List[MediaItem]) -> List[Tuple[Literal["documen
                     output.append((el.type, MEDIA_GROUP_TYPES[el.type](fp)))
 
     return output
+
+
+async def make_temp_file(content: Any) -> Optional[str]:
+    if isinstance(content, list):
+        try:
+            with open(filename := f"./temp_list.txt", "w") as f:
+                for s in content:
+                    f.write(s + "\n")
+            return filename
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            log.error(f"Errore durante la scrittura del file {filename}: {e}")
+            return None
+
+    # altri tipi

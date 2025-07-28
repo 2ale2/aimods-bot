@@ -23,10 +23,10 @@ moderation:
         toggle: True
         time: 600
         mention: 3
-      user_toggle: True
-      group_toggle: True
-      channel_toggle: True
-      bot_toggle: True
+      user: True
+      group: True
+      channel: True
+      bot: True
       whitelist:
         user: []
         group: []

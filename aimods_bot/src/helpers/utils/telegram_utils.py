@@ -290,4 +290,4 @@ def get_toggle_text(b: bool) -> str:
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    del context.chat_data['setting_duration']
+    pass
