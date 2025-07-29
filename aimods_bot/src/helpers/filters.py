@@ -23,3 +23,10 @@ class MediaGroupIDMessageFilter(MessageFilter):
         if message.media_group_id:
             return True
         return False
+
+
+class ChatSharedFilter(MessageFilter):
+    def filter(self, message: telegram.Message):
+        if message.users_shared or message.chat_shared:
+            return True
+        return False

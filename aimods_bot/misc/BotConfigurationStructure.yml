@@ -28,7 +28,7 @@ moderation:
       channel: True
       bot: True
       whitelist:
-        user: []
+        user: [12345678]
         group: []
         channel: []
         bot: []

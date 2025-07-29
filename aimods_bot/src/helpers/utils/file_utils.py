@@ -100,12 +100,12 @@ async def normalize_files(items: List[MediaItem]) -> List[Tuple[Literal["documen
     return output
 
 
-async def make_temp_file(content: Any) -> Optional[str]:
+async def make_temp_file(content: Any, filename: str) -> Optional[str]:
     if isinstance(content, list):
         try:
-            with open(filename := f"./temp_list.txt", "w") as f:
+            with open(filename := f"./{filename}.txt", "w") as f:
                 for s in content:
-                    f.write(s + "\n")
+                    f.write(str(s) + "\n")
             return filename
         except (FileNotFoundError, PermissionError, OSError) as e:
             log.error(f"Errore durante la scrittura del file {filename}: {e}")

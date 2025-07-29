@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import make_temp_file
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, handle_if_not_file
 
 log = logger.getChild("antispam_link_list")
 
@@ -30,17 +30,13 @@ async def view_list(update: Update, context: CallbackContext, l: str):
         return PCS.ADMIN_CONVERSATION
 
     l_conf = _get_list(context=context, l=l)
-    filename = await make_temp_file(content=l_conf)
-    if not filename:
-        text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
-        keyboard = [[InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/link/{l}")]]
-
-        await update.effective_message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
-        )
-
+    filename = await make_temp_file(content=l_conf, filename=l.lower())
+    if await handle_if_not_file(
+        update=update,
+        context=context,
+        filename=filename,
+        callback_data=f"moderation/security_filters/antispam/link/{l}"
+    ):
         return PCS.ADMIN_CONVERSATION
 
     await send_action_message_after(

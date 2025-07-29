@@ -4,11 +4,18 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import handle_user_input as handler_user_input_links
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.category.handle import handle_user_input as handle_user_input_mentions
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.whitelist.handle import handle_user_input_mentions
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.whitelist.route import \
+    antispam_mention_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.filters import ChatSharedFilter
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper, test
+
+
+chat_shared_filter = ChatSharedFilter()
+
 
 alert_handler = CallbackQueryHandler(
     callback=open_private_alert,
@@ -55,12 +62,21 @@ private_conversation_handler = ConversationHandler(
             close_button_handler,
             CallbackQueryHandler(callback=admin_main_router)
         ],
-        PCS.EDIT_ANTISPAM_MENTION_CATEGORY_WHITELIST: [
+        PCS.ADD_ANTISPAM_MENTION_WHITELIST: [
+            MessageHandler(
+                filters=filters.Text(["🔙 Indietro", "indietro", "Indietro"]),
+                callback=antispam_mention_whitelist_backer
+            ),
+            MessageHandler(
+                filters=chat_shared_filter,
+                callback=handle_user_input_mentions
+            )
+        ],
+        PCS.REMOVE_ANTISPAM_MENTION_WHITELIST: [
             MessageHandler(
                 filters=filters.TEXT,
                 callback=handle_user_input_mentions
             ),
-            close_button_handler,
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },

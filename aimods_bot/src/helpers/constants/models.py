@@ -90,10 +90,10 @@ class Panel:
             return subpath
         return f"{self.base_path}/{subpath}"
 
-    async def render(self, update: Update, context: CallbackContext, message_id: int = None):
+    async def render(self, update: Update, context: CallbackContext, message_id: int = None, send: bool = False):
         """Renderizza il pannello nel chat."""
         text = self.build_text()
-        if self.send:
+        if self.send or send:
             await context.bot.send_message(
                 chat_id=message_id or update.effective_chat.id,
                 text=text,

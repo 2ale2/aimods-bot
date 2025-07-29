@@ -19,6 +19,7 @@ async def render_antispam_mention_panel(update: Update, context: CallbackContext
                     ButtonItem(text="⌛️ Consenti Dopo", callback_key="allow_after"),
                     ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")
                 ],
+                [ButtonItem(text="📄 Modifica Whitelist", callback_key="whitelist")],
                 [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key="per_message")],
                 [
                     ButtonItem(text="👤 Utenti", callback_key="user"),
@@ -102,12 +103,85 @@ def _build_per_message_text(context: CallbackContext) -> str:
 
     text = (
         "📨 <b>Impostazioni Anti-Spam</b>\n\n"
-        f"↦ ⏱️ <i>Blocco Menzioni</i> – <i>Menzioni Per Messaggio</i>\n\n"
+        "↦ ⏱️ <i>Blocco Menzioni</i> – <i>Menzioni Per Messaggio</i>\n\n"
         "▫ Indica il <b>numero di menzioni che possono essere inserite in un unico messaggio</b>. "
         "La <b>violazione</b> di questo limite comporta il <b>ban immediato</b>, a prescindere dall'impostazione "
         "settata per l'antispam. Le menzioni presenti in Whitelist non vengono conteggiate.\n\n"
         f"🔸 <u>Menzioni per Messaggio</u> – <i>{pluralize(per_message, 'Menzione', 'Menzioni')} "
-        f"per Messaggio</i>\n\n"
+        "per Messaggio</i>\n\n"
+        "🔹 Scegli un'opzione."
     )
+
+    return text
+
+
+async def render_antispam_mention_whitelist_panel(update: Update, context: CallbackContext, send: bool = False):
+    text = _build_whitelist_text()
+
+    antispam_mention_whitelist_panel = Panel(
+        PanelConfig(
+            base_path="moderation/security_filters/antispam/mention/whitelist",
+            text=text,
+            keyboard=[
+                [ButtonItem(text="👁 Visiona", callback_key="view"),],
+                [
+                    ButtonItem(text="➕ Aggiungi", callback_key="add"),
+                    ButtonItem(text="➖ Rimuovi", callback_key="remove"),
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await antispam_mention_whitelist_panel.render(update=update, context=context, send=send)
+
+
+def _build_whitelist_text() -> str:
+    text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+            "↦ 💬 <i>Blocco Menzioni</i> – <i>Gestione Whitelists</i>\n\n"
+            "▫️ Da qui puoi gestire le Whitelist per le diverse categorie.\n\n"
+            "🔹 Scegli un'opzione.")
+    return text
+
+
+async def render_antispam_mention_category_panel(update: Update, context: CallbackContext, category: str):
+    text = _build_mention_category_text(context=context, category=category)
+
+    antispam_mention_category_panel = Panel(
+        PanelConfig(
+            base_path=f"moderation/security_filters/antispam/mention/{category}",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(text="☂️ On", callback_key="on"),
+                    ButtonItem(text="🌂 Off", callback_key="off")
+                ],
+                [ButtonItem(text="📄 Vedi Whitelist", callback_key="view_whitelist")],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await antispam_mention_category_panel.render(update=update, context=context)
+
+
+def _build_mention_category_text(context: CallbackContext, category: str) -> str:
+    map_to_word = {
+        "user": "Utenti",
+        "group": "Gruppi",
+        "channel": "Canali",
+        "bot": "Bot"
+    }
+    word = map_to_word[category]
+    toggle = get_value(context=context, path=f"moderation.antispam.mention.{category}")
+    toggle_text = get_toggle_text(toggle)
+
+    text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+            f"↦ 💬 <i>Blocco Menzioni</i> – <i>Menzioni {word}</i>\n\n"
+            f"▫️ Da qui puoi <b>disattivare completamente il controllo sull'intera categoria <i>{word}</i></b>.\n\n"
+            f"▫️ Puoi anche visionare la Whitelist della categoria {word.lower()}, che contiene gli elementi che "
+            f"<b>non vengono considerati in fase di controllo</b>.\n\n"
+            f"🔸 <u>Toggle</u> – {toggle_text}\n\n"
+            f"🔹 Scegli un'opzione.")
 
     return text

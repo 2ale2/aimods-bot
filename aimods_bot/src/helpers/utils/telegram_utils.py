@@ -1,6 +1,7 @@
 from typing import Optional, Any, Union, Dict
 
 import telegram
+from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton
@@ -287,6 +288,30 @@ async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 def get_toggle_text(b: bool) -> str:
     return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
+
+
+async def handle_if_not_file(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        filename: Optional[str],
+        callback_data: str
+) -> bool:
+    if not filename:
+        text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
+        keyboard = [[InlineKeyboardButton(
+            text="🔙 Indietro",
+            callback_data=callback_data)
+        ]]
+
+        await context.bot.edit_message_text(
+            message_id=update.effective_message.message_id,
+            chat_id=update.effective_user.id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return True
+    return False
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
