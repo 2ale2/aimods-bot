@@ -31,7 +31,7 @@ async def render_antispam_whitelist_panel(
 
 def _build_whitelist_text() -> str:
     text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-            "↦ 💬 <i>Gestione Whitelist</i>\n\n"
+            "↦ 📄 <i>Gestione Whitelist</i>\n\n"
             "▫️ Da qui puoi gestire la Whitelist dell'Anti-Spam.\n\n"
             "ℹ Gli elementi inseriti in questa Whitelist non saranno soggetti ad alcun controllo da parte "
             "dell'Anti-Spam.\n\n"
@@ -66,7 +66,7 @@ async def render_antispam_whitelist_view_panel(update: Update, context: Callback
 
 def _build_whitelist_view_text() -> str:
     text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-            "↦ 💬 <i>Gestione Whitelist</i>\n\n"
+            "↦ 📄 <i>Gestione Whitelist</i>\n\n"
             f"🔹 Scegli la categoria degli ID da visionare.")
 
     return text

@@ -150,6 +150,12 @@
           "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
           "time": {"type": "int"}
         },
+        "whitelist": {
+            "user": {"type": "list"},
+            "group": {"type": "list"},
+            "channel": {"type": "list"},
+            "bot": {"type": "list"}
+        },
         "link": {
           "punishment": {
             "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},

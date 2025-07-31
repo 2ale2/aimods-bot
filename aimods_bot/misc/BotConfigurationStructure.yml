@@ -5,6 +5,11 @@ moderation:
     punishment:
       type: "kick"
       time: 100
+    whitelist:
+      user: [123456789]
+      group: []
+      channel: []
+      bot: []
     link:
       punishment:
         type: "kick"

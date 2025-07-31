@@ -4,9 +4,9 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import handle_user_input as handler_user_input_links
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.whitelist.handle import handle_user_input_mentions
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.whitelist.route import \
-    antispam_mention_whitelist_backer
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle import \
+    handle_user_input_antispam_whitelist
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
@@ -65,17 +65,17 @@ private_conversation_handler = ConversationHandler(
         PCS.ADD_ANTISPAM_MENTION_WHITELIST: [
             MessageHandler(
                 filters=filters.Text(["🔙 Indietro", "indietro", "Indietro"]),
-                callback=antispam_mention_whitelist_backer
+                callback=antispam_whitelist_backer
             ),
             MessageHandler(
                 filters=chat_shared_filter,
-                callback=handle_user_input_mentions
+                callback=handle_user_input_antispam_whitelist
             )
         ],
         PCS.REMOVE_ANTISPAM_MENTION_WHITELIST: [
             MessageHandler(
                 filters=filters.TEXT,
-                callback=handle_user_input_mentions
+                callback=handle_user_input_antispam_whitelist
             ),
             CallbackQueryHandler(callback=admin_main_router)
         ]

@@ -19,12 +19,18 @@ async def render_antispam_panel(update: Update, context: CallbackContext):
                     ButtonItem(text="On ☂️", callback_key="toggle_on"),
                     ButtonItem(text="Off 🌂", callback_key="toggle_off")
                 ],
-                [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
-                [ButtonItem(text="📄 Whitelist Antispam", callback_key="whitelist")],
-                [ButtonItem(text="⛓️‍💥 Blocco Link", callback_key="link")],
-                [ButtonItem(text="💬 Blocco Menzioni", callback_key="mention")],
-                [ButtonItem(text="👥 Blocco Inoltro", callback_key="forward")],
-                [ButtonItem(text="🎞 Blocco Media", callback_key="media")],
+                [
+                    ButtonItem(text="⚖️ Punizione", callback_key="punishment"),
+                    ButtonItem(text="📄 Whitelist", callback_key="whitelist")
+                ],
+                [
+                    ButtonItem(text="⛓️‍💥 Blocco Link", callback_key="link"),
+                    ButtonItem(text="💬 Blocco Menzioni", callback_key="mention")
+                ],
+                [
+                    ButtonItem(text="👥 Blocco Inoltro", callback_key="forward"),
+                    ButtonItem(text="🎞 Blocco Media", callback_key="media")
+                ],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )

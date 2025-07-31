@@ -245,9 +245,9 @@ async def remove_from_whitelist(update: Update, context: CallbackContext, catego
     return PCS.REMOVE_ANTISPAM_MENTION_WHITELIST
 
 
-async def handle_user_input_mentions(update: Update, context: CallbackContext):
+async def handle_user_input_antispam_whitelist(update: Update, context: CallbackContext):
     """Gestisce l'input dell'utente per aggiunta/rimozione"""
-    data = context.chat_data.get("editing_mention_whitelist", {})
+    data = context.chat_data.get("editing_antispam_whitelist", {})
     action = data.get("action")
     message_id = data.get("message_id")
     category = data.get("category")
