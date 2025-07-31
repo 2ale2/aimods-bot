@@ -1,3 +1,4 @@
+from pyrogram.types import InlineKeyboardButton
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -15,10 +16,7 @@ async def render_antispam_mention_panel(update: Update, context: CallbackContext
             base_path="moderation/security_filters/antispam/mention",
             text=text,
             keyboard=[
-                [
-                    ButtonItem(text="⌛️ Consenti Dopo", callback_key="allow_after"),
-                    ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")
-                ],
+                [ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")],
                 [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key="per_message")],
                 [
                     ButtonItem(text="👤 Utenti", callback_key="user"),
@@ -117,17 +115,35 @@ def _build_per_message_text(context: CallbackContext) -> str:
 async def render_antispam_mention_category_panel(update: Update, context: CallbackContext, category: str):
     text = _build_mention_category_text(context=context, category=category)
 
+    user_if_not_member = get_value(context, "moderation.antispam.mention.user_if_not_member")
+
+    def get_toggle_if_not_member():
+        return '👍' if user_if_not_member else '👎'
+
+    def get_if_not_member_data():
+        return "if_not_member_true" if user_if_not_member else "if_not_member_false"
+
+    keyboard = [
+        [
+            ButtonItem(text="☂️ On", callback_key="on"),
+            ButtonItem(text="🌂 Off", callback_key="off")
+        ],
+        [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
+        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+    ]
+
+    if category == "user":
+        keyboard.insert(1, [
+            ButtonItem(
+                text=f"🪪 Solo se non membro {get_toggle_if_not_member()}",
+                callback_key=get_if_not_member_data())
+        ])
+
     antispam_mention_category_panel = Panel(
         PanelConfig(
             base_path=f"moderation/security_filters/antispam/mention/{category}",
             text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="☂️ On", callback_key="on"),
-                    ButtonItem(text="🌂 Off", callback_key="off")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            keyboard=keyboard
         )
     )
 

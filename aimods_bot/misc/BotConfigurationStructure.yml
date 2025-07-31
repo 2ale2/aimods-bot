@@ -28,6 +28,7 @@ moderation:
         toggle: True
         time: 600
         mention: 3
+      user_if_not_member: True
       user: True
       group: True
       channel: True
