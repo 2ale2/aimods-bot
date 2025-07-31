@@ -5,6 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import tog
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.route import antispam_link_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.route import antispam_mention_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import render_antispam_panel
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_route
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
@@ -23,6 +24,8 @@ async def antispam_route(update: Update, context: CallbackContext, path: list[st
     match path[0]:
         case "punishment":
             return await punishment_route(update=update, context=context, setting="antispam", path=path[1:])
+        case "whitelist":
+            return await antispam_whitelist_route(update=update, context=context, path=path[1:])
         case "link":
             return await antispam_link_route(update=update, context=context, path=path[1:])
         case "mention":
