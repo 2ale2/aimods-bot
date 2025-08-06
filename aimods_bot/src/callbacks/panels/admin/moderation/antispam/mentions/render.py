@@ -1,4 +1,3 @@
-from pyrogram.types import InlineKeyboardButton
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -158,7 +157,7 @@ def _build_mention_category_text(context: CallbackContext, category: str) -> str
         "bot": "Bot"
     }
     word = map_to_word[category]
-    toggle = get_value(context=context, path=f"moderation.antispam.mention.{category}")
+    toggle = get_value(context=context, path=f"moderation.antispam.mention.{category}.toggle")
     toggle_text = get_toggle_text(toggle)
 
     text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"

@@ -63,7 +63,7 @@ async def antispam_mention_category_route(update: Update, context: CallbackConte
 
     match path[0]:
         case "punishment":
-            await punishment_route(update=update, context=context, setting=f"antispam/mention/{category}", path=path)
+            return await punishment_route(update=update, context=context, setting=f"antispam/mention/{category}", path=path[1:])
         case "on":
             await set_category_toggle(update=update, context=context, category=category, value=True)
             await render_antispam_mention_category_panel(update=update, context=context, category=category)

@@ -20,5 +20,5 @@ async def set_per_message(update: Update, context: CallbackContext, value: int):
 
 async def set_category_toggle(update: Update, context: CallbackContext, category: str, value: bool):
     log = logger.getChild("antispam_mention_category")
-    set_value(context=context, path=f"moderation.antispam.mention.{category}", value=value)
+    set_value(context=context, path=f"moderation.antispam.mention.{category}.toggle", value=value)
     log.info(f"Antispam: controllo menzioni categoria {category} modificato in '{value}' da {update.effective_user.id}")

@@ -11,19 +11,25 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
     text = await _build_punishment_text(context=context, setting=setting)
 
     if update.callback_query:
-        data = update.callback_query.data
-        if data.endswith(("ban", "kick", "mute", "warn", "duration")):
-            data = '/'.join(data.split('/')[:-1])
-        elif data.endswith("endless"):
-            data = '/'.join(data.split('/')[:-2])
+        raw_data = update.callback_query.data
+        p = raw_data.split("/")
+        if "punishment" in p:
+            idx = p.index("punishment")
+            data = "/".join(p[:idx + 1])
+        else:
+            data = raw_data
     else:
         data = f"moderation/security_filters/{setting}/punishment"
+
+    main_settings = setting.split("/")[0]
+    name_item = MODERATION_DISPLAY_ITEMS[main_settings].display_name
 
     punishment_panel = Panel(
         PanelConfig(
             base_path=data,
             text=text,
             keyboard=[
+                [ButtonItem(text=f"⬆ Stessa Punizione {name_item}", callback_key=main_settings)],
                 [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
                 [
                     ButtonItem(text="🚫 Ban", callback_key="ban"),
@@ -67,7 +73,7 @@ async def render_punishment_duration_panel(update: Update, context: CallbackCont
 
 
 async def _build_punishment_text(context: CallbackContext, setting: str):
-    config = get_value(context, f"moderation.{setting}")
+    config = get_value(context, f"moderation.{setting.replace('/', '.')}")
     time_total_seconds = config["punishment"]["time"]
     punishment = config["punishment"]["type"]
 
@@ -86,7 +92,8 @@ async def _build_punishment_text(context: CallbackContext, setting: str):
             "↦ ⚖️ <i>Impostazioni Punizione</i>\n\n"
             f"▫️ Qui puoi configurare la punizione comminata {target_description}.\n\n"
             f"🔸 <u>Punizione</u> – {PUNISHMENT_EMOJIS[punishment]} <i>{punishment.capitalize()}</i>\n"
-            f"🔸 <u>Tempo</u> – <i>{time_text}</i>")
+            f"🔸 <u>Tempo</u> – <i>{time_text}</i>\n\n"
+            f"🔹 Scegli un'opzione.")
 
     return text
 

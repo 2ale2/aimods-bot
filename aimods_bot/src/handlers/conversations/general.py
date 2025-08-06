@@ -80,5 +80,6 @@ private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },
-    fallbacks=[]
+    fallbacks=[],
+    allow_reentry=True
 )

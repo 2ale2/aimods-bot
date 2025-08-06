@@ -7,6 +7,7 @@ logs/
 *.session*
 
 aimods_bot/misc/logs
+aimods_bot/misc/quick.py
 aimods_bot/misc/NOTE.txt
 aimods_bot/.env
 aimods_bot/untitled/.idea

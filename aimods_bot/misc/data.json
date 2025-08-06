@@ -167,10 +167,6 @@
           "greylist": {"type": "list"}
         },
         "mention": {
-          "punishment": {
-            "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-            "time": {"type": "int"}
-          },
           "allow_after": {"type": "int"},
           "per_message": {"type": "int"},
           "rate_limit": {
@@ -179,10 +175,34 @@
             "mention": {"type": "int"}
           },
           "user_if_not_member": {"type": "bool"},
-          "user": {"type": "bool"},
-          "group": {"type": "bool"},
-          "channel": {"type": "bool"},
-          "bot": {"type": "bool"},
+          "user": {
+            "toggle": {"type":  "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "group": {
+            "toggle": {"type":  "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "channel": {
+            "toggle": {"type":  "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "bot": {
+            "toggle": {"type":  "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
           "whitelist": {
             "user": {"type": "list"},
             "group": {"type": "list"},

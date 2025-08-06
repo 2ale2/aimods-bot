@@ -1,8 +1,11 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.render import render_antispam_links_panel
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.render import \
+    render_antispam_mention_category_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel
-from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.config_accessor import set_value, get_value
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
@@ -10,17 +13,37 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
 
 
+async def set_as_parent(update: Update, context: CallbackContext, setting: str):
+    category_name = setting.split("/")[0]
+    category_punishment = get_value(context=context, path=f"moderation.{category_name}.punishment")
+    t = category_punishment["type"]
+    d = category_punishment["time"]
+    context.chat_data["setting_duration"] = {"setting": setting, "message_id": update.effective_message.id}
+    await set_punishment_type(context=context, setting=setting, punishment=t)
+    await set_punishment_duration(update=update, context=context, value=d)
+
+
 async def set_punishment_type(context: CallbackContext, setting: str, punishment: str):
     set_value(context=context, path=f"moderation.{setting}.punishment.type", value=punishment)
 
 
-async def set_punishment_duration(update: Update, context: CallbackContext):
+async def set_punishment_duration(update: Update, context: CallbackContext, value: int = None):
     """
         Gestisce i messaggi per l'impostazione della durata di una punizione,
         in accordo con le impostazioni di moderazione.
     """
     temp = context.chat_data.get('setting_duration')
     setting = temp['setting']
+
+    if value:
+        set_value(
+            context=context,
+            path=f"moderation.{setting}.punishment.time",
+            value=value
+        )
+        await render_punishment_panel(update=update, context=context, setting=setting)
+        return PCS.ADMIN_CONVERSATION
+
 
     if update.callback_query:
         # L'utente ha scelto endless.

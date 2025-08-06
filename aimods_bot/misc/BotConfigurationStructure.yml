@@ -19,9 +19,6 @@ moderation:
       blacklist: []
       greylist: []
     mention:
-      punishment:
-        type: "kick"
-        time: 100
       allow_after: 3600
       per_message: 3
       rate_limit:
@@ -29,10 +26,26 @@ moderation:
         time: 600
         mention: 3
       user_if_not_member: True
-      user: True
-      group: True
-      channel: True
-      bot: True
+      user:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      group:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      channel:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      bot:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
       whitelist:
         user: [12345678]
         group: []
