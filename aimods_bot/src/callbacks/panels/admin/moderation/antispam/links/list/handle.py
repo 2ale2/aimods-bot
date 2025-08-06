@@ -204,7 +204,7 @@ def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_
     keyboard = [
         [InlineKeyboardButton(
             text="🔙 Indietro",
-            callback_data=f"moderation/security_filters/antispam/links/{list_name}"
+            callback_data=f"moderation/security_filters/antispam/link/{list_name}"
         )]
     ]
 
@@ -212,7 +212,7 @@ def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_
         button_text = f"{'➖ Rimuovi Altro' if action == 'remove' else '➕ Aggiungi Altro'} {domain_type['singular']}"
         keyboard.insert(0, [InlineKeyboardButton(
             text=button_text,
-            callback_data=f"moderation/security_filters/antispam/links/{list_name}/{action}"
+            callback_data=f"moderation/security_filters/antispam/link/{list_name}/{action}"
         )])
 
     return keyboard
@@ -252,7 +252,7 @@ async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str
                 f"↦ {l_item['icon']} <i>Blocco Link – {l.capitalize()}</i>\n\n"
                 f"0️⃣ <b>La {l.capitalize()} è attualmente vuota</b>.")
         keyboard = [
-            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/links/{l}")]
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data=f"moderation/security_filters/antispam/link/{l}")]
         ]
 
         await update.effective_message.edit_text(

@@ -38,7 +38,7 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
     if len(s) > 1:
         main_settings = s[0]
         name_item = MODERATION_DISPLAY_ITEMS[main_settings].display_name
-        keyboard.insert(0, [ButtonItem(text=f"⬆ Stessa Punizione {name_item}", callback_key=main_settings)])
+        keyboard.insert(0, [ButtonItem(text=f"🧞 Stessa Punizione {name_item}", callback_key=main_settings)])
 
     punishment_panel = Panel(
         PanelConfig(
