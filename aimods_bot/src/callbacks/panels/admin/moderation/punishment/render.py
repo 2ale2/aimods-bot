@@ -21,26 +21,30 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
     else:
         data = f"moderation/security_filters/{setting}/punishment"
 
-    main_settings = setting.split("/")[0]
-    name_item = MODERATION_DISPLAY_ITEMS[main_settings].display_name
+    keyboard = [
+        [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
+        [
+            ButtonItem(text="🚫 Ban", callback_key="ban"),
+            ButtonItem(text="🥊 Kick", callback_key="kick")
+        ],
+        [
+            ButtonItem(text="🔒 Mute", callback_key="mute"),
+            ButtonItem(text="⚠️ Warn", callback_key="warn")
+        ],
+        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+    ]
+
+    s = setting.split("/")
+    if len(s) > 1:
+        main_settings = s[0]
+        name_item = MODERATION_DISPLAY_ITEMS[main_settings].display_name
+        keyboard.insert(0, [ButtonItem(text=f"⬆ Stessa Punizione {name_item}", callback_key=main_settings)])
 
     punishment_panel = Panel(
         PanelConfig(
             base_path=data,
             text=text,
-            keyboard=[
-                [ButtonItem(text=f"⬆ Stessa Punizione {name_item}", callback_key=main_settings)],
-                [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
-                [
-                    ButtonItem(text="🚫 Ban", callback_key="ban"),
-                    ButtonItem(text="🥊 Kick", callback_key="kick")
-                ],
-                [
-                    ButtonItem(text="🔒 Mute", callback_key="mute"),
-                    ButtonItem(text="⚠️ Warn", callback_key="warn")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            keyboard=keyboard
         )
     )
 
