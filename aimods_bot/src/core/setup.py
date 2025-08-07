@@ -1,17 +1,21 @@
 import os
+import json
+from typing import List
+
 import aimods_bot.src.helpers.constants.constants as constants
 from datetime import timedelta
-from telegram.ext import Application
+from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.exceptions import handle_validation_errors
 from aimods_bot.src.core.validation import validate_structure
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
 from aimods_bot.src.core.config_loader import load_configuration
+from aimods_bot.src.handlers.collect import all_handlers, active_handlers
 
 log = logger.getChild("application_setup")
 
@@ -127,6 +131,17 @@ async def set_application_data(application: Application):
     if "ban_list" not in application.bot_data:
         application.bot_data["ban_list"] = {}
 
+    r = get_data_from_json("restarting")
+
+    if r.get("toggle", False):
+        await application.bot.send_message(
+            chat_id=r["user_id"],
+            text="ℹ Bot Riavviato Correttamente"
+        )
+        set_data_in_json(key=["restarting", "toggle"], value=False)
+        set_data_in_json(key=["restarting", "user_id"], value=0)
+
+
 
 async def get_admins(app: Application):
     """
@@ -146,3 +161,8 @@ async def get_admins(app: Application):
         admins_dict[str(user.id)] = user.name
 
     return admins_dict
+
+
+def get_handlers() -> List[BaseHandler]:
+    t = get_data_from_json("test_mode")
+    return all_handlers if not t else active_handlers

@@ -1,3 +1,4 @@
+import copy
 import json
 import mimetypes
 import os
@@ -21,7 +22,7 @@ async def get_file(file):
         return await get_file(file[-1])
 
 
-def get_data_from_json(key: str, file_path: str = "aimods_bot/misc/data.json") -> Any:
+def get_data_from_json(key: str = None, file_path: str = "aimods_bot/misc/data.json") -> Any:
     """
     Estrae un campo dal file JSON specificato.
 
@@ -47,12 +48,43 @@ def get_data_from_json(key: str, file_path: str = "aimods_bot/misc/data.json") -
         log.error(f"Errore nel parsing JSON ({file_path}): {e}")
         raise
 
+    if not key:
+        return content
+
     if key not in content:
         log.error(f"Chiave '{key}' mancante in {file_path}")
         raise KeyError(f"Chiave '{key}' mancante in '{file_path}'")
 
     return content[key]
 
+
+def set_data_in_json(key: Union[str, List[str]], value: Any, file_path: str = "aimods_bot/misc/data.json") -> bool:
+    c = get_data_from_json(None)
+
+    if isinstance(key, str):
+        if key not in c:
+            log.warning(f"Chiave '{key}' mancante in {file_path}. Verrà aggiunta.")
+
+        c[key] = value
+    else:  # isinstance(key, list)
+        c_copy = copy.copy(c)
+        for el in key[:-1]:
+            if el not in c_copy:
+                log.error(f"Chiave '{key}' mancante in {file_path}.")
+                return False
+            c_copy = c_copy[el]
+        l_key = key[-1]
+        if l_key not in c_copy:
+            log.error(f"Chiave '{l_key}' mancante in {file_path}. Verrà aggiunta.")
+        c_copy[l_key] = value
+    try:
+        with open(file_path, "w") as fp:
+            json.dump(c, fp, indent=4)
+        log.info("File JSON modificato correttamente.")
+        return True
+    except Exception as e:
+        log.error(f"Errore nel parsing JSON ({file_path}): {e}")
+        return False
 
 # noinspection PyTypeChecker
 def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", "audio", "video", "gif"]:

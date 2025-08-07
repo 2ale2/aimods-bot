@@ -10,6 +10,7 @@ from telegram.ext import ContextTypes, CallbackContext
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
 
 log = logger.getChild("telegram_utils")
 
@@ -315,4 +316,4 @@ async def handle_if_not_file(
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
+    await create_and_send_recaps(context=context.application)

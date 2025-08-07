@@ -4,11 +4,10 @@ import locale
 import sys
 from telegram.ext import ApplicationBuilder
 from aimods_bot.src.core.persistence import PostgresPersistence
-from aimods_bot.src.core.setup import set_application_data
+from aimods_bot.src.core.setup import set_application_data, get_handlers
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
-from aimods_bot.src.handlers.collect import all_handlers
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
@@ -27,7 +26,9 @@ def main():
         PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL"))
     ).arbitrary_callback_data(True).post_init(set_application_data).post_shutdown(post_shutdown).build()
 
-    application.add_handlers(all_handlers)
+    handlers = get_handlers()
+
+    application.add_handlers(handlers)
     try:
         application.run_polling()
     except ConfigError as e:

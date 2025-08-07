@@ -1,331 +1,499 @@
 {
-  "forum_topics": {
-    "all": {
-      "1": {
-        "id": 14,
-        "name": "Android"
-      },
-      "2": {
-        "id": 16,
-        "name": "Windows"
-      },
-      "3": {
-        "id": 15,
-        "name": "iOS"
-      },
-      "4": {
-        "id": 17,
-        "name": "MacOS"
-      },
-      "5": {
-        "id": 13,
-        "name": "OffTopic"
-      },
-      "6": {
-        "id": 12,
-        "name": "Assistenza App/Software"
-      },
-      "7": {
-        "id": 8,
-        "name": "Assistenza Tecnica PC/Smartphone"
-      },
-      "8": {
-        "id": 1,
-        "name": "Generale"
-      }
-    },
-    "assistenza": {
-      "1": {
-        "id": 12,
-        "name": "Assistenza App/Software"
-      },
-      "2": {
-        "id": 8,
-        "name": "Assistenza Tecnica PC/Smartphone"
-      }
-    },
-    "off_topic": {
-      "1": {
-        "id": 13,
-        "name": "OffTopic"
-      }
-    },
-    "recap": {
-      "1": {
-        "id": 14,
-        "name": "Android"
-      },
-      "2": {
-        "id": 16,
-        "name": "Windows"
-      },
-      "3": {
-        "id": 15,
-        "name": "iOS"
-      },
-      "4": {
-        "id": 17,
-        "name": "MacOS"
-      }
-    }
-  },
-  "texts": {
-    "user_joined_message_text": "⚠️ <b>Ciao {}</b>! Sono il bot di A&I Mods, il bot moderatore della community a cui hai chiesto di unirti.\n\nPrima di poter accettare la tua richiesta, leggi attentamente queste regole del canale. Puoi confermare di averlo fatto semplicemente cliccando <u>entro 5 minuti</u> il bottone sotto questo messaggio – ecco tutto.\n\n<b>Regole</b> 📖\n\n1⃣ <b>La lingua del gruppo è l'Italiano</b>: non usare altre lingue o dialetti che possano limitare la comprensione di ciò che scrivi da parte di tutti gli altri membri della community.\n\n2️⃣ Il gruppo è <b>suddiviso in topic</b>, ognuno dei quali ricopre <b>esclusivamente gli argomenti previsti</b> (leggi ⬇️ Topics per i dettagli); ti chiediamo, dunque, di non disattendere a tali argomenti.\n\n3⃣ <b>Non citare o menzionare canali terzi o servizi</b> senza previo consenso da parte degli admin.\n\n4️⃣ <b>Non inviare contenuti sensibili</b>, NSFW (porno, gore) o relativi ad armi, oggetti o sostanze illegali. Non diffondere materiale <b>di natura politica o che possa incitare all'odio</b>.\n\n5⃣ Non scrivere in privato agli admin <b>senza aver prima ricevuto il consenso</b> sul gruppo.\n\n6⃣ <b>Sii cortese e rispetta tutti gli altri membri della community e ciò che fanno</b>: non insultare, deridere o denigrare nessuno.\n\n7️⃣ <b>Non eccedere</b> con parole o frasi troppo volgari.\n\n8️⃣ <b>Richieste</b> – Ciascun utente non può fare più di una richiesta a settimana. Nel fare una richiesta, ricordati di rispettare il formato specificato in cima al relativo topic.\n\n🆘 Qualora si noti una trasgressione o per qualunque necessità seria di intervento tempestivo da parte dei moderatori, puoi usare il comando <code>@admin</code> per fare una segnalazione. <b>Non abusarne</b>.\n\n<b>Topics</b> 🗂\n\n- <b>Assistenza App</b> – Assistenza riguardante app e software pubblicati sul <a href=\"https://t.me/+lx9FIsA0UB5iOTE0\">canale</a>.\n- <b>FL Studio</b> – Richiesta e assistenza riguardante FL Studio e Plug-In FL Studio.\n- <b>Assistenza PC & Smartphone</b> – Assistenza tecnica PC & Smartphones.\n- <b>Richieste Iso</b> – Richiesta e assistenza ISO Windows.\n- <b>Custom Colorful Spotify</b> – Richieste personalizzate di Spotify per Android.\n- <b>Richieste</b> + <i>piattaforma</i> – Richiesta di applicazioni e software relative alla piattaforma specificata.\n- <b>OffTopic</b> – Tutto ciò che non è trattato nei topic precedenti (nei limiti imposti dalle regole).\n\n⚖ <u>I moderatori si riservano il diritto di assumere contromisure qualora le regole sopra illustrate non vengano rispettate</u>, in ottemperanza al loro dovere di garantire un clima sereno e rispettoso per gli altri membri della community. <u>L'utente si assume, dunque, le responsabilità derivanti da un'eventuale inosservanza di tali regole</u>.",
-    "rules_text": "<b>Regole</b> 📖\n\n1⃣ <b>La lingua del gruppo è l'Italiano</b>: non usare altre lingue o dialetti che possano limitare la comprensione di ciò che scrivi da parte di tutti gli altri membri della community.\n\n2️⃣ Il gruppo è <b>suddiviso in topic</b>, ognuno dei quali ricopre <b>esclusivamente gli argomenti previsti</b> (leggi ⬇️ Topics per i dettagli); ti chiediamo, dunque, di non disattendere a tali argomenti.\n\n3⃣ <b>Non citare o menzionare canali terzi o servizi</b> senza previo consenso da parte degli admin.\n\n4️⃣ <b>Non inviare contenuti sensibili</b>, NSFW (porno, gore) o relativi ad armi, oggetti o sostanze illegali. Non diffondere materiale <b>di natura politica o che possa incitare all'odio</b>.\n\n5⃣ Non scrivere in privato agli admin <b>senza aver prima ricevuto il consenso</b> sul gruppo.\n\n6⃣ <b>Sii cortese e rispetta tutti gli altri membri della community e ciò che fanno</b>: non insultare, deridere o denigrare nessuno.\n\n7️⃣ <b>Non eccedere</b> con parole o frasi troppo volgari.\n\n8️⃣ <b>Richieste</b> – Ciascun utente non può fare più di una richiesta a settimana. Nel fare una richiesta, ricordati di rispettare il formato specificato in cima al relativo topic.\n\n🆘 Qualora si noti una trasgressione o per qualunque necessità seria di intervento tempestivo da parte dei moderatori, puoi usare il comando <code>@admin</code> per fare una segnalazione. <b>Non abusarne</b>.\n\n⚖ <u>I moderatori si riservano il diritto di assumere contromisure qualora le regole sopra illustrate non vengano rispettate</u>, in ottemperanza al loro dovere di garantire un clima sereno e rispettoso per gli altri membri della community. <u>L'utente si assume, dunque, le responsabilità derivanti da un'eventuale inosservanza di tali regole</u>."
-  },
-  "LEGGI QUESTE NOTE": {
-    "commands_parameters_note": "l'ordine dei parametri deve essere quello previsto per la sintassi del comando"
-  },
-  "commands": {
-    "ban": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
-      "parameters": ["mention", "duration", "message"]
-    },
-    "unban": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
-      "parameters": ["mention", "message"]
-    },
-    "limit": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
-      "parameters": ["mention", "permissions", "duration", "message"]
-    },
-    "unlimit": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)",
-      "parameters": ["mention", "permissions"]
-    },
-    "mute": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
-      "parameters": ["mention", "duration", "message"]
-    },
-    "unmute": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
-      "parameters": ["mention"]
-    },
-    "kick": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
-      "parameters": ["mention", "message"]
-    },
-    "warn": {
-      "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
-      "parameters": ["mention", "duration", "message"]
-    },
-    "unwarn": {
-      "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
-      "parameters": ["mention"]
-    },
-    "echo": {
-      "pattern": "^[./!](annuncio|echo)\\b",
-      "parameters": ["message"]
-    },
-    "annuncio": {
-      "pattern": "^[./!](annuncio|echo)\\b",
-      "parameters": ["message"]
-    }
-  },
-  "hashtags": {
-    "platforms": {
-      "Android": ["#android"],
-      "Windows": ["#windows", "#winhubx", "#storewin", "#assistente", "#radio", "#spotifydl", "#copymanager", "#fixlicenza", "#riproduttore"],
-      "iOS": ["#ios"],
-      "MacOS": ["#macos", "#storemac"],
-      "Linux": ["#linux"]
-    },
-    "software_associations": {
-      "WinHubX": "#winhubx",
-      "AIMods Store Windows": "#storewin",
-      "Assistente Aggiornamento by <i>AIMods</i>™": "#assistente",
-      "Radio Windows by <i>AIMods</i>™": "#radio",
-      "Spotify Downloader by <i>AIMods</i>™": "#spotifydl",
-      "ClipBoard Manager by <i>AIMods</i>™": "#copymanager",
-      "Fix Licenza by <i>AIMods</i>™": "#fixlicenza",
-      "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
-      "AIMods Store MacOS": "#storemac"
-    }
-  },
-  "configuration_structure": {
-    "moderation": {
-      "antispam": {
-        "toggle": {"type": "bool"},
-        "punishment": {
-          "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-          "time": {"type": "int"}
+    "forum_topics": {
+        "all": {
+            "1": {
+                "id": 14,
+                "name": "Android"
+            },
+            "2": {
+                "id": 16,
+                "name": "Windows"
+            },
+            "3": {
+                "id": 15,
+                "name": "iOS"
+            },
+            "4": {
+                "id": 17,
+                "name": "MacOS"
+            },
+            "5": {
+                "id": 13,
+                "name": "OffTopic"
+            },
+            "6": {
+                "id": 12,
+                "name": "Assistenza App/Software"
+            },
+            "7": {
+                "id": 8,
+                "name": "Assistenza Tecnica PC/Smartphone"
+            },
+            "8": {
+                "id": 1,
+                "name": "Generale"
+            }
         },
-        "whitelist": {
-          "user": {"type": "list"},
-          "group": {"type": "list"},
-          "channel": {"type": "list"},
-          "bot": {"type": "list"}
+        "assistenza": {
+            "1": {
+                "id": 12,
+                "name": "Assistenza App/Software"
+            },
+            "2": {
+                "id": 8,
+                "name": "Assistenza Tecnica PC/Smartphone"
+            }
         },
-        "link": {
-          "punishment": {
-            "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-            "time": {"type": "int"}
-          },
-          "allow_after": {"type": "int"},
-          "whitelist": {"type": "list"},
-          "blacklist": {"type": "list"},
-          "greylist": {"type": "list"}
+        "off_topic": {
+            "1": {
+                "id": 13,
+                "name": "OffTopic"
+            }
         },
-        "mention": {
-          "allow_after": {"type": "int"},
-          "per_message": {"type": "int"},
-          "rate_limit": {
-            "toggle": {"type": "bool"},
-            "time": {"type": "int"},
-            "mention": {"type": "int"}
-          },
-          "user_if_not_member": {"type": "bool"},
-          "user": {
-            "toggle": {"type": "bool"},
-            "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
-              },
-              "time": {"type": "int"}
-            }
-          },
-          "group": {
-            "toggle": {"type": "bool"},
-            "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
-              },
-              "time": {"type": "int"}
-            }
-          },
-          "channel": {
-            "toggle": {"type": "bool"},
-            "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
-              },
-              "time": {"type": "int"}
-            }
-          },
-          "bot": {
-            "toggle": {"type": "bool"},
-            "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
-              },
-              "time": {"type": "int"}
-            }
-          },
-          "whitelist": {
-            "user": {
-              "type": "list"
+        "recap": {
+            "1": {
+                "id": 14,
+                "name": "Android"
             },
-            "group": {
-              "type": "list"
+            "2": {
+                "id": 16,
+                "name": "Windows"
             },
-            "channel": {
-              "type": "list"
+            "3": {
+                "id": 15,
+                "name": "iOS"
             },
-            "bot": {
-              "type": "list"
+            "4": {
+                "id": 17,
+                "name": "MacOS"
             }
-          }
-        },
-        "forward": {
-          "rate_limit": {
-            "timespan": {
-              "type": "int"
-            },
-            "same_message": {
-              "type": "int"
-            },
-            "same_source": {
-              "type": "int"
-            },
-            "same_user": {
-              "type": "int"
-            }
-          },
-          "user": {
-            "toggle": {
-              "type": "bool"
-            },
-            "punishment": {
-              "type": {
-                "type": "str",
-                "allowed": [
-                  "ban",
-                  "kick",
-                  "mute",
-                  "warn"
-                ]
-              },
-              "time": {
-                "type": "int"
-              }
-            }
-          },
-          "group": {
-            "toggle": {
-              "type": "bool"
-            },
-            "punishment": {
-              "type": {
-                "type": "str",
-                "allowed": [
-                  "ban",
-                  "kick",
-                  "mute",
-                  "warn"
-                ]
-              },
-              "time": {
-                "type": "int"
-              }
-            }
-          },
-          "channel": {
-            "toggle": {
-              "type": "bool"
-            },
-            "punishment": {
-              "type": {
-                "type": "str",
-                "allowed": [
-                  "ban",
-                  "kick",
-                  "mute",
-                  "warn"
-                ]
-              },
-              "time": {
-                "type": "int"
-              }
-            }
-          },
-          "bot": {
-            "toggle": {
-              "type": "bool"
-            },
-            "punishment": {
-              "type": {
-                "type": "str",
-                "allowed": [
-                  "ban",
-                  "kick",
-                  "mute",
-                  "warn"
-                ]
-              },
-              "time": {
-                "type": "int"
-              }
-            }
-          }
         }
-      },
-     "antiflood": {
-        "toggle": {"type": "bool"},
-        "settings": {
-          "number_messages": {"type": "int"},
-          "time_messages": {"type": "int"}
+    },
+    "texts": {
+        "user_joined_message_text": "\u26a0\ufe0f <b>Ciao {}</b>! Sono il bot di A&I Mods, il bot moderatore della community a cui hai chiesto di unirti.\n\nPrima di poter accettare la tua richiesta, leggi attentamente queste regole del canale. Puoi confermare di averlo fatto semplicemente cliccando <u>entro 5 minuti</u> il bottone sotto questo messaggio \u2013 ecco tutto.\n\n<b>Regole</b> \ud83d\udcd6\n\n1\u20e3 <b>La lingua del gruppo \u00e8 l'Italiano</b>: non usare altre lingue o dialetti che possano limitare la comprensione di ci\u00f2 che scrivi da parte di tutti gli altri membri della community.\n\n2\ufe0f\u20e3 Il gruppo \u00e8 <b>suddiviso in topic</b>, ognuno dei quali ricopre <b>esclusivamente gli argomenti previsti</b> (leggi \u2b07\ufe0f Topics per i dettagli); ti chiediamo, dunque, di non disattendere a tali argomenti.\n\n3\u20e3 <b>Non citare o menzionare canali terzi o servizi</b> senza previo consenso da parte degli admin.\n\n4\ufe0f\u20e3 <b>Non inviare contenuti sensibili</b>, NSFW (porno, gore) o relativi ad armi, oggetti o sostanze illegali. Non diffondere materiale <b>di natura politica o che possa incitare all'odio</b>.\n\n5\u20e3 Non scrivere in privato agli admin <b>senza aver prima ricevuto il consenso</b> sul gruppo.\n\n6\u20e3 <b>Sii cortese e rispetta tutti gli altri membri della community e ci\u00f2 che fanno</b>: non insultare, deridere o denigrare nessuno.\n\n7\ufe0f\u20e3 <b>Non eccedere</b> con parole o frasi troppo volgari.\n\n8\ufe0f\u20e3 <b>Richieste</b> \u2013 Ciascun utente non pu\u00f2 fare pi\u00f9 di una richiesta a settimana. Nel fare una richiesta, ricordati di rispettare il formato specificato in cima al relativo topic.\n\n\ud83c\udd98 Qualora si noti una trasgressione o per qualunque necessit\u00e0 seria di intervento tempestivo da parte dei moderatori, puoi usare il comando <code>@admin</code> per fare una segnalazione. <b>Non abusarne</b>.\n\n<b>Topics</b> \ud83d\uddc2\n\n- <b>Assistenza App</b> \u2013 Assistenza riguardante app e software pubblicati sul <a href=\"https://t.me/+lx9FIsA0UB5iOTE0\">canale</a>.\n- <b>FL Studio</b> \u2013 Richiesta e assistenza riguardante FL Studio e Plug-In FL Studio.\n- <b>Assistenza PC & Smartphone</b> \u2013 Assistenza tecnica PC & Smartphones.\n- <b>Richieste Iso</b> \u2013 Richiesta e assistenza ISO Windows.\n- <b>Custom Colorful Spotify</b> \u2013 Richieste personalizzate di Spotify per Android.\n- <b>Richieste</b> + <i>piattaforma</i> \u2013 Richiesta di applicazioni e software relative alla piattaforma specificata.\n- <b>OffTopic</b> \u2013 Tutto ci\u00f2 che non \u00e8 trattato nei topic precedenti (nei limiti imposti dalle regole).\n\n\u2696 <u>I moderatori si riservano il diritto di assumere contromisure qualora le regole sopra illustrate non vengano rispettate</u>, in ottemperanza al loro dovere di garantire un clima sereno e rispettoso per gli altri membri della community. <u>L'utente si assume, dunque, le responsabilit\u00e0 derivanti da un'eventuale inosservanza di tali regole</u>.",
+        "rules_text": "<b>Regole</b> \ud83d\udcd6\n\n1\u20e3 <b>La lingua del gruppo \u00e8 l'Italiano</b>: non usare altre lingue o dialetti che possano limitare la comprensione di ci\u00f2 che scrivi da parte di tutti gli altri membri della community.\n\n2\ufe0f\u20e3 Il gruppo \u00e8 <b>suddiviso in topic</b>, ognuno dei quali ricopre <b>esclusivamente gli argomenti previsti</b> (leggi \u2b07\ufe0f Topics per i dettagli); ti chiediamo, dunque, di non disattendere a tali argomenti.\n\n3\u20e3 <b>Non citare o menzionare canali terzi o servizi</b> senza previo consenso da parte degli admin.\n\n4\ufe0f\u20e3 <b>Non inviare contenuti sensibili</b>, NSFW (porno, gore) o relativi ad armi, oggetti o sostanze illegali. Non diffondere materiale <b>di natura politica o che possa incitare all'odio</b>.\n\n5\u20e3 Non scrivere in privato agli admin <b>senza aver prima ricevuto il consenso</b> sul gruppo.\n\n6\u20e3 <b>Sii cortese e rispetta tutti gli altri membri della community e ci\u00f2 che fanno</b>: non insultare, deridere o denigrare nessuno.\n\n7\ufe0f\u20e3 <b>Non eccedere</b> con parole o frasi troppo volgari.\n\n8\ufe0f\u20e3 <b>Richieste</b> \u2013 Ciascun utente non pu\u00f2 fare pi\u00f9 di una richiesta a settimana. Nel fare una richiesta, ricordati di rispettare il formato specificato in cima al relativo topic.\n\n\ud83c\udd98 Qualora si noti una trasgressione o per qualunque necessit\u00e0 seria di intervento tempestivo da parte dei moderatori, puoi usare il comando <code>@admin</code> per fare una segnalazione. <b>Non abusarne</b>.\n\n\u2696 <u>I moderatori si riservano il diritto di assumere contromisure qualora le regole sopra illustrate non vengano rispettate</u>, in ottemperanza al loro dovere di garantire un clima sereno e rispettoso per gli altri membri della community. <u>L'utente si assume, dunque, le responsabilit\u00e0 derivanti da un'eventuale inosservanza di tali regole</u>."
+    },
+    "LEGGI QUESTE NOTE": {
+        "commands_parameters_note": "l'ordine dei parametri deve essere quello previsto per la sintassi del comando"
+    },
+    "commands": {
+        "ban": {
+            "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "duration",
+                "message"
+            ]
         },
-        "punishment": {
-          "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-          "time": {"type": "int"}
+        "unban": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "message"
+            ]
+        },
+        "limit": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "permissions",
+                "duration",
+                "message"
+            ]
+        },
+        "unlimit": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s+((?:\\d{1,2})(?:,(?:\\d{1,2}))*)",
+            "parameters": [
+                "mention",
+                "permissions"
+            ]
+        },
+        "mute": {
+            "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "duration",
+                "message"
+            ]
+        },
+        "unmute": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
+            "parameters": [
+                "mention"
+            ]
+        },
+        "kick": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "message"
+            ]
+        },
+        "warn": {
+            "pattern": "[/.!](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?\\s*((?:\\d+\\s*(?:giorni|giorno|ore|ora|minuti|minuto|secondi|secondo)\\s*)*)\\s*(.*)?",
+            "parameters": [
+                "mention",
+                "duration",
+                "message"
+            ]
+        },
+        "unwarn": {
+            "pattern": "[.!/](\\w+)(?:\\s+(@\\w+|(\\d{7,})|<a\\s+href=\"tg://user\\?id=(\\d{7,})\">.*?</a>))?",
+            "parameters": [
+                "mention"
+            ]
+        },
+        "echo": {
+            "pattern": "^[./!](annuncio|echo)\\b",
+            "parameters": [
+                "message"
+            ]
+        },
+        "annuncio": {
+            "pattern": "^[./!](annuncio|echo)\\b",
+            "parameters": [
+                "message"
+            ]
         }
-      }
-    }
-  }
+    },
+    "hashtags": {
+        "platforms": {
+            "Android": [
+                "#android"
+            ],
+            "Windows": [
+                "#windows",
+                "#winhubx",
+                "#storewin",
+                "#assistente",
+                "#radio",
+                "#spotifydl",
+                "#copymanager",
+                "#fixlicenza",
+                "#riproduttore"
+            ],
+            "iOS": [
+                "#ios"
+            ],
+            "MacOS": [
+                "#macos",
+                "#storemac"
+            ],
+            "Linux": [
+                "#linux"
+            ]
+        },
+        "software_associations": {
+            "WinHubX": "#winhubx",
+            "AIMods Store Windows": "#storewin",
+            "Assistente Aggiornamento by <i>AIMods</i>\u2122": "#assistente",
+            "Radio Windows by <i>AIMods</i>\u2122": "#radio",
+            "Spotify Downloader by <i>AIMods</i>\u2122": "#spotifydl",
+            "ClipBoard Manager by <i>AIMods</i>\u2122": "#copymanager",
+            "Fix Licenza by <i>AIMods</i>\u2122": "#fixlicenza",
+            "Riproduttore Video by <i>AIMods</i>\u2122": "#riproduttore",
+            "AIMods Store MacOS": "#storemac"
+        }
+    },
+    "configuration_structure": {
+        "moderation": {
+            "antispam": {
+                "toggle": {
+                    "type": "bool"
+                },
+                "punishment": {
+                    "type": {
+                        "type": "str",
+                        "allowed": [
+                            "ban",
+                            "kick",
+                            "mute",
+                            "warn"
+                        ]
+                    },
+                    "time": {
+                        "type": "int"
+                    }
+                },
+                "whitelist": {
+                    "user": {
+                        "type": "list"
+                    },
+                    "group": {
+                        "type": "list"
+                    },
+                    "channel": {
+                        "type": "list"
+                    },
+                    "bot": {
+                        "type": "list"
+                    }
+                },
+                "link": {
+                    "punishment": {
+                        "type": {
+                            "type": "str",
+                            "allowed": [
+                                "ban",
+                                "kick",
+                                "mute",
+                                "warn"
+                            ]
+                        },
+                        "time": {
+                            "type": "int"
+                        }
+                    },
+                    "allow_after": {
+                        "type": "int"
+                    },
+                    "whitelist": {
+                        "type": "list"
+                    },
+                    "blacklist": {
+                        "type": "list"
+                    },
+                    "greylist": {
+                        "type": "list"
+                    }
+                },
+                "mention": {
+                    "allow_after": {
+                        "type": "int"
+                    },
+                    "per_message": {
+                        "type": "int"
+                    },
+                    "rate_limit": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "time": {
+                            "type": "int"
+                        },
+                        "mention": {
+                            "type": "int"
+                        }
+                    },
+                    "user_if_not_member": {
+                        "type": "bool"
+                    },
+                    "user": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "group": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "channel": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "bot": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "whitelist": {
+                        "user": {
+                            "type": "list"
+                        },
+                        "group": {
+                            "type": "list"
+                        },
+                        "channel": {
+                            "type": "list"
+                        },
+                        "bot": {
+                            "type": "list"
+                        }
+                    }
+                },
+                "forward": {
+                    "rate_limit": {
+                        "timespan": {
+                            "type": "int"
+                        },
+                        "same_message": {
+                            "type": "int"
+                        },
+                        "same_source": {
+                            "type": "int"
+                        },
+                        "same_user": {
+                            "type": "int"
+                        }
+                    },
+                    "user": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "group": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "channel": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    },
+                    "bot": {
+                        "toggle": {
+                            "type": "bool"
+                        },
+                        "punishment": {
+                            "type": {
+                                "type": "str",
+                                "allowed": [
+                                    "ban",
+                                    "kick",
+                                    "mute",
+                                    "warn"
+                                ]
+                            },
+                            "time": {
+                                "type": "int"
+                            }
+                        }
+                    }
+                }
+            },
+            "antiflood": {
+                "toggle": {
+                    "type": "bool"
+                },
+                "settings": {
+                    "number_messages": {
+                        "type": "int"
+                    },
+                    "time_messages": {
+                        "type": "int"
+                    }
+                },
+                "punishment": {
+                    "type": {
+                        "type": "str",
+                        "allowed": [
+                            "ban",
+                            "kick",
+                            "mute",
+                            "warn"
+                        ]
+                    },
+                    "time": {
+                        "type": "int"
+                    }
+                }
+            }
+        }
+    },
+    "restarting": {
+        "toggle": false,
+        "user_id": 0
+    },
+    "test_mode": true
 }

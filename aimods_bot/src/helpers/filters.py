@@ -1,5 +1,6 @@
 import telegram
-from telegram.ext.filters import MessageFilter, ChatType
+from telegram.ext.filters import MessageFilter
+from telegram.constants import ChatType
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 

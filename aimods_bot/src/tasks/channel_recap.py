@@ -1,12 +1,71 @@
+import re
+from typing import Union
+
+from telegram import Update
 from telegram.ext import Application, ContextTypes
-from aimods_bot.src.helpers.database import fetch_query, execute_query
+from aimods_bot.src.helpers.database import fetch_query, execute_query, add_to_table
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 log = logger.getChild("channel-recap")
 
 
-async def create_and_send_recaps(context: ContextTypes.DEFAULT_TYPE | Application):
+async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_message.text and not update.effective_message.caption:
+        return
+
+    text = update.effective_message.text
+    platforms = []
+    hashtags = context.bot_data["hashtags"]
+
+    if any(x in text for x in hashtags["platforms"]["Android"]):
+        platforms.append("Android")
+    if any(x in text for x in hashtags["platforms"]["iOS"]):
+        platforms.append("iOS")
+    if any(x in text for x in hashtags["platforms"]["Windows"]):
+        platforms.append("Windows")
+    if any(x in text for x in hashtags["platforms"]["MacOS"]):
+        platforms.append("MacOS")
+    if any(x in text for x in hashtags["platforms"]["Linux"]):
+        platforms.append("Linux")
+
+    if len(platforms) == 0:
+        log.warning(f"Software platform(s) not captured in post #{update.effective_message.id} from channel.")
+        return
+
+    lines = text.splitlines()
+    if "#richiesta" in lines[0]:
+        lines.pop(0)
+
+    first_line = re.sub(r"^\W+", "", lines[0])
+
+    match = re.match(r"(.+?)\s+([vw]\d[\d.]*|build\s+\d+)", first_line, re.IGNORECASE)
+
+    if not match:
+        log.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
+        return
+
+    software_name = None
+    for el in hashtags["software_associations"]:
+        if hashtags["software_associations"][el] in text:
+            software_name = el
+            break
+
+    if software_name is None:
+        software_name = match.group(1).strip()
+
+    await add_to_table(
+        table_name="recap_posts",
+        content={
+            "post_id": update.effective_message.id,
+            "platforms": str(platforms).replace("'", ""),
+            "software_name": software_name,
+            "link": update.effective_message.link
+        }
+    )
+
+
+async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Application]):
     query = "SELECT * FROM recap_posts"
     res = await fetch_query(query=query)
     if res is None:
