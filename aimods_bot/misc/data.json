@@ -209,8 +209,41 @@
             "channel": {"type": "list"},
             "bot": {"type": "list"}
           }
-        }
-      },
+        },
+        "forward": {
+          "rate_limit": {
+            "timespan": {"type": "int"},
+            "same_message": {"type": "int"},
+            "same_source": {"type": "int"},
+            "same_user": {"type": "int"}
+          },
+          "user": {
+            "toggle": {"type": "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "group": {
+            "toggle": {"type": "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "channel": {
+            "toggle": {"type": "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
+          },
+          "bot": {
+            "toggle": {"type": "bool"},
+            "punishment": {
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "time": {"type": "int"}
+            }
      "antiflood": {
         "toggle": {"type": "bool"},
         "settings": {

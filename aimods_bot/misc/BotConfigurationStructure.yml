@@ -51,6 +51,32 @@ moderation:
         group: []
         channel: []
         bot: []
+    forward:
+      rate_limit:
+        timespan: 100
+        same_message: 2
+        same_source: 2
+        same_user: 2
+      user:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      group:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      channel:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
+      bot:
+        toggle: True
+        punishment:
+          type: "kick"
+          time: 100
   antiflood:
     toggle: True
     settings: {
