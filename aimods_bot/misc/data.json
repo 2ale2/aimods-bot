@@ -151,10 +151,10 @@
           "time": {"type": "int"}
         },
         "whitelist": {
-            "user": {"type": "list"},
-            "group": {"type": "list"},
-            "channel": {"type": "list"},
-            "bot": {"type": "list"}
+          "user": {"type": "list"},
+          "group": {"type": "list"},
+          "channel": {"type": "list"},
+          "bot": {"type": "list"}
         },
         "link": {
           "punishment": {
@@ -176,74 +176,145 @@
           },
           "user_if_not_member": {"type": "bool"},
           "user": {
-            "toggle": {"type":  "bool"},
+            "toggle": {"type": "bool"},
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
+              },
               "time": {"type": "int"}
             }
           },
           "group": {
-            "toggle": {"type":  "bool"},
+            "toggle": {"type": "bool"},
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
+              },
               "time": {"type": "int"}
             }
           },
           "channel": {
-            "toggle": {"type":  "bool"},
+            "toggle": {"type": "bool"},
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
+              },
               "time": {"type": "int"}
             }
           },
           "bot": {
-            "toggle": {"type":  "bool"},
+            "toggle": {"type": "bool"},
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
+              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]
+              },
               "time": {"type": "int"}
             }
           },
           "whitelist": {
-            "user": {"type": "list"},
-            "group": {"type": "list"},
-            "channel": {"type": "list"},
-            "bot": {"type": "list"}
+            "user": {
+              "type": "list"
+            },
+            "group": {
+              "type": "list"
+            },
+            "channel": {
+              "type": "list"
+            },
+            "bot": {
+              "type": "list"
+            }
           }
         },
         "forward": {
           "rate_limit": {
-            "timespan": {"type": "int"},
-            "same_message": {"type": "int"},
-            "same_source": {"type": "int"},
-            "same_user": {"type": "int"}
+            "timespan": {
+              "type": "int"
+            },
+            "same_message": {
+              "type": "int"
+            },
+            "same_source": {
+              "type": "int"
+            },
+            "same_user": {
+              "type": "int"
+            }
           },
           "user": {
-            "toggle": {"type": "bool"},
+            "toggle": {
+              "type": "bool"
+            },
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-              "time": {"type": "int"}
+              "type": {
+                "type": "str",
+                "allowed": [
+                  "ban",
+                  "kick",
+                  "mute",
+                  "warn"
+                ]
+              },
+              "time": {
+                "type": "int"
+              }
             }
           },
           "group": {
-            "toggle": {"type": "bool"},
+            "toggle": {
+              "type": "bool"
+            },
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-              "time": {"type": "int"}
+              "type": {
+                "type": "str",
+                "allowed": [
+                  "ban",
+                  "kick",
+                  "mute",
+                  "warn"
+                ]
+              },
+              "time": {
+                "type": "int"
+              }
             }
           },
           "channel": {
-            "toggle": {"type": "bool"},
+            "toggle": {
+              "type": "bool"
+            },
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-              "time": {"type": "int"}
+              "type": {
+                "type": "str",
+                "allowed": [
+                  "ban",
+                  "kick",
+                  "mute",
+                  "warn"
+                ]
+              },
+              "time": {
+                "type": "int"
+              }
             }
           },
           "bot": {
-            "toggle": {"type": "bool"},
+            "toggle": {
+              "type": "bool"
+            },
             "punishment": {
-              "type": {"type": "str", "allowed": ["ban", "kick", "mute", "warn"]},
-              "time": {"type": "int"}
+              "type": {
+                "type": "str",
+                "allowed": [
+                  "ban",
+                  "kick",
+                  "mute",
+                  "warn"
+                ]
+              },
+              "time": {
+                "type": "int"
+              }
             }
+          }
+        }
+      },
      "antiflood": {
         "toggle": {"type": "bool"},
         "settings": {
