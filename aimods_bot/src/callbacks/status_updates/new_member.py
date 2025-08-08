@@ -3,6 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOpti
 from telegram.ext import ConversationHandler, ContextTypes
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.logger import log_join, log_ban
 from aimods_bot.src.helpers.constants.models import JobData, ScheduledJobData
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message, scheduled_edit_message
@@ -16,6 +17,7 @@ TIMEOUT_SECONDS = 5
 
 # main function (callback)
 async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await log_join(update, context)
     uid = update.effective_user.id
 
     await _handle_if_blacklisted(update, context, uid)
@@ -58,6 +60,13 @@ async def _handle_if_blacklisted(update: Update, context: ContextTypes.DEFAULT_T
         text += f"\n<b>Motivo</b>: <i>{reason}</i>."
 
     text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
+
+    await log_ban(
+        update=update,
+        context=context,
+        admin_id=ban_data["admin"],
+        user_id=uid,
+        until=rome_until, reason="Blacklistato")
 
     await send_temporary_message(
         update=update,

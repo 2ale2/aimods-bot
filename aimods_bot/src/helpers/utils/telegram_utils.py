@@ -141,6 +141,10 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
         log.warning("user_identifier vuoto fornito a resolve_chat_member")
         return _create_error_response("invalid_identifier")
 
+    me = await context.bot.get_me()
+    if user_identifier == me.id:
+        return me
+
     chat_id = context.bot_data["group_chat_id"]
     user_id_str = str(user_identifier)
 
@@ -251,7 +255,7 @@ def normalize_user(user) -> dict:
     }
 
 
-def format_user_mention(user_id: str | int | None, username: str | None, first_name: str | None) -> str:
+def format_user_mention(user_id: str | int = None, username: str = None, first_name: str = None) -> str:
     if username:
         if user_id:
             return f"{'@' + username.removeprefix('@')} (<code>{user_id}</code>)"

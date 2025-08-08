@@ -47,6 +47,10 @@ def main():
             url_path="bot",
             webhook_url=f"https://bot.aimodsitalia.store/bot"
         )
+        r = application.bot_data.get("restart", False)
+        if r.get("toggle", False):
+            application.bot_data["restart"]["toggle"] = False
+            os.execl(sys.executable, sys.executable, *sys.argv)
     except ConfigError as e:
         log.error(f"Config validation failed: {e}")
         sys.exit(1)
