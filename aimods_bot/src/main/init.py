@@ -44,8 +44,8 @@ def main():
         application.run_webhook(
             listen="0.0.0.0",
             port=8080,
-            url_path=bot_token,
-            webhook_url=f"https://bot.aimodsitalia.store/{bot_token}"
+            url_path="bot",
+            webhook_url=f"https://bot.aimodsitalia.store/bot"
         )
     except ConfigError as e:
         log.error(f"Config validation failed: {e}")
