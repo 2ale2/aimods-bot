@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 from aimods_bot.src.helpers.constants.conversation_states.new_user import NewUserState
 
-TIMEOUT_SECONDS = 5
+TIMEOUT_SECONDS = 300
 
 
 # main function (callback)
@@ -24,6 +24,8 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
 
     if await _handle_if_banned(update, context, uid):
         return ConversationHandler.END
+
+    await log_join(update, context)
 
     await _send_rules_and_schedule_expiry(update, context, uid)
     return NewUserState.WAITING_RULES_ACCEPTANCE
