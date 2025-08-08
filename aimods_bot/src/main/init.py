@@ -22,15 +22,31 @@ logging.basicConfig(
 
 
 def main():
-    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).persistence(
-        PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL"))
-    ).arbitrary_callback_data(True).post_init(set_application_data).post_shutdown(post_shutdown).build()
+    bot_token = os.getenv("BOT_TOKEN")
+    if not bot_token:
+        log.error("BOT_TOKEN non impostato")
+        sys.exit(1)
+
+    application = (
+        ApplicationBuilder()
+        .token(bot_token)
+        .persistence(PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL")))
+        .arbitrary_callback_data(True)
+        .post_init(set_application_data)
+        .post_shutdown(post_shutdown)
+        .build()
+    )
 
     handlers = get_handlers()
-
     application.add_handlers(handlers)
+
     try:
-        application.run_polling()
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=8080,
+            url_path=bot_token,
+            webhook_url=f"https://bot.aimodsitalia.store/{bot_token}"
+        )
     except ConfigError as e:
         log.error(f"Config validation failed: {e}")
         sys.exit(1)
