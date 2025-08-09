@@ -41,6 +41,7 @@ def main():
     application.add_handlers(handlers)
 
     try:
+        # application.run_polling()
         application.run_webhook(
             listen="0.0.0.0",
             port=8080,
@@ -48,7 +49,7 @@ def main():
             webhook_url=f"https://bot.aimodsitalia.store/bot"
         )
         r = application.bot_data.get("restart", False)
-        if r.get("toggle", False):
+        if r and r.get("toggle", False):
             application.bot_data["restart"]["toggle"] = False
             os.execl(sys.executable, sys.executable, *sys.argv)
     except ConfigError as e:

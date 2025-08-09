@@ -52,19 +52,19 @@
         },
         "recap": {
             "1": {
-                "id": 14,
+                "id": 184504,
                 "name": "Android"
             },
             "2": {
-                "id": 16,
+                "id": 184507,
                 "name": "Windows"
             },
             "3": {
-                "id": 15,
+                "id": 184519,
                 "name": "iOS"
             },
             "4": {
-                "id": 17,
+                "id": 184535,
                 "name": "MacOS"
             }
         }
@@ -170,7 +170,9 @@
                 "#spotifydl",
                 "#copymanager",
                 "#fixlicenza",
-                "#riproduttore"
+                "#riproduttore",
+                "#phoenix",
+                "#minicleaner"
             ],
             "iOS": [
                 "#ios"
@@ -186,13 +188,15 @@
         "software_associations": {
             "WinHubX": "#winhubx",
             "AIMods Store Windows": "#storewin",
-            "Assistente Aggiornamento by <i>AIMods</i>\u2122": "#assistente",
-            "Radio Windows by <i>AIMods</i>\u2122": "#radio",
-            "Spotify Downloader by <i>AIMods</i>\u2122": "#spotifydl",
-            "ClipBoard Manager by <i>AIMods</i>\u2122": "#copymanager",
-            "Fix Licenza by <i>AIMods</i>\u2122": "#fixlicenza",
-            "Riproduttore Video by <i>AIMods</i>\u2122": "#riproduttore",
-            "AIMods Store MacOS": "#storemac"
+            "Assistente Aggiornamento by <i>AIMods</i>™": "#assistente",
+            "Radio Windows by <i>AIMods</i>™": "#radio",
+            "Spotify Downloader by <i>AIMods</i>™": "#spotifydl",
+            "ClipBoard Manager by <i>AIMods</i>™": "#copymanager",
+            "Fix Licenza by <i>AIMods</i>™": "#fixlicenza",
+            "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
+            "AIMods Store MacOS": "#storemac",
+            "Phoenix Play by <i>AIMods</i>™": "#phoenix",
+            "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner"
         }
     },
     "configuration_structure": {

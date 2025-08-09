@@ -39,12 +39,6 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
 
     first_line = re.sub(r"^\W+", "", lines[0])
 
-    match = re.match(r"(.+?)\s+([vw]\d[\d.]*|build\s+\d+)", first_line, re.IGNORECASE)
-
-    if not match:
-        log.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
-        return
-
     software_name = None
     for el in hashtags["software_associations"]:
         if hashtags["software_associations"][el] in text:
@@ -52,6 +46,10 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
             break
 
     if software_name is None:
+        match = re.match(r"(.+?)(?:\s+([vw]\d[\d.]*|build\s*\d+)(?:\s+(.*))?)?(?:\n|$)", first_line, re.IGNORECASE)
+        if not match:
+            log.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
+            return
         software_name = match.group(1).strip()
 
     await add_to_table(
@@ -113,42 +111,34 @@ async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Appli
         if recap_topics[el]["name"] in not_sending:
             continue
 
+        text = ""
+
         if recap_topics[el]["name"] == "Android":
+            text = android_recap_text
+
+        elif recap_topics[el]["name"] == "Windows":
+            text = windows_recap_text
+
+        elif recap_topics[el]["name"] == "iOS":
+            text = ios_recap_text
+
+        elif recap_topics[el]["name"] == "MacOS":
+            text = macos_recap_text
+
+        if text:
             await context.bot.send_message(
                 chat_id=context.bot_data["group_chat_id"],
                 message_thread_id=int(recap_topics[el]["id"]),
-                text=android_recap_text,
+                text=text,
                 disable_web_page_preview=True,
                 parse_mode="HTML"
             )
-            continue
-        if recap_topics[el]["name"] == "Windows":
-            await context.bot.send_message(
-                chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(recap_topics[el]["id"]),
-                text=windows_recap_text,
-                disable_web_page_preview=True,
-                parse_mode="HTML"
-            )
-            continue
-        if recap_topics[el]["name"] == "iOS":
-            await context.bot.send_message(
-                chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(recap_topics[el]["id"]),
-                text=ios_recap_text,
-                disable_web_page_preview=True,
-                parse_mode="HTML"
-            )
-            continue
-        if recap_topics[el]["name"] == "MacOS":
-            await context.bot.send_message(
-                chat_id=context.bot_data["group_chat_id"],
-                message_thread_id=int(recap_topics[el]["id"]),
-                text=macos_recap_text,
-                disable_web_page_preview=True,
-                parse_mode="HTML"
-            )
-            continue
+
+        await context.bot.send_sticker(
+            chat_id=context.bot_data["group_chat_id"],
+            message_thread_id=int(recap_topics[el]["id"]),
+            sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
+        )
 
     # noinspection SqlWithoutWhere
     query = "DELETE FROM recap_posts"

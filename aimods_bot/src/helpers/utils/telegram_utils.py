@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Any, Union, Dict
 
 import telegram
@@ -320,4 +321,6 @@ async def handle_if_not_file(
 
 
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != int(os.getenv("MYID")):
+        return
     await create_and_send_recaps(context=context.application)
