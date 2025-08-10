@@ -499,5 +499,5 @@
         "toggle": false,
         "user_id": 0
     },
-    "test_mode": true
+    "test_mode": false
 }
