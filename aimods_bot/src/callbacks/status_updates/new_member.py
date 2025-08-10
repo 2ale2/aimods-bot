@@ -25,8 +25,6 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
     if await _handle_if_banned(update, context, uid):
         return ConversationHandler.END
 
-    await log_join(update, context)
-
     await _send_rules_and_schedule_expiry(update, context, uid)
     return NewUserState.WAITING_RULES_ACCEPTANCE
 

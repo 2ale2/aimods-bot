@@ -58,6 +58,6 @@ async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TY
             "Grazie per averci scelto 😃"
         ),
         additional_job_data=JobData(
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Vai al Gruppo ↗️", url=clean_url)]])
+            reply_markup=keyboard
         )
     )

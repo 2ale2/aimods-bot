@@ -8,7 +8,7 @@ from aimods_bot.src.handlers.channel_handlers import channel_posts_capture_handl
 from aimods_bot.src.helpers.utils.telegram_utils import test
 
 active_handlers = [
-    TestHandler(callback=test).get(),
+    # TestHandler(callback=test).get(),
     test_command_handler,
     channel_posts_capture_handler,
     new_member_handler
