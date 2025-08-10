@@ -36,7 +36,7 @@ async def _approve_join_request(context: ContextTypes.DEFAULT_TYPE, user_id: int
 
 async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
-    clean_url = f"https://t.me/c/{clean_id}/1"
+    clean_url = f"https://t.me/c/{clean_id}"
 
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("Vai al Gruppo ↗️", url=clean_url)
