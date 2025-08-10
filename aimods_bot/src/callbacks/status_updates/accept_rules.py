@@ -49,15 +49,11 @@ async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TY
         InlineKeyboardButton("Vai al Gruppo ↗️", url=clean_url)
     ]])
 
-    await send_action_message_after(
-        update=update,
-        context=context,
+    await update.effective_message.edit_text(
         text=(
             "✅ <b>La tua richiesta è stata approvata</b>\n\n"
             "Lo staff di <i>AiMods</i> ti dà il benvenuto. "
             "Grazie per averci scelto 😃"
         ),
-        additional_job_data=JobData(
-            reply_markup=keyboard
-        )
+        reply_markup=keyboard
     )
