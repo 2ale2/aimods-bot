@@ -12,7 +12,6 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
     if not _check_user_identity(update):
         return None
 
-    await _clean_verification_message(update, context)
     await _approve_join_request(context, update.effective_user.id)
     await _send_welcome_message(update, context)
 
@@ -25,13 +24,6 @@ async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DE
 
 def _check_user_identity(update: Update) -> bool:
     return str(update.effective_user.id) == update.callback_query.data.split(" ")[1]
-
-
-async def _clean_verification_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.delete_message(
-        chat_id=update.effective_user.id,
-        message_id=update.effective_message.message_id
-    )
 
 
 async def _approve_join_request(context: ContextTypes.DEFAULT_TYPE, user_id: int):
