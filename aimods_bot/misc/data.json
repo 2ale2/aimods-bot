@@ -374,6 +374,7 @@
                     }
                 },
                 "forward": {
+                    "allow_after": {"type": "int"},
                     "rate_limit": {
                         "timespan": {
                             "type": "int"
@@ -389,6 +390,7 @@
                         }
                     },
                     "user": {
+                        "if_not_member": {"type": "bool"},
                         "toggle": {
                             "type": "bool"
                         },

@@ -5,6 +5,7 @@ from aimods_bot.src.handlers.conversations.private_conversation_handlers import 
     close_button_handler, TestHandler
 from aimods_bot.src.handlers.conversations.join_handler import new_member_handler
 from aimods_bot.src.handlers.channel_handlers import channel_posts_capture_handler
+from aimods_bot.src.handlers.commands.check_command_handler import check_command_handler
 from aimods_bot.src.helpers.utils.telegram_utils import test
 
 active_handlers = [
@@ -16,6 +17,7 @@ active_handlers = [
 
 all_handlers = [
     # TestHandler(callback=test).get(),
+    check_command_handler,
     channel_posts_capture_handler,
     new_member_handler,
     moderation_handler,

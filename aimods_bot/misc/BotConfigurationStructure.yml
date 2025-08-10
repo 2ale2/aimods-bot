@@ -59,6 +59,7 @@ moderation:
         same_user: 2
       user:
         toggle: True
+        if_not_member: True
         punishment:
           type: "kick"
           time: 100
