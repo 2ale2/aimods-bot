@@ -1,4 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, ConversationHandler
 
 from aimods_bot.src.helpers.constants.models import JobData
@@ -47,5 +48,6 @@ async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TY
             "Lo staff di <i>AiMods</i> ti dà il benvenuto. "
             "Grazie per averci scelto 😃"
         ),
-        reply_markup=keyboard
+        reply_markup=keyboard,
+        parse_mode=ParseMode.HTML
     )
