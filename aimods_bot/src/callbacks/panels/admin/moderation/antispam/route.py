@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.forward.route import antispam_forward_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import toggle_antispam
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.route import antispam_link_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.route import antispam_mention_route
@@ -31,7 +32,7 @@ async def antispam_route(update: Update, context: CallbackContext, path: list[st
         case "mention":
             return await antispam_mention_route(update=update, context=context, path=path[1:])
         case "forward":
-            await not_implemented_yet(update=update, context=context)
+            return await antispam_forward_route(update=update, context=context, path=path[1:])
         case "media":
             await not_implemented_yet(update=update, context=context)
 

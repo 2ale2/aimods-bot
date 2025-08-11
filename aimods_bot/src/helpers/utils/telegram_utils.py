@@ -9,6 +9,7 @@ from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, 
 from telegram.ext import ContextTypes, CallbackContext
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
@@ -285,7 +286,7 @@ def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChat
 async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="⚠ Funzionalità non ancora implementata.",
+        text="⚠️ Funzionalità non ancora implementata.",
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton(text="🚮 Chiude", callback_data="close")]]
         )
@@ -324,3 +325,20 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != int(os.getenv("MYID")):
         return
     await create_and_send_recaps(context=context.application)
+
+
+async def set_moderation_bool_setting(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        setting: str,
+        sub_setting: str,
+        value: bool,
+        category: str = None
+):
+    log_name = "_".join(setting.split("/")) + ("_category" if category else "")
+    log_c = logger.getChild(log_name)
+
+    path = f"moderation.{'.'.join(setting.split('/'))}{f'.{category}' if category else ''}.{sub_setting}"
+    set_value(context=context, path=path, value=value)
+
+    log_c.info(f"Modifica: settaggio {path} modificato in '{value}' da {update.effective_user.id}")

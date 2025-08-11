@@ -114,13 +114,10 @@ def _build_per_message_text(context: CallbackContext) -> str:
 async def render_antispam_mention_category_panel(update: Update, context: CallbackContext, category: str):
     text = _build_mention_category_text(context=context, category=category)
 
-    user_if_not_member = get_value(context, "moderation.antispam.mention.user_if_not_member")
+    user_if_not_member = get_value(context, "moderation.antispam.mention.user.if_not_member")
 
     def get_toggle_if_not_member():
-        return '👍' if user_if_not_member else '👎'
-
-    def get_if_not_member_data():
-        return "if_not_member_true" if user_if_not_member else "if_not_member_false"
+        return '✔' if user_if_not_member else '✖️'
 
     keyboard = [
         [
@@ -135,7 +132,7 @@ async def render_antispam_mention_category_panel(update: Update, context: Callba
         keyboard.insert(1, [
             ButtonItem(
                 text=f"🪪 Solo se non membro {get_toggle_if_not_member()}",
-                callback_key=get_if_not_member_data())
+                callback_key='if_not_member')
         ])
 
     antispam_mention_category_panel = Panel(

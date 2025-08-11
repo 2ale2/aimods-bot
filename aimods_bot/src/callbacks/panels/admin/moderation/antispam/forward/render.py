@@ -4,8 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
-from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text, sec_value_limited, get_time_text
-from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS
+from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 
 
 async def render_antispam_forward_panel(update: Update, context: CallbackContext):
@@ -13,7 +12,7 @@ async def render_antispam_forward_panel(update: Update, context: CallbackContext
 
     antispam_forward_panel = Panel(
         PanelConfig(
-            base_path="moderation/security_filters/moderation/antispam/forward",
+            base_path="moderation/security_filters/antispam/forward",
             text=text,
             keyboard=[
                 [
@@ -66,7 +65,38 @@ def _get_text(context: CallbackContext) -> str:
 
 
 async def render_antispam_forward_category_panel(update: Update, context: CallbackContext, category: str):
-    pass
+    text = await _get_category_text(context, category)
+
+    user_if_not_member = get_value(context, "moderation.antispam.forward.user.if_not_member")
+
+    def get_toggle_if_not_member():
+        return '✔' if user_if_not_member else '✖️'
+
+    keyboard = [
+        [
+            ButtonItem(text="☂️ On", callback_key="on"),
+            ButtonItem(text="🌂 Off", callback_key="off")
+        ],
+        [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
+        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+    ]
+
+    if category == "user":
+        keyboard.insert(1, [
+            ButtonItem(
+                text=f"🪪 Solo se non membro {get_toggle_if_not_member()}",
+                callback_key='if_not_member')
+        ])
+
+    antispam_forward_category_panel = Panel(
+        PanelConfig(
+            base_path=f"moderation/security_filters/antispam/forward/{category}",
+            text=text,
+            keyboard=keyboard
+        )
+    )
+
+    await antispam_forward_category_panel.render(update=update, context=context)
 
 
 async def _get_category_text(context: CallbackContext, category: str) -> str:
@@ -76,25 +106,15 @@ async def _get_category_text(context: CallbackContext, category: str) -> str:
         "channel": "Canali",
         "bot": "Bot"
     }
-    item = get_value(context, f"moderation.antispam.forward.{category}")
-    toggle = item["toggle"]
-    punishment = item["punishment"]
-    punishment_type = punishment["type"]
-    punishment_time = punishment["time"]
-    if_member = item.get("if_member", None)
+    toggle = get_value(context, f"moderation.antispam.forward.{category}.toggle")
     word = map_to_word[category]
     toggle_text = get_toggle_text(toggle)
 
-    punishment_limited = sec_value_limited(punishment_time)
-    time_text = (
-        await get_time_text(punishment_time) if punishment_limited
-        else "♾️ A Tempo Indeterminato"
-    )
-
     text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
             f"↦ 👥 <i>Blocco Inoltri</i> – <i>{word}</i>\n\n"
-            f"▫️ Da qui puoi gestire le impostazioni relative "
+            "▫️ Da qui puoi gestire le impostazioni relative "
             f"agli inoltri di messaggi provenienti da {word.lower()}.\n\n"
-            f"🔸 <u>Toggle</u> – {toggle_text}\n"
-            f"🔸 <u>Punizione</u> – {PUNISHMENT_EMOJIS[punishment_type]} <i>{punishment_type.capitalize()}</i>\n"
-            f"🔸 <u>Tempo Punizione</u> – <i>{time_text}</i>\n")
+            f"🔸 <u>Toggle</u> – {toggle_text}\n\n"
+            "🔹 Scegli un'opzione.")
+
+    return text

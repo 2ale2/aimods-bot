@@ -93,11 +93,12 @@ class Panel:
     async def render(self, update: Update, context: CallbackContext, message_id: int = None, send: bool = False):
         """Renderizza il pannello nel chat."""
         text = self.build_text()
+        reply_markup = InlineKeyboardMarkup(self.build_keyboard())
         if self.send or send:
             await context.bot.send_message(
                 chat_id=message_id or update.effective_chat.id,
                 text=text,
-                reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
         else:
@@ -107,12 +108,18 @@ class Panel:
                         chat_id=update.effective_chat.id,
                         message_id=message_id,
                         text=text,
-                        reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                        reply_markup=reply_markup,
                         parse_mode=ParseMode.HTML
                     )
                 else:
                     await update.effective_message.edit_text(
                         text=text,
-                        reply_markup=InlineKeyboardMarkup(self.build_keyboard()),
+                        reply_markup=reply_markup,
                         parse_mode=ParseMode.HTML
                     )
+            try:
+                await update.effective_message.edit_reply_markup(
+                    reply_markup=reply_markup
+                )
+            except telegram.error:
+                pass

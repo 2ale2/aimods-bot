@@ -279,11 +279,11 @@
                             "type": "int"
                         }
                     },
-                    "user_if_not_member": {
-                        "type": "bool"
-                    },
                     "user": {
                         "toggle": {
+                            "type": "bool"
+                        },
+                        "if_not_member": {
                             "type": "bool"
                         },
                         "punishment": {
