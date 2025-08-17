@@ -14,7 +14,7 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     if not update.effective_message.text and not update.effective_message.caption:
         return
 
-    text = update.effective_message.text
+    text = update.effective_message.caption or update.effective_message.text
     platforms = []
     hashtags = context.bot_data["hashtags"]
 
@@ -134,11 +134,11 @@ async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Appli
                 parse_mode="HTML"
             )
 
-        await context.bot.send_sticker(
-            chat_id=context.bot_data["group_chat_id"],
-            message_thread_id=int(recap_topics[el]["id"]),
-            sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
-        )
+            await context.bot.send_sticker(
+                chat_id=context.bot_data["group_chat_id"],
+                message_thread_id=int(recap_topics[el]["id"]),
+                sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
+            )
 
     # noinspection SqlWithoutWhere
     query = "DELETE FROM recap_posts"
