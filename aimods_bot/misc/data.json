@@ -379,7 +379,7 @@
                         "timespan": {
                             "type": "int"
                         },
-                        "same_message": {
+                        "same_content": {
                             "type": "int"
                         },
                         "same_source": {

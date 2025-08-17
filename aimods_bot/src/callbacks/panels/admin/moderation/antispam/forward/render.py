@@ -118,3 +118,45 @@ async def _get_category_text(context: CallbackContext, category: str) -> str:
             "🔹 Scegli un'opzione.")
 
     return text
+
+
+async def render_antispam_forward_rate_limit_panel(update: Update, context: CallbackContext):
+    text = _get_rate_limit_text(context)
+
+    antispam_forward_rate_limit_panel = Panel(
+        PanelConfig(
+            base_path="moderation/security_filters/antispam/forward/rate_limit",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(text="⏳ Timespan", callback_key="timespan"),
+                    ButtonItem(text="👤 Per Utente", callback_key="same_user")
+                ],
+                [
+                    ButtonItem(text="💬 Per Contenuto", callback_key="same_content"),
+                    ButtonItem(text="📤 Per Fonte", callback_key="same_source")
+                ]
+            ]
+        )
+    )
+
+    await antispam_forward_rate_limit_panel.render(update=update, context=context)
+
+
+def _get_rate_limit_text(context: CallbackContext):
+    config = get_value(context=context, path="moderation.antispam.forward.rate_limit")
+    timespan = config["timespan"]
+    same_content = config["same_content"]
+    same_source = config["same_source"]
+    same_user = config["same_user"]
+
+    text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+            "↦ ⏱️ <i>Blocco Inoltri</i> – <i>Rate Limit</i>\n\n"
+            "▫️ Da qui puoi impostare il rate limiting per gli inoltri.\n\n"
+            f"🔸 <u>Timespan</u> – <i>{timespan} secondi</i>\n"
+            f"🔸 <u>Stesso Contenuto</u> – <i>{same_content} messaggi</i>\n"
+            f"🔸 <u>Stesso Utente</u> – <i>{same_user} messaggi</i>\n"
+            f"🔸 <u>Stessa Fonte</u> – <i>{same_source} messaggi</i>\n\n"
+            "🔹 Scegli un'opzione.")
+
+    return text

@@ -55,7 +55,7 @@ moderation:
       allow_after: 100
       rate_limit:
         timespan: 100
-        same_message: 2
+        same_content: 2
         same_source: 2
         same_user: 2
       user:

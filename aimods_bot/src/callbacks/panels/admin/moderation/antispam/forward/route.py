@@ -64,3 +64,25 @@ async def antispam_forward_category_route(update: Update, context: CallbackConte
 
     await render_antispam_forward_category_panel(update=update, context=context, category=category)
     return PCS.ADMIN_CONVERSATION
+
+
+async def antispam_forward_rate_limit_route(update: Update, context: CallbackContext, path: list[str]):
+    if len(path) == 0:
+        # await render_antispam_forward_rate_limit_panel(update=update, context=context)
+        return PCS.ADMIN_CONVERSATION
+
+    match path[0]:
+        case "timespan":
+            # Impostazione tempo di controllo
+            pass
+        case "same_user":
+            # Numero inoltri da parte di uno stesso utente nel timespan impostato
+            pass
+        case "same_source":
+            # Numero inoltri dalla stessa fonte nel timespan impostato
+            pass
+        case "same_content":
+            # Numero inoltri dello stesso messaggio (anche da fonti diverse) nel timespan impostato
+            pass
+
+    return PCS.ADMIN_CONVERSATION
