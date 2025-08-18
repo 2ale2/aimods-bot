@@ -60,6 +60,26 @@ async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
     return errors
 
 
+async def create_empty_user_data(context: ContextTypes.DEFAULT_TYPE, admin: bool):
+    if admin:
+        pass
+    else:
+        context.user_data["requests"] = {
+            "android": [],
+            "windows": {
+                "giochi": [],
+                "software": [],
+                "adobe": []
+            },
+            "ios": [],
+            "macos": [],
+            "fl_studio": {
+                "windows": [],
+                "macos": []
+            }
+        }
+
+
 async def get_user_warnings(user_id: int) -> Optional[dict]:
     """Restituisce gli warning attivi per un utente."""
 

@@ -2,6 +2,7 @@ import html
 
 from dataclasses import dataclass
 from typing import Optional, List, Union, Literal
+from enum import Enum
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters
@@ -52,6 +53,21 @@ class PanelConfig:
     base_path: str
     text: str
     keyboard: List[List[ButtonItem]]
+
+
+@dataclass
+class CanUserRequest:
+    yn: bool
+    reason: Optional[str]
+
+
+@dataclass
+class RequestStatuses(Enum):
+    PENDING = 0
+    EXAMINING = 1
+    TESTING = 2
+    COMPLETED = 3
+    REJECTED = 4
 
 
 class Panel:

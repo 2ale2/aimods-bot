@@ -5,3 +5,17 @@ class PrivateConversationState:
     EDIT_ANTISPAM_LINK_LIST = 3
     ADD_ANTISPAM_MENTION_WHITELIST = 4
     REMOVE_ANTISPAM_MENTION_WHITELIST = 5
+    NEW_REQUEST = 6
+
+
+class AndroidRequestConversationState(PrivateConversationState):
+    APP_NAME = 1
+    APP_LINK = 2
+    APP_VERSION = 3
+    APP_FUNCTIONALITIES = 4
+    CHECK_REQUEST = 5
+    EDIT_NAME = 6
+    EDIT_LINK = 7
+    EDIT_VERSION = 8
+    EDIT_FUNCTIONALITIES = 9
+    MAIN_BACKER = 10

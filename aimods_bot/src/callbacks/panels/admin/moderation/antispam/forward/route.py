@@ -22,7 +22,6 @@ async def antispam_forward_route(update: Update, context: CallbackContext, path:
     return await antispam_forward_category_route(update=update, context=context, category=path[0], path=path[1:])
 
 
-
 async def antispam_forward_category_route(update: Update, context: CallbackContext, category: str, path: list[str]):
     if len(path) == 0:
         await render_antispam_forward_category_panel(update=update, context=context, category=category)
