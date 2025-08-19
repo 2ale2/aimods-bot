@@ -1,18 +1,19 @@
 import copy
 from typing import Dict, Any, Optional
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ContextTypes, ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request_management.request.route import user_request_route
-from aimods_bot.src.helpers.constants.conversation_states import AndroidRequestConversationState as ARCS
+from aimods_bot.src.callbacks.panels.user.request_management.request.windows.handle import handle_back_to_main
+from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import RequestStatuses as RS
 from aimods_bot.src.helpers.database import fetch_query
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("android_request")
-
+ARCS = RCS.AndroidRequest
 
 class RequestDataManager:
     """Gestisce i dati della richiesta in modo centralizzato"""
@@ -119,23 +120,6 @@ class KeyboardBuilder:
         ])
 
 
-async def edit_message_safely(context: CallbackContext, chat_id: int, text: str,
-                            keyboard: InlineKeyboardMarkup) -> None:
-    """Wrapper per edit_message_text con gestione errori"""
-    try:
-        await context.bot.edit_message_text(
-            message_id=context.chat_data["bot_message_id"],
-            chat_id=chat_id,
-            text=text,
-            reply_markup=keyboard,
-            parse_mode=ParseMode.HTML,
-            link_preview_options=LinkPreviewOptions(is_disabled=True)
-        )
-    except Exception as e:
-        # Log dell'errore se necessario
-        print(f"Errore nell'aggiornamento del messaggio: {e}")
-
-
 async def request_app_name(update: Update, context: CallbackContext):
     """Inizia il flusso di richiesta chiedendo il nome dell'app"""
     await update.callback_query.answer()
@@ -169,7 +153,12 @@ async def request_app_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = KeyboardBuilder.get_back_keyboard("back_name")
 
-    await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+    await edit_message_safely(
+        context=context,
+        message_id=context.chat_data["bot_message_id"],
+        chat_id=update.effective_chat.id,
+        text=text,
+        keyboard=keyboard)
 
     return ARCS.APP_LINK
 
@@ -190,7 +179,12 @@ async def request_app_version(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     keyboard = KeyboardBuilder.get_back_keyboard("back_link")
 
-    await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+    await edit_message_safely(
+        context=context,
+        message_id=context.chat_data["bot_message_id"],
+        chat_id=update.effective_chat.id,
+        text=text,
+        keyboard=keyboard)
 
     return ARCS.APP_VERSION
 
@@ -207,7 +201,12 @@ async def request_app_functionalities(update: Update, context: ContextTypes.DEFA
 
     keyboard = KeyboardBuilder.get_back_keyboard("back_version")
 
-    await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+    await edit_message_safely(
+        context=context,
+        message_id=context.chat_data["bot_message_id"],
+        chat_id=update.effective_chat.id,
+        text=text,
+        keyboard=keyboard)
 
     return ARCS.APP_FUNCTIONALITIES
 
@@ -230,7 +229,12 @@ async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = KeyboardBuilder.get_review_keyboard()
 
-    await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+    await edit_message_safely(
+        context=context,
+        message_id=context.chat_data["bot_message_id"],
+        chat_id=update.effective_chat.id,
+        text=text,
+        keyboard=keyboard)
 
     return ARCS.CHECK_REQUEST
 
@@ -240,21 +244,30 @@ async def edit_request_detail(update: Update, context: CallbackContext):
     await update.callback_query.answer()
     detail = update.callback_query.data.split("_")[1]
     request_data = RequestDataManager.get_request_data(context)
+    platform = request_data["platform"]
+    game = request_data["game"]
 
     RequestDataManager.update_field(context, "editing", detail)
 
+    if platform in ("android", "ios"):
+        item_text = "dell'app"
+    elif game:
+        item_text = "del gioco"
+    else:
+        item_text = "del software"
+
     field_messages = {
-        "name": "🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
-        "link": "🔹 Indica il <b>link dell'app</b> che vorresti richiedere.",
-        "version": "🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
-        "functionalities": "🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare."
+        "name": f"🔹 Indica il <b>nome {item_text}</b> che vorresti richiedere.",
+        "link": f"🔹 Indica il <b>link {item_text}</b> che vorresti richiedere.",
+        "version": f"🔹 Indica la <b>versione {item_text}</b> che vorresti richiedere.",
+        "functionalities": f"🔹 Indica le <b>funzionalità {item_text}</b> che vorresti sbloccare."
     }
 
     return_states = {
-        "name": ARCS.EDIT_NAME,
-        "link": ARCS.EDIT_LINK,
-        "version": ARCS.EDIT_VERSION,
-        "functionalities": ARCS.EDIT_FUNCTIONALITIES
+        "name": RCS.EDIT_NAME,
+        "link": RCS.EDIT_LINK,
+        "version": RCS.EDIT_VERSION,
+        "functionalities": RCS.EDIT_FUNCTIONALITIES
     }
 
     text = MessageBuilder.build_request_summary(request_data, editing_field=detail)
@@ -262,7 +275,12 @@ async def edit_request_detail(update: Update, context: CallbackContext):
 
     keyboard = KeyboardBuilder.get_back_keyboard("no_edit")
 
-    await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+    await edit_message_safely(
+        context=context,
+        message_id=context.chat_data["bot_message_id"],
+        chat_id=update.effective_chat.id,
+        text=text,
+        keyboard=keyboard)
 
     return return_states.get(detail, ARCS.EDIT_NAME)
 
@@ -294,7 +312,7 @@ async def backer(update: Update, context: CallbackContext):
 
     back_actions = {
         "no_edit": lambda: recheck_request(update=update, context=context),
-        "back_main": lambda: _handle_back_to_main(update, context),
+        "back_main": lambda: handle_back_to_main(update, context),
         "back_name": lambda: request_app_name(update=update, context=context),
         "back_link": lambda: request_app_link(update=update, context=context),
         "back_version": lambda: request_app_version(update=update, context=context)
@@ -309,17 +327,11 @@ async def backer(update: Update, context: CallbackContext):
 
         if data.endswith("main"):
             context.chat_data.pop("new_request", None)
-            return await _handle_back_to_main(update, context)
+            return await handle_back_to_main(update, context)
 
         return ARCS.CHECK_REQUEST
     finally:
         await update.callback_query.answer()
-
-
-async def _handle_back_to_main(update: Update, context: CallbackContext):
-    """Gestisce il ritorno al menu principale"""
-    await user_request_route(update=update, context=context, path=[])
-    return ARCS.MAIN_BACKER
 
 
 async def confirm_request(update: Update, context: CallbackContext):
@@ -359,7 +371,12 @@ async def confirm_request(update: Update, context: CallbackContext):
 
         keyboard = KeyboardBuilder.get_confirmation_keyboard()
 
-        await edit_message_safely(context, update.effective_chat.id, text, keyboard)
+        await edit_message_safely(
+            context=context,
+            message_id=context.chat_data["bot_message_id"],
+            chat_id=update.effective_chat.id,
+            text=text,
+            keyboard=keyboard)
 
     except Exception as e:
         error_text = ("❌ <b>Errore</b>\n\n"
@@ -368,7 +385,12 @@ async def confirm_request(update: Update, context: CallbackContext):
 
         keyboard = KeyboardBuilder.get_back_keyboard("back_main")
 
-        await edit_message_safely(context, update.effective_chat.id, error_text, keyboard)
+        await edit_message_safely(
+            context=context,
+            message_id=context.chat_data["bot_message_id"],
+            chat_id=update.effective_chat.id,
+            text=error_text,
+            keyboard=keyboard)
 
         log.error(f"Errore durante conferma richiesta: {e}")
 

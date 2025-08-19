@@ -12,14 +12,21 @@ from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import s
 from aimods_bot.src.callbacks.panels.user.request_management.request.android_request import request_app_name, \
     request_app_link, request_app_version, request_app_functionalities, recheck_request, edit_request_detail, \
     edited_detail, confirm_request, backer
+from aimods_bot.src.callbacks.panels.user.request_management.request.windows.game_request import request_game_link, \
+    request_game_version, request_game_functionalities, request_game_steamtools, recheck_game_request, \
+    edited_game_detail, game_becker
+from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
+    request_software_category
 from aimods_bot.src.helpers.constants.conversation_states import \
-    PrivateConversationState as PCS, AndroidRequestConversationState as ARCS
+    PrivateConversationState as PCS, RequestConversationState as RCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper, test
 
 
 chat_shared_filter = ChatSharedFilter()
+ARCS = RCS.AndroidRequest
+WRCS = RCS.WindowsRequest
 
 
 alert_handler = CallbackQueryHandler(
@@ -67,14 +74,61 @@ android_request_handler = ConversationHandler(
                 callback=edit_request_detail
             )
         ],
-        ARCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-        ARCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
-        ARCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-        ARCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
     fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
     map_to_parent={
-        ARCS.MAIN_BACKER: PCS.NEW_REQUEST,
+        RCS.MAIN_BACKER: PCS.NEW_REQUEST,
+        ConversationHandler.END: PCS.USER_CONVERSATION
+    }
+)
+
+
+windows_request_handler = ConversationHandler(
+    entry_points=[
+        CallbackQueryHandler(
+            pattern="user/manage_requests/add_request/windows",
+            callback=request_software_category
+        )
+    ],
+    states={
+        WRCS.SOFTWARE_CATEGORY: [
+            CallbackQueryHandler(
+                pattern="^(game|daw|adobe|software)$",
+                callback=request_router
+            )
+        ],
+        WRCS.GameRequest.GAME_NAME: [MessageHandler(filters=filters.TEXT, callback=request_game_link)],
+        WRCS.GameRequest.GAME_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_game_version)],
+        WRCS.GameRequest.GAME_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_game_functionalities)],
+        WRCS.GameRequest.GAME_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_game_steamtools)],
+        WRCS.GameRequest.GAME_STEAMTOOLS: [
+            CallbackQueryHandler(
+                pattern="^(steamtools_yes|steamtools_no)$",
+                callback=recheck_game_request
+            )
+        ],
+        RCS.CHECK_REQUEST: [
+            CallbackQueryHandler(
+                pattern="confirm_request",
+                callback=confirm_request
+            ),
+            CallbackQueryHandler(
+                pattern="^edit_.+$",
+                callback=edit_request_detail
+            )
+        ],
+        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
+        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_game_detail)],
+        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)]
+    },
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=game_becker)],
+    map_to_parent={
+        RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
     }
 )
@@ -120,7 +174,7 @@ private_conversation_handler = ConversationHandler(
             ),
             CallbackQueryHandler(callback=admin_main_router)
         ],
-        PCS.NEW_REQUEST: [android_request_handler]
+        PCS.NEW_REQUEST: [android_request_handler, windows_request_handler]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],
     allow_reentry=True

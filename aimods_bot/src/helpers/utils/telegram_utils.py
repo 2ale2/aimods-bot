@@ -5,7 +5,7 @@ import telegram
 from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
 from telegram.ext import ContextTypes, CallbackContext
 
 import aimods_bot.src.helpers.constants.constants as constants
@@ -342,3 +342,25 @@ async def set_moderation_bool_setting(
     set_value(context=context, path=path, value=value)
 
     log_c.info(f"Modifica: settaggio {path} modificato in '{value}' da {update.effective_user.id}")
+
+
+async def edit_message_safely(
+        context: CallbackContext,
+        message_id: int,
+        chat_id: int,
+        text: str,
+        keyboard: InlineKeyboardMarkup
+) -> None:
+    """Wrapper per edit_message_text con gestione errori"""
+    try:
+        await context.bot.edit_message_text(
+            message_id=message_id,
+            chat_id=chat_id,
+            text=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
+        )
+    except Exception as e:
+        # Log dell'errore se necessario
+        print(f"Errore nell'aggiornamento del messaggio: {e}")

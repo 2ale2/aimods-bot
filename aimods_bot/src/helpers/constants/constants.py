@@ -62,3 +62,17 @@ MODERATION_DISPLAY_ITEMS = {
     "antispam/mention/bot": DisplayItem("📨", "Anti-Spam → Menzione", "a chi menziona un bot"),
     "antiflood": DisplayItem("🌊", "Anti-Flood", "a chi fa flooding")
 }
+
+PLATFORM_ICONS = {
+    "android": "🤖",
+    "windows": "💻",
+    "ios": "🍏",
+    "macos": "🖥"
+}
+
+WINDOWS_CATEGORY_ICONS = {
+    "game": "🕹",
+    "adobe": "🖌",
+    "daw": "🎹",
+    "software": "⌨"
+}
