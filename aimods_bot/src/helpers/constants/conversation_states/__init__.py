@@ -9,24 +9,15 @@ class PrivateConversationState:
 
 
 class RequestConversationState:
-    class AndroidRequest:
-        APP_NAME = 1
-        APP_LINK = 2
-        APP_VERSION = 3
-        APP_FUNCTIONALITIES = 4
-        CHECK_REQUEST = 5
-    class WindowsRequest:
-        SOFTWARE_CATEGORY = 6
-        class GameRequest:
-            GAME_NAME = 7
-            GAME_LINK = 8
-            GAME_VERSION = 9
-            GAME_FUNCTIONALITIES = 10
-            GAME_STEAMTOOLS = 11
+    REQUEST_NAME = 1
+    REQUEST_LINK = 2
+    REQUEST_VERSION = 3
+    REQUEST_FUNCTIONALITIES = 4
+    REQUEST_STEAMTOOLS = 5
 
-    CHECK_REQUEST = 12
-    EDIT_NAME = 13
-    EDIT_LINK = 15
-    EDIT_VERSION = 15
-    EDIT_FUNCTIONALITIES = 16
-    MAIN_BACKER = 17
+    CHECK_REQUEST = 6
+    EDIT_NAME = 7
+    EDIT_LINK = 8
+    EDIT_VERSION = 9
+    EDIT_FUNCTIONALITIES = 10
+    MAIN_BACKER = 11
