@@ -14,6 +14,9 @@ async def request_software_category(update: Update, context: CallbackContext) ->
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
 
+    if update.callback_query.data == "back_category":
+        RequestDataManager.cleanup_request(context=context)
+
     text = ("💻 <b>Nuova Richiesta – Windows</b>\n\n"
             "🔹 Scegli la categoria di software che vorresti richiedere.")
 

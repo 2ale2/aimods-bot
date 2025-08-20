@@ -67,15 +67,15 @@ async def create_empty_user_data(context: ContextTypes.DEFAULT_TYPE, admin: bool
         context.user_data["requests"] = {
             "android": [],
             "windows": {
-                "giochi": [],
+                "game": [],
                 "software": [],
-                "adobe": []
+                "adobe": [],
+                "daw": []
             },
             "ios": [],
-            "macos": [],
-            "fl_studio": {
-                "windows": [],
-                "macos": []
+            "macos": {
+                "software": [],
+                "daw": []
             }
         }
 

@@ -10,11 +10,11 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
 from aimods_bot.src.callbacks.panels.user.request_management.request.android_request import request_app_name, \
-    request_app_link, request_app_version, request_app_functionalities, recheck_request, edit_request_detail, \
-    edited_detail, confirm_request, backer
+    request_app_link, request_app_version, request_app_functionalities, recheck_app_request, edit_app_request_detail, \
+    edited_app_detail, confirm_app_request, app_backer
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.game_request import request_game_link, \
     request_game_version, request_game_functionalities, request_game_steamtools, recheck_game_request, \
-    edited_game_detail, game_becker
+    edited_game_detail, game_backer, edit_game_request_detail, confirm_game_request
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
     request_software_category
 from aimods_bot.src.helpers.constants.conversation_states import \
@@ -63,23 +63,23 @@ android_request_handler = ConversationHandler(
         ARCS.APP_NAME: [MessageHandler(filters=filters.TEXT, callback=request_app_link)],
         ARCS.APP_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_app_version)],
         ARCS.APP_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_app_functionalities)],
-        ARCS.APP_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+        ARCS.APP_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_app_request)],
         ARCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
-                callback=confirm_request
+                callback=confirm_app_request
             ),
             CallbackQueryHandler(
                 pattern="^edit_.+$",
-                callback=edit_request_detail
+                callback=edit_app_request_detail
             )
         ],
-        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
-        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
+        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_app_detail)],
+        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=app_backer)],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -101,7 +101,10 @@ windows_request_handler = ConversationHandler(
                 callback=request_router
             )
         ],
-        WRCS.GameRequest.GAME_NAME: [MessageHandler(filters=filters.TEXT, callback=request_game_link)],
+        WRCS.GameRequest.GAME_NAME: [
+            MessageHandler(filters=filters.TEXT, callback=request_game_link),
+            CallbackQueryHandler(pattern="^back_category$", callback=request_software_category)
+        ],
         WRCS.GameRequest.GAME_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_game_version)],
         WRCS.GameRequest.GAME_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_game_functionalities)],
         WRCS.GameRequest.GAME_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_game_steamtools)],
@@ -114,11 +117,11 @@ windows_request_handler = ConversationHandler(
         RCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
-                callback=confirm_request
+                callback=confirm_game_request
             ),
             CallbackQueryHandler(
-                pattern="^edit_.+$",
-                callback=edit_request_detail
+                pattern="^(edit_.+|steamtools_.*)$",
+                callback=edit_game_request_detail
             )
         ],
         RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
@@ -126,7 +129,7 @@ windows_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=game_becker)],
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=game_backer)],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION

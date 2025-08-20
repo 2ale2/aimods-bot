@@ -100,7 +100,7 @@ async def recheck_game_request(update: Update, context: ContextTypes.DEFAULT_TYP
              "<blockquote>⚠️ Assicurati che i dettagli siano <b>chiari</b>, "
              "altrimenti <b>la tua richiesta sarà bocciata</b>.</blockquote>")
 
-    keyboard = KeyboardBuilder.get_review_keyboard(game=True)
+    keyboard = KeyboardBuilder.get_review_keyboard(context=context, game=True)
 
     await edit_message_safely(
         context=context,
@@ -112,7 +112,7 @@ async def recheck_game_request(update: Update, context: ContextTypes.DEFAULT_TYP
     return RCS.CHECK_REQUEST
 
 
-async def edit_request_detail(update: Update, context: CallbackContext) -> int:
+async def edit_game_request_detail(update: Update, context: CallbackContext) -> int:
     """Gestisce la pressione per modificare un dettaglio della richiesta"""
     data = update.callback_query.data
 
@@ -124,7 +124,7 @@ async def edit_request_detail(update: Update, context: CallbackContext) -> int:
 
 async def edited_game_detail(update: Update, context: CallbackContext) -> int:
     """Gestisce l'aggiornamento di un campo editato"""
-    await InputHandler.handle_input(update=update, context=context, detail=context.chat_data["new_request"]["editing"])
+    await InputHandler.handle_input(update=update, context=context, detail=context.chat_data["new_request"].editing)
 
     try:
         return await recheck_game_request(update=update, context=context)
@@ -132,7 +132,7 @@ async def edited_game_detail(update: Update, context: CallbackContext) -> int:
         RequestDataManager.update_field(context, "editing", None)
 
 
-async def game_becker(update: Update, context: CallbackContext) -> int:
+async def game_backer(update: Update, context: CallbackContext) -> int:
     data = update.callback_query.data
     detail = data.split("_")[1]
 
@@ -149,7 +149,8 @@ async def game_becker(update: Update, context: CallbackContext) -> int:
     try:
         if action:
             if detail in ("name", "link", "version", "functionalities"):
-                context.chat_data["new_request"][detail] = None
+                request_data = context.chat_data["new_request"]
+                setattr(request_data, detail, None)
             return await action()
 
         if data.endswith("main"):
@@ -178,12 +179,13 @@ async def confirm_game_request(update: Update, context: CallbackContext) -> int:
 
         log.error(f"Errore durante conferma richiesta: {e}")
     finally:
-        RequestDataManager.cleanup_request(context)
+        # noinspection PyUnboundLocalVariable
         await edit_message_safely(
             context=context,
             message_id=context.chat_data["bot_message_id"],
             chat_id=update.effective_chat.id,
             text=text,
             keyboard=keyboard)
+        RequestDataManager.cleanup_request(context)
 
     return ConversationHandler.END
