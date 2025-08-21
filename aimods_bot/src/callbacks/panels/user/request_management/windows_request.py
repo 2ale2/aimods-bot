@@ -1,13 +1,10 @@
-from typing import Literal
-
 from telegram import Update
-from telegram.ext import CallbackContext, ContextTypes, ConversationHandler
+from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.handle import (
-    InputHandler, MessageBuilder, KeyboardBuilder, RequestDataManager, handle_back_to_main)
+    RequestDataManager)
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import edit_message_safely
 
 log = logger.getChild("windows_request")
 
@@ -19,8 +16,55 @@ async def request_name(update: Update, context: CallbackContext) -> int:
     await RequestDataManager.request_detail(
         update=update,
         context=context,
-        detail="name",
-        back_data="back_category"
+        detail="name"
     )
 
     return RCS.REQUEST_NAME
+
+
+async def request_link(update: Update, context: CallbackContext) -> int:
+    """Richiede il nome del software o dell'app."""
+
+    await RequestDataManager.request_detail(
+        update=update,
+        context=context,
+        detail="link"
+    )
+
+    return RCS.REQUEST_LINK
+
+
+async def request_version(update: Update, context: CallbackContext) -> int:
+    """Richiede il nome del software o dell'app."""
+
+    await RequestDataManager.request_detail(
+        update=update,
+        context=context,
+        detail="version"
+    )
+
+    return RCS.REQUEST_VERSION
+
+
+async def request_functionalities(update: Update, context: CallbackContext) -> int:
+    """Richiede il nome del software o dell'app."""
+
+    await RequestDataManager.request_detail(
+        update=update,
+        context=context,
+        detail="functionalities"
+    )
+
+    return RCS.REQUEST_FUNCTIONALITIES
+
+
+async def request_steamtools(update: Update, context: CallbackContext) -> int:
+    """Richiede il nome del software o dell'app."""
+
+    await RequestDataManager.request_detail(
+        update=update,
+        context=context,
+        detail="steamtools"
+    )
+
+    return RCS.REQUEST_STEAMTOOLS

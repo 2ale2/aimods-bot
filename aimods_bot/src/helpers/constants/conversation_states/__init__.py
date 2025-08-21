@@ -14,10 +14,18 @@ class RequestConversationState:
     REQUEST_VERSION = 3
     REQUEST_FUNCTIONALITIES = 4
     REQUEST_STEAMTOOLS = 5
+    REQUEST_CATEGORY = 6
 
-    CHECK_REQUEST = 6
-    EDIT_NAME = 7
-    EDIT_LINK = 8
-    EDIT_VERSION = 9
-    EDIT_FUNCTIONALITIES = 10
-    MAIN_BACKER = 11
+    CHECK_REQUEST = 7
+    EDIT_NAME = 8
+    EDIT_LINK = 9
+    EDIT_VERSION = 10
+    EDIT_FUNCTIONALITIES = 11
+    MAIN_BACKER = 12
+
+
+class WindowsCategoryState:
+    SOFTWARE = 13
+    GAME = 14
+    DAW = 15
+    ADOBE = 16

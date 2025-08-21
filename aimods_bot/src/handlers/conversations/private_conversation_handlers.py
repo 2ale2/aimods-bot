@@ -17,16 +17,15 @@ from aimods_bot.src.callbacks.panels.user.request_management.request.windows.gam
     edited_game_detail, game_backer, edit_game_request_detail, confirm_game_request
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
     request_software_category
+from aimods_bot.src.callbacks.panels.user.request_management.windows_request import request_name, request_link
 from aimods_bot.src.helpers.constants.conversation_states import \
-    PrivateConversationState as PCS, RequestConversationState as RCS
+    PrivateConversationState as PCS, RequestConversationState as RCS, WindowsCategoryState as WCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper, test
 
 
 chat_shared_filter = ChatSharedFilter()
-ARCS = RCS.AndroidRequest
-WRCS = RCS.WindowsRequest
 
 
 alert_handler = CallbackQueryHandler(
@@ -60,11 +59,11 @@ android_request_handler = ConversationHandler(
         )
     ],
     states={
-        ARCS.APP_NAME: [MessageHandler(filters=filters.TEXT, callback=request_app_link)],
-        ARCS.APP_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_app_version)],
-        ARCS.APP_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_app_functionalities)],
-        ARCS.APP_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_app_request)],
-        ARCS.CHECK_REQUEST: [
+        RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_app_link)],
+        RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_app_version)],
+        RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_app_functionalities)],
+        RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_app_request)],
+        RCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
                 callback=confirm_app_request
@@ -95,23 +94,19 @@ windows_request_handler = ConversationHandler(
         )
     ],
     states={
-        WRCS.SOFTWARE_CATEGORY: [
+        RCS.REQUEST_CATEGORY: [
             CallbackQueryHandler(
                 pattern="^(game|daw|adobe|software)$",
                 callback=request_router
             )
         ],
-        WRCS.GameRequest.GAME_NAME: [
-            MessageHandler(filters=filters.TEXT, callback=request_game_link),
-            CallbackQueryHandler(pattern="^back_category$", callback=request_software_category)
-        ],
-        WRCS.GameRequest.GAME_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_game_version)],
-        WRCS.GameRequest.GAME_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_game_functionalities)],
-        WRCS.GameRequest.GAME_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_game_steamtools)],
-        WRCS.GameRequest.GAME_STEAMTOOLS: [
-            CallbackQueryHandler(
-                pattern="^(steamtools_yes|steamtools_no)$",
-                callback=recheck_game_request
+        WCS.GAME: [
+            ConversationHandler(
+                entry_points=[MessageHandler(filters=filters.TEXT, callback=request_name)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.Entity("url"), callback=request_link)],
+                },
+                fallbacks=[]
             )
         ],
         RCS.CHECK_REQUEST: [
