@@ -1,18 +1,18 @@
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Literal, NamedTuple, Union
 from enum import Enum
+from typing import Dict, Any, Optional, NamedTuple, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext, ContextTypes
 
 from aimods_bot.src.callbacks.panels.user.request_management.request.route import user_request_route
-from aimods_bot.src.helpers.database import fetch_query
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
+from aimods_bot.src.helpers.constants.constants import CATEGORY_ICONS, REQUEST_FLOWS, CATEGORY_NAMES
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.constants import PLATFORM_ICONS, WINDOWS_CATEGORY_ICONS
 from aimods_bot.src.helpers.constants.models import RequestStatuses as RS
+from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
 
 log = logger.getChild("request_handler")
 
@@ -39,11 +39,24 @@ class WindowsCategory(Enum):
     SOFTWARE = "software"
 
 
-Category = Union[WindowsCategory]
+class AndroidCategory(Enum):
+    APP = "app"
+
+
+class IOSCategory(Enum):
+    APP = "app"
+
+
+class MacOSCategory(Enum):
+    SOFTWARE = "software"
+    DAW = "daw"
+
+
+Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
 
 
 class MessageTemplate(NamedTuple):
-    android_ios: str
+    app: str
     game: str
     daw: str
     software: str
@@ -51,36 +64,29 @@ class MessageTemplate(NamedTuple):
 
 FIELD_MESSAGES = {
     RequestField.NAME: MessageTemplate(
-        android_ios="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
+        app="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
         game="🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
         software="🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
         daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere."
     ),
     RequestField.LINK: MessageTemplate(
-        android_ios="🔹 Indica il <b>link dell'app</b> che vorresti richiedere.",
+        app="🔹 Indica il <b>link dell'app</b> che vorresti richiedere.",
         game="🔹 Indica il <b>link del gioco</b> che vorresti richiedere.",
         software="🔹 Indica il <b>link del software</b> che vorresti richiedere.",
         daw="🔹 Indica il <b>link della DAW o del Plug-In</b> che vorresti richiedere."
     ),
     RequestField.VERSION: MessageTemplate(
-        android_ios="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
+        app="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
         game="🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
         software="🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
         daw="🔹 Indica la <b>versione della DAW o del Plug-In</b> che vorresti richiedere."
     ),
     RequestField.FUNCTIONALITIES: MessageTemplate(
-        android_ios="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare.",
+        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare.",
         game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare.",
         software="🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
         daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b> che vorresti richiedere."
     )
-}
-
-PLATFORM_DISPLAY_NAMES = {
-    Platform.ANDROID: "Android",
-    Platform.WINDOWS: "Windows",
-    Platform.IOS: "iOS",
-    Platform.MACOS: "MacOS"
 }
 
 CONVERSATION_STATES = {
@@ -90,57 +96,23 @@ CONVERSATION_STATES = {
     RequestField.FUNCTIONALITIES: RCS.EDIT_FUNCTIONALITIES
 }
 
-BACK_CALLBACKS = {
-    "android": {
-        "name": "back_main",
-        "link": "back_name",
-        "version": "back_link",
-        "functionalities": "back_version"
-    },
-    "windows": {
-        "game": {
-            "name": "back_catagory",
-            "link": "back_name",
-            "version": "back_link",
-            "functionalities": "back_version",
-            "steamtools": "back_functionalities"
-        },
-        "adobe": {
-            "name": "back_catagory",
-            "version": "back_name",
-            "functionalities": "back_version",
-        },
-        "daw": {
-            "name": "back_catagory",
-            "link": "back_name",
-            "version": "back_version",
-            "functionalities": "back_link"
-        },
-        "software": {
-            "name": "back_category",
-            "link": "back_name",
-            "version": "back_link",
-            "functionalities": "back_version"
-        }
-    }
-}
-
 
 @dataclass
 class RequestData:
     """Rappresenta i dati di una richiesta in modo strutturato"""
     platform: Platform
-    category: Category = None
+    category: Category
     name: Optional[str] = None
     link: Optional[str] = None
     version: Optional[str] = None
     functionalities: Optional[str] = None
     steamtools: Optional[bool] = None
+    requesting: RequestField = RequestField.NAME
     editing: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Converte a dizionario escludendo il campo editing"""
-        return {k: v for k, v in self.__dict__().items() if k != 'editing'}
+        return {k: v for k, v in self.__dict__().items() if k not in ('requesting', 'editing')}
 
     def get_category(self) -> Optional[Category]:
         """Determina la categoria per piattaforme Windows"""
@@ -183,7 +155,7 @@ class RequestDataManager:
     def initialize_request(
             context: CallbackContext,
             platform: Platform,
-            category: Optional[Category]
+            category: Category
     ) -> None:
         """Inizializza una nuova richiesta nel context"""
         request_data = RequestData(
@@ -191,7 +163,7 @@ class RequestDataManager:
             category=category
         )
         context.chat_data["new_request"] = request_data
-        logger.info(f"Initialized new request for platform: {platform}")
+        logger.info(f"Initialized new request for platform (category): {platform.value} ({category.value})")
 
     @staticmethod
     async def request_detail(
@@ -203,6 +175,8 @@ class RequestDataManager:
         category = request_data.get_category()
         text = MessageBuilder.build_request_summary(request_data=request_data)
 
+        RequestDataManager.update_field(context=context, field="requesting", value=detail)
+
         if detail == RequestField.STEAMTOOLS:
             link_steamtools = "https://t.me/c/1523566735/13066"
             text += f"\n🔹 Accetteresti anche i file <a href=\"{link_steamtools}\">Steam Tools</a>?"
@@ -210,11 +184,11 @@ class RequestDataManager:
             field_enum = RequestField(detail)
             message_template = FIELD_MESSAGES[field_enum]
 
-            if request_data.platform in (Platform.ANDROID, Platform.IOS):
-                text += f"\n{message_template.android_ios}"
-            elif category == WindowsCategory.GAME:
+            if category.value == "app":
+                text += f"\n{message_template.app}"
+            elif category.value == "game":
                 text += f"\n{message_template.game}"
-            elif category == WindowsCategory.DAW:
+            elif category.value == "daw":
                 text += f"\n{message_template.daw}"
             else:
                 text += f"\n{message_template.software}"
@@ -241,17 +215,19 @@ class RequestDataManager:
         await update.callback_query.answer()
         detail = update.callback_query.data.split("_")[1]
         request_data = RequestDataManager.get_request_data(context)
+        category = request_data.get_category()
 
         RequestDataManager.update_field(context, "editing", detail)
 
-        category = request_data.get_category()
         field_enum = RequestField(detail)
         message_template = FIELD_MESSAGES[field_enum]
 
-        if request_data.platform in (Platform.ANDROID.value, Platform.IOS.value):
-            field_message = message_template.android_ios
-        elif category == WindowsCategory.GAME:
+        if category.value == "app":
+            field_message = message_template.app
+        elif category.value == "game":
             field_message = message_template.game
+        elif category.value == "daw":
+            field_message = message_template.daw
         else:
             field_message = message_template.software
 
@@ -339,14 +315,9 @@ class RequestDataManager:
             request_for_db: Dict[str, Any]
     ):
         """Aggiorna le richieste dell'utente nel context"""
-        platform = request_data.platform
-
-        if platform not in (Platform.WINDOWS, Platform.MACOS):
-            context.user_data["requests"][platform].append(request_for_db)
-        else:
-            category = request_data.get_category()
-            if category:
-                context.user_data["requests"][platform][category.value].append(request_for_db)
+        platform = request_data.get_platform()
+        category = request_data.get_category()
+        context.user_data["requests"][platform.value][category.value].append(request_for_db)
 
     @staticmethod
     def cleanup_request(context: CallbackContext) -> None:
@@ -388,14 +359,12 @@ class KeyboardBuilder:
 
     @staticmethod
     def get_review_keyboard(
-            context: ContextTypes.DEFAULT_TYPE,
             request_data: RequestData
     ) -> InlineKeyboardMarkup:
         """Keyboard per la review finale della richiesta"""
-        platform = request_data.get_platform()
         category = request_data.get_category()
 
-        if platform not in (Platform.WINDOWS, Platform.MACOS):
+        if category.value == "app":
             keyboard = [
                 [
                     InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name"),
@@ -410,7 +379,7 @@ class KeyboardBuilder:
 
         keyboard = [[InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name")]]
 
-        if category == WindowsCategory.ADOBE:
+        if category.value == "adobe":
             keyboard.insert(1, [
                 InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"),
                 InlineKeyboardButton(text="3️⃣ Funzionalità", callback_data="edit_functionalities")
@@ -423,13 +392,13 @@ class KeyboardBuilder:
             keyboard[0].insert(1, InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link"))
             keyboard.insert(1, [InlineKeyboardButton(text="3️⃣ Versione", callback_data="edit_version")])
 
-            if category != WindowsCategory.DAW:
+            if category.value == "daw":
                 keyboard[1].insert(1, InlineKeyboardButton(
                     text="4️⃣ Funzionalità",
                     callback_data="edit_functionalities"
                 ))
 
-            if category != WindowsCategory.GAME:
+            if category.value != "game":
                 steamtools = request_data.steamtools
                 steamtools_data = "steamtools_yes" if not steamtools else "steamtools_no"
                 keyboard.insert(2, [InlineKeyboardButton(text="5️⃣ SteamTools", callback_data=steamtools_data)])
@@ -457,10 +426,12 @@ class KeyboardBuilder:
             category: Optional[Category],
             detail: RequestField
     ):
-        section = BACK_CALLBACKS[platform]
-        if platform in (Platform.WINDOWS, Platform.MACOS):
-            return section[category.value][detail.value]
-        return section[detail.value]
+        section = REQUEST_FLOWS[platform]
+        flow_data = section[category.value]['flow']
+        back_data = section[category.value]['back_data']
+
+        ix = flow_data.index(detail.value)
+        return back_data[ix]
 
 
 class MessageBuilder:
@@ -484,31 +455,13 @@ class MessageBuilder:
         platform = request_data.get_platform()
         category = request_data.get_category()
 
-        if platform not in (Platform.WINDOWS, Platform.MACOS):
-            icon = PLATFORM_ICONS[platform]
-            platform_name = PLATFORM_DISPLAY_NAMES[platform]
-            return f"{icon} <b>Nuova Richiesta – {platform_name}</b>"
-        else:
-            category_icons = {
-                Platform.WINDOWS: WINDOWS_CATEGORY_ICONS
-            }
-            category_names = {
-                Platform.WINDOWS: {
-                    WindowsCategory.GAME: "Gioco",
-                    WindowsCategory.DAW: "DAW",
-                    WindowsCategory.ADOBE: "Adobe",
-                    WindowsCategory.SOFTWARE: "Software"
-                }
-            }
-            icon = category_icons[platform][category]
-            name = category_names[platform][category]
-
-            return f"{icon} <b>Nuova Richiesta – {name}</b>"
+        icon = CATEGORY_ICONS[platform.value][category.value]
+        name = CATEGORY_NAMES[platform.value][category.value]
+        return f"{icon} <b>Nuova Richiesta – {name}</b>"
 
     @staticmethod
     def _build_fields(request_data: RequestData, editing_field: Optional[str] = None) -> str:
         """Costruisce la lista dei campi della richiesta"""
-        platform = request_data.get_platform()
         category = request_data.get_category()
 
         fields = []
@@ -524,29 +477,21 @@ class MessageBuilder:
         return "\n".join(fields)
 
     @staticmethod
-    def _get_field_config(category: Optional[WindowsCategory]) -> Dict[str, Dict[str, Any]]:
+    def _get_field_config(category: Category) -> Dict[str, Dict[str, Any]]:
         """Ottiene la configurazione dei campi basata sul tipo di richiesta"""
-        if not category:
-            return {
-                'name': {'label': 'Nome', 'format': 'text'},
-                'link': {'label': 'Link', 'format': 'link'},
-                'version': {'label': 'Versione', 'format': 'code'},
-                'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-            }
-
         config = {
             'name': {'label': 'Nome', 'format': 'text'},
         }
 
-        if category not in (WindowsCategory.ADOBE,):
+        if category.value != "adobe":
             config['link'] = {'label': 'Link', 'format': 'link'}
 
         config['version'] = {'label': 'Versione', 'format': 'code'}
 
-        if category not in (WindowsCategory.DAW,):
+        if category.value != "daw":
             config['functionalities'] = {'label': 'Funzionalità', 'format': 'text'}
 
-        if category in (WindowsCategory.GAME,):
+        if category.value == "game":
             config['steamtools'] = {'label': 'Steam Tools', 'format': 'bool'}
 
         return config
@@ -589,14 +534,16 @@ class InputHandler:
     @staticmethod
     async def handle_input(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE,
-            detail: RequestField
+            context: ContextTypes.DEFAULT_TYPE
     ):
         """Gestisce l'input dell'utente per i diversi campi"""
         if not update.callback_query:
             await safe_delete(update, context)
 
+        request_data = RequestDataManager.get_request_data(context)
+        detail = request_data.requesting
         data = InputHandler._extract_data(update, detail)
+
         RequestDataManager.update_field(context=context, field=detail.value, value=data)
         logger.debug(f"Handled input for {detail}: {data}")
 

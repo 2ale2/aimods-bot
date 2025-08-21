@@ -70,9 +70,83 @@ PLATFORM_ICONS = {
     "macos": "🖥"
 }
 
-WINDOWS_CATEGORY_ICONS = {
-    "game": "🕹",
-    "adobe": "🖌",
-    "daw": "🎹",
-    "software": "⌨"
+CATEGORY_ICONS = {
+    "android": {
+        "app": "🤖"
+    },
+    "windows": {
+        "game": "🕹",
+        "adobe": "🖌",
+        "daw": "🎹",
+        "software": "⌨"
+    },
+    "ios": {
+        "app": "🍏"
+    },
+    "macos": {
+        "daw": "🎹",
+        "software": "🖥"
+    }
+}
+
+CATEGORY_NAMES = {
+    "android": {
+        "app": "App Android"
+    },
+    "windows": {
+        "game": "Gioco",
+        "adobe": "Adobe",
+        "daw": "DAW",
+        "software": "Software Windows"
+    },
+    "ios": {
+        "app": "App iOS"
+    },
+    "macos": {
+        "daw": "DAW",
+        "software": "Software MacOS"
+    }
+}
+
+REQUEST_FLOWS = {
+    "android": {
+        "app": {
+            "flow": ["name", "link", "version", "functionalities"],
+            "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+        }
+    },
+    "windows": {
+        "software": {
+            "flow": ["name", "link", "version", "functionalities"],
+            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+        },
+        "game": {
+            "flow": ["name", "link", "version", "functionalities", "steamtools"],
+            "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_steamtools"]
+        },
+        "daw": {
+            "flow": ["name", "link", "version"],
+            "back_data": ["back_category", "back_name", "back_link", "back_version"]
+        },
+        "adobe": {
+            "flow": ["name", "version", "functionalities"],
+            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+        }
+    },
+    "ios": {
+        "app": {
+            "flow": ["name", "link", "version", "functionalities"],
+            "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+        }
+    },
+    "macos": {
+        "software": {
+            "flow": ["name", "link", "version", "functionalities"],
+            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+        },
+        "daw": {
+            "flow": ["name", "link", "version"],
+            "back_data": ["back_category", "back_name", "back_link", "back_version"]
+        }
+    }
 }

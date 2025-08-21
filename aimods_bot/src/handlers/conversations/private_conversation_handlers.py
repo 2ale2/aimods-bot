@@ -17,7 +17,8 @@ from aimods_bot.src.callbacks.panels.user.request_management.request.windows.gam
     edited_game_detail, game_backer, edit_game_request_detail, confirm_game_request
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
     request_software_category
-from aimods_bot.src.callbacks.panels.user.request_management.windows_request import request_name, request_link
+from aimods_bot.src.callbacks.panels.user.request_management.windows_request import request_name, request_link, \
+    request_detail
 from aimods_bot.src.helpers.constants.conversation_states import \
     PrivateConversationState as PCS, RequestConversationState as RCS, WindowsCategoryState as WCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
@@ -55,7 +56,7 @@ android_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
             pattern="user/manage_requests/add_request/android",
-            callback=request_app_name
+            callback=request_detail
         )
     ],
     states={
