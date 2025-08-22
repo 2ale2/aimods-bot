@@ -4,8 +4,8 @@ from enum import Enum
 from typing import Dict, Any, Optional, NamedTuple, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ParseMode
-from telegram.ext import CallbackContext, ContextTypes, ConversationHandler
+from telegram.constants import ParseMode, MessageEntityType
+from telegram.ext import ContextTypes, ConversationHandler
 
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_FLOWS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
@@ -14,6 +14,7 @@ from aimods_bot.src.helpers.constants.models import CanUserRequest
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
+from aimods_bot.src.helpers.utils.user_utils import create_empty_user_data
 
 log = logger.getChild("request_handler")
 
@@ -154,7 +155,7 @@ class RequestDataManager:
 
     @staticmethod
     def initialize_request(
-            context: CallbackContext,
+            context: ContextTypes.DEFAULT_TYPE,
             platform: Platform = None,
             category: Category = None
     ) -> None:
@@ -163,6 +164,10 @@ class RequestDataManager:
             platform=platform,
             category=category
         )
+
+        if "new_request" in context.chat_data:
+            RequestDataManager.cleanup_request(context=context)
+
         context.chat_data["new_request"] = request_data
 
         if platform:
@@ -173,7 +178,7 @@ class RequestDataManager:
         else:
             log_text = f"Initialized new empty request"
 
-        logger.info(log_text)
+        log.info(log_text)
 
     @staticmethod
     async def request_detail(
@@ -220,7 +225,7 @@ class RequestDataManager:
     @staticmethod
     async def request_detail_to_edit(
             update: Update,
-            context: CallbackContext
+            context: ContextTypes.DEFAULT_TYPE
     ):
         await update.callback_query.answer()
         detail = update.callback_query.data.split("_")[1]
@@ -263,7 +268,7 @@ class RequestDataManager:
         return CONVERSATION_STATES[field_enum]
 
     @staticmethod
-    def get_request_data(context: CallbackContext) -> RequestData:
+    def get_request_data(context: ContextTypes.DEFAULT_TYPE) -> RequestData:
         """Ottiene i dati della richiesta corrente"""
         data = context.chat_data.get("new_request")
 
@@ -276,11 +281,11 @@ class RequestDataManager:
         return data
 
     @staticmethod
-    def update_field(context: CallbackContext, field: str, value: Any) -> None:
+    def update_field(context: ContextTypes.DEFAULT_TYPE, field: str, value: Any) -> None:
         """Aggiorna un campo specifico della richiesta"""
         request_data = RequestDataManager.get_request_data(context)
         setattr(request_data, field, value)
-        logger.debug(f"Updated field {field} with value: {value}")
+        log.debug(f"Updated field {field} with value: {value}")
 
     @staticmethod
     async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -312,7 +317,7 @@ class RequestDataManager:
     @staticmethod
     async def confirm_request(
             update: Update,
-            context: CallbackContext
+            context: ContextTypes.DEFAULT_TYPE
     ):
         """Conferma e salva la richiesta nel database"""
         uid = update.effective_user.id
@@ -322,26 +327,26 @@ class RequestDataManager:
         category = request_data.get_category()
 
         request_for_db = request_data.to_dict()
-        request_for_db['platform'] = platform.value
-        request_for_db['category'] = category.value
+        request_for_db.pop('platform')
+        request_for_db.pop('category')
 
         request_for_db_str = json.dumps(request_for_db)
 
         query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at)
-                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT) 
+                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category)
+                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4) 
                 RETURNING id"""
 
         result = await fetch_query(
             query=query,
-            params=[platform.value, request_for_db_str, uid]
+            params=[platform.value, request_for_db_str, uid, category.value]
         )
 
         if not result:
             raise Exception("Errore durante l'inserimento della richiesta")
 
         inserted_id = dict(result[0])["id"]
-        logger.info(f"Request inserted with ID: {inserted_id} for user: {uid}")
+        log.info(f"Request inserted with ID: {inserted_id} for user: {uid}")
 
         request_for_db.update({
             "status": RS.PENDING,
@@ -360,21 +365,27 @@ class RequestDataManager:
             reply_markup=confirmation_keyboard,
             parse_mode=ParseMode.HTML
         )
+
+        RequestDataManager.cleanup_request(context=context)
         return ConversationHandler.END
 
     @staticmethod
     def insert_request(
-            context: CallbackContext,
+            context: ContextTypes.DEFAULT_TYPE,
             request_data: RequestData,
             request_for_db: Dict[str, Any]
     ):
         """Aggiorna le richieste dell'utente nel context"""
         platform = request_data.get_platform()
         category = request_data.get_category()
+
+        if "requests" not in context.user_data:
+            create_empty_user_data(context=context, admin=False)
+
         context.user_data["requests"][platform.value][category.value].append(request_for_db)
 
     @staticmethod
-    def cleanup_request(context: CallbackContext) -> None:
+    def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:
         """Pulisce i dati della richiesta dal context"""
         context.chat_data.pop("new_request", None)
         context.chat_data.pop("bot_message_id", None)
@@ -434,13 +445,9 @@ class KeyboardBuilder:
             keyboard = [[InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name")]]
 
             if category.value == "adobe":
+                keyboard[0].append(InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"))
                 keyboard.insert(1, [
-                    InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"),
                     InlineKeyboardButton(text="3️⃣ Funzionalità", callback_data="edit_functionalities")
-                ])
-                keyboard.insert(2, [
-                    InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
-                    InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
                 ])
             else:
                 keyboard[0].insert(1, InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link"))
@@ -525,10 +532,11 @@ class MessageBuilder:
     def _build_fields(request_data: RequestData, editing_field: Optional[str] = None) -> str:
         """Costruisce la lista dei campi della richiesta"""
         category = request_data.get_category()
+        platform = request_data.get_platform()
 
         fields = []
 
-        field_config = MessageBuilder._get_field_config(category=category)
+        field_config = MessageBuilder._get_field_config(platform=platform, category=category)
 
         for field_name, field_info in field_config.items():
             value = getattr(request_data, field_name, None)
@@ -539,24 +547,66 @@ class MessageBuilder:
         return "\n".join(fields)
 
     @staticmethod
-    def _get_field_config(category: Category) -> Dict[str, Dict[str, Any]]:
+    def _get_field_config(platform: Platform, category: Category) -> Dict[str, Dict[str, Any]]:
         """Ottiene la configurazione dei campi basata sul tipo di richiesta"""
-        config = {
-            'name': {'label': 'Nome', 'format': 'text'},
+        configs = {
+            "android": {
+                "app": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                }
+            },
+            "windows": {
+                "software": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "game": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
+                    'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
+                },
+                "adobe": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "daw": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'}
+                }
+            },
+            "ios": {
+                "app": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                }
+            },
+            "macos": {
+                "software": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "daw": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'}
+                }
+            }
         }
 
-        if category.value != "adobe":
-            config['link'] = {'label': 'Link', 'format': 'link'}
-
-        config['version'] = {'label': 'Versione', 'format': 'code'}
-
-        if category.value != "daw":
-            config['functionalities'] = {'label': 'Funzionalità', 'format': 'text'}
-
-        if category.value == "game":
-            config['steamtools'] = {'label': 'Steam Tools', 'format': 'bool'}
-
-        return config
+        return configs[platform.value][category.value]
 
     @staticmethod
     def _should_display_field(field_name: str, value: Any) -> bool:
@@ -610,21 +660,25 @@ class InputHandler:
         data = InputHandler._extract_data(update, detail)
 
         RequestDataManager.update_field(context=context, field=detail.value, value=data)
-        logger.debug(f"Handled input for {detail}: {data}")
+        log.debug(f"Handled input for {detail}: {data}")
 
     @staticmethod
     def _extract_data(update: Update, detail: str):
         """Estrae i dati dall'update in base al tipo di campo"""
-        if detail == RequestField.LINK.value:
-            entity = update.effective_message.entities[0]
+        if detail == RequestField.LINK:
+            for el in update.effective_message.entities:
+                if el.type == MessageEntityType.URL:
+                    entity = el
+            # entity è necessariamente definita a causa del filtro dell'handler
+            # noinspection PyUnboundLocalVariable
             return update.effective_message.text[entity.offset:entity.offset + entity.length]
-        elif detail == RequestField.STEAMTOOLS.value:
+        elif detail == RequestField.STEAMTOOLS:
             return update.callback_query.data == "steamtools_yes"
         else:
             return update.effective_message.text
 
 
-async def can_user_request(update: Update, context: CallbackContext) -> CanUserRequest:
+async def can_user_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> CanUserRequest:
     """Verifica se l'utente può fare richieste, per limiti di moderazione o imposti dalla gestione."""
     return CanUserRequest(
         yn=True,

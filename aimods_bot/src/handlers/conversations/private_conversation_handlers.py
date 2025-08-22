@@ -97,7 +97,21 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
                     RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
-                    RCS.REQUEST_STEAMTOOLS: [CallbackQueryHandler(pattern="^steamtools_.+", callback=recheck_request)]
+                    RCS.REQUEST_STEAMTOOLS: [CallbackQueryHandler(pattern="^steamtools_.+", callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^(?:edit_|steamtools_).+",
+                            callback=edit_request_detail
+                        ),
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
                 fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
                 map_to_parent={
@@ -111,6 +125,20 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^edit_.+$",
+                            callback=edit_request_detail
+                        )
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
                 fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
                 map_to_parent={
@@ -123,7 +151,21 @@ windows_request_handler = ConversationHandler(
                 states={
                     RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
-                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=recheck_request)]
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^edit_.+$",
+                            callback=edit_request_detail
+                        )
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
                 fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
                 map_to_parent={
@@ -137,7 +179,21 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
                     RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
-                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)]
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^edit_.+$",
+                            callback=edit_request_detail
+                        )
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
                 fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
                 map_to_parent={
@@ -146,20 +202,113 @@ windows_request_handler = ConversationHandler(
                 }
             )
         ],
+    },
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+    map_to_parent={
+        RCS.MAIN_BACKER: PCS.NEW_REQUEST,
+        ConversationHandler.END: PCS.USER_CONVERSATION
+    }
+)
+
+ios_request_handler = ConversationHandler(
+    entry_points=[
+        CallbackQueryHandler(
+            pattern="user/manage_requests/add_request/ios",
+            callback=request_category
+        )
+    ],
+    states={
+        RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+        RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+        RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+        RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
         RCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
                 callback=confirm_request
             ),
             CallbackQueryHandler(
-                pattern="^(edit_.+|steamtools_.*)$",
+                pattern="^edit_.+$",
                 callback=edit_request_detail
             )
         ],
         RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+    },
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+    map_to_parent={
+        RCS.MAIN_BACKER: PCS.NEW_REQUEST,
+        ConversationHandler.END: PCS.USER_CONVERSATION
+    }
+)
+
+macos_request_handler = ConversationHandler(
+    entry_points=[
+        CallbackQueryHandler(
+            pattern="user/manage_requests/add_request/macos",
+            callback=request_category
+        )
+    ],
+    states={
+        RCS.REQUEST_CATEGORY: [
+            ConversationHandler(
+                entry_points=[CallbackQueryHandler(pattern="daw", callback=request_router)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^edit_.+$",
+                            callback=edit_request_detail
+                        )
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
+                },
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
+            ),
+            ConversationHandler(
+                entry_points=[CallbackQueryHandler(pattern="software", callback=request_router)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.CHECK_REQUEST: [
+                        CallbackQueryHandler(
+                            pattern="confirm_request",
+                            callback=confirm_request
+                        ),
+                        CallbackQueryHandler(
+                            pattern="^edit_.+$",
+                            callback=edit_request_detail
+                        )
+                    ],
+                    RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+                    RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
+                },
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
+            )
+        ],
     },
     fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
     map_to_parent={
@@ -211,7 +360,7 @@ private_conversation_handler = ConversationHandler(
             ),
             CallbackQueryHandler(callback=admin_main_router)
         ],
-        PCS.NEW_REQUEST: [android_request_handler, windows_request_handler]
+        PCS.NEW_REQUEST: [android_request_handler, windows_request_handler, ios_request_handler, macos_request_handler]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],
     allow_reentry=True

@@ -200,6 +200,26 @@
         }
     },
     "configuration_structure": {
+        "settings": {
+          "request": {
+            "android": {
+              "app": {"type": "bool"}
+            },
+            "windows": {
+              "software": {"type": "bool"},
+              "game": {"type": "bool"},
+              "adobe": {"type": "bool"},
+              "daw": {"type": "bool"}
+            },
+            "ios": {
+              "app": {"type": "bool"}
+            },
+            "macos": {
+              "software": {"type": "bool"},
+              "daw": {"type": "bool"}
+            }
+          }
+        },
         "moderation": {
             "antispam": {
                 "toggle": {

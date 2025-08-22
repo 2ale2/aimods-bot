@@ -1,4 +1,18 @@
 ---
+settings:
+  request:
+    android:
+      app: True
+    windows:
+      software: True
+      game: True
+      adobe: True
+      daw: True
+    ios:
+      app: False
+    macos:
+      software: False
+      daw: False
 moderation:
   antispam:
     toggle: True

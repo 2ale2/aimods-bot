@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request_management.handle import RequestDataManager, AndroidCategory, \
     WindowsCategory, IOSCategory, MacOSCategory, Platform, Category
@@ -21,17 +21,22 @@ async def requests_management_route(update: Update, context: CallbackContext, pa
             pass
         case "add_request":
             # Inizializzo una richiesta vuota
-            RequestDataManager.initialize_request(context=context)
             return await user_request_check(update=update, context=context, path=path[1:])
 
 
 async def request_category(update: Update, context: CallbackContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
-    data = update.callback_query.data.split("/")[-1]
+    if "new_request" not in context.chat_data:
+        RequestDataManager.initialize_request(context=context)
 
-    platform = Platform(data)
-    RequestDataManager.update_field(context=context, field="platform", value=platform)
+    request_data = RequestDataManager.get_request_data(context=context)
+    platform = request_data.get_platform()
+    if not platform:
+        data = update.callback_query.data.split("/")[-1]
+
+        platform = Platform(data)
+        RequestDataManager.update_field(context=context, field="platform", value=platform)
 
     categories = {
         "android": AndroidCategory,
@@ -87,6 +92,7 @@ async def request_category(update: Update, context: CallbackContext) -> int:
 
 
 async def request_router(update: Update, context: CallbackContext):
+    await update.callback_query.answer()
     request_data = RequestDataManager.get_request_data(context=context)
 
     platform = request_data.get_platform()
@@ -104,4 +110,24 @@ async def request_router(update: Update, context: CallbackContext):
         category = categories[platform.value](callback_data)
         RequestDataManager.update_field(context=context, field="category", value=category)
 
+    if not is_category_request_allowed(context=context, platform=platform, category=category):
+        RequestDataManager.initialize_request(context=context)
+        text = ("🔐 <b>Richieste Chiuse</b>\n\n"
+                "▪️ Non è al momento possibile formulare nuove richieste per questa categoria.")
+        keyboard = [[InlineKeyboardButton(
+                text="🔙 Indietro",
+                callback_data="user/manage_requests/add_request"
+        )]]
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return ConversationHandler.END
+
     return await request_detail(update=update, context=context)
+
+
+def is_category_request_allowed(context: CallbackContext, platform: Platform, category: Category) -> bool:
+    """Verifica se è possibile fare richieste controllando la configurazione."""
+    return context.bot_data["configuration"]["settings"]["request"][platform.value][category.value]

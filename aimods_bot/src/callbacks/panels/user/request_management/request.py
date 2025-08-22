@@ -66,9 +66,10 @@ async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Chiede all'utente di ricontrollare e confermare la richiesta."""
     await InputHandler.handle_input(update=update, context=context)
 
-    RequestDataManager.update_field(context=context, field="requesting", value=None)
-
-    return await RequestDataManager.recheck_request(update=update, context=context)
+    try:
+        return await RequestDataManager.recheck_request(update=update, context=context)
+    finally:
+        RequestDataManager.update_field(context=context, field="requesting", value=None)
 
 
 async def edit_request_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,6 +118,7 @@ async def backer(update: Update, context: CallbackContext):
 
 async def route_back_to_main(update: Update, context: CallbackContext):
     """Gestisce il ritorno al menu principale"""
+    RequestDataManager.cleanup_request(context=context)
     await user_request_check(update=update, context=context, path=[])
     return RCS.MAIN_BACKER
 
