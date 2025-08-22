@@ -3,51 +3,45 @@ import re
 from aimods_bot.src.helpers.constants.models import DisplayItem
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
-
 TOPICS = get_data_from_json("forum_topics")
 pyro_instance = None
-
 
 ERROR_MESSAGES = {
     "command_syntax_error": "⚠️ Warning\n\n▪️ Sintassi del comando non corretta.",
     "no_user_provided": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",
     "cannot_parse_user": "⚠️ Warning\n\n▪️ Non riesco a risolvere l'utente specificato, riprova.\n\n"
-                      "🔍 Tipicamente significa che l'utente non è nel gruppo.",
+                         "🔍 Tipicamente significa che l'utente non è nel gruppo.",
     "username_404": "⚠️ Warning\n\n▪️ Lo username {} non esiste.",
     "user_not_in_group": "⚠️ Warning\n\n▪️ L'utente non è nel gruppo.",
     "user_banned": "⚠️ Warning\n\n▪️ L'utente è bannato.",
 }
 
-
 PUNISHMENT_EMOJIS = {
-        "ban": "🚫",
-        "kick": "🥊",
-        "mute": "🔒",
-        "warn": "⚠️"
+    "ban": "🚫",
+    "kick": "🥊",
+    "mute": "🔒",
+    "warn": "⚠️"
 }
 
-
 LIST_DETAILS = {
-        "whitelist": {
-            "icon": "📨",
-            "desc": "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
-        },
-        "blacklist": {
-            "icon": "📓",
-            "desc": "I domini aggiunti a questa lista verranno <b>puniti con il ban, "
-                    "indipendentemente dalla punizione impostata</b>."
-        },
-        "greylist": {
-            "icon": "🧙‍♂️",
-            "desc": "I link aggiunti a questa lista <b>non verranno puniti</b>."
-        }
+    "whitelist": {
+        "icon": "📨",
+        "desc": "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
+    },
+    "blacklist": {
+        "icon": "📓",
+        "desc": "I domini aggiunti a questa lista verranno <b>puniti con il ban, "
+                "indipendentemente dalla punizione impostata</b>."
+    },
+    "greylist": {
+        "icon": "🧙‍♂️",
+        "desc": "I link aggiunti a questa lista <b>non verranno puniti</b>."
     }
-
+}
 
 _commands = get_data_from_json("commands")
 
 echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
-
 
 MODERATION_DISPLAY_ITEMS = {
     "antispam": DisplayItem("📨", "Anti-Spam", "a chi spamma"),
@@ -70,41 +64,46 @@ PLATFORM_ICONS = {
     "macos": "🖥"
 }
 
-CATEGORY_ICONS = {
+CATEGORY_DETAILS = {
     "android": {
-        "app": "🤖"
+        "app": {
+            "label": "Android",
+            "icon": "🤖"
+        }
     },
     "windows": {
-        "game": "🕹",
-        "adobe": "🖌",
-        "daw": "🎹",
-        "software": "⌨"
+        "game": {
+            "label": "Gioco",
+            "icon": "🕹"
+        },
+        "adobe": {
+            "label": "Adobe",
+            "icon": "🖌"
+        },
+        "daw": {
+            "label": "DAW",
+            "icons": "🎹"
+        },
+        "software": {
+            "label": "Software",
+            "icon": "⌨"
+        }
     },
     "ios": {
-        "app": "🍏"
+        "app": {
+            "label": "App",
+            "icon": "🍏"
+        }
     },
     "macos": {
-        "daw": "🎹",
-        "software": "🖥"
-    }
-}
-
-CATEGORY_NAMES = {
-    "android": {
-        "app": "App Android"
-    },
-    "windows": {
-        "game": "Gioco",
-        "adobe": "Adobe",
-        "daw": "DAW",
-        "software": "Software Windows"
-    },
-    "ios": {
-        "app": "App iOS"
-    },
-    "macos": {
-        "daw": "DAW",
-        "software": "Software MacOS"
+        "daw": {
+            "label": "DAW",
+            "icon": "🎹"
+        },
+        "software": {
+            "label": "Software",
+            "icon": "🖥"
+        }
     }
 }
 

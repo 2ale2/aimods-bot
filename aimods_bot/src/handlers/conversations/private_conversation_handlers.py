@@ -9,16 +9,13 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle 
     handle_user_input_antispam_whitelist
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
-from aimods_bot.src.callbacks.panels.user.request_management.request.android_request import request_app_name, \
-    request_app_link, request_app_version, request_app_functionalities, recheck_app_request, edit_app_request_detail, \
-    edited_app_detail, confirm_app_request, app_backer
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.game_request import request_game_link, \
     request_game_version, request_game_functionalities, request_game_steamtools, recheck_game_request, \
     edited_game_detail, game_backer, edit_game_request_detail, confirm_game_request
 from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
-    request_software_category
-from aimods_bot.src.callbacks.panels.user.request_management.windows_request import request_name, request_link, \
-    request_detail
+    request_category
+from aimods_bot.src.callbacks.panels.user.request_management.request import request_detail, recheck_request, \
+    confirm_request, edit_request_detail, edited_detail, backer
 from aimods_bot.src.helpers.constants.conversation_states import \
     PrivateConversationState as PCS, RequestConversationState as RCS, WindowsCategoryState as WCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
@@ -60,26 +57,26 @@ android_request_handler = ConversationHandler(
         )
     ],
     states={
-        RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_app_link)],
-        RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_app_version)],
-        RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_app_functionalities)],
-        RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_app_request)],
+        RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+        RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+        RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+        RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
         RCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
-                callback=confirm_app_request
+                callback=confirm_request
             ),
             CallbackQueryHandler(
                 pattern="^edit_.+$",
-                callback=edit_app_request_detail
+                callback=edit_request_detail
             )
         ],
-        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
-        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_app_detail)],
-        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
-        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_app_detail)],
+        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=app_backer)],
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -91,7 +88,7 @@ windows_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
             pattern="user/manage_requests/add_request/windows",
-            callback=request_software_category
+            callback=request_detail
         )
     ],
     states={
