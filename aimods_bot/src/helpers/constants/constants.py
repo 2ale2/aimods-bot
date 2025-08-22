@@ -82,7 +82,7 @@ CATEGORY_DETAILS = {
         },
         "daw": {
             "label": "DAW",
-            "icons": "🎹"
+            "icon": "🎹"
         },
         "software": {
             "label": "Software",

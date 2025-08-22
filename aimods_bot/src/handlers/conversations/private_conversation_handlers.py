@@ -4,20 +4,17 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.user import user_main_router
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import handle_user_input as handler_user_input_links
+from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import \
+    handle_user_input as handler_user_input_links
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle import \
     handle_user_input_antispam_whitelist
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
-from aimods_bot.src.callbacks.panels.user.request_management.request.windows.game_request import request_game_link, \
-    request_game_version, request_game_functionalities, request_game_steamtools, recheck_game_request, \
-    edited_game_detail, game_backer, edit_game_request_detail, confirm_game_request
-from aimods_bot.src.callbacks.panels.user.request_management.request.windows.route import request_router, \
-    request_category
 from aimods_bot.src.callbacks.panels.user.request_management.request import request_detail, recheck_request, \
     confirm_request, edit_request_detail, edited_detail, backer
+from aimods_bot.src.callbacks.panels.user.request_management.route import request_category, request_router
 from aimods_bot.src.helpers.constants.conversation_states import \
-    PrivateConversationState as PCS, RequestConversationState as RCS, WindowsCategoryState as WCS
+    PrivateConversationState as PCS, RequestConversationState as RCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper, test
@@ -53,7 +50,7 @@ android_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
             pattern="user/manage_requests/add_request/android",
-            callback=request_detail
+            callback=request_category
         )
     ],
     states={
@@ -88,41 +85,83 @@ windows_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
             pattern="user/manage_requests/add_request/windows",
-            callback=request_detail
+            callback=request_category
         )
     ],
     states={
         RCS.REQUEST_CATEGORY: [
-            CallbackQueryHandler(
-                pattern="^(game|daw|adobe|software)$",
-                callback=request_router
-            )
-        ],
-        WCS.GAME: [
             ConversationHandler(
-                entry_points=[MessageHandler(filters=filters.TEXT, callback=request_name)],
+                entry_points=[CallbackQueryHandler(pattern="game", callback=request_router)],
                 states={
-                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.Entity("url"), callback=request_link)],
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_STEAMTOOLS: [CallbackQueryHandler(pattern="^steamtools_.+", callback=recheck_request)]
                 },
-                fallbacks=[]
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
+            ),
+            ConversationHandler(
+                entry_points=[CallbackQueryHandler(pattern="adobe", callback=request_router)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                },
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
+            ),
+            ConversationHandler(
+                entry_points=[CallbackQueryHandler(pattern="daw", callback=request_router)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=recheck_request)]
+                },
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
+            ),
+            ConversationHandler(
+                entry_points=[CallbackQueryHandler(pattern="software", callback=request_router)],
+                states={
+                    RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
+                    RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)]
+                },
+                fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
+                map_to_parent={
+                    ConversationHandler.END: ConversationHandler.END,
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                }
             )
         ],
         RCS.CHECK_REQUEST: [
             CallbackQueryHandler(
                 pattern="confirm_request",
-                callback=confirm_game_request
+                callback=confirm_request
             ),
             CallbackQueryHandler(
                 pattern="^(edit_.+|steamtools_.*)$",
-                callback=edit_game_request_detail
+                callback=edit_request_detail
             )
         ],
-        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
-        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_game_detail)],
-        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)],
-        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_game_detail)]
+        RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
+        RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
+        RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=game_backer)],
+    fallbacks=[CallbackQueryHandler(pattern="^back_.+$", callback=backer)],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -135,8 +174,10 @@ private_conversation_handler = ConversationHandler(
         PrefixHandler([".", "/", "!"], "start", start)
     ],
     states={
-        PCS.USER_CONVERSATION: [close_button_handler, CallbackQueryHandler(callback=user_main_router)],  # User main router
-        PCS.ADMIN_CONVERSATION: [close_button_handler, CallbackQueryHandler(callback=admin_main_router)],  # Admin main router
+        # User main router
+        PCS.USER_CONVERSATION: [close_button_handler, CallbackQueryHandler(callback=user_main_router)],
+        # Admin main router
+        PCS.ADMIN_CONVERSATION: [close_button_handler, CallbackQueryHandler(callback=admin_main_router)],
         PCS.SET_PUNISHMENT_DURATION: [
             MessageHandler(
                 filters=filters.TEXT,

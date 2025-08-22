@@ -1,13 +1,11 @@
-from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.user.request_management.handle import RequestDataManager, AndroidCategory, \
-    WindowsCategory, IOSCategory, MacOSCategory, Platform, can_user_request
-from aimods_bot.src.callbacks.panels.user.request_management.render import render_user_request_management_panel, \
-    render_user_request_panel, render_user_cant_request_panel
-from aimods_bot.src.callbacks.panels.user.request_management.request import request_detail
+    WindowsCategory, IOSCategory, MacOSCategory, Platform, Category
+from aimods_bot.src.callbacks.panels.user.request_management.render import render_user_request_management_panel
+from aimods_bot.src.callbacks.panels.user.request_management.request import request_detail, user_request_check
 from aimods_bot.src.helpers.constants.constants import PLATFORM_ICONS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
@@ -22,15 +20,35 @@ async def requests_management_route(update: Update, context: CallbackContext, pa
         case "view_requests":
             pass
         case "add_request":
-            return await user_request_route(update=update, context=context, path=path[1:])
+            # Inizializzo una richiesta vuota
+            RequestDataManager.initialize_request(context=context)
+            return await user_request_check(update=update, context=context, path=path[1:])
 
 
 async def request_category(update: Update, context: CallbackContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
+    data = update.callback_query.data.split("/")[-1]
 
-    request_data = RequestDataManager.get_request_data(context=context)
-    platform = request_data.get_platform()
+    platform = Platform(data)
+    RequestDataManager.update_field(context=context, field="platform", value=platform)
+
+    categories = {
+        "android": AndroidCategory,
+        "windows": WindowsCategory,
+        "ios": IOSCategory,
+        "macos": MacOSCategory
+    }
+    category = categories[platform.value]
+    category_items = CATEGORY_DETAILS[platform.value]
+
+    if len(category_items) == 1:
+        RequestDataManager.update_field(
+            context=context,
+            field="category",
+            value=category(list(category_items.keys())[0])
+        )
+        return await request_router(update=update, context=context)
 
     names = {
         "android": "Android",
@@ -39,18 +57,18 @@ async def request_category(update: Update, context: CallbackContext) -> int:
         "macos": "MacOS"
     }
 
-    name = names[platform]
-    icon = PLATFORM_ICONS[platform]
+    name = names[platform.value]
+    icon = PLATFORM_ICONS[platform.value]
     item = "app" if platform in ("android", "ios") else "software"
 
     text = (f"{icon} <b>Nuova Richiesta – {name}</b>\n\n"
             f"🔹 Scegli la categoria di {item} che vorresti richiedere.")
 
     keyboard = []
-    categories = CATEGORY_DETAILS[platform]
-    for el in categories:
-        label = categories[el]["label"]
-        icon = categories[el]["icon"]
+
+    for el in category_items:
+        label = category_items[el]["label"]
+        icon = category_items[el]["icon"]
 
         if len(keyboard) == 0 or len(keyboard[-1]) == 2:
             keyboard.append([])
@@ -70,27 +88,20 @@ async def request_category(update: Update, context: CallbackContext) -> int:
 
 async def request_router(update: Update, context: CallbackContext):
     request_data = RequestDataManager.get_request_data(context=context)
+
     platform = request_data.get_platform()
-    category = update.callback_query.data
+    category = request_data.get_category()
 
-    categories = {
-        "android": AndroidCategory,
-        "windows": WindowsCategory,
-        "ios": IOSCategory,
-        "macos": MacOSCategory
-    }
+    if not category:
+        callback_data = update.callback_query.data
+        categories = {
+            "android": AndroidCategory,
+            "windows": WindowsCategory,
+            "ios": IOSCategory,
+            "macos": MacOSCategory
+        }
 
-    category = categories[platform](category)
-    RequestDataManager.initialize_request(context=context, platform=Platform(platform), category=category)
-    return request_detail(update=update, context=context)
+        category = categories[platform.value](callback_data)
+        RequestDataManager.update_field(context=context, field="category", value=category)
 
-
-async def user_request_route(update: Update, context: CallbackContext, path=Optional[list[str]]):
-    if path is not None and len(path) == 0:
-        answer = await can_user_request(update=update, context=context)
-        if answer.yn:
-            await render_user_request_panel(update=update, context=context)
-            return PCS.NEW_REQUEST
-        else:
-            await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
-            return PCS.USER_CONVERSATION
+    return await request_detail(update=update, context=context)

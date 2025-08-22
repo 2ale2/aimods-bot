@@ -4,7 +4,8 @@ from enum import Enum
 from typing import Dict, Any, Optional, NamedTuple, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import CallbackContext, ContextTypes
+from telegram.constants import ParseMode
+from telegram.ext import CallbackContext, ContextTypes, ConversationHandler
 
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_FLOWS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
@@ -100,8 +101,8 @@ CONVERSATION_STATES = {
 @dataclass
 class RequestData:
     """Rappresenta i dati di una richiesta in modo strutturato"""
-    platform: Platform
-    category: Category
+    platform: Platform = None
+    category: Category = None
     name: Optional[str] = None
     link: Optional[str] = None
     version: Optional[str] = None
@@ -154,8 +155,8 @@ class RequestDataManager:
     @staticmethod
     def initialize_request(
             context: CallbackContext,
-            platform: Platform,
-            category: Category
+            platform: Platform = None,
+            category: Category = None
     ) -> None:
         """Inizializza una nuova richiesta nel context"""
         request_data = RequestData(
@@ -163,7 +164,16 @@ class RequestDataManager:
             category=category
         )
         context.chat_data["new_request"] = request_data
-        logger.info(f"Initialized new request for platform (category): {platform.value} ({category.value})")
+
+        if platform:
+            if category:
+                log_text = f"Initialized new request for platform (category): {platform.value} ({category.value})"
+            else:
+                log_text = f"Initialized new request for platform ({platform.value})"
+        else:
+            log_text = f"Initialized new empty request"
+
+        logger.info(log_text)
 
     @staticmethod
     async def request_detail(
@@ -274,12 +284,12 @@ class RequestDataManager:
 
     @staticmethod
     async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        request_data = RequestDataManager.get_request_data(context)
+
         if update.callback_query:
             data = update.callback_query.data
             if data in ("steamtools_yes", "steamtools_no"):
                 await InputHandler.handle_input(update=update, context=context)
-
-        request_data = RequestDataManager.get_request_data(context)
 
         text = MessageBuilder.build_request_summary(request_data=request_data)
         text += ("\n🔹 Verifica i dettagli della tua richiesta. "
@@ -302,14 +312,19 @@ class RequestDataManager:
     @staticmethod
     async def confirm_request(
             update: Update,
-            context: CallbackContext,
-            platform: Platform
+            context: CallbackContext
     ):
         """Conferma e salva la richiesta nel database"""
         uid = update.effective_user.id
         request_data = RequestDataManager.get_request_data(context)
 
+        platform = request_data.get_platform()
+        category = request_data.get_category()
+
         request_for_db = request_data.to_dict()
+        request_for_db['platform'] = platform.value
+        request_for_db['category'] = category.value
+
         request_for_db_str = json.dumps(request_for_db)
 
         query = """
@@ -334,6 +349,18 @@ class RequestDataManager:
         })
 
         RequestDataManager.insert_request(context, request_data, request_for_db)
+
+        confirmation_text = MessageBuilder.build_confirmation_message()
+        confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
+
+        await context.bot.edit_message_text(
+            chat_id=update.effective_chat.id,
+            message_id=context.chat_data["bot_message_id"],
+            text=confirmation_text,
+            reply_markup=confirmation_keyboard,
+            parse_mode=ParseMode.HTML
+        )
+        return ConversationHandler.END
 
     @staticmethod
     def insert_request(
@@ -402,39 +429,38 @@ class KeyboardBuilder:
                     InlineKeyboardButton(text="4️⃣ Funzionalità", callback_data="edit_functionalities")
                 ]
             ]
-            return InlineKeyboardMarkup(keyboard)
 
-        keyboard = [[InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name")]]
-
-        if category.value == "adobe":
-            keyboard.insert(1, [
-                InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"),
-                InlineKeyboardButton(text="3️⃣ Funzionalità", callback_data="edit_functionalities")
-            ])
-            keyboard.insert(2, [
-                InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
-                InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
-            ])
         else:
-            keyboard[0].insert(1, InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link"))
-            keyboard.insert(1, [InlineKeyboardButton(text="3️⃣ Versione", callback_data="edit_version")])
+            keyboard = [[InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name")]]
 
-            if category.value == "daw":
-                keyboard[1].insert(1, InlineKeyboardButton(
-                    text="4️⃣ Funzionalità",
-                    callback_data="edit_functionalities"
-                ))
+            if category.value == "adobe":
+                keyboard.insert(1, [
+                    InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"),
+                    InlineKeyboardButton(text="3️⃣ Funzionalità", callback_data="edit_functionalities")
+                ])
+                keyboard.insert(2, [
+                    InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
+                    InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
+                ])
+            else:
+                keyboard[0].insert(1, InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link"))
+                keyboard.insert(1, [InlineKeyboardButton(text="3️⃣ Versione", callback_data="edit_version")])
 
-            if category.value != "game":
-                steamtools = request_data.steamtools
-                steamtools_data = "steamtools_yes" if not steamtools else "steamtools_no"
-                keyboard.insert(2, [InlineKeyboardButton(text="5️⃣ SteamTools", callback_data=steamtools_data)])
+                if category.value != "daw":
+                    keyboard[1].insert(1, InlineKeyboardButton(
+                        text="4️⃣ Funzionalità",
+                        callback_data="edit_functionalities"
+                    ))
 
-            keyboard.insert(3, [
-                InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
-                InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
-            ])
+                if category.value == "game":
+                    steamtools = request_data.steamtools
+                    steamtools_data = "steamtools_yes" if not steamtools else "steamtools_no"
+                    keyboard.insert(2, [InlineKeyboardButton(text="5️⃣ SteamTools", callback_data=steamtools_data)])
 
+        keyboard.append([
+            InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
+            InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
+        ])
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
@@ -453,7 +479,7 @@ class KeyboardBuilder:
             category: Optional[Category],
             detail: RequestField
     ):
-        section = REQUEST_FLOWS[platform]
+        section = REQUEST_FLOWS[platform.value]
         flow_data = section[category.value]['flow']
         back_data = section[category.value]['back_data']
 
@@ -475,6 +501,12 @@ class MessageBuilder:
         fields = MessageBuilder._build_fields(request_data, editing_field)
 
         return f"{header}\n\n{fields}\n" if fields else f"{header}\n"
+
+    @staticmethod
+    def build_confirmation_message():
+        text = ("✅ <b>Richiesta Inviata Correttamente</b>\n\n"
+                "🔹 Puoi controllare lo stato delle tue richieste dal pannello di controllo.")
+        return text
 
     @staticmethod
     def _build_header(request_data: RequestData) -> str:
@@ -571,7 +603,10 @@ class InputHandler:
             await safe_delete(update, context)
 
         request_data = RequestDataManager.get_request_data(context)
-        detail = request_data.requesting
+        detail = request_data.editing or request_data.requesting
+        if not isinstance(detail, RequestField):
+            detail = RequestField(detail)
+
         data = InputHandler._extract_data(update, detail)
 
         RequestDataManager.update_field(context=context, field=detail.value, value=data)

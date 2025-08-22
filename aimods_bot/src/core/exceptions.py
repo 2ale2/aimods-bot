@@ -36,6 +36,7 @@ class WrongTypeException(BotException):
         message = f"La variabile '{variabile_name}' è di tipo {type(variable)}, ma dovrebbe essere di tipo {should_be}."
         super().__init__(message)
 
+
 # ========== CONFIGURAZIONE ==========
 class ConfigValidationException(BotException):
     """Errore nella validazione della configurazione."""
@@ -82,6 +83,13 @@ class MissingParameterException(BotException):
     def __init__(self, explanation: str):
         self.explanation = explanation
         super().__init__(explanation)
+
+
+class WrongFlowException(BotException):
+    """Flow della conversazione errato."""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
 
 
 def handle_validation_errors(errors: list[str]):

@@ -3,9 +3,12 @@ from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 
 from aimods_bot.src.callbacks.panels.user.request_management.handle import RequestDataManager, InputHandler, \
-    RequestField, RequestData
-from aimods_bot.src.callbacks.panels.user.request_management.utils import route_back_to_main
-from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
+    RequestField, RequestData, can_user_request
+from aimods_bot.src.callbacks.panels.user.request_management.render import render_user_request_panel, \
+    render_user_cant_request_panel
+from aimods_bot.src.core.exceptions import WrongFlowException
+from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS, \
+    PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import REQUEST_FLOWS
 from aimods_bot.src.helpers.loggers import logger
 
@@ -51,20 +54,31 @@ def prepare_next_detail(request_data: RequestData) -> Optional[RequestField]:
     category = request_data.get_category()
     requesting = request_data.requesting
 
-    flow = REQUEST_FLOWS[platform.value][category.value]
+    flow = REQUEST_FLOWS[platform.value][category.value]["flow"]
     ix = flow.index(requesting.value)
     if len(flow) >= ix + 1:
         return RequestField(flow[ix + 1])
-    return None
+
+    raise WrongFlowException("L'ultimo elemento richiesto dovrebbe essere gestito dal metodo 'recheck_request'.")
 
 
 async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Chiede all'utente di ricontrollare e confermare la richiesta."""
+    await InputHandler.handle_input(update=update, context=context)
+
+    RequestDataManager.update_field(context=context, field="requesting", value=None)
+
     return await RequestDataManager.recheck_request(update=update, context=context)
 
 
 async def edit_request_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """L'utente ha chiesto di modificare un dettaglio della propria richiesta."""
+    if update.callback_query:
+        data = update.callback_query.data
+        if data in ("steamtools_yes", "steamtools_no"):
+            RequestDataManager.update_field(context=context, field="editing", value=RequestField.STEAMTOOLS)
+            return await RequestDataManager.recheck_request(update=update, context=context)
+
     return await RequestDataManager.request_detail_to_edit(update=update, context=context)
 
 
@@ -72,17 +86,15 @@ async def edited_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gestisce l'input dell'utente succesivamente a una richiesta di modifica."""
     await InputHandler.handle_input(update=update, context=context)
 
-    RequestDataManager.update_field(context=context, field="editing", value=None)
-
-    return await recheck_request(update=update, context=context)
+    try:
+        return await recheck_request(update=update, context=context)
+    finally:
+        RequestDataManager.update_field(context=context, field="editing", value=None)
 
 
 async def confirm_request(update: Update, context: CallbackContext):
     """Conferma la richiesta e la elabora."""
-    request_data = RequestDataManager.get_request_data(context=context)
-    platform = request_data.get_platform()
-
-    return await RequestDataManager.confirm_request(update=update, context=context, platform=platform)
+    return await RequestDataManager.confirm_request(update=update, context=context)
 
 
 async def backer(update: Update, context: CallbackContext):
@@ -101,3 +113,20 @@ async def backer(update: Update, context: CallbackContext):
     setattr(request_data, detail, None)
 
     return await RequestDataManager.request_detail(update=update, context=context, detail=detail)
+
+
+async def route_back_to_main(update: Update, context: CallbackContext):
+    """Gestisce il ritorno al menu principale"""
+    await user_request_check(update=update, context=context, path=[])
+    return RCS.MAIN_BACKER
+
+
+async def user_request_check(update: Update, context: CallbackContext, path=Optional[list[str]]):
+    if path is not None and len(path) == 0:
+        answer = await can_user_request(update=update, context=context)
+        if answer.yn:
+            await render_user_request_panel(update=update, context=context)
+            return PCS.NEW_REQUEST
+        else:
+            await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
+            return PCS.USER_CONVERSATION
