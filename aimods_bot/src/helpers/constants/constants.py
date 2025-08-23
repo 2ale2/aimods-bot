@@ -57,17 +57,29 @@ MODERATION_DISPLAY_ITEMS = {
     "antiflood": DisplayItem("🌊", "Anti-Flood", "a chi fa flooding")
 }
 
-PLATFORM_ICONS = {
-    "android": "🤖",
-    "windows": "💻",
-    "ios": "🍏",
-    "macos": "🖥"
+PLATFORM_DETAILS = {
+    "android": {
+        "label": "Android",
+        "icon": "🤖"
+    },
+    "windows": {
+        "label": "Windows",
+        "icon": "💻"
+    },
+    "ios": {
+        "label": "iOS",
+        "icon": "🍏"
+    },
+    "macos": {
+        "label": "MacOS",
+        "icon": "🖥"
+    }
 }
 
 CATEGORY_DETAILS = {
     "android": {
         "app": {
-            "label": "Android",
+            "label": "App",
             "icon": "🤖"
         }
     },
@@ -107,45 +119,25 @@ CATEGORY_DETAILS = {
     }
 }
 
-REQUEST_FLOWS = {
-    "android": {
-        "app": {
-            "flow": ["name", "link", "version", "functionalities"],
-            "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
-        }
+REQUEST_STATUS_DETAILS = {
+    "pending": {
+        "label": "In Attesa",
+        "icon": "⏳"
     },
-    "windows": {
-        "software": {
-            "flow": ["name", "link", "version", "functionalities"],
-            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
-        },
-        "game": {
-            "flow": ["name", "link", "version", "functionalities", "steamtools"],
-            "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_steamtools"]
-        },
-        "daw": {
-            "flow": ["name", "link", "version"],
-            "back_data": ["back_category", "back_name", "back_link", "back_version"]
-        },
-        "adobe": {
-            "flow": ["name", "version", "functionalities"],
-            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
-        }
+    "enxamining": {
+        "label": "In Esame",
+        "icon": "🟡"
     },
-    "ios": {
-        "app": {
-            "flow": ["name", "link", "version", "functionalities"],
-            "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
-        }
+    "testing": {
+        "label": "In Test",
+        "icon": "🔵"
     },
-    "macos": {
-        "software": {
-            "flow": ["name", "link", "version", "functionalities"],
-            "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
-        },
-        "daw": {
-            "flow": ["name", "link", "version"],
-            "back_data": ["back_category", "back_name", "back_link", "back_version"]
-        }
+    "completed": {
+        "label": "Completata",
+        "icon": "🟢"
+    },
+    "rejected": {
+        "label": "Rifiutata",
+        "icon": "🔴"
     }
 }

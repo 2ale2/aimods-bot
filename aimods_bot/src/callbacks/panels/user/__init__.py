@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from aimods_bot.src.callbacks.panels.user.request_management.route import requests_management_route
+from aimods_bot.src.callbacks.panels.user.request.route import requests_management_route
 from aimods_bot.src.callbacks.commands.general.start_command import start
 
 

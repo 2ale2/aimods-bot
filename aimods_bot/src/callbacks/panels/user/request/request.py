@@ -2,15 +2,16 @@ from typing import Optional
 from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 
-from aimods_bot.src.callbacks.panels.user.request_management.handle import RequestDataManager, InputHandler, \
+from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler, \
     RequestField, RequestData, can_user_request
-from aimods_bot.src.callbacks.panels.user.request_management.render import render_user_request_panel, \
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
     render_user_cant_request_panel
 from aimods_bot.src.core.exceptions import WrongFlowException
+from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS, \
     PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.constants import REQUEST_FLOWS
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 log = logger.getChild("request")
 
@@ -21,6 +22,8 @@ RETURN_CONVERSATION_STATES = {
     "functionalities": RCS.REQUEST_FUNCTIONALITIES,
     "steamtools": RCS.REQUEST_STEAMTOOLS
 }
+
+REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
 
 
 async def request_detail(update: Update, context: CallbackContext) -> int:
@@ -132,3 +135,16 @@ async def user_request_check(update: Update, context: CallbackContext, path=Opti
         else:
             await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
             return PCS.USER_CONVERSATION
+
+
+async def get_request_summary(requests: dict) -> str:
+    text = ""
+    for n, el in enumerate(requests):
+        request = requests[el]
+        status = request['status'].value
+        icon = REQUEST_STATUS_DETAILS[status]['icon']
+        label = REQUEST_STATUS_DETAILS[status]['label']
+        text += (f"    {n}. <i>{request['name']}</i>\n"
+                 f"      🔧 <u>Stato</u> – {icon} <b><i>{label}</i></b>\n\n")
+
+    return text

@@ -13,6 +13,7 @@ settings:
     macos:
       software: False
       daw: False
+    cancel_timer: 3600
 moderation:
   antispam:
     toggle: True

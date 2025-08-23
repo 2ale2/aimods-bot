@@ -2,18 +2,19 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler
 
-from aimods_bot.src.callbacks.panels.user.request_management.handle import RequestDataManager, AndroidCategory, \
-    WindowsCategory, IOSCategory, MacOSCategory, Platform, Category
-from aimods_bot.src.callbacks.panels.user.request_management.render import render_user_request_management_panel
-from aimods_bot.src.callbacks.panels.user.request_management.request import request_detail, user_request_check
-from aimods_bot.src.helpers.constants.constants import PLATFORM_ICONS, CATEGORY_DETAILS
+from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
+from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
+from aimods_bot.src.helpers.constants.models import Platform, AndroidCategory, WindowsCategory, IOSCategory, \
+    MacOSCategory, Category
 
 
 async def requests_management_route(update: Update, context: CallbackContext, path: list[str]):
     if len(path) == 0:
-        await render_user_request_management_panel(update=update, context=context)
+        await render_user_request_management_main_panel(update=update, context=context)
         return PCS.USER_CONVERSATION
 
     match path[0]:
@@ -55,15 +56,8 @@ async def request_category(update: Update, context: CallbackContext) -> int:
         )
         return await request_router(update=update, context=context)
 
-    names = {
-        "android": "Android",
-        "ios": "iOS",
-        "windows": "Windows",
-        "macos": "MacOS"
-    }
-
-    name = names[platform.value]
-    icon = PLATFORM_ICONS[platform.value]
+    name = PLATFORM_DETAILS[platform.value]['label']
+    icon = PLATFORM_DETAILS[platform.value]['icon']
     item = "app" if platform in ("android", "ios") else "software"
 
     text = (f"{icon} <b>Nuova Richiesta – {name}</b>\n\n"

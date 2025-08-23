@@ -72,6 +72,13 @@ async def set_application_data(application: Application):
     if 'hashtags' not in application.bot_data or application.bot_data["hashtags"] != hashtags:
         application.bot_data["hashtags"] = hashtags
 
+    # Set requests
+    application.bot_data.setdefault("active_requests", {})
+    application.bot_data["active_requests"].setdefault("android", {})
+    application.bot_data["active_requests"].setdefault("windows", {})
+    application.bot_data["active_requests"].setdefault("ios", {})
+    application.bot_data["active_requests"].setdefault("macos", {})
+
     # Clear outdated settings
     for el in application.user_data:
         if "settings_main_message" in application.user_data[el]:

@@ -1,7 +1,7 @@
 import html
 
 from dataclasses import dataclass
-from typing import Optional, List, Union, Literal
+from typing import Optional, List, Union, Literal, NamedTuple
 from enum import Enum
 
 import telegram
@@ -61,13 +61,58 @@ class CanUserRequest:
     reason: Optional[str]
 
 
+class Platform(Enum):
+    ANDROID = "android"
+    IOS = "ios"
+    WINDOWS = "windows"
+    MACOS = "macos"
+
+
+class RequestField(Enum):
+    NAME = "name"
+    LINK = "link"
+    VERSION = "version"
+    FUNCTIONALITIES = "functionalities"
+    STEAMTOOLS = "steamtools"
+
+
+class WindowsCategory(Enum):
+    GAME = "game"
+    DAW = "daw"
+    ADOBE = "adobe"
+    SOFTWARE = "software"
+
+
+class AndroidCategory(Enum):
+    APP = "app"
+
+
+class IOSCategory(Enum):
+    APP = "app"
+
+
+class MacOSCategory(Enum):
+    SOFTWARE = "software"
+    DAW = "daw"
+
+
+Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
+
+
+class MessageTemplate(NamedTuple):
+    app: str
+    game: str
+    daw: str
+    software: str
+
+
 @dataclass
-class RequestStatuses(Enum):
-    PENDING = 0
-    EXAMINING = 1
-    TESTING = 2
-    COMPLETED = 3
-    REJECTED = 4
+class RequestStatus(Enum):
+    PENDING = "pending"
+    EXAMINING = "examining"
+    TESTING = "testing"
+    COMPLETED = "completed"
+    REJECTED = "rejected"
 
 
 class Panel:

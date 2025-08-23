@@ -1,67 +1,23 @@
 import json
 from dataclasses import dataclass
-from enum import Enum
-from typing import Dict, Any, Optional, NamedTuple, Union
+from typing import Dict, Any, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode, MessageEntityType
 from telegram.ext import ContextTypes, ConversationHandler
 
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_FLOWS
+from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.models import RequestStatuses as RS
-from aimods_bot.src.helpers.constants.models import CanUserRequest
+from aimods_bot.src.helpers.constants.models import \
+    CanUserRequest, RequestField, MessageTemplate, Platform, Category, WindowsCategory
+from aimods_bot.src.helpers.constants.models import RequestStatus as RS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
 from aimods_bot.src.helpers.utils.user_utils import create_empty_user_data
 
 log = logger.getChild("request_handler")
-
-
-class Platform(Enum):
-    ANDROID = "android"
-    IOS = "ios"
-    WINDOWS = "windows"
-    MACOS = "macos"
-
-
-class RequestField(Enum):
-    NAME = "name"
-    LINK = "link"
-    VERSION = "version"
-    FUNCTIONALITIES = "functionalities"
-    STEAMTOOLS = "steamtools"
-
-
-class WindowsCategory(Enum):
-    GAME = "game"
-    DAW = "daw"
-    ADOBE = "adobe"
-    SOFTWARE = "software"
-
-
-class AndroidCategory(Enum):
-    APP = "app"
-
-
-class IOSCategory(Enum):
-    APP = "app"
-
-
-class MacOSCategory(Enum):
-    SOFTWARE = "software"
-    DAW = "daw"
-
-
-Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
-
-
-class MessageTemplate(NamedTuple):
-    app: str
-    game: str
-    daw: str
-    software: str
 
 
 FIELD_MESSAGES = {
@@ -97,6 +53,8 @@ CONVERSATION_STATES = {
     RequestField.VERSION: RCS.EDIT_VERSION,
     RequestField.FUNCTIONALITIES: RCS.EDIT_FUNCTIONALITIES
 }
+
+REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
 
 
 @dataclass
@@ -346,14 +304,14 @@ class RequestDataManager:
             raise Exception("Errore durante l'inserimento della richiesta")
 
         inserted_id = dict(result[0])["id"]
-        log.info(f"Request inserted with ID: {inserted_id} for user: {uid}")
+        log.info(f"Request inserted with ID {inserted_id} for user {uid}")
 
         request_for_db.update({
             "status": RS.PENDING,
             "id": inserted_id
         })
 
-        RequestDataManager.insert_request(context, request_data, request_for_db)
+        RequestDataManager.insert_request(update, context, request_data, request_for_db)
 
         confirmation_text = MessageBuilder.build_confirmation_message()
         confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
@@ -371,6 +329,7 @@ class RequestDataManager:
 
     @staticmethod
     def insert_request(
+            update: Update,
             context: ContextTypes.DEFAULT_TYPE,
             request_data: RequestData,
             request_for_db: Dict[str, Any]
@@ -382,7 +341,14 @@ class RequestDataManager:
         if "requests" not in context.user_data:
             create_empty_user_data(context=context, admin=False)
 
-        context.user_data["requests"][platform.value][category.value].append(request_for_db)
+        ix = request_for_db.pop("id")
+        request_for_db.pop("platform")
+
+        context.user_data["requests"][platform.value][category.value][ix] = request_for_db
+
+        request_for_db["user_id"] = update.effective_user.id
+
+        context.bot_data["active_requests"][platform.value][ix] = request_for_db
 
     @staticmethod
     def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:

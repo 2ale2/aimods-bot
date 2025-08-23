@@ -86,6 +86,7 @@ def set_data_in_json(key: Union[str, List[str]], value: Any, file_path: str = "a
         log.error(f"Errore nel parsing JSON ({file_path}): {e}")
         return False
 
+
 # noinspection PyTypeChecker
 def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", "audio", "video", "gif"]:
     if isinstance(file, InputMedia):
@@ -110,7 +111,9 @@ def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", 
         return "document"
 
 
-async def normalize_files(items: List[MediaItem]) -> List[Tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]]:
+async def normalize_files(
+        items: List[MediaItem]
+) -> List[Tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]]:
     output = []
 
     for el in items:

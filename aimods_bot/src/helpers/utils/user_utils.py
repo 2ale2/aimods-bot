@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 
@@ -45,45 +46,6 @@ async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> Op
     return member.status == ChatMemberStatusPTB.BANNED or member.status == ChatMemberStatusPyro.BANNED
 
 
-async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
-    warnings = await get_user_warnings(user_id=user_id)
-    if not warnings:
-        return None
-
-    errors = []
-    for el in warnings:
-        record = warnings[el]
-        response = await revoke_action_by_id(table="warnings", record_id=record["id"])
-        if not response:
-            errors.append(str(record["id"]))
-
-    return errors
-
-
-async def create_empty_user_data(context: ContextTypes.DEFAULT_TYPE, admin: bool):
-    if admin:
-        pass
-    else:
-        context.user_data["requests"] = {
-            "android": {
-                "app": []
-            },
-            "windows": {
-                "game": [],
-                "software": [],
-                "adobe": [],
-                "daw": []
-            },
-            "ios": {
-                "app": []
-            },
-            "macos": {
-                "software": [],
-                "daw": []
-            }
-        }
-
-
 async def get_user_warnings(user_id: int) -> Optional[dict]:
     """Restituisce gli warning attivi per un utente."""
 
@@ -112,6 +74,28 @@ async def get_user_warnings_count(user_id: int) -> Optional[int]:
     response = await get_user_warnings(user_id=user_id)
 
     return len(response) if response is not None else None
+
+
+async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
+    warnings = await get_user_warnings(user_id=user_id)
+    if not warnings:
+        return None
+
+    errors = []
+    for el in warnings:
+        record = warnings[el]
+        response = await revoke_action_by_id(table="warnings", record_id=record["id"])
+        if not response:
+            errors.append(str(record["id"]))
+
+    return errors
+
+
+async def create_empty_user_data(context: ContextTypes.DEFAULT_TYPE, admin: bool):
+    if admin:
+        pass
+    else:
+        create_empty_request_user_data(context=context)
 
 
 async def get_member_permissions(

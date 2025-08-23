@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 
 
-async def render_user_request_management_panel(update: Update, context: CallbackContext):
+async def render_user_request_management_main_panel(update: Update, context: CallbackContext):
     text = _get_user_request_management_panel_text()
 
     user_request_management_panel = Panel(
