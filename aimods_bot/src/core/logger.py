@@ -21,7 +21,8 @@ async def log_ban(
         user_id: int,
         until: datetime,
         reason: str = None):
-    log.info(f"→ User {user_id} banned by admin {admin_id}. {f'Reason: {reason}' if reason else 'No reason specified.'}")
+    log.info(f"→ User {user_id} banned by admin {admin_id}. "
+             f"{f'Reason: {reason}' if reason else 'No reason specified.'}")
     text = _log_ban_text(
         update=update,
         context=context,
@@ -68,10 +69,16 @@ async def _log_ban_text(
         first_name=admin.get("first_name", None)
     )
 
+    duration_text = format_time_as_rome(until)
+    if duration_text:
+        duration_text = "fino al " + duration_text
+    else:
+        duration_text = "a <b>tempo indeterminato</b>"
+
     text = ("⛔ #BAN"
             f"👤 <b>Utente</b> – {mention}\n"
             f"🫳 <b>Admin</b> – {admin_mention}\n"
-            f"⏳ <b>Scadenza</b> – {format_time_as_rome(until).replace('.', '')}\n"
+            f"⏳ <b>Scadenza</b> – {duration_text}\n"
             f"❓ <b>Motivo</b> – {reason or '<code>no reason specified</code>'}")
 
     return text

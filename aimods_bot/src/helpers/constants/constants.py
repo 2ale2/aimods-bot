@@ -139,5 +139,9 @@ REQUEST_STATUS_DETAILS = {
     "rejected": {
         "label": "Rifiutata",
         "icon": "🔴"
+    },
+    "cancelled": {
+        "label": "Cancellata",
+        "icon": "🗑️"
     }
 }

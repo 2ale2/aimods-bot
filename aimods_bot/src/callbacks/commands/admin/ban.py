@@ -336,9 +336,13 @@ def _build_confirmation_message(member, until, reason=None, unban=False, popped=
             user_mention = format_user_mention(user_id=member, username=None, first_name=None)
 
     if not unban:
+        duration_text = format_time_as_rome(until)
+        if duration_text:
+            duration_text = "fino al " + duration_text
+        else:
+            duration_text = "a <b>tempo indeterminato</b>"
         text = (
-            f"🚫 Utente {user_mention} <b>bannato</b> "
-            f"{format_time_as_rome(until)}"
+            f"🚫 Utente {user_mention} <b>bannato</b> {duration_text}."
         )
     else:
         text = (f"⛓️‍💥 Utente {user_mention} "

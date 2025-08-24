@@ -293,9 +293,14 @@ def _build_confirmation_message(
 
     if not unwarn:
         if action == "warned":
+            duration_text = format_time_as_rome(until)
+            if duration_text:
+                duration_text = "fino al " + duration_text
+            else:
+                duration_text = "a <b>tempo indeterminato</b>"
             text = (
                 f"⚠️ Utente {mention} <b>ammonito</b> ({warn_count}/{MAX_WARNS}) "
-                f"{format_time_as_rome(until)}"
+                f"{duration_text}."
             )
         else:
             text = (

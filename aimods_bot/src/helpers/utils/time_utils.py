@@ -7,7 +7,7 @@ def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
 
-async def get_time_text(seconds: int) -> str:
+async def get_duration_text(seconds: int) -> str:
     time_timedelta = timedelta(seconds=seconds)
     days = time_timedelta.days
     hours = time_timedelta.seconds // 3600
@@ -75,12 +75,12 @@ def get_until_date(duration) -> datetime:
 def format_time_as_rome(until: datetime) -> str:
     """Formatta il testo nel fuso orario italiano se diverso da zero_datetime(), altrimenti a tempo indeterminato."""
     if until is None:
-        return ""
+        raise Exception("Devi fornire il parametro 'until'")
     if until == zero_datetime():
-        return "a <b>tempo indeterminato</b>."
+        return None
     rome_time = until.astimezone(pytz.timezone('Europe/Rome'))
-    return (f"fino al <b>{rome_time.strftime('%d %B %Y')}</b> "
-            f"alle {rome_time.strftime('%H:%M')}.")
+    return (f"<b>{rome_time.strftime('%d %B %Y')}</b> "
+            f"alle {rome_time.strftime('%H:%M')}")
 
 
 def sec_value_limited(sec: int):

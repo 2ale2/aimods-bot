@@ -394,7 +394,14 @@ def _build_confirmation_text(
         confirmation_text = f"🔒 Utente {mention} <b>limitato</b> "
 
         if until_date:
-            confirmation_text += f"{format_time_as_rome(until_date)}"
+            duration_text = format_time_as_rome(until_date)
+
+            if duration_text:
+                duration_text = "fino al " + duration_text
+            else:
+                duration_text = "a <b>tempo indeterminato</b>"
+
+            confirmation_text += f"{duration_text}."
 
         confirmation_text += "\n\n❓ <u>Permessi Rimossi</u>\n\n"
     else:

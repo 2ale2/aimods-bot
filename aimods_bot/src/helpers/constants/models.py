@@ -113,6 +113,7 @@ class RequestStatus(Enum):
     TESTING = "testing"
     COMPLETED = "completed"
     REJECTED = "rejected"
+    CANCELLED = "cancelled"
 
 
 class Panel:

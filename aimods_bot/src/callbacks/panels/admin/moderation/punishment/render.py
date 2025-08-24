@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
-from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_time_text
+from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
 
 
 async def render_punishment_panel(update: Update, context: CallbackContext, setting: str):
@@ -83,7 +83,7 @@ async def _build_punishment_text(context: CallbackContext, setting: str):
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
-        await get_time_text(time_total_seconds) if punishment_limited
+        await get_duration_text(time_total_seconds) if punishment_limited
         else "♾️ A Tempo Indeterminato"
     )
 

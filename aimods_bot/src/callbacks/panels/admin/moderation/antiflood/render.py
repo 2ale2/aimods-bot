@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS
-from aimods_bot.src.helpers.utils.time_utils import get_time_text, sec_value_limited
+from aimods_bot.src.helpers.utils.time_utils import get_duration_text, sec_value_limited
 
 
 async def render_antiflood_panel(update: Update, context: CallbackContext):
@@ -41,7 +41,7 @@ async def _build_text(context: CallbackContext):
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
-        await get_time_text(time_total_seconds) if not punishment_limited
+        await get_duration_text(time_total_seconds) if not punishment_limited
         else "♾️ A Tempo Indeterminato"
     )
 
