@@ -3,10 +3,9 @@ from typing import Literal
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from aimods_bot.src.callbacks.panels.user.request.request import get_request_summary
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
-from aimods_bot.src.helpers.utils.request_utils import get_user_requests, can_request_be_cancelled
+from aimods_bot.src.helpers.utils.request_utils import get_user_requests, can_request_be_cancelled, get_request_summary
 
 
 async def render_user_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,14 +45,14 @@ async def render_user_request_panel(
         platform: Literal["android", "windows", "ios", "macos"]
 ):
     requests = get_user_requests(context=context, platform=platform)
-    text = _get_user_request_panel_text(platform=platform, requests=requests)
+    text = _get_user_request_panel_text(context=context, platform=platform, requests=requests)
 
     keyboard = []
 
     if len(requests) != 0:
         keyboard[0].append([
-            ButtonItem(text="🔬 Info Richiesta", callback_key="details"),
-            ButtonItem(text="🚮 Annulla Richiesta", callback_key="cancel")
+            ButtonItem(text="📋 Info Richiesta", callback_key="details"),
+            ButtonItem(text="🗑 Annulla Richiesta", callback_key="cancel")
         ])
 
     keyboard.insert(1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
@@ -70,6 +69,7 @@ async def render_user_request_panel(
 
 
 def _get_user_request_panel_text(
+        context: ContextTypes.DEFAULT_TYPE,
         platform: Literal["android", "windows", "ios", "macos"],
         requests: dict
 ) -> str:
@@ -81,7 +81,7 @@ def _get_user_request_panel_text(
 
     text += "\n\n▫️ Ecco le <b>richieste</b> che hai formulato."
 
-    text += get_request_summary(requests)
+    text += get_request_summary(context=context, requests=requests)
 
     text += f"\n\n🔹 Scegli un opzione."
 
@@ -95,7 +95,7 @@ async def render_user_request_action_panel(
         action: Literal["details", "cancel"]
 ):
     requests = get_user_requests(context=context, platform=platform)
-    text = _get_user_request_action_panel_text(platform=platform, action=action, requests=requests)
+    text = _get_user_request_action_panel_text(context=context, platform=platform, action=action, requests=requests)
     keybaord = _get_user_request_action_panel_keyboard(context=context, action=action, requests=requests)
 
     user_request_action_panel = Panel(PanelConfig(
@@ -108,6 +108,7 @@ async def render_user_request_action_panel(
 
 
 async def _get_user_request_action_panel_text(
+        context: ContextTypes.DEFAULT_TYPE,
         platform: Literal["android", "windows", "ios", "macos"],
         action: Literal["details", "cancel"],
         requests: dict
@@ -118,7 +119,15 @@ async def _get_user_request_action_panel_text(
     else:  # action == "details"
         text += "\n\n→ 📋 <b>Informazioni</b>"
 
-    text += get_request_summary(requests=requests)
+    summary = get_request_summary(context=context, requests=requests, only_cancellable=action == "cancel")
+
+    if not summary:
+        if action == "cancel":
+            text += "ℹ️ Non hai richieste cancellabili."
+        else:
+            text += "ℹ️ Non hai richieste da visionare."
+        return text
+
     text += f"🔹 Scegli quale richiesta vuoi {'visionare' if action == 'details' else 'cancellare'}."
 
     return text

@@ -7,7 +7,6 @@ from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManag
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
     render_user_cant_request_panel
 from aimods_bot.src.core.exceptions import WrongFlowException
-from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS, \
     PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
@@ -135,16 +134,3 @@ async def user_request_check(update: Update, context: CallbackContext, path=Opti
         else:
             await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
             return PCS.USER_CONVERSATION
-
-
-async def get_request_summary(requests: dict) -> str:
-    text = ""
-    for n, el in enumerate(requests):
-        request = requests[el]
-        status = request['status'].value
-        icon = REQUEST_STATUS_DETAILS[status]['icon']
-        label = REQUEST_STATUS_DETAILS[status]['label']
-        text += (f"    {n}. <i>{request['name']}</i>\n"
-                 f"      🔧 <u>Stato</u> – {icon} <b><i>{label}</i></b>\n\n")
-
-    return text
