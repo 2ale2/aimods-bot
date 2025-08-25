@@ -46,6 +46,7 @@ class DisplayItem:
 class ButtonItem:
     text: str
     callback_key: Optional[str]
+    override_path_generation: bool = False
 
 
 @dataclass
@@ -134,12 +135,16 @@ class Panel:
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
-               subkeyboard.append(
+                if not button.override_path_generation:
+                    c_data = self.generate_path(button.callback_key)
+                else:  # La callback key è il percorso completo
+                    c_data = button.callback_key
+                subkeyboard.append(
                    InlineKeyboardButton(
                        text=button.text,
-                       callback_data=self.generate_path(button.callback_key)
+                       callback_data=c_data
                    )
-               )
+                )
             keyboard.append(subkeyboard)
         return keyboard
 

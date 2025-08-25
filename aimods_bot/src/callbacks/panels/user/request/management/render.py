@@ -15,7 +15,7 @@ async def render_user_request_management_panel(update: Update, context: ContextT
 
     user_request_management_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/view_request",
+            base_path="user/manage_requests/view_requests",
             text=text,
             keyboard=[
                 [
@@ -36,7 +36,7 @@ async def render_user_request_management_panel(update: Update, context: ContextT
 
 def _get_user_request_management_panel_text() -> str:
     text = ("👁‍🗨 <b>Gestione Richieste</b>\n\n"
-            "▫️ Da qui puoi <b>visionare</b> e <b>gestire</b> le tue <b>richieste</b>."
+            "▫️ Da qui puoi <b>visionare</b> e <b>gestire</b> le tue <b>richieste</b>.\n\n"
             "🔹 Quale categoria di richieste vuoi gestire?")
     return text
 
@@ -46,7 +46,7 @@ async def render_user_request_panel(
         context: ContextTypes.DEFAULT_TYPE,
         platform: Literal["android", "windows", "ios", "macos"]
 ):
-    requests = get_user_active_requests(context=context, platform=platform)
+    requests = await get_user_active_requests(context=context, platform=platform)
     text = _get_user_request_panel_text(context=context, platform=platform, requests=requests)
 
     keyboard = []
@@ -96,7 +96,7 @@ async def render_user_request_action_panel(
         platform: Literal["android", "windows", "ios", "macos"],
         action: Literal["details", "cancel"]
 ):
-    requests = get_user_active_requests(context=context, platform=platform)
+    requests = await get_user_active_requests(context=context, platform=platform)
     text = _get_user_request_action_panel_text(context=context, platform=platform, action=action, requests=requests)
     keybaord = _get_user_request_action_panel_keyboard(context=context, action=action, requests=requests)
 
@@ -226,4 +226,37 @@ async def _get_confirm_cancel_text(
     text += details_text
     text += "\n\n🔹 Confermi di voler cancellare questa richesta?"
 
+    return text
+
+
+async def render_request_cancelled_panel(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        platform: Literal["android", "windows", "ios", "macos"]
+):
+    text = _get_request_cancelled_panel()
+
+    request_cancelled_panel = Panel(
+        PanelConfig(
+            base_path=f"user/manage_requests/view_request/{platform}",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(
+                        text="🗑 Cancella Altra Richiesta",
+                        callback_key=f"user/manage_requests/view_request/{platform}/cancel",
+                        override_path_generation=True
+                    )
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await request_cancelled_panel.render(update=update, context=context)
+
+
+def _get_request_cancelled_panel():
+    text = ("🚮 <b>Richiesta Cancellata</b>\n\n"
+            "▫️ La richiesta è stata correttamente cancellata.")
     return text

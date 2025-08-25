@@ -3,6 +3,7 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
+from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
@@ -19,9 +20,8 @@ async def requests_management_route(update: Update, context: CallbackContext, pa
 
     match path[0]:
         case "view_requests":
-            pass
+            return await user_request_management_route(update=update, context=context, path=path[1:])
         case "add_request":
-            # Inizializzo una richiesta vuota
             return await user_request_check(update=update, context=context, path=path[1:])
 
 

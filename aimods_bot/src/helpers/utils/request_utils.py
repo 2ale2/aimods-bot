@@ -9,14 +9,16 @@ from aimods_bot.src.helpers.constants.models import RequestStatus, Platform, And
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
+from aimods_bot.src.helpers.utils.user_utils import create_empty_user_data
 
 log = logger.getChild("request_utils")
 
 
-def get_user_active_requests(
+async def get_user_active_requests(
         context: ContextTypes.DEFAULT_TYPE,
         platform: Optional[Literal["android", "windows", "ios", "macos"]]
 ) -> dict:
+    await create_empty_user_data(context=context, admin=False)
     if not platform:
         return context.user_data["active_requests"]
     return context.user_data["active_requests"][platform]
@@ -143,8 +145,8 @@ async def get_requests_summary(
 
 
 async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: int, status: RequestStatus):
-    user_requests = get_user_active_requests(context=context, platform=None)
-    bot_requests = get_user_active_requests(context=context, platform=None)
+    user_requests = await get_user_active_requests(context=context, platform=None)
+    bot_requests = await get_user_active_requests(context=context, platform=None)
 
     for el in user_requests:
         if ix in user_requests[el]:
