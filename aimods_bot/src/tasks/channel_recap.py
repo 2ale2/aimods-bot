@@ -46,7 +46,7 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
             break
 
     if software_name is None:
-        match = re.match(r"(.+?)(?:\s+([vw]\d[\d.]*|build\s*\d+)(?:\s+(.*))?)?(?:\n|$)", first_line, re.IGNORECASE)
+        match = re.match(r"(?m)^\s*(.+?)(?:\s+((?:vt|vT|v|w)(?=\d)\S*|build(?=\d)\S*)(?:\s+(.*))?)?\s*$", first_line, re.IGNORECASE)
         if not match:
             log.warning(f"Software name not captured in post #{update.effective_message.id} from channel.")
             return
