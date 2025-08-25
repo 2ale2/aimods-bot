@@ -3,7 +3,8 @@ from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler, \
-    RequestField, RequestData, can_user_request
+    RequestField, can_user_request
+from aimods_bot.src.helpers.constants.models import RequestData
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
     render_user_cant_request_panel
 from aimods_bot.src.core.exceptions import WrongFlowException

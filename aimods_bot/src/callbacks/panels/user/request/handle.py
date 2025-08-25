@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 from typing import Dict, Any, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -9,12 +8,12 @@ from telegram.ext import ContextTypes, ConversationHandler
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
-    CanUserRequest, RequestField, MessageTemplate, Platform, Category, WindowsCategory
+    CanUserRequest, RequestField, MessageTemplate, Platform, Category, RequestStatus, RequestData
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
-from aimods_bot.src.helpers.utils.user_utils import create_empty_user_data
 
 log = logger.getChild("request_handler")
 
@@ -54,57 +53,6 @@ CONVERSATION_STATES = {
 }
 
 REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
-
-
-@dataclass
-class RequestData:
-    """Rappresenta i dati di una richiesta in modo strutturato"""
-    platform: Platform = None
-    category: Category = None
-    name: Optional[str] = None
-    link: Optional[str] = None
-    version: Optional[str] = None
-    functionalities: Optional[str] = None
-    steamtools: Optional[bool] = None
-    requesting: RequestField = None
-    editing: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Converte a dizionario escludendo il campo editing"""
-        return {k: v for k, v in self.__dict__().items() if k not in ('requesting', 'editing')}
-
-    def get_category(self) -> Optional[Category]:
-        """Determina la categoria per piattaforme Windows"""
-        return self.category
-
-    def get_platform(self) -> Platform:
-        """Ritona la piattaforma"""
-        return self.platform
-
-    def get_item_type(self) -> str:
-        """Restituisce il tipo di item basato sulla piattaforma e categoria"""
-        category = self.get_category()
-        if self.platform in (Platform.ANDROID.value, Platform.IOS.value):
-            return "dell'app"
-        elif category in (WindowsCategory.GAME,):
-            return "del gioco"
-        elif category in (WindowsCategory.DAW,):
-            return "della DAW o del Plug-In"
-        else:
-            return "del software"
-
-    def __dict__(self):
-        """Override per supportare la serializzazione JSON"""
-        return {
-            'platform': self.platform,
-            'category': self.category,
-            'name': self.name,
-            'link': self.link,
-            'version': self.version,
-            'functionalities': self.functionalities,
-            'steamtools': self.steamtools,
-            'editing': self.editing
-        }
 
 
 class RequestDataManager:
@@ -277,39 +225,13 @@ class RequestDataManager:
             context: ContextTypes.DEFAULT_TYPE
     ):
         """Conferma e salva la richiesta nel database"""
-        uid = update.effective_user.id
         request_data = RequestDataManager.get_request_data(context)
 
-        platform = request_data.get_platform()
-        category = request_data.get_category()
-
-        request_for_db = request_data.to_dict()
-
-        request_for_db_str = json.dumps(request_for_db)
-
-        query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category)
-                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4) 
-                RETURNING id, issued_at"""
-
-        result = await fetch_query(
-            query=query,
-            params=[platform.value, request_for_db_str, uid, category.value]
+        await RequestDataManager.insert_request(
+            update=update,
+            context=context,
+            request_data=request_data
         )
-
-        if not result:
-            raise Exception("Errore durante l'inserimento della richiesta")
-
-        inserted = dict(result[0])
-        log.info(f"Request inserted with ID {inserted['id']} for user {uid}")
-
-        request_for_db.update({
-            "status": "pending",
-            "id": inserted["id"],
-            "issued_at": inserted["issued_at"].isoformat()
-        })
-
-        await RequestDataManager.insert_request(update, context, request_data, request_for_db)
 
         confirmation_text = MessageBuilder.build_confirmation_message()
         confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
@@ -329,21 +251,50 @@ class RequestDataManager:
     async def insert_request(
             update: Update,
             context: ContextTypes.DEFAULT_TYPE,
-            request_data: RequestData,
-            request_for_db: Dict[str, Any]
+            request_data: RequestData
     ):
         """Aggiorna le richieste dell'utente nel context"""
 
-        if "requests" not in context.user_data:
-            await create_empty_user_data(context=context, admin=False)
+        platform = request_data.get_platform()
+        category = request_data.get_category()
+        uid = update.effective_user.id
 
-        ix = request_for_db.pop("id")
+        request_for_db = request_data.to_dict()
+        request_for_db.pop("platform", None)
+        request_for_db.pop("category", None)
+        request_for_db.pop("status", None)
+        request_for_db_str = json.dumps(request_for_db)
 
-        context.user_data["active_requests"][ix] = request_for_db
+        query = """
+                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category)
+                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4)
+                RETURNING id, issued_at"""
 
-        request_for_db["user_id"] = update.effective_user.id
+        result = await fetch_query(
+            query=query,
+            params=[platform.value, request_for_db_str, uid, category.value]
+        )
 
-        context.bot_data["active_requests"][ix] = request_for_db
+        if not result:
+            raise Exception(f"Errore durante l'inserimento della richiesta: \n\n{request_for_db}")
+
+        inserted = dict(result[0])
+
+        ix = inserted["id"]
+        issued_at = inserted["issued_at"]
+        request_data.status = RequestStatus.PENDING
+        request_data.issued_at = issued_at.isoformat()
+
+        if "active_requests" not in context.user_data:
+            await create_empty_request_user_data(context=context)
+
+        context.user_data["active_requests"][ix] = request_data
+
+        request_data.user_id = uid
+
+        context.bot_data["active_requests"][ix] = request_data
+
+        log.info(f"Request inserted with ID {inserted['id']} for user {uid}")
 
     @staticmethod
     def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:

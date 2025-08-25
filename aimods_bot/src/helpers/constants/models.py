@@ -1,7 +1,9 @@
 import html
+import json
 
-from dataclasses import dataclass
-from typing import Optional, List, Union, Literal, NamedTuple
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from typing import Optional, List, Union, Literal, NamedTuple, Dict, Any
 from enum import Enum
 
 import telegram
@@ -190,3 +192,68 @@ class Panel:
                 )
             except telegram.error:
                 pass
+
+
+@dataclass
+class RequestData:
+    platform: Optional['Platform'] = None
+    category: Optional['Category'] = None
+    user_id: Optional[int] = None
+    status: Optional['RequestStatus'] = None
+    issued_at: Optional[datetime] = None
+    name: Optional[str] = None
+    link: Optional[str] = None
+    version: Optional[str] = None
+    functionalities: Optional[str] = None
+    steamtools: Optional[bool] = None
+    requesting: Optional['RequestField'] = None
+    editing: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {}
+        for k, v in asdict(self).items():
+            if k not in ('requesting', 'editing'):
+                if isinstance(v, Enum):
+                    result[k] = v.value
+                elif isinstance(v, datetime):
+                    result[k] = v.isoformat()
+                elif v is not None:
+                    result[k] = v
+        return result
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'RequestData':
+        data_copy = data.copy()
+
+        if 'platform' in data_copy and data_copy['platform'] is not None:
+            data_copy['platform'] = Platform(data_copy['platform'])
+
+        if 'category' in data_copy and data_copy['category'] is not None:
+            data_copy['category'] = Category(data_copy['category'])
+
+        if 'status' in data_copy and data_copy['status'] is not None:
+            # noinspection PyArgumentList
+            data_copy['status'] = RequestStatus(data_copy['status'])
+
+        if 'requesting' in data_copy and data_copy['requesting'] is not None:
+            data_copy['requesting'] = RequestField(data_copy['requesting'])
+
+        if 'issued_at' in data_copy and data_copy['issued_at'] is not None:
+            data_copy['issued_at'] = datetime.fromisoformat(data_copy['issued_at'])
+
+        return cls(**data_copy)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'RequestData':
+        return cls.from_dict(json.loads(json_str))
+
+    def get_category(self) -> Optional[Category]:
+        """Determina la categoria per piattaforme Windows"""
+        return self.category
+
+    def get_platform(self) -> Platform:
+        """Ritorna la piattaforma"""
+        return self.platform
