@@ -10,7 +10,6 @@ from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
     CanUserRequest, RequestField, MessageTemplate, Platform, Category, WindowsCategory
-from aimods_bot.src.helpers.constants.models import RequestStatus as RS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -285,15 +284,13 @@ class RequestDataManager:
         category = request_data.get_category()
 
         request_for_db = request_data.to_dict()
-        request_for_db.pop('platform')
-        request_for_db.pop('category')
 
         request_for_db_str = json.dumps(request_for_db)
 
         query = """
                 INSERT INTO requests (id, platform, content, user_id, status, issued_at, category)
                 VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4) 
-                RETURNING id"""
+                RETURNING id, issued_at"""
 
         result = await fetch_query(
             query=query,
@@ -303,15 +300,16 @@ class RequestDataManager:
         if not result:
             raise Exception("Errore durante l'inserimento della richiesta")
 
-        inserted_id = dict(result[0])["id"]
-        log.info(f"Request inserted with ID {inserted_id} for user {uid}")
+        inserted = dict(result[0])
+        log.info(f"Request inserted with ID {inserted['id']} for user {uid}")
 
         request_for_db.update({
-            "status": RS.PENDING,
-            "id": inserted_id
+            "status": "pending",
+            "id": inserted["id"],
+            "issued_at": inserted["issued_at"].isoformat()
         })
 
-        RequestDataManager.insert_request(update, context, request_data, request_for_db)
+        await RequestDataManager.insert_request(update, context, request_data, request_for_db)
 
         confirmation_text = MessageBuilder.build_confirmation_message()
         confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
@@ -328,27 +326,24 @@ class RequestDataManager:
         return ConversationHandler.END
 
     @staticmethod
-    def insert_request(
+    async def insert_request(
             update: Update,
             context: ContextTypes.DEFAULT_TYPE,
             request_data: RequestData,
             request_for_db: Dict[str, Any]
     ):
         """Aggiorna le richieste dell'utente nel context"""
-        platform = request_data.get_platform()
-        category = request_data.get_category()
 
         if "requests" not in context.user_data:
-            create_empty_user_data(context=context, admin=False)
+            await create_empty_user_data(context=context, admin=False)
 
         ix = request_for_db.pop("id")
-        request_for_db.pop("platform")
 
-        context.user_data["requests"][platform.value][category.value][ix] = request_for_db
+        context.user_data["active_requests"][ix] = request_for_db
 
         request_for_db["user_id"] = update.effective_user.id
 
-        context.bot_data["active_requests"][platform.value][ix] = request_for_db
+        context.bot_data["active_requests"][ix] = request_for_db
 
     @staticmethod
     def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:

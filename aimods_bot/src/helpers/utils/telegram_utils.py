@@ -5,7 +5,8 @@ import telegram
 from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
+from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
+                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions)
 from telegram.ext import ContextTypes, CallbackContext
 
 import aimods_bot.src.helpers.constants.constants as constants
@@ -58,7 +59,9 @@ async def safe_delete(
             message_id=message_id_to_delete
         )
     except telegram.error.BadRequest as e:
-        log.warning(f"Impossibile eliminare il messaggio (ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'}): {e}")
+        log.warning(f"Impossibile eliminare il messaggio "
+                    f"(ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'})"
+                    f": {e}")
     except AttributeError:
         log.error(f"L'oggetto fornito non è un telegram.Message valido e non ha il metodo delete.")
     except Exception as e:
@@ -66,10 +69,10 @@ async def safe_delete(
 
 
 def validate_callback_structure(
-    callback_data: str,
-    expected_fields: list[dict],
-    separator: str = "_",
-    should_be: str = None
+        callback_data: str,
+        expected_fields: list[dict],
+        separator: str = "_",
+        should_be: str = None
 ) -> list[Any]:
     """
         Valida la struttura del callback_data e ne converte i valori secondo specifiche.
@@ -170,7 +173,10 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
     return pyro_result
 
 
-async def _try_pyrogram_chat_member_resolve(chat_id: Union[int, str], user_identifier: Union[int, str]) -> Dict[str, Any]:
+async def _try_pyrogram_chat_member_resolve(
+        chat_id: Union[int, str],
+        user_identifier: Union[int, str]
+) -> Dict[str, Any]:
     """Tenta di risolvere un ChatMember usando pyrogram."""
 
     try:
@@ -273,14 +279,17 @@ def add_fucking_at(s: str) -> str:
     return '@' + s.removeprefix("@")
 
 
-def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChatPermissions]):
-    if isinstance(permissions, PyroChatPermissions):
+def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]):
+    if type(permissions) is PyroChatPermissions:
         return {
             attr: getattr(permissions, attr)
             for attr in permissions.__dict__
             if isinstance(getattr(permissions, attr), bool)
         }
-    return permissions.to_dict()
+    elif type(permissions) is PTBChatPermissions:
+        return permissions.to_dict()
+    else:
+        raise TypeError(f"Unsupported type: {type(permissions)}")
 
 
 async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -364,3 +373,11 @@ async def edit_message_safely(
     except Exception as e:
         # Log dell'errore se necessario
         print(f"Errore nell'aggiornamento del messaggio: {e}")
+
+
+def str_id_to_int(ix: str):
+    if isinstance(ix, int):
+        return ix
+    if not ix.isdigit():
+        raise ValueError(f"Un ID deve essere un intero; invece ora è: '{ix}'")
+    return int(ix)

@@ -18,4 +18,7 @@ async def user_main_router(update: Update, context: CallbackContext):
             case "manage_requests":
                 return await requests_management_route(update=update, context=context, path=path[1:])
     finally:
-        await update.callback_query.answer()
+        try:
+            await update.callback_query.answer()
+        except Exception:
+            pass

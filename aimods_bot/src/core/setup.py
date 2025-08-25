@@ -74,10 +74,6 @@ async def set_application_data(application: Application):
 
     # Set requests
     application.bot_data.setdefault("active_requests", {})
-    application.bot_data["active_requests"].setdefault("android", {})
-    application.bot_data["active_requests"].setdefault("windows", {})
-    application.bot_data["active_requests"].setdefault("ios", {})
-    application.bot_data["active_requests"].setdefault("macos", {})
 
     # Clear outdated settings
     for el in application.user_data:

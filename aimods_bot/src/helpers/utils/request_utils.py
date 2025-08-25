@@ -1,27 +1,72 @@
-from typing import Optional, Literal
-from datetime import datetime
+import json
+from typing import Optional, Literal, Dict, Any
+from datetime import datetime, timezone
 
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS
 from aimods_bot.src.helpers.constants.models import RequestStatus, Platform, AndroidCategory, WindowsCategory, \
     IOSCategory, MacOSCategory
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import str_id_to_int
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
-from aimods_bot.src.helpers.utils.user_utils import create_empty_user_data
 
 log = logger.getChild("request_utils")
 
 
-async def get_user_active_requests(
+def flatten_requests_dict(requests: dict) -> Dict[int, Any]:
+    """Trasforma un dizionario di dizionari di dizionari in un dizionario di dizionari."""
+
+    if len(requests) == 0:
+        return {}
+
+    one_level = {}
+
+    for pl in requests:
+        if pl in ("android", "windows", "ios", "macos"):
+            # platform -> category -> ix
+            for cat in requests[pl]:
+                one_level.update(requests[pl][cat])
+        elif not isinstance(pl, int) and not pl.isdigit():
+            # category -> ix
+            one_level.update(requests[pl])
+        else:
+            # ix
+            one_level.update({int(pl): requests[pl]})
+
+    return one_level
+
+
+def get_user_active_requests(
         context: ContextTypes.DEFAULT_TYPE,
         platform: Optional[Literal["android", "windows", "ios", "macos"]]
 ) -> dict:
-    await create_empty_user_data(context=context, admin=False)
+    create_empty_request_user_data(context=context)
     if not platform:
         return context.user_data["active_requests"]
     return context.user_data["active_requests"][platform]
+
+
+def get_user_active_requests_count(
+        requests: Optional[dict],
+        context: Optional[ContextTypes.DEFAULT_TYPE],
+        platform: Optional[Literal["android", "windows", "ios", "macos"]]
+) -> int:
+    if requests is None and context is None:
+        raise MissingParameterException("Se non specifichi 'requests', devi specificare 'context'.")
+
+    if ((requests is not None and len(requests) == 0) or
+            (requests is None and not context.user_data.get("active_requests", None))):
+        return 0
+
+    if requests is None:
+        requests = get_user_active_requests(context=context, platform=platform)
+
+    requests = flatten_requests_dict(requests=requests)
+
+    return len(requests)
 
 
 def get_active_requests(
@@ -57,6 +102,7 @@ async def get_request_by_id(
         context: ContextTypes.DEFAULT_TYPE,
         ix: int
 ):
+    ix = str_id_to_int(ix)
     requests = get_active_requests(context=context, platform=None)
     for el in requests:
         if ix in requests[el]:
@@ -78,9 +124,9 @@ async def get_request_by_id(
     }
 
     data = dict(res[0])
-    request = data['content']
+    request = json.loads(data['content'])
     # noinspection PyArgumentList
-    request['status'] = RequestStatus(data['status'])
+    request['status'] = data['status']
     request['platform'] = Platform(data['platform'])
     request['category'] = categories[data['platform']](data['category'])
     request['user_id'] = data['user_id']
@@ -90,35 +136,19 @@ async def get_request_by_id(
 
 
 def create_empty_request_user_data(context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.setdefault("requests", {
-            "android": {
-                "app": {}
-            },
-            "windows": {
-                "game": {},
-                "software": {},
-                "adobe": {},
-                "daw": {}
-            },
-            "ios": {
-                "app": {}
-            },
-            "macos": {
-                "software": {},
-                "daw": {}
-            }
-        })
+    context.user_data.setdefault("active_requests", {})
 
 
 async def can_request_be_cancelled(context: ContextTypes.DEFAULT_TYPE, ix: int):
+    ix = str_id_to_int(ix)
     query = """SELECT issued_at FROM requests WHERE id = $1"""
 
-    response = await fetch_query(query=query, params=ix)
+    response = await fetch_query(query=query, params=(ix,))
 
     issuing_time = dict(response[0])["issued_at"]
     cancel_timer_sec = context.bot_data["configuration"]["settings"]["request"]["cancel_timer"]
 
-    if (datetime.now() - issuing_time).total_seconds() > cancel_timer_sec:
+    if (datetime.now(timezone.utc) - issuing_time).total_seconds() > cancel_timer_sec:
         return False
     return True
 
@@ -129,40 +159,34 @@ async def get_requests_summary(
         only_cancellable: bool = False
 ) -> str:
     text = ""
+
+    requests = flatten_requests_dict(requests=requests)
+
     for n, el in enumerate(requests):
         request = requests[el]
 
         if only_cancellable and not await can_request_be_cancelled(context=context, ix=el):
             continue
 
-        status = request['status'].value
+        status = request['status']
         icon = REQUEST_STATUS_DETAILS[status]['icon']
         label = REQUEST_STATUS_DETAILS[status]['label']
-        text += (f"    {n}. <i>{request['name']}</i>\n"
+        text += (f"    {n+1}. <i>{request['name']}</i>\n"
                  f"      🔧 <u>Stato</u> – {icon} <b><i>{label}</i></b>\n\n")
 
     return text
 
 
 async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: int, status: RequestStatus):
-    user_requests = await get_user_active_requests(context=context, platform=None)
-    bot_requests = await get_user_active_requests(context=context, platform=None)
+    ix = str_id_to_int(ix)
+    user_requests = get_user_active_requests(context=context, platform=None)
+    bot_requests = get_user_active_requests(context=context, platform=None)
 
-    for el in user_requests:
-        if ix in user_requests[el]:
-            if status == RequestStatus.CANCELLED:
-                user_requests[el].pop(ix)
-            else:
-                setattr(user_requests[el][ix], 'status', status)
-            break
+    user_requests = flatten_requests_dict(requests=user_requests)
+    bot_requests = flatten_requests_dict(requests=bot_requests)
 
-    for el in bot_requests:
-        if ix in bot_requests[el]:
-            if status == RequestStatus.CANCELLED:
-                bot_requests[el].pop(ix)
-            else:
-                setattr(bot_requests[el][ix], 'status', status)
-            break
+    user_requests.pop(ix, None)
+    bot_requests.pop(ix, None)
 
     query = """UPDATE requests SET status = $1 WHERE id = $2"""
 
@@ -173,7 +197,7 @@ async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: int, statu
     log.info(f"Updated request {ix} status to '{status.value}'")
 
 
-def get_request_details(request: dict):
+async def get_request_details(request: dict):
     text = f"     🔸 <u>Nome</u> – <i>{request['name']}</i>\n"
     if request.get('link', None):
         text += f"     🔸 <u>Link</u> – <a href=\"{request['link']}\">🔗 Link</a>\n"
@@ -184,9 +208,11 @@ def get_request_details(request: dict):
     if request.get('steamtools', None):
         text += f"     🔸 <u>SteamTools</u> - <i>{'Sì' if request['steamtools'] else 'No'}</i>\n"
     if request.get('issued_at', None):
-        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(request['issued_at'])}</i>\n"
+        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request['issued_at']))}</i>\n"
 
     if request.get('status', None):
-        text += f"\n<b><u>Status</u></b> – <i>{REQUEST_STATUS_DETAILS[request['status'].value]['label']}</i>"
+        label = REQUEST_STATUS_DETAILS[request['status']]['label']
+        icon = REQUEST_STATUS_DETAILS[request['status']]['icon']
+        text += f"\n<b><u>Status</u></b> – {icon} <i>{label}</i>"
 
     return text
