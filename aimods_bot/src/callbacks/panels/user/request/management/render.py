@@ -7,8 +7,7 @@ from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details, get_request_by_id,
-                                                        get_user_cancellable_requests)
-from aimods_bot.src.helpers.utils.telegram_utils import str_id_to_int
+                                                        get_user_cancellable_requests, can_request_be_cancelled)
 
 
 async def render_user_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -113,7 +112,7 @@ async def _get_user_request_action_panel_text(
 
         requests = await get_user_cancellable_requests(context=context)
         if len(requests) == 0:
-            text += "ℹ️ Non hai richieste cancellabili.\n\n"
+            text += "\n\nℹ️ Non hai richieste cancellabili.\n\n"
             return text
 
     else:  # action == "details"
@@ -121,14 +120,14 @@ async def _get_user_request_action_panel_text(
 
         requests = context.user_data["active_requests"]
         if len(requests) == 0:
-            text += "ℹ️ Non hai richieste da visionare.\n\n"
+            text += "\n\nℹ️ Non hai richieste da visionare.\n\n"
             return text
 
     summary = await get_requests_summary(requests=requests)
 
     text += "\n\n" + summary
 
-    text += f"🔹 Scegli quale richiesta vuoi {'visionare' if action == 'details' else 'cancellare'}."
+    text += f"\n🔹 Scegli quale richiesta vuoi {'visionare' if action == 'details' else 'cancellare'}."
 
     return text
 
@@ -147,7 +146,7 @@ async def _get_user_request_action_panel_keyboard(
         for n, el in enumerate(requests):
             if len(keyboard[-1]) >= 4:
                 keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=str(n+1), callback_key=str(el)))
+            keyboard[-1].append(ButtonItem(text=str(n + 1), callback_key=str(el)))
         keyboard.insert(len(keyboard) + 1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
     else:
         keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
@@ -158,10 +157,9 @@ async def _get_user_request_action_panel_keyboard(
 async def render_request_details_panel(
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
-        ix: int
+        ix: str
 ):
-    ix = str_id_to_int(ix)
-    request = await get_request_by_id(context=context, ix=ix)
+    request = get_request_by_id(context=context, ix=ix)
     text = await _get_request_details_panel_text(request=request)
 
     request_details_panel = Panel(
@@ -182,7 +180,7 @@ async def render_request_details_panel(
     await request_details_panel.render(update=update, context=context)
 
 
-async def _get_request_details_panel_text(request: dict) -> str:
+async def _get_request_details_panel_text(request: RequestData) -> str:
     text = (f"👁‍🗨 <b>Gestione Richieste Attive</b>"
             "\n\n→ 📋 <b>Informazioni</b>\n\n"
             "▫️ Ecco i dettagli della tua richiesta.\n\n")
@@ -196,25 +194,32 @@ async def _get_request_details_panel_text(request: dict) -> str:
 async def render_confirm_cancel_panel(
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
-        ix: int
+        ix: str
 ):
-    ix = str_id_to_int(ix)
-    request = await get_request_by_id(context=context, ix=ix)
+    request = get_request_by_id(context=context, ix=ix)
     if not request:
         raise DatabaseBotException(f"Richiesta {ix} non trovata.")
 
-    text = await _get_confirm_cancel_text(request=request)
+    if await can_request_be_cancelled(context=context, request=request):
+        text = await _get_confirm_cancel_text(request=request)
+        keyboard = [
+            [
+                ButtonItem(text="🌪 Conferma", callback_key="yes"),
+                ButtonItem(text="🔙 Annulla", callback_key=None)
+            ]
+        ]
+    else:
+        text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
+                "→ 🗑 <b>Cancellazione</b>\n\n"
+                "⚠️ Non puoi più cancellare questa richiesta.\n\n"
+                "🔹 Torna indietro per continuare.")
+        keyboard = [[ButtonItem(text="🔙 Annulla", callback_key=None)]]
 
     confirm_cancel_panel = Panel(
         PanelConfig(
-            base_path=f"user/manage_requests/view_requests/active_requests/cancel/{str(ix)}",
+            base_path=f"user/manage_requests/view_requests/active_requests/cancel/{ix}",
             text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="🌪 Conferma", callback_key="yes"),
-                    ButtonItem(text="🔙 Annulla", callback_key=None)
-                ]
-            ]
+            keyboard=keyboard
         )
     )
 
@@ -223,7 +228,7 @@ async def render_confirm_cancel_panel(
 
 async def _get_confirm_cancel_text(request: RequestData) -> str:
     details_text = await get_request_details(request=request)
-    text = ("👁‍🗨 <b>Gestione Richieste Attive</i></b>\n\n"
+    text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
             "→ 🗑 <b>Cancellazione</b>\n\n")
     text += details_text
     text += "\n\n🔹 Confermi di voler <b>cancellare</b> questa richesta?"
@@ -237,20 +242,23 @@ async def render_request_cancelled_panel(
 ):
     text = _get_request_cancelled_panel_text()
 
+    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+    requests = await get_user_cancellable_requests(context=context)
+
+    if len(requests) != 0:
+        keyboard.insert(0, [
+            ButtonItem(
+                text="🗑 Cancella Altra Richiesta",
+                callback_key="user/manage_requests/view_requests/active_requests/cancel",
+                override_path_generation=True
+            )
+        ])
+
     request_cancelled_panel = Panel(
         PanelConfig(
             base_path="user/manage_requests/view_requests/active_requests/cancel",
             text=text,
-            keyboard=[
-                [
-                    ButtonItem(
-                        text="🗑 Cancella Altra Richiesta",
-                        callback_key="user/manage_requests/view_requests/active_requests/cancel",
-                        override_path_generation=True
-                    )
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            keyboard=keyboard
         )
     )
 

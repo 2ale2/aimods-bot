@@ -5,15 +5,20 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Union, Literal, NamedTuple, TypedDict, NotRequired, Required, cast, Iterable, Type
+from typing import Optional, List, Union, Literal, NamedTuple, TypedDict, cast, Iterable, Type
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
-from aimods_bot.src.helpers.constants.constants import (PlatformStr, WinCatStr, AndroidCatStr, IOSCatStr,
-                                                        MacOSCatStr, StatusStr)
+PlatformStr = Literal["android", "ios", "windows", "macos"]
+WinCatStr = Literal["game", "daw", "adobe", "software"]
+AndroidCatStr = Literal["app"]
+IOSCatStr = Literal["app"]
+MacOSCatStr = Literal["software", "daw"]
+CatStr = WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr
+StatusStr = Literal["pending", "examining", "testing", "completed", "rejected", "cancelled"]
 
 
 @dataclass
@@ -232,37 +237,36 @@ class RequestData:
     functionalities: Optional[str] = None
     steamtools: Optional[bool] = None
     requesting: Optional[RequestField] = None
-    editing: Optional[str] = None
+    editing: Optional[RequestField] = None
 
     def to_dict(self) -> RequestDataDict:
         """Serializza in un RequestDataDict per poter essere messo nella persistenza."""
-
-        missing = []
-        if self.platform is None: missing.append("platform")
-        if self.category is None: missing.append("category")
-        if self.user_id is None: missing.append("user_id")
-        if self.status is None: missing.append("status")
-        if self.issued_at is None: missing.append("issued_at")
-        if self.name is None: missing.append("name")
-        if self.version is None: missing.append("version")
-        if missing:
-            raise ValueError(f"RequestData incompleto, mancano: {', '.join(missing)}")
-
-        result: RequestDataDict = {
-            "platform": self.platform.value,  # PlatformStr
-            "category": cast(str, cast(Enum, self.category).value),  # Cat Literal | str
-            "user_id": int(self.user_id),
-            "status": self.status.value,  # StatusStr
-            "issued_at": self.issued_at.isoformat(),
-            "name": self.name,
-            "version": self.version,
-        }
+        result: RequestDataDict = {}
+        if self.platform is not None:
+            result["platform"] = cast(PlatformStr, self.platform.value)
+        if self.category is not None:
+            result["category"] = cast(CatStr, self.category.value)
+        if self.user_id is not None:
+            result["user_id"] = self.user_id
+        if self.status is not None:
+            result["status"] = cast(StatusStr, self.status.value)
+        if self.issued_at is not None:
+            result["issued_at"] = self.issued_at.isoformat()
+        if self.name is not None:
+            result["name"] = self.name
+        if self.version is not None:
+            result["version"] = self.version
         if self.link is not None:
             result["link"] = self.link
         if self.functionalities is not None:
             result["functionalities"] = self.functionalities
         if self.steamtools is not None:
             result["steamtools"] = self.steamtools
+        if self.requesting is not None:
+            result["requesting"] = self.requesting.value
+        if self.editing is not None:
+            result["editing"] = self.editing.value
+
         return result
 
     def to_json(self) -> str:
@@ -270,54 +274,68 @@ class RequestData:
 
     @classmethod
     def from_dict(cls, data: RequestDataDict) -> RequestData:
-        platform = Platform(data["platform"])
-
-        category = _parse_category(data["category"], platform)
-
+        raw_platform = data.get("platform", None)
+        raw_category = data.get("category", None)
+        raw_user_id = data.get("user_id", None)
+        raw_status = data.get("status", None)
+        raw_issued_at = data.get("issued_at", None)
+        raw_name = data.get("name", None)
+        raw_version = data.get("version", None)
+        raw_link = data.get("link", None)
+        raw_functionalities = data.get("functionalities", None)
+        raw_steamtools = data.get("steamtools", None)
+        raw_requesting = data.get("requesting", None)
+        raw_editing = data.get("editing", None)
+        platform = Platform(raw_platform) if raw_platform else None
+        category = _parse_category(raw_category, platform) if raw_category and platform else None
         # noinspection PyArgumentList
-        status = RequestStatus(data["status"])
-
-        issued_at = datetime.fromisoformat(data["issued_at"])
-
-        link = data.get("link")
-        functionalities = data.get("functionalities")
-        steamtools = data.get("steamtools")
+        status = RequestStatus(raw_status) if raw_status else None
+        issued_at = datetime.fromisoformat(raw_issued_at) if raw_issued_at else None
+        requesting = RequestField(raw_requesting) if raw_requesting else None
+        editing = RequestField(raw_editing) if raw_editing else None
 
         return cls(
             platform=platform,
             category=category,
-            user_id=data["user_id"],
+            user_id=raw_user_id,
             status=status,
             issued_at=issued_at,
-            name=data["name"],
-            link=link,
-            version=data["version"],
-            functionalities=functionalities,
-            steamtools=steamtools,
+            name=raw_name,
+            link=raw_link,
+            version=raw_version,
+            functionalities=raw_functionalities,
+            steamtools=raw_steamtools,
+            requesting=requesting,
+            editing=editing
         )
 
     @classmethod
     def from_json(cls, json_str: str) -> RequestDataDict:
         return cls.from_dict(json.loads(json_str))
 
-    def get_category(self) -> Optional[Category]:
+    def get_category(self, request_dict: RequestDataDict = None) -> Optional[Category]:
         """Determina la categoria per piattaforme Windows"""
+        if request_dict:
+            return request_dict["category"]
         return self.category
 
-    def get_platform(self) -> Platform:
+    def get_platform(self, request_dict: RequestDataDict = None) -> Platform:
         """Ritorna la piattaforma"""
+        if request_dict:
+            return request_dict["platform"]
         return self.platform
 
 
 class RequestDataDict(TypedDict):
-    platform: Required[PlatformStr]
-    category: Required[WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr]
-    user_id: Required[int]
-    status: Required[StatusStr]
-    issued_at: Required[str]
-    name: Required[str]
-    version: Required[str]
-
-    link: NotRequired[str]
-    functionalities: NotRequired[str]
-    steamtools: NotRequired[bool]
+    platform: PlatformStr
+    category: WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr
+    user_id: int
+    status: StatusStr
+    issued_at: str
+    name: str
+    version: str
+    link: str
+    functionalities: str
+    steamtools: bool
+    requesting: str
+    editing: str

@@ -373,11 +373,3 @@ async def edit_message_safely(
     except Exception as e:
         # Log dell'errore se necessario
         print(f"Errore nell'aggiornamento del messaggio: {e}")
-
-
-def str_id_to_int(ix: str):
-    if isinstance(ix, int):
-        return ix
-    if not ix.isdigit():
-        raise ValueError(f"Un ID deve essere un intero; invece ora è: '{ix}'")
-    return int(ix)

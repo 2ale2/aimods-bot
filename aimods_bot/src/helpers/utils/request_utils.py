@@ -8,13 +8,9 @@ from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, P
 from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import str_id_to_int
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 log = logger.getChild("request_utils")
-
-
-def build_request_data_from_dict(request: dict)
 
 
 async def get_user_requests_by_status(
@@ -39,10 +35,14 @@ async def get_user_requests_by_status(
 
 def get_request_by_id(
         context: ContextTypes.DEFAULT_TYPE,
-        ix: int
+        ix: str
 ):
-    ix = str_id_to_int(ix)
-    return context.bot_data["active_requests"].get(ix)
+    request_dict = context.bot_data["active_requests"].get(ix)
+
+    if request_dict is None:
+        request_dict = context.bot_data["active_requests"].get(str(ix))
+
+    return RequestData.from_dict(request_dict)
 
 
 def create_empty_request_user_data(context: ContextTypes.DEFAULT_TYPE):
@@ -50,7 +50,7 @@ def create_empty_request_user_data(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def can_request_be_cancelled(
-        context: Optional[ContextTypes.DEFAULT_TYPE] = None,
+        context: ContextTypes.DEFAULT_TYPE,
         ix: Optional[int] = None,
         request: Optional[RequestData] = None
 ):
@@ -58,16 +58,16 @@ async def can_request_be_cancelled(
         raise MissingParameterException("Se ometti 'request', devi fornire 'context' e 'ix'.")
 
     if request is None:
-        ix = str_id_to_int(ix)
         request = get_request_by_id(context=context, ix=ix)
-
         if not request:
             raise ValueError(f"Request {ix} not found.")
 
-    issuing_time = datetime.fromisoformat(request["issued_at"])
+    if isinstance(request, dict):
+        request = RequestData.from_dict(request)
+
     cancel_timer_sec = context.bot_data["configuration"]["settings"]["request"]["cancel_timer"]
 
-    if (datetime.now(timezone.utc) - issuing_time).total_seconds() > cancel_timer_sec:
+    if (datetime.now(timezone.utc) - request.issued_at).total_seconds() > cancel_timer_sec:
         return False
     return True
 
@@ -78,8 +78,9 @@ async def get_user_cancellable_requests(context: ContextTypes.DEFAULT_TYPE) -> d
     cancellable_requests = {}
 
     for el in user_requests:
-        if await can_request_be_cancelled(request=user_requests[el]):
-            cancellable_requests[el] = user_requests[el]
+        request = RequestData.from_dict(user_requests[el])
+        if await can_request_be_cancelled(request=request, context=context):
+            cancellable_requests[el] = request
 
     return cancellable_requests
 
@@ -89,21 +90,25 @@ async def get_requests_summary(requests: dict[int, RequestData]) -> str:
 
     for n, el in enumerate(requests):
         request = requests[el]
+        
+        if isinstance(request, dict):
+            request = RequestData.from_dict(data=request)            
 
         status = request.status.value
-        icon = REQUEST_STATUS_DETAILS[status]['icon']
-        label = REQUEST_STATUS_DETAILS[status]['label']
+        status_icon = REQUEST_STATUS_DETAILS[status]['icon']
+        status_label = REQUEST_STATUS_DETAILS[status]['label']
         platform = request.platform.value
+        platform_label = PLATFORM_DETAILS[platform]['label']
+        platform_icon = PLATFORM_DETAILS[platform]['icon']
 
         text += (f"    {n+1}. <i>{request.name}</i>\n"
-                 f"      🔧 <u>Stato</u> – {icon} <b><i>{label}</i></b>\n"
-                 f"      🖲️ <u>Piattaforma</u> – <i>{PLATFORM_DETAILS[platform]['label']}</i>\n")
+                 f"         🖲️ <u>Piattaforma</u> – {platform_icon} <i>{platform_label}</i>\n"
+                 f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n")
 
     return text
 
 
-async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: int, status: RequestStatus):
-    ix = str_id_to_int(ix)
+async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: str, status: RequestStatus):
     user_requests = context.user_data["active_requests"]
     bot_requests = context.bot_data["active_requests"]
 
@@ -113,10 +118,12 @@ async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: int, statu
     else:
         user_requests[ix].status = status
         bot_requests[ix].status = status
+        context.user_data["active_requests"] = user_requests
+        context.bot_data["active_requests"] = bot_requests
 
     query = """UPDATE requests SET status = $1 WHERE id = $2"""
 
-    res = await execute_query(query=query, params=(status.value, ix))
+    res = await execute_query(query=query, params=(status.value, int(ix)))
     if not res:
         log.error(f"Failed to update request {ix} status to '{status.value}'")
     else:
@@ -134,7 +141,7 @@ async def get_request_details(request: RequestData):
     if request.steamtools is not None:
         text += f"     🔸 <u>SteamTools</u> - <i>{'Sì' if request.steamtools else 'No'}</i>\n"
     if request.issued_at:
-        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n"
+        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(request.issued_at)}</i>\n"
 
     if request.status:
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']

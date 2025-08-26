@@ -42,7 +42,7 @@ async def user_request_action_route(
         return PCS.USER_CONVERSATION
 
     # len(path) == 3: path."endswith" [cancel, <ix>, yes]
-    if path[-2] == "cancel" and path[-1] == "yes":
+    if path[-3] == "cancel" and path[-1] == "yes":
         await cancel_request(context=context, ix=path[-2])
         await render_request_cancelled_panel(update=update, context=context)
         return PCS.USER_CONVERSATION

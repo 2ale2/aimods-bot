@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGOR
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import Platform, AndroidCategory, WindowsCategory, IOSCategory, \
-    MacOSCategory, Category
+    MacOSCategory, Category, RequestData
 
 
 async def requests_management_route(update: Update, context: CallbackContext, path: list[str]):
@@ -32,7 +32,7 @@ async def request_category(update: Update, context: CallbackContext) -> int:
         RequestDataManager.initialize_request(context=context)
 
     request_data = RequestDataManager.get_request_data(context=context)
-    platform = request_data.get_platform()
+    platform = RequestData.get_platform(request_data)
     if not platform:
         data = update.callback_query.data.split("/")[-1]
 

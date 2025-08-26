@@ -146,11 +146,3 @@ REQUEST_STATUS_DETAILS = {
         "icon": "🗑️"
     }
 }
-
-
-PlatformStr = Literal["android", "ios", "windows", "macos"]
-WinCatStr = Literal["game", "daw", "adobe", "software"]
-AndroidCatStr = Literal["app"]
-IOSCatStr = Literal["app"]
-MacOSCatStr = Literal["software", "daw"]
-StatusStr = Literal["pending","examining","testing","completed","rejected","cancelled"]

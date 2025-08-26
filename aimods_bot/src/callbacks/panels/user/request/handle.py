@@ -73,7 +73,7 @@ class RequestDataManager:
         if "new_request" in context.chat_data:
             RequestDataManager.cleanup_request(context=context)
 
-        context.chat_data["new_request"] = request_data
+        context.chat_data["new_request"] = request_data.to_dict()
 
         if platform:
             if category:
@@ -137,7 +137,7 @@ class RequestDataManager:
         request_data = RequestDataManager.get_request_data(context)
         category = request_data.get_category()
 
-        RequestDataManager.update_field(context, "editing", detail)
+        RequestDataManager.update_field(context, "editing", RequestField(detail))
 
         field_enum = RequestField(detail)
         message_template = FIELD_MESSAGES[field_enum]
@@ -175,22 +175,21 @@ class RequestDataManager:
     @staticmethod
     def get_request_data(context: ContextTypes.DEFAULT_TYPE) -> RequestData:
         """Ottiene i dati della richiesta corrente"""
-        data = context.chat_data.get("new_request")
-
-        # Migrazione da dict legacy a RequestData
-        if isinstance(data, dict):
-            request_data = RequestData(**data)
-            context.chat_data["new_request"] = request_data
-            return request_data
-
-        return data
+        request = context.chat_data.get("new_request")
+        return RequestData.from_dict(request)
 
     @staticmethod
     def update_field(context: ContextTypes.DEFAULT_TYPE, field: str, value: Any) -> None:
         """Aggiorna un campo specifico della richiesta"""
         request_data = RequestDataManager.get_request_data(context)
         setattr(request_data, field, value)
+        RequestDataManager.update_request_data(context, request_data)
+
         log.debug(f"Updated field {field} with value: {value}")
+
+    @staticmethod
+    def update_request_data(context: ContextTypes.DEFAULT_TYPE, request_data: RequestData) -> None:
+        context.chat_data["new_request"] = request_data.to_dict()
 
     @staticmethod
     async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -247,6 +246,7 @@ class RequestDataManager:
         RequestDataManager.cleanup_request(context=context)
         return ConversationHandler.END
 
+    # noinspection PyTypedDict
     @staticmethod
     async def insert_request(
             update: Update,
@@ -263,6 +263,8 @@ class RequestDataManager:
         request_for_db.pop("platform", None)
         request_for_db.pop("category", None)
         request_for_db.pop("status", None)
+        request_for_db.pop("requesting", None)
+        request_for_db.pop("editing", None)
         request_for_db_str = json.dumps(request_for_db)
 
         query = """
@@ -280,21 +282,21 @@ class RequestDataManager:
 
         inserted = dict(result[0])
 
-        ix = inserted["id"]
+        ix = str(inserted["id"])
         issued_at = inserted["issued_at"]
         request_data.status = RequestStatus.PENDING
-        request_data.issued_at = issued_at.isoformat()
+        request_data.issued_at = issued_at
+        request_data.user_id = uid
 
         if "active_requests" not in context.user_data:
             await create_empty_request_user_data(context=context)
 
-        context.user_data["active_requests"][ix] = request_data
+        request_dict = request_data.to_dict()
 
-        request_data.user_id = uid
+        context.user_data["active_requests"][ix] = request_dict
+        context.bot_data["active_requests"][ix] = request_dict
 
-        context.bot_data["active_requests"][ix] = request_data
-
-        log.info(f"Request inserted with ID {inserted['id']} for user {uid}")
+        log.info(f"Request inserted with ID {ix} for user {uid}")
 
     @staticmethod
     def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:
