@@ -1,4 +1,5 @@
 import re
+from typing import Literal
 
 from aimods_bot.src.helpers.constants.models import DisplayItem
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -145,3 +146,11 @@ REQUEST_STATUS_DETAILS = {
         "icon": "🗑️"
     }
 }
+
+
+PlatformStr = Literal["android", "ios", "windows", "macos"]
+WinCatStr = Literal["game", "daw", "adobe", "software"]
+AndroidCatStr = Literal["app"]
+IOSCatStr = Literal["app"]
+MacOSCatStr = Literal["software", "daw"]
+StatusStr = Literal["pending","examining","testing","completed","rejected","cancelled"]

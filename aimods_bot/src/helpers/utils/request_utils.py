@@ -14,6 +14,9 @@ from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 log = logger.getChild("request_utils")
 
 
+def build_request_data_from_dict(request: dict)
+
+
 async def get_user_requests_by_status(
         user_id: int,
         platform: Optional[Literal["android", "windows", "ios", "macos"]],

@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import html
 import json
-
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Union, Literal, NamedTuple, Dict, Any
 from enum import Enum
+from typing import Optional, List, Union, Literal, NamedTuple, TypedDict, NotRequired, Required, cast, Iterable, Type
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
+
+from aimods_bot.src.helpers.constants.constants import (PlatformStr, WinCatStr, AndroidCatStr, IOSCatStr,
+                                                        MacOSCatStr, StatusStr)
 
 
 @dataclass
@@ -121,6 +125,7 @@ class RequestStatus(Enum):
 
 class Panel:
     """Classe base per generare pannelli di menu con testo e tastiera inline."""
+
     def __init__(self, config: PanelConfig, send=False):
         self.base_path = config.base_path
         self.text = config.text
@@ -142,10 +147,10 @@ class Panel:
                 else:  # La callback key è il percorso completo
                     c_data = button.callback_key
                 subkeyboard.append(
-                   InlineKeyboardButton(
-                       text=button.text,
-                       callback_data=c_data
-                   )
+                    InlineKeyboardButton(
+                        text=button.text,
+                        callback_data=c_data
+                    )
                 )
             keyboard.append(subkeyboard)
         return keyboard
@@ -194,60 +199,105 @@ class Panel:
                 pass
 
 
+def _iter_category_enums_for_platform(p: Platform) -> Iterable[Type[Enum]]:
+    if p is Platform.WINDOWS:
+        return (WindowsCategory,)
+    if p is Platform.ANDROID:
+        return (AndroidCategory,)
+    if p is Platform.IOS:
+        return (IOSCategory,)
+    if p is Platform.MACOS:
+        return (MacOSCategory,)
+
+
+def _parse_category(value: str, platform: Platform) -> Category:
+    for enum_cls in _iter_category_enums_for_platform(platform):
+        try:
+            return cast(Category, enum_cls(value))
+        except ValueError:
+            continue
+    raise ValueError(f"category='{value}' non valida per platform='{platform.value}'")
+
+
 @dataclass
 class RequestData:
-    platform: Optional['Platform'] = None
-    category: Optional['Category'] = None
+    platform: Optional[Platform] = None
+    category: Optional[Category] = None
     user_id: Optional[int] = None
-    status: Optional['RequestStatus'] = None
+    status: Optional[RequestStatus] = None
     issued_at: Optional[datetime] = None
     name: Optional[str] = None
     link: Optional[str] = None
     version: Optional[str] = None
     functionalities: Optional[str] = None
     steamtools: Optional[bool] = None
-    requesting: Optional['RequestField'] = None
+    requesting: Optional[RequestField] = None
     editing: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        result = {}
-        for k, v in asdict(self).items():
-            if k not in ('requesting', 'editing'):
-                if isinstance(v, Enum):
-                    result[k] = v.value
-                elif isinstance(v, datetime):
-                    result[k] = v.isoformat()
-                elif v is not None:
-                    result[k] = v
+    def to_dict(self) -> RequestDataDict:
+        """Serializza in un RequestDataDict per poter essere messo nella persistenza."""
+
+        missing = []
+        if self.platform is None: missing.append("platform")
+        if self.category is None: missing.append("category")
+        if self.user_id is None: missing.append("user_id")
+        if self.status is None: missing.append("status")
+        if self.issued_at is None: missing.append("issued_at")
+        if self.name is None: missing.append("name")
+        if self.version is None: missing.append("version")
+        if missing:
+            raise ValueError(f"RequestData incompleto, mancano: {', '.join(missing)}")
+
+        result: RequestDataDict = {
+            "platform": self.platform.value,  # PlatformStr
+            "category": cast(str, cast(Enum, self.category).value),  # Cat Literal | str
+            "user_id": int(self.user_id),
+            "status": self.status.value,  # StatusStr
+            "issued_at": self.issued_at.isoformat(),
+            "name": self.name,
+            "version": self.version,
+        }
+        if self.link is not None:
+            result["link"] = self.link
+        if self.functionalities is not None:
+            result["functionalities"] = self.functionalities
+        if self.steamtools is not None:
+            result["steamtools"] = self.steamtools
         return result
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'RequestData':
-        data_copy = data.copy()
+    def from_dict(cls, data: RequestDataDict) -> RequestData:
+        platform = Platform(data["platform"])
 
-        if 'platform' in data_copy and data_copy['platform'] is not None:
-            data_copy['platform'] = Platform(data_copy['platform'])
+        category = _parse_category(data["category"], platform)
 
-        if 'category' in data_copy and data_copy['category'] is not None:
-            data_copy['category'] = Category(data_copy['category'])
+        # noinspection PyArgumentList
+        status = RequestStatus(data["status"])
 
-        if 'status' in data_copy and data_copy['status'] is not None:
-            # noinspection PyArgumentList
-            data_copy['status'] = RequestStatus(data_copy['status'])
+        issued_at = datetime.fromisoformat(data["issued_at"])
 
-        if 'requesting' in data_copy and data_copy['requesting'] is not None:
-            data_copy['requesting'] = RequestField(data_copy['requesting'])
+        link = data.get("link")
+        functionalities = data.get("functionalities")
+        steamtools = data.get("steamtools")
 
-        if 'issued_at' in data_copy and data_copy['issued_at'] is not None:
-            data_copy['issued_at'] = datetime.fromisoformat(data_copy['issued_at'])
-
-        return cls(**data_copy)
+        return cls(
+            platform=platform,
+            category=category,
+            user_id=data["user_id"],
+            status=status,
+            issued_at=issued_at,
+            name=data["name"],
+            link=link,
+            version=data["version"],
+            functionalities=functionalities,
+            steamtools=steamtools,
+        )
 
     @classmethod
-    def from_json(cls, json_str: str) -> 'RequestData':
+    def from_json(cls, json_str: str) -> RequestDataDict:
         return cls.from_dict(json.loads(json_str))
 
     def get_category(self) -> Optional[Category]:
@@ -257,3 +307,17 @@ class RequestData:
     def get_platform(self) -> Platform:
         """Ritorna la piattaforma"""
         return self.platform
+
+
+class RequestDataDict(TypedDict):
+    platform: Required[PlatformStr]
+    category: Required[WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr]
+    user_id: Required[int]
+    status: Required[StatusStr]
+    issued_at: Required[str]
+    name: Required[str]
+    version: Required[str]
+
+    link: NotRequired[str]
+    functionalities: NotRequired[str]
+    steamtools: NotRequired[bool]
