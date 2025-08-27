@@ -1,14 +1,20 @@
+import os.path
+from pathlib import Path
 from typing import Literal
 
-from telegram import Update
+from pyrogram.types import InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup
+from telegram.constants import ChatAction, ParseMode
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
+from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details, get_request_by_id,
                                                         get_user_cancellable_requests, can_request_be_cancelled,
-                                                        get_user_requests_archive, request_data_from_record)
+                                                        get_user_requests_archive, request_data_from_record,
+                                                        generate_user_archive_requests_pdf_file)
 
 
 async def render_user_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,8 +39,9 @@ async def render_user_request_management_panel(update: Update, context: ContextT
 
 def _get_user_request_management_panel_text() -> str:
     text = ("👁‍🗨 <b>Gestione Richieste</b>\n\n"
-            "▫️ Da qui puoi <b>visionare</b> e <b>gestire</b> le tue <b>richieste</b>.\n\n"
-            "ℹ️ L'archivio richieste tutte le tue richieste, anche quelle non attive.\n\n"
+            "▪️ Da qui puoi <b>visionare</b> e <b>gestire</b> le tue <b>richieste</b>.\n\n"
+            "<blockquote>ℹ️ L'archivio richieste contiene <u>tutte le tue richieste</u>, "
+            "anche quelle non attive.</blockquote>\n\n"
             "🔹 Quale categoria di richieste vuoi gestire?")
     return text
 
@@ -238,7 +245,21 @@ async def _get_confirm_cancel_text(request: RequestData) -> str:
 
 
 async def render_user_request_archive_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = await _get_user_request_archive_text(user_id=update.effective_user.id)
+    user_id = update.effective_user.id
+    requests = await get_user_requests_archive(user_id=user_id)
+
+    text = await _get_user_request_archive_text(requests=requests)
+
+    p = None
+    if not len(requests) == 0:
+        await update.effective_message.edit_text(
+            text="📕 <b>Archivio Richieste</b>\n\n"
+                 "⏳ Un secondo...",
+            reply_markup=None,
+            parse_mode=ParseMode.HTML
+        )
+        await context.bot.send_chat_action(chat_id=user_id, action=ChatAction.UPLOAD_DOCUMENT)
+        p = await _get_archive_pdf_file(requests=requests, user_id=user_id)
 
     user_request_archive_panel = Panel(
         PanelConfig(
@@ -252,20 +273,50 @@ async def render_user_request_archive_panel(update: Update, context: ContextType
 
     await user_request_archive_panel.render(update=update, context=context)
 
+    await context.bot.send_document(
+        chat_id=user_id,
+        document=p,
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                text="🚮 Chiudi",
+                callback_data="close"
+            )
+        ]])
+    )
 
-async def _get_user_request_archive_text(user_id: int):
+    delete_os_file(str(Path(p).with_suffix(".aux")))
+    delete_os_file(str(Path(p).with_suffix(".log")))
+    delete_os_file(str(Path(p).with_suffix(".out")))
+    delete_os_file(str(Path(p).with_suffix(".tex")))
+
+    # Rimuovo il file dopo 10 minuti per evitare sovraccarichi
+    async def _delete_latex_file(context: ContextTypes.DEFAULT_TYPE):
+        delete_os_file(path=p)
+
+    context.job_queue.run_once(callback=_delete_latex_file, when=600)
+
+
+async def _get_user_request_archive_text(requests: list[dict]):
     text = "📕 <b>Archivio Richieste</b>\n\n"
-    requests = await get_user_requests_archive(user_id=user_id)
 
     if len(requests) == 0:
         text += "ℹ️ Non hai formulato alcuna richiesta in passato."
-        return text
-
-    text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico\n\n"
-
-    requests = [await request_data_from_record(request=el) for el in requests]
+    else:
+        text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico."
 
     return text
+
+
+async def _get_archive_pdf_file(requests: dict, user_id: int):
+    if os.path.exists(f"archive_{user_id}_{len(requests)}.pdf"):
+        return f"archive_{user_id}_{len(requests)}.pdf"
+
+    requests = [await request_data_from_record(request=el) for el in requests]
+    p = await generate_user_archive_requests_pdf_file(
+        requests=requests,
+        input_path=f"archive_{user_id}_{len(requests)}.tex"
+    )
+    return p
 
 
 async def render_request_cancelled_panel(

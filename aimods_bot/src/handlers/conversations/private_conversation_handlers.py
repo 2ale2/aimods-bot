@@ -39,7 +39,7 @@ class TestHandler:
 
 
 close_button_handler = CallbackQueryHandler(
-    pattern=r"(^|.*)close_menu$",
+    pattern=r"(^|.*)close.*",
     callback=safe_delete_wrapper
 )
 

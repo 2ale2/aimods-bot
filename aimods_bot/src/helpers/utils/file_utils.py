@@ -172,7 +172,7 @@ def tex_escape(s: str) -> str:
     return "".join(_LATEX_ESC.get(ch, ch) for ch in s)
 
 
-async def convert_latex_to_pdf(tex_path: str | Path, timeout: int = 30) -> Path:
+async def convert_latex_to_pdf(tex_path: str | Path, timeout: int = 60) -> Path:
     tex_path = Path(tex_path).resolve()
     pdf_path = tex_path.with_suffix(".pdf")
 
@@ -201,3 +201,12 @@ async def convert_latex_to_pdf(tex_path: str | Path, timeout: int = 30) -> Path:
             raise RuntimeError(f"Compilazione fallita:\n{stdout.decode()}\n{stderr.decode()}")
 
     return pdf_path
+
+
+def delete_os_file(path: str):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        log.warning(f"File {path} non trovato.")
+    except PermissionError:
+        log.error(f"Non ho i permessi per cancellare {path}")

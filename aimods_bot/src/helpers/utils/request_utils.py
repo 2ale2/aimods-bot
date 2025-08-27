@@ -1,6 +1,8 @@
 import json
+import platform as platf
 from datetime import datetime, timezone
 from typing import Optional, Literal, AsyncIterator, Iterable, Text
+from pathlib import Path
 
 from telegram.ext import ContextTypes
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
@@ -9,7 +11,7 @@ from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, 
     WindowsCategory, IOSCategory, MacOSCategory
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file
+from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 log = logger.getChild("request_utils")
@@ -225,6 +227,13 @@ async def get_request_details(request: RequestData):
     return text
 
 
+async def generate_user_archive_requests_pdf_file(requests: list[RequestData], input_path: str) -> str:
+    input_path = str(Path(input_path).with_suffix(".tex"))
+    tex_p = await generate_user_archive_requests_latex_file(requests=requests, out_path=input_path)
+    pdf_p = await convert_latex_to_pdf(tex_path=tex_p)
+    return pdf_p
+
+
 async def generate_user_archive_requests_latex_file(requests: list[RequestData], out_path: str) -> str:
     p = await create_latex_file(out_path, iter_archive_tex(requests))
     return str(p)
@@ -241,73 +250,80 @@ def render_request_latex_item(r: RequestData) -> str:
     lines = [rf"\item\begin{{minipage}}[t]{{\linewidth}}\raggedright"]
 
     PLATFORM_LATEX_EMOJIS = {
-        Platform.ANDROID: "robot",
-        Platform.WINDOWS: "laptop",
-        Platform.IOS: "green-apple",
-        Platform.MACOS: "desktop-computer"
+        "android": "robot",
+        "windows": "laptop",
+        "ios": "green-apple",
+        "macos": "desktop-computer"
     }
 
     STATUS_COLORS = {
-        RequestStatus.PENDING: "orange",
-        RequestStatus.EXAMINING: "blue",
-        RequestStatus.TESTING: "teal",
-        RequestStatus.COMPLETED: "green!60!black",
-        RequestStatus.REJECTED: "red",
-        RequestStatus.CANCELLED: "gray"
+        "pending": "orange",
+        "examining": "linkblue",
+        "testing": "teal",
+        "completed": "green!60!black",
+        "rejected": "red",
+        "cancelled": "statusgrey"
     }
 
     STATUS_LATEX_EMOJIS = {
-        RequestStatus.PENDING: "hour-glass-not-done",
-        RequestStatus.EXAMINING: "magnifying-glass-tilted-left",
-        RequestStatus.TESTING: "test-tube",
-        RequestStatus.COMPLETED: "check-mark-button",
-        RequestStatus.REJECTED: "cross-mark",
-        RequestStatus.CANCELLED: "wastebasket"
+        "pending": "hourglass-not-done",
+        "examining": "magnifying-glass-tilted-right",
+        "testing": "test-tube",
+        "completed": "check-mark-button",
+        "rejected": "cross-mark",
+        "cancelled": "wastebasket"
     }
 
-    if r.id:
-        lines.append(rf"\textbf{{ID}} – {tex_escape(r.name)} \\")
+    if r.name:
+        lines.append(rf"\underline{{\textbf{{Nome}}}} – {tex_escape(r.name)} \\")
     if r.platform:
-        icon = PLATFORM_LATEX_EMOJIS[r.platform]
-        label = PLATFORM_DETAILS[r.platform]['label']
-        lines.append(rf"\textbf{{Piattaforma}} – \emoji{{{icon}}} {tex_escape(label)} \\")
+        icon = PLATFORM_LATEX_EMOJIS[r.platform.value]
+        label = PLATFORM_DETAILS[r.platform.value]['label']
+        lines.append(rf"\textbf{{Piattaforma}} – \emoji{{{icon}}} \textit{{{tex_escape(label)}}} \\")
     if r.link:
-        lines.append(rf"\textbf{{Link}} – {tex_escape(r.link)} \\")
+        lines.append(rf"\textbf{{Link}} – \href{{{r.link}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}} \\")
     if r.version:
         lines.append(rf"\textbf{{Versione}} – \texttt{{{r.version}}} \\")
     if r.functionalities:
         lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
     if r.issued_at:
-        s = format_time_as_rome(until=r.issued_at)
+        s = format_time_as_rome(until=r.issued_at).replace("<b>", "").replace("</b>", "")
         lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
     if r.status:
-        icon = STATUS_LATEX_EMOJIS[r.status]['icon']
+        icon = STATUS_LATEX_EMOJIS[r.status.value]
         label = REQUEST_STATUS_DETAILS[r.status.value]['label']
-        color = STATUS_COLORS[r.status]
-        lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{tex_escape(label)} \\")
+        color = STATUS_COLORS[r.status.value]
+        lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
 
     lines.append(rf"\end{{minipage}}")
-    return lines
+    return """ """.join(lines)
 
 
 def render_requests_latex_header() -> str:
-    return r"""\documentclass[a4paper,12pt]{article}
-    \usepackage{fontspec}      % LuaLaTeX
-    \usepackage{emoji}
-    \setemojifont{Noto Color Emoji}
-    \usepackage{multicol}
-    \usepackage{enumitem}
-    \usepackage{xcolor}
-    \usepackage{url}
-    \usepackage[hidelinks]{hyperref}
+    s = platf.system()
+    if s == "Windows":
+        font = "Segoe UI Emoji"
+    else:
+        font = "Noto Color Emoji"
+    return fr"""\documentclass[a4paper,12pt]{{article}}
+    \usepackage{{fontspec}}
+    \usepackage{{emoji}}
+    \setemojifont{{{font}}}
+    \usepackage{{multicol}}
+    \usepackage{{enumitem}}
+    \usepackage{{xcolor}}
+    \usepackage{{url}}
+    \usepackage[hidelinks]{{hyperref}}
     \Urlmuskip=0mu plus 1mu\relax
+    \definecolor{{linkblue}}{{HTML}}{{1F63D1}}
+    \definecolor{{statusgrey}}{{HTML}}{{383A3D}}
 
-    \begin{document}
-    \section*{\emoji{closed-book} Archivio Richieste}
-    \emoji{small-blue-diamond} Ecco le richieste che hai formulato in passato in ordine cronologico.
+    \begin{{document}}
+    \section*{{\emoji{{closed-book}} Archivio Richieste}}
+    \emoji{{small-blue-diamond}} Ecco le richieste che hai formulato in passato in ordine cronologico.
 
-    \begin{multicols}{2}
-    \begin{enumerate}[leftmargin=0.5cm]
+    \begin{{multicols}}{{2}}
+    \begin{{enumerate}}[leftmargin=0.5cm]
     """  # noqa: E501
 
 

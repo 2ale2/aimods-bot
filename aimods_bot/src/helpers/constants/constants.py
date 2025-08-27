@@ -124,7 +124,7 @@ REQUEST_STATUS_DETAILS = {
         "label": "In Attesa",
         "icon": "⏳"
     },
-    "enxamining": {
+    "examining": {
         "label": "In Esame",
         "icon": "🟡"
     },
