@@ -1,11 +1,14 @@
+import json
 from datetime import datetime, timezone
 from typing import Optional, Literal
 
 from telegram.ext import ContextTypes
+from unicodedata import category
 
-from aimods_bot.src.core.exceptions import MissingParameterException
+from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS
-from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData
+from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, Category, AndroidCategory, \
+    WindowsCategory, IOSCategory, MacOSCategory
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
@@ -72,6 +75,73 @@ async def can_request_be_cancelled(
     return True
 
 
+async def get_user_requests_archive(user_id: int) -> list[dict]:
+    """Interroga il db per ottenere le richieste formulate da un certo utente."""
+    query = """SELECT * FROM requests WHERE user_id = $1 ORDER BY id"""
+    response = await fetch_query(query=query, params=(user_id,))
+    return [dict(r) for r in response]
+
+
+async def request_data_from_record(request: dict) -> RequestData:
+    query = """SELECT column_name 
+               FROM information_schema.columns 
+               WHERE columns.table_schema = 'public' AND table_name = 'requests';"""
+    response = await fetch_query(query=query)
+
+    if not response:
+        raise DatabaseBotException("Errore nel fatch delle colonne dalla tabella 'requests'")
+
+    response = [dict(c)['column_name'] for c in response]
+
+    if any(k not in request for k in response):
+        raise MissingParameterException("La struttura del dizionario non corrisponde alla struttura del DB nella "
+                                        "tabella delle richieste.")
+
+    categories = {
+        "android": AndroidCategory,
+        "windows": WindowsCategory,
+        "ios": IOSCategory,
+        "macos": MacOSCategory
+    }
+
+    raw_id = str(request["id"])
+    raw_platform = request["platform"]
+    raw_category = request["category"]
+    user_id = request["user_id"]
+    raw_status = request["status"]
+    issued_at = request["issued_at"]
+    raw_content = request["content"]
+
+    platform = Platform(raw_platform) if raw_platform else None
+    category = categories[raw_platform](raw_category) if raw_category and raw_platform else None
+    # noinspection PyArgumentList
+    status = RequestStatus(raw_status) if raw_status else None
+    content = json.loads(raw_content) if raw_content else None
+    name = link = version = functionalities = steamtools = None
+    if content:
+        name = content.get("name", None)
+        link = content.get("link", None)
+        version = content.get("version", None)
+        functionalities = content.get("functionalities", None)
+        steamtools = content.get("steamtools", None)
+
+    return RequestData(
+        id=raw_id,
+        platform=platform,
+        category=category,
+        user_id=user_id,
+        status=status,
+        issued_at=issued_at,
+        name=name,
+        link=link,
+        version=version,
+        functionalities=functionalities,
+        steamtools=steamtools,
+        requesting=None,
+        editing=None
+    )
+
+
 async def get_user_cancellable_requests(context: ContextTypes.DEFAULT_TYPE) -> dict[int, RequestData]:
     """Ritorna le richieste attive cancellabili"""
     user_requests = context.user_data["active_requests"]
@@ -132,6 +202,11 @@ async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: str, statu
 
 async def get_request_details(request: RequestData):
     text = f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
+    if request.platform:
+        item = PLATFORM_DETAILS[request.platform.value]
+        label = item['label']
+        icon = item['icon']
+        text += f"     🔸️ <u>Piattaforma</u> – {icon} <i>{label}</i>\n"
     if request.link:
         text += f"     🔸 <u>Link</u> – <a href=\"{request.link}\">🔗 Link</a>\n"
     if request.version:
@@ -146,6 +221,6 @@ async def get_request_details(request: RequestData):
     if request.status:
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']
         icon = REQUEST_STATUS_DETAILS[request.status.value]['icon']
-        text += f"\n<b><u>Status</u></b> – {icon} <i>{label}</i>"
+        text += f"\n     <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
 
     return text

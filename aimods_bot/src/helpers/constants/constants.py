@@ -1,5 +1,4 @@
 import re
-from typing import Literal
 
 from aimods_bot.src.helpers.constants.models import DisplayItem
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json

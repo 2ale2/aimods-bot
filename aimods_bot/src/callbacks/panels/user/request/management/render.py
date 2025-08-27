@@ -7,7 +7,8 @@ from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details, get_request_by_id,
-                                                        get_user_cancellable_requests, can_request_be_cancelled)
+                                                        get_user_cancellable_requests, can_request_be_cancelled,
+                                                        get_user_requests_archive, request_data_from_record)
 
 
 async def render_user_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -233,6 +234,44 @@ async def _get_confirm_cancel_text(request: RequestData) -> str:
     text += details_text
     text += "\n\n🔹 Confermi di voler <b>cancellare</b> questa richesta?"
 
+    return text
+
+
+async def render_user_request_archive_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = await _get_user_request_archive_text(user_id=update.effective_user.id)
+
+    user_request_archive_panel = Panel(
+        PanelConfig(
+            base_path="user/manage_requests/view_requests/requests_archive",
+            text=text,
+            keyboard=[
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await user_request_archive_panel.render(update=update, context=context)
+
+
+async def _get_user_request_archive_text(user_id: int):
+    text = "📕 <b>Archivio Richieste</b>\n\n"
+    requests = await get_user_requests_archive(user_id=user_id)
+
+    if len(requests) == 0:
+        text += "ℹ️ Non hai formulato alcuna richiesta in passato."
+        return text
+
+    text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico\n\n"
+
+    for n, el in enumerate(requests):
+        request_data = await request_data_from_record(request=el)
+        text += f"{n}.\n"
+        text += await get_request_details(request=request_data)
+        text += "\n"
+
+    text += ("\n🚧 Per limiti di Telegram, il formatting HTML avviene solo per 100 entità "
+             "scelte casualmente all'interno del messaggio. Se hai fatto tante richieste in passato, "
+             "è possibile che queste non vengano formattate correttamente.")
     return text
 
 

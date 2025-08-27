@@ -226,6 +226,7 @@ def _parse_category(value: str, platform: Platform) -> Category:
 
 @dataclass
 class RequestData:
+    id: Optional[str] = None
     platform: Optional[Platform] = None
     category: Optional[Category] = None
     user_id: Optional[int] = None
@@ -242,6 +243,8 @@ class RequestData:
     def to_dict(self) -> RequestDataDict:
         """Serializza in un RequestDataDict per poter essere messo nella persistenza."""
         result: RequestDataDict = {}
+        if self.id is not None:
+            result["id"] = self.id
         if self.platform is not None:
             result["platform"] = cast(PlatformStr, self.platform.value)
         if self.category is not None:
@@ -274,6 +277,7 @@ class RequestData:
 
     @classmethod
     def from_dict(cls, data: RequestDataDict) -> RequestData:
+        raw_id = data.get("id", None)
         raw_platform = data.get("platform", None)
         raw_category = data.get("category", None)
         raw_user_id = data.get("user_id", None)
@@ -295,6 +299,7 @@ class RequestData:
         editing = RequestField(raw_editing) if raw_editing else None
 
         return cls(
+            id=raw_id,
             platform=platform,
             category=category,
             user_id=raw_user_id,
@@ -326,7 +331,8 @@ class RequestData:
         return self.platform
 
 
-class RequestDataDict(TypedDict):
+class RequestDataDict(TypedDict, total=False):
+    id: str
     platform: PlatformStr
     category: WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr
     user_id: int

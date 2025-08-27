@@ -5,6 +5,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode, MessageEntityType
 from telegram.ext import ContextTypes, ConversationHandler
 
+from aimods_bot.src.core.persistence import PostgresPersistence
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
@@ -295,6 +296,9 @@ class RequestDataManager:
 
         context.user_data["active_requests"][ix] = request_dict
         context.bot_data["active_requests"][ix] = request_dict
+
+        await context.application.persistence.update_bot_data(data=context.bot_data)
+        await context.application.persistence.update_user_data(user_id=uid, data=context.user_data)
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
 
