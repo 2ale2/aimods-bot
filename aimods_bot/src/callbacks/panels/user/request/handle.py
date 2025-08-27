@@ -578,7 +578,7 @@ class InputHandler:
         data = InputHandler._extract_data(update, detail)
 
         RequestDataManager.update_field(context=context, field=detail.value, value=data)
-        log.debug(f"Handled input for {detail}: {data}")
+        log.info(f"Handled input for {detail}: {data}")
 
     @staticmethod
     def _extract_data(update: Update, detail: str):

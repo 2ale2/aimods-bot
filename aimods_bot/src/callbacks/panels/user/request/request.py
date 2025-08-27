@@ -78,6 +78,7 @@ async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def edit_request_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """L'utente ha chiesto di modificare un dettaglio della propria richiesta."""
     if update.callback_query:
+        await update.callback_query.answer()
         data = update.callback_query.data
         if data in ("steamtools_yes", "steamtools_no"):
             RequestDataManager.update_field(context=context, field="editing", value=RequestField.STEAMTOOLS)
