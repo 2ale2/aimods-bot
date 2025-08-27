@@ -1,16 +1,15 @@
 import json
 from datetime import datetime, timezone
-from typing import Optional, Literal
+from typing import Optional, Literal, AsyncIterator, Iterable, Text
 
 from telegram.ext import ContextTypes
-from unicodedata import category
-
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS
-from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, Category, AndroidCategory, \
+from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, AndroidCategory, \
     WindowsCategory, IOSCategory, MacOSCategory
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 log = logger.getChild("request_utils")
@@ -224,3 +223,96 @@ async def get_request_details(request: RequestData):
         text += f"\n     <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
 
     return text
+
+
+async def generate_user_archive_requests_latex_file(requests: list[RequestData], out_path: str) -> str:
+    p = await create_latex_file(out_path, iter_archive_tex(requests))
+    return str(p)
+
+
+async def iter_archive_tex(requests: Iterable[RequestData]) -> AsyncIterator[Text]:
+    yield render_requests_latex_header()
+    for r in requests:
+        yield render_request_latex_item(r)
+    yield render_requests_latex_footer()
+
+
+def render_request_latex_item(r: RequestData) -> str:
+    lines = [rf"\item\begin{{minipage}}[t]{{\linewidth}}\raggedright"]
+
+    PLATFORM_LATEX_EMOJIS = {
+        Platform.ANDROID: "robot",
+        Platform.WINDOWS: "laptop",
+        Platform.IOS: "green-apple",
+        Platform.MACOS: "desktop-computer"
+    }
+
+    STATUS_COLORS = {
+        RequestStatus.PENDING: "orange",
+        RequestStatus.EXAMINING: "blue",
+        RequestStatus.TESTING: "teal",
+        RequestStatus.COMPLETED: "green!60!black",
+        RequestStatus.REJECTED: "red",
+        RequestStatus.CANCELLED: "gray"
+    }
+
+    STATUS_LATEX_EMOJIS = {
+        RequestStatus.PENDING: "hour-glass-not-done",
+        RequestStatus.EXAMINING: "magnifying-glass-tilted-left",
+        RequestStatus.TESTING: "test-tube",
+        RequestStatus.COMPLETED: "check-mark-button",
+        RequestStatus.REJECTED: "cross-mark",
+        RequestStatus.CANCELLED: "wastebasket"
+    }
+
+    if r.id:
+        lines.append(rf"\textbf{{ID}} – {tex_escape(r.name)} \\")
+    if r.platform:
+        icon = PLATFORM_LATEX_EMOJIS[r.platform]
+        label = PLATFORM_DETAILS[r.platform]['label']
+        lines.append(rf"\textbf{{Piattaforma}} – \emoji{{{icon}}} {tex_escape(label)} \\")
+    if r.link:
+        lines.append(rf"\textbf{{Link}} – {tex_escape(r.link)} \\")
+    if r.version:
+        lines.append(rf"\textbf{{Versione}} – \texttt{{{r.version}}} \\")
+    if r.functionalities:
+        lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
+    if r.issued_at:
+        s = format_time_as_rome(until=r.issued_at)
+        lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
+    if r.status:
+        icon = STATUS_LATEX_EMOJIS[r.status]['icon']
+        label = REQUEST_STATUS_DETAILS[r.status.value]['label']
+        color = STATUS_COLORS[r.status]
+        lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{tex_escape(label)} \\")
+
+    lines.append(rf"\end{{minipage}}")
+    return lines
+
+
+def render_requests_latex_header() -> str:
+    return r"""\documentclass[a4paper,12pt]{article}
+    \usepackage{fontspec}      % LuaLaTeX
+    \usepackage{emoji}
+    \setemojifont{Noto Color Emoji}
+    \usepackage{multicol}
+    \usepackage{enumitem}
+    \usepackage{xcolor}
+    \usepackage{url}
+    \usepackage[hidelinks]{hyperref}
+    \Urlmuskip=0mu plus 1mu\relax
+
+    \begin{document}
+    \section*{\emoji{closed-book} Archivio Richieste}
+    \emoji{small-blue-diamond} Ecco le richieste che hai formulato in passato in ordine cronologico.
+
+    \begin{multicols}{2}
+    \begin{enumerate}[leftmargin=0.5cm]
+    """  # noqa: E501
+
+
+def render_requests_latex_footer() -> str:
+    return r"""\end{enumerate}
+\end{multicols}
+\end{document}
+"""

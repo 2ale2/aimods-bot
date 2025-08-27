@@ -263,15 +263,8 @@ async def _get_user_request_archive_text(user_id: int):
 
     text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico\n\n"
 
-    for n, el in enumerate(requests):
-        request_data = await request_data_from_record(request=el)
-        text += f"{n}.\n"
-        text += await get_request_details(request=request_data)
-        text += "\n"
+    requests = [await request_data_from_record(request=el) for el in requests]
 
-    text += ("\n🚧 Per limiti di Telegram, il formatting HTML avviene solo per 100 entità "
-             "scelte casualmente all'interno del messaggio. Se hai fatto tante richieste in passato, "
-             "è possibile che queste non vengano formattate correttamente.")
     return text
 
 

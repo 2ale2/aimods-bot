@@ -2,13 +2,18 @@ import copy
 import json
 import mimetypes
 import os
-from typing import Any, List, Literal, Union, Tuple, Optional
+import aiofiles
+import asyncio
+from pathlib import Path
+from typing import Any, List, Literal, Union, Tuple, Optional, AsyncIterator
 
 from telegram import InputMedia, InputMediaDocument
 
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.constants.models import MediaItem
 from aimods_bot.src.helpers.loggers import logger
+
+SEM = asyncio.Semaphore(2)
 
 log = logger.getChild("file_utils")
 
@@ -87,7 +92,6 @@ def set_data_in_json(key: Union[str, List[str]], value: Any, file_path: str = "a
         return False
 
 
-# noinspection PyTypeChecker
 def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", "audio", "video", "gif"]:
     if isinstance(file, InputMedia):
         t = file.type.lower() if file.type.lower() in ("photo", "audio", "video", "gif") else "document"
@@ -147,3 +151,53 @@ async def make_temp_file(content: Any, filename: str) -> Optional[str]:
             return None
 
     # altri tipi
+
+
+async def create_latex_file(path: str, chunks: AsyncIterator[str]) -> Path:
+    p = Path(path)
+    async with aiofiles.open(p, "w", encoding="utf-8") as f:
+        async for chunk in chunks:
+            await f.write(chunk)
+    return p
+
+
+def tex_escape(s: str) -> str:
+    _LATEX_ESC = {
+        "\\": r"\textbackslash{}",
+        "{": r"\{", "}": r"\}",
+        "#": r"\#", "$": r"\$", "%": r"\%",
+        "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(_LATEX_ESC.get(ch, ch) for ch in s)
+
+
+async def convert_latex_to_pdf(tex_path: str | Path, timeout: int = 30) -> Path:
+    tex_path = Path(tex_path).resolve()
+    pdf_path = tex_path.with_suffix(".pdf")
+
+    cmd = [
+        "lualatex",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "-file-line-error",
+        tex_path.name,
+    ]
+
+    async with SEM:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=str(tex_path.parent),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            raise RuntimeError("Compilazione LuaLaTeX timeout")
+
+        if proc.returncode != 0:
+            raise RuntimeError(f"Compilazione fallita:\n{stdout.decode()}\n{stderr.decode()}")
+
+    return pdf_path
