@@ -5,7 +5,6 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode, MessageEntityType
 from telegram.ext import ContextTypes, ConversationHandler
 
-from aimods_bot.src.core.persistence import PostgresPersistence
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
@@ -194,13 +193,12 @@ class RequestDataManager:
 
     @staticmethod
     async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        request_data = RequestDataManager.get_request_data(context)
-
         if update.callback_query:
             data = update.callback_query.data
             if data in ("steamtools_yes", "steamtools_no"):
                 await InputHandler.handle_input(update=update, context=context)
 
+        request_data = RequestDataManager.get_request_data(context)
         text = MessageBuilder.build_request_summary(request_data=request_data)
         text += ("\n🔹 Verifica i dettagli della tua richiesta. "
                  "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"
