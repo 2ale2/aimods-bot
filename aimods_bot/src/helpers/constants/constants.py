@@ -145,3 +145,60 @@ REQUEST_STATUS_DETAILS = {
         "icon": "🗑️"
     }
 }
+
+REQUEST_DETAILS_CONFIG = {
+            "android": {
+                "app": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                }
+            },
+            "windows": {
+                "software": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "game": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
+                    'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
+                },
+                "adobe": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "daw": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'}
+                }
+            },
+            "ios": {
+                "app": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                }
+            },
+            "macos": {
+                "software": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'},
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                },
+                "daw": {
+                    'name': {'label': 'Nome', 'format': 'text'},
+                    'link': {'label': 'Link', 'format': 'link'},
+                    'version': {'label': 'Versione', 'format': 'code'}
+                }
+            }
+        }

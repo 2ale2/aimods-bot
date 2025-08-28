@@ -2,10 +2,11 @@ import json
 from typing import Dict, Any, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ParseMode, MessageEntityType
+from telegram.constants import MessageEntityType
 from telegram.ext import ContextTypes, ConversationHandler
 
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
+from aimods_bot.src.core.exceptions import MissingParameterException
+from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
     CanUserRequest, RequestField, MessageTemplate, Platform, Category, RequestStatus, RequestData
@@ -61,29 +62,34 @@ class RequestDataManager:
     @staticmethod
     def initialize_request(
             context: ContextTypes.DEFAULT_TYPE,
-            platform: Platform = None,
-            category: Category = None
-    ) -> None:
-        """Inizializza una nuova richiesta nel context"""
-        request_data = RequestData(
-            platform=platform,
-            category=category
+            platform: Optional[Platform] = None,
+            category: Optional[Category] = None
+    ):
+        """
+        (Re)inizializza una nuova richiesta nello stato della chat.
+        - È sicura da richiamare più volte (idempotente).
+        - Esegue il cleanup dello stato precedente, se presente.
+        - Resetta flag/ID di messaggi e campo in editing.
+        - Salva un timestamp di avvio richiesta.
+        """
+        chat = context.chat_data
+
+        if chat.get("new_request") is not None:
+            try:
+                RequestDataManager.cleanup_request(context=context)
+            except Exception as e:
+                log.warning("cleanup_request failed: %s", e, exc_info=e)
+
+        request_data = RequestData(platform=platform, category=category)
+        chat["new_request"] = request_data.to_dict()
+
+        log.info(
+            "Initialized new request",
+            extra={
+                "platform": getattr(platform, "value", None),
+                "category": getattr(category, "value", None),
+            },
         )
-
-        if "new_request" in context.chat_data:
-            RequestDataManager.cleanup_request(context=context)
-
-        context.chat_data["new_request"] = request_data.to_dict()
-
-        if platform:
-            if category:
-                log_text = f"Initialized new request for platform (category): {platform.value} ({category.value})"
-            else:
-                log_text = f"Initialized new request for platform ({platform.value})"
-        else:
-            log_text = f"Initialized new empty request"
-
-        log.info(log_text)
 
     @staticmethod
     async def request_detail(
@@ -119,7 +125,7 @@ class RequestDataManager:
             steamtools_keyboard=(detail == RequestField.STEAMTOOLS)
         )
 
-        await edit_message_safely(
+        context.chat_data["bot_message_id"] = await edit_message_safely(
             context=context,
             message_id=context.chat_data["bot_message_id"],
             chat_id=update.effective_message.chat_id,
@@ -132,6 +138,9 @@ class RequestDataManager:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE
     ):
+        if not update.callback_query:
+            raise MissingParameterException("Manca la callback query in questo Update")
+
         await update.callback_query.answer()
         detail = update.callback_query.data.split("_")[1]
         request_data = RequestDataManager.get_request_data(context)
@@ -163,7 +172,7 @@ class RequestDataManager:
             callback_data="no_edit"
         )
 
-        await edit_message_safely(
+        context.chat_data["bot_message_id"] = await edit_message_safely(
             context=context,
             message_id=context.chat_data["bot_message_id"],
             chat_id=update.effective_chat.id,
@@ -207,7 +216,7 @@ class RequestDataManager:
 
         keyboard = KeyboardBuilder.get_review_keyboard(request_data=request_data)
 
-        await edit_message_safely(
+        context.chat_data["bot_message_id"] = await edit_message_safely(
             context=context,
             message_id=context.chat_data["bot_message_id"],
             chat_id=update.effective_chat.id,
@@ -234,12 +243,12 @@ class RequestDataManager:
         confirmation_text = MessageBuilder.build_confirmation_message()
         confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
 
-        await context.bot.edit_message_text(
-            chat_id=update.effective_chat.id,
+        context.chat_data["bot_message_id"] = await edit_message_safely(
+            context=context,
             message_id=context.chat_data["bot_message_id"],
+            chat_id=update.effective_chat.id,
             text=confirmation_text,
-            reply_markup=confirmation_keyboard,
-            parse_mode=ParseMode.HTML
+            keyboard=confirmation_keyboard
         )
 
         RequestDataManager.cleanup_request(context=context)
@@ -339,52 +348,78 @@ class KeyboardBuilder:
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
-    def get_review_keyboard(
-            request_data: RequestData
-    ) -> InlineKeyboardMarkup:
-        """Keyboard per la review finale della richiesta"""
+    def get_review_keyboard(request_data: RequestData) -> InlineKeyboardMarkup:
+        """
+        Tastiera per la review finale, generata in modo dichiarativo:
+        - definisce l'ordine dei campi per categoria
+        - crea pulsanti numerati automaticamente (1️⃣ 2️⃣ 3️⃣ ...)
+        - inserisce 'SteamTools' solo per i giochi, con callback di toggle
+        - aggiunge sempre '✅ Conferma' e '❌ Annulla' in fondo
+        """
         category = request_data.get_category()
+        cat = category.value if category else "software"
 
-        if category.value == "app":
-            keyboard = [
-                [
-                    InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name"),
-                    InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link")
-                ],
-                [
-                    InlineKeyboardButton(text="3️⃣ Versione", callback_data="edit_version"),
-                    InlineKeyboardButton(text="4️⃣ Funzionalità", callback_data="edit_functionalities")
-                ]
-            ]
+        # Ordine campi per categoria (dati → UI)
+        order_by_category = {
+            "app": ["name", "link", "version", "functionalities"],
+            "software": ["name", "link", "version", "functionalities"],
+            "adobe": ["name", "version", "functionalities"],
+            "daw": ["name", "link", "version"],
+            "game": ["name", "link", "version", "functionalities", "steamtools"],
+        }
 
-        else:
-            keyboard = [[InlineKeyboardButton(text="1️⃣ Nome", callback_data="edit_name")]]
+        # Etichette e callback edit per i campi "modificabili"
+        labels = {
+            "name": "Nome",
+            "link": "Link",
+            "version": "Versione",
+            "functionalities": "Funzionalità",
+            "steamtools": "SteamTools",
+        }
+        edit_callbacks = {
+            "name": "edit_name",
+            "link": "edit_link",
+            "version": "edit_version",
+            "functionalities": "edit_functionalities",
+            # 'steamtools' gestito a parte (toggle)
+        }
 
-            if category.value == "adobe":
-                keyboard[0].append(InlineKeyboardButton(text="2️⃣ Versione", callback_data="edit_version"))
-                keyboard.insert(1, [
-                    InlineKeyboardButton(text="3️⃣ Funzionalità", callback_data="edit_functionalities")
-                ])
+        def num_emoji(i: int) -> str:
+            # i parte da 1
+            digits = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
+            return digits[i] if 0 <= i < len(digits) else f"{i}."
+
+        def chunk(rows, n=2):
+            return [rows[i:i + n] for i in range(0, len(rows), n)]
+
+        fields = order_by_category.get(cat, order_by_category["software"])
+
+        # Costruzione dichiarativa dei bottoni
+        buttons = []
+        idx = 1
+        for field in fields:
+            if field == "steamtools":
+                # toggle in base allo stato corrente (None/False => proponi "Yes")
+                steamtools = bool(request_data.steamtools)
+                cb = "steamtools_no" if steamtools else "steamtools_yes"
+                buttons.append(
+                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
+                )
             else:
-                keyboard[0].insert(1, InlineKeyboardButton(text="2️⃣ Link", callback_data="edit_link"))
-                keyboard.insert(1, [InlineKeyboardButton(text="3️⃣ Versione", callback_data="edit_version")])
+                buttons.append(
+                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=edit_callbacks[field])
+                )
+            idx += 1
 
-                if category.value != "daw":
-                    keyboard[1].insert(1, InlineKeyboardButton(
-                        text="4️⃣ Funzionalità",
-                        callback_data="edit_functionalities"
-                    ))
+        keyboard_rows = [buttons] if len(buttons) <= 2 else chunk(buttons, 2)
 
-                if category.value == "game":
-                    steamtools = request_data.steamtools
-                    steamtools_data = "steamtools_yes" if not steamtools else "steamtools_no"
-                    keyboard.insert(2, [InlineKeyboardButton(text="5️⃣ SteamTools", callback_data=steamtools_data)])
-
-        keyboard.append([
+        # Riga finale fissa
+        keyboard_rows.append([
             InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
-            InlineKeyboardButton(text="❌ Annulla", callback_data="back_main")
+            InlineKeyboardButton(text="❌ Annulla", callback_data="back_main"),
         ])
-        return InlineKeyboardMarkup(keyboard)
+
+        return InlineKeyboardMarkup(keyboard_rows)
 
     @staticmethod
     def get_confirmation_keyboard() -> InlineKeyboardMarkup:
@@ -465,64 +500,7 @@ class MessageBuilder:
     @staticmethod
     def _get_field_config(platform: Platform, category: Category) -> Dict[str, Dict[str, Any]]:
         """Ottiene la configurazione dei campi basata sul tipo di richiesta"""
-        configs = {
-            "android": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "windows": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "game": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-                    'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
-                },
-                "adobe": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            },
-            "ios": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "macos": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            }
-        }
-
-        return configs[platform.value][category.value]
+        return REQUEST_DETAILS_CONFIG[platform.value][category.value]
 
     @staticmethod
     def _should_display_field(field_name: str, value: Any) -> bool:
@@ -589,6 +567,8 @@ class InputHandler:
             # noinspection PyUnboundLocalVariable
             return update.effective_message.text[entity.offset:entity.offset + entity.length]
         elif detail == RequestField.STEAMTOOLS:
+            if not update.callback_query:
+                raise MissingParameterException("Per il valore SteamTools ci deve essere una callback query.")
             return update.callback_query.data == "steamtools_yes"
         else:
             return update.effective_message.text

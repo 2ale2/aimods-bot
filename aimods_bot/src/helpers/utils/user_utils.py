@@ -1,16 +1,15 @@
 from typing import Optional, Union
-from pyrogram.enums import ChatMemberStatus as ChatMemberStatusPyro
+
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
-from telegram.constants import ChatMemberStatus as ChatMemberStatusPTB
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
-from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 
 log = logger.getChild("user_utils")
 
@@ -22,28 +21,33 @@ async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     return str(user_id) in context.bot_data["admins"].keys()
 
 
-async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def user_in_chat(user_id: int, context: ContextTypes.DEFAULT_TYPE, chat_id: int = None) -> bool:
     """
     Verifica se l'utente è attualmente nella chat.
     """
-    member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
+    if response["status"] == "failed":
+        log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
+        return None
+    member = response["member"]
+
     return member.status not in ("left", "kicked")
 
 
-async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> Optional[bool]:
+async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int, chat_id: int = None) -> Optional[bool]:
     """Verifica se l'utente è bannato (o presente in una lista ban)."""
 
     ban_list = context.bot_data.get("ban_list", {})
     if str(user_id) in ban_list:
         return True
 
-    response = await resolve_chat_member(context, user_id)
+    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
     if response["status"] == "failed":
         log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
         return None
     member = response["member"]
 
-    return member.status == ChatMemberStatusPTB.BANNED or member.status == ChatMemberStatusPyro.BANNED
+    return member.status.value == "banned"
 
 
 async def get_user_warnings(user_id: int) -> Optional[dict]:
@@ -62,7 +66,7 @@ async def get_user_warnings(user_id: int) -> Optional[dict]:
         return {}
 
     if result is None:
-        log.error(f"❌ Impossibile ottenere i warnings per user_id={user_id}")
+        log.error(f"Impossibile ottenere le ammonzioni per user_id={user_id}")
         return None
 
     return {i: result[i] for i in range(0, len(result))}

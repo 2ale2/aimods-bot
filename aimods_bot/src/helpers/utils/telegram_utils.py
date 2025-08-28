@@ -139,7 +139,11 @@ def validate_callback_structure(
     return result
 
 
-async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifier: Union[int, str]) -> Dict[str, Any]:
+async def resolve_chat_member(
+        context: ContextTypes.DEFAULT_TYPE,
+        user_identifier: Union[int, str],
+        chat_id: int = None
+) -> Dict[str, Any]:
     """Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback."""
 
     if not user_identifier:
@@ -150,7 +154,7 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
     if user_identifier == me.id:
         return me
 
-    chat_id = context.bot_data["group_chat_id"]
+    chat_id = chat_id or context.bot_data["group_chat_id"]
     user_id_str = str(user_identifier)
 
     pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)
@@ -370,6 +374,15 @@ async def edit_message_safely(
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(is_disabled=True)
         )
-    except Exception as e:
-        # Log dell'errore se necessario
-        print(f"Errore nell'aggiornamento del messaggio: {e}")
+        return message_id
+    except Exception:
+        try:
+            message = await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
+            return message.id
+        except Exception as e:
+            log.error(f"Impossibile modificare o inviare un nuovo messaggio: {e}")

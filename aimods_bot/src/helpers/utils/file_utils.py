@@ -118,6 +118,7 @@ def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", 
 async def normalize_files(
         items: List[MediaItem]
 ) -> List[Tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]]:
+    """Crea le istanze di InputMedia a partire da una lista di MediaItems"""
     output = []
 
     for el in items:
