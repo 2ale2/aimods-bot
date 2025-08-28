@@ -3,7 +3,8 @@ from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler, \
-    RequestField, can_user_request
+    RequestField
+from aimods_bot.src.helpers.utils.user_utils import can_user_request
 from aimods_bot.src.helpers.constants.models import RequestData
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
     render_user_cant_request_panel
@@ -26,7 +27,7 @@ RETURN_CONVERSATION_STATES = {
 REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
 
 
-async def request_detail(update: Update, context: CallbackContext) -> int:
+async def request_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Gestisce l'input utente se necessario e richiede il dettaglio successivo."""
     if "bot_message_id" not in context.chat_data:
         context.chat_data["bot_message_id"] = update.effective_message.id

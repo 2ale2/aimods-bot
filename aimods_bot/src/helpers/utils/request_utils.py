@@ -37,15 +37,8 @@ async def get_user_requests_by_status(
     return response
 
 
-def get_request_by_id(
-        context: ContextTypes.DEFAULT_TYPE,
-        ix: str
-):
+def get_request_by_id(context: ContextTypes.DEFAULT_TYPE, ix: str):
     request_dict = context.bot_data["active_requests"].get(ix)
-
-    if request_dict is None:
-        request_dict = context.bot_data["active_requests"].get(str(ix))
-
     return RequestData.from_dict(request_dict)
 
 
@@ -64,7 +57,7 @@ async def can_request_be_cancelled(
     if request is None:
         request = get_request_by_id(context=context, ix=ix)
         if not request:
-            raise ValueError(f"Request {ix} not found.")
+            raise ValueError(f"Richiesta {ix} non trovata.")
 
     if isinstance(request, dict):
         request = RequestData.from_dict(request)
@@ -84,6 +77,8 @@ async def get_user_requests_archive(user_id: int) -> list[dict]:
 
 
 async def request_data_from_record(request: dict) -> RequestData:
+    """Utility Function per trasformare un Record del database in un'istanza di RequestData.
+    Questa funzione si rompe se la struttura della tabella requests viene modificata."""
     query = """SELECT column_name 
                FROM information_schema.columns 
                WHERE columns.table_schema = 'public' AND table_name = 'requests';"""

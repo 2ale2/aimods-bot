@@ -9,7 +9,7 @@ from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
-    CanUserRequest, RequestField, MessageTemplate, Platform, Category, RequestStatus, RequestData
+    RequestField, MessageTemplate, Platform, Category, RequestStatus, RequestData
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -141,7 +141,12 @@ class RequestDataManager:
         if not update.callback_query:
             raise MissingParameterException("Manca la callback query in questo Update")
 
-        await update.callback_query.answer()
+        try:
+            await update.callback_query.answer()
+        except Exception as e:
+            log.warning(f"Non è stato possibile eseguire l'answer della cquery: {e}")
+
+        # Expect: "edit_<field>"
         detail = update.callback_query.data.split("_")[1]
         request_data = RequestDataManager.get_request_data(context)
         category = request_data.get_category()
@@ -208,6 +213,7 @@ class RequestDataManager:
                 await InputHandler.handle_input(update=update, context=context)
 
         request_data = RequestDataManager.get_request_data(context)
+
         text = MessageBuilder.build_request_summary(request_data=request_data)
         text += ("\n🔹 Verifica i dettagli della tua richiesta. "
                  "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"
@@ -304,9 +310,6 @@ class RequestDataManager:
         context.user_data["active_requests"][ix] = request_dict
         context.bot_data["active_requests"][ix] = request_dict
 
-        await context.application.persistence.update_bot_data(data=context.bot_data)
-        await context.application.persistence.update_user_data(user_id=uid, data=context.user_data)
-
         log.info(f"Request inserted with ID {ix} for user {uid}")
 
     @staticmethod
@@ -359,7 +362,6 @@ class KeyboardBuilder:
         category = request_data.get_category()
         cat = category.value if category else "software"
 
-        # Ordine campi per categoria (dati → UI)
         order_by_category = {
             "app": ["name", "link", "version", "functionalities"],
             "software": ["name", "link", "version", "functionalities"],
@@ -368,7 +370,6 @@ class KeyboardBuilder:
             "game": ["name", "link", "version", "functionalities", "steamtools"],
         }
 
-        # Etichette e callback edit per i campi "modificabili"
         labels = {
             "name": "Nome",
             "link": "Link",
@@ -376,16 +377,15 @@ class KeyboardBuilder:
             "functionalities": "Funzionalità",
             "steamtools": "SteamTools",
         }
+
         edit_callbacks = {
             "name": "edit_name",
             "link": "edit_link",
             "version": "edit_version",
-            "functionalities": "edit_functionalities",
-            # 'steamtools' gestito a parte (toggle)
+            "functionalities": "edit_functionalities"
         }
 
         def num_emoji(i: int) -> str:
-            # i parte da 1
             digits = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
             return digits[i] if 0 <= i < len(digits) else f"{i}."
 
@@ -394,12 +394,10 @@ class KeyboardBuilder:
 
         fields = order_by_category.get(cat, order_by_category["software"])
 
-        # Costruzione dichiarativa dei bottoni
         buttons = []
         idx = 1
         for field in fields:
             if field == "steamtools":
-                # toggle in base allo stato corrente (None/False => proponi "Yes")
                 steamtools = bool(request_data.steamtools)
                 cb = "steamtools_no" if steamtools else "steamtools_yes"
                 buttons.append(
@@ -413,7 +411,6 @@ class KeyboardBuilder:
 
         keyboard_rows = [buttons] if len(buttons) <= 2 else chunk(buttons, 2)
 
-        # Riga finale fissa
         keyboard_rows.append([
             InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
             InlineKeyboardButton(text="❌ Annulla", callback_data="back_main"),
@@ -545,6 +542,8 @@ class InputHandler:
         """Gestisce l'input dell'utente per i diversi campi"""
         if not update.callback_query:
             await safe_delete(update, context)
+        else:
+            await update.callback_query.answer()
 
         request_data = RequestDataManager.get_request_data(context)
         detail = request_data.editing or request_data.requesting
@@ -572,11 +571,3 @@ class InputHandler:
             return update.callback_query.data == "steamtools_yes"
         else:
             return update.effective_message.text
-
-
-async def can_user_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> CanUserRequest:
-    """Verifica se l'utente può fare richieste, per limiti di moderazione o imposti dalla gestione."""
-    return CanUserRequest(
-        yn=True,
-        reason=None
-    )

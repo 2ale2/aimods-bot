@@ -1,9 +1,10 @@
 from typing import Optional, Union
 
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
-from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
+from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, Update
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.helpers.constants.models import CanUserRequest
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
@@ -142,3 +143,11 @@ async def get_member_permissions(
             actual_permissions = get_ptb_permissions(True)
 
     return actual_permissions
+
+
+async def can_user_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> CanUserRequest:
+    """Verifica se l'utente può fare richieste, per limiti di moderazione o imposti dalla gestione."""
+    return CanUserRequest(
+        yn=True,
+        reason=None
+    )
