@@ -26,7 +26,7 @@ async def get_panel(update: Update, admin: bool):
                         ButtonItem(text="⚙ Impostazioni", callback_key="settings")
                     ],
                     [
-                        ButtonItem(text="❔ Gestione Richieste", callback_key="requests"),
+                        ButtonItem(text="❔ Gestione Richieste", callback_key="manage_requests"),
                         ButtonItem(text="🔐 Chiudi", callback_key="close_menu")
                     ]
                 ],
