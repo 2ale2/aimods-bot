@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_router
+from aimods_bot.src.callbacks.panels.admin.requests_management.route import admin_requests_management_route
 
 
 async def admin_main_router(update: Update, context: CallbackContext):
@@ -20,7 +21,7 @@ async def admin_main_router(update: Update, context: CallbackContext):
             case "settings":
                 pass
             case "manage_requests":
-                pass
+                return await admin_requests_management_route(update=update, context=context, path=s[1:])
             case "close":
                 pass
     finally:

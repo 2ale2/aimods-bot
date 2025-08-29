@@ -8,13 +8,23 @@ from telegram.ext import ContextTypes
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS
 from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, AndroidCategory, \
-    WindowsCategory, IOSCategory, MacOSCategory
+    WindowsCategory, IOSCategory, MacOSCategory, Category
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 log = logger.getChild("request_utils")
+
+
+def get_platform_categories(platform: Platform):
+    categories = {
+        Platform.ANDROID: AndroidCategory,
+        Platform.WINDOWS: WindowsCategory,
+        Platform.IOS: IOSCategory,
+        Platform.MACOS: MacOSCategory
+    }
+    return categories[platform]
 
 
 async def get_user_requests_by_status(
@@ -39,6 +49,7 @@ async def get_user_requests_by_status(
 
 def get_request_by_id(context: ContextTypes.DEFAULT_TYPE, ix: str):
     request_dict = context.bot_data["active_requests"].get(ix)
+    request_dict["id"] = ix
     return RequestData.from_dict(request_dict)
 
 
@@ -151,7 +162,7 @@ async def get_user_cancellable_requests(context: ContextTypes.DEFAULT_TYPE) -> d
     return cancellable_requests
 
 
-async def get_requests_summary(requests: dict[int, RequestData]) -> str:
+def get_requests_summary(requests: dict[str, RequestData]) -> str:
     text = ""
 
     for n, el in enumerate(requests):
@@ -196,8 +207,16 @@ async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: str, statu
         log.info(f"Updated request {ix} status to '{status.value}'")
 
 
-async def get_request_details(request: RequestData):
-    text = f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
+async def get_request_details(request: RequestData, admin: bool = False):
+    text = ""
+    if admin:
+        if request.id:
+            text += f"      #️⃣ <u>ID</u> – <code>{request.id}</code>\n"
+        if request.user_id:
+            text += f"      👤 <u>User ID</u> – <code>#{request.user_id}</code>\n"
+        text += "\n"
+
+    text += f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
     if request.platform:
         item = PLATFORM_DETAILS[request.platform.value]
         label = item['label']
@@ -217,9 +236,23 @@ async def get_request_details(request: RequestData):
     if request.status:
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']
         icon = REQUEST_STATUS_DETAILS[request.status.value]['icon']
-        text += f"\n     <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
+        text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
 
     return text
+
+
+def get_active_category_requests(
+        context: ContextTypes.DEFAULT_TYPE,
+        platform: Platform,
+        category: Category
+):
+    requests = {}
+    active = context.bot_data["active_requests"]
+    for el in active:
+        request = active[el]
+        if request.get("platform") == platform.value and request.get("category") == category.value:
+            requests[el] = RequestData.from_dict(data=request)
+    return requests
 
 
 async def generate_user_archive_requests_pdf_file(requests: list[RequestData], input_path: str) -> str:

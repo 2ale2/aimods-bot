@@ -126,19 +126,19 @@ REQUEST_STATUS_DETAILS = {
     },
     "examining": {
         "label": "In Esame",
-        "icon": "🟡"
+        "icon": "🔎"
     },
     "testing": {
         "label": "In Test",
-        "icon": "🔵"
+        "icon": "🧪"
     },
     "completed": {
         "label": "Completata",
-        "icon": "🟢"
+        "icon": "✅"
     },
     "rejected": {
         "label": "Rifiutata",
-        "icon": "🔴"
+        "icon": "❌"
     },
     "cancelled": {
         "label": "Cancellata",

@@ -51,7 +51,7 @@ async def render_active_request_panel(
         context: ContextTypes.DEFAULT_TYPE
 ):
     active_requests = context.user_data["active_requests"]
-    text = await _get_active_request_panel_text(requests=active_requests)
+    text = _get_active_request_panel_text(requests=active_requests)
 
     keyboard = []
 
@@ -74,7 +74,7 @@ async def render_active_request_panel(
     await user_request_panel.render(update=update, context=context)
 
 
-async def _get_active_request_panel_text(requests: dict[int, RequestData]) -> str:
+def _get_active_request_panel_text(requests: dict[int, RequestData]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
     if len(requests) == 0:
@@ -83,7 +83,7 @@ async def _get_active_request_panel_text(requests: dict[int, RequestData]) -> st
 
     text += "\n\n▫️ Ecco le <b>richieste attive</b>.\n\n"
 
-    text += await get_requests_summary(requests=requests)
+    text += get_requests_summary(requests=requests)
 
     text += "\n🔹 Scegli un'opzione."
 
@@ -131,7 +131,7 @@ async def _get_user_request_action_panel_text(
             text += "\n\nℹ️ Non hai richieste da visionare.\n\n"
             return text
 
-    summary = await get_requests_summary(requests=requests)
+    summary = get_requests_summary(requests=requests)
 
     text += "\n\n" + summary
 
