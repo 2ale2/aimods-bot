@@ -19,7 +19,7 @@ async def connect_to_database() -> Connection:
             ssl=False
         )
     except Exception as e:
-        raise DatabaseBotException("Errore connessione al database.") from e
+        raise DatabaseBotException(f"Errore connessione al database: {e}")
 
 
 async def revoke_last_action(table: str, user_id: int) -> Union[dict, bool, None]:
