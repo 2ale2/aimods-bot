@@ -1,7 +1,7 @@
 import json
 import platform as platf
 from datetime import datetime, timezone
-from typing import Optional, Literal, AsyncIterator, Iterable, Text
+from typing import Optional, Literal, AsyncIterator, Iterable, Text, Dict
 from pathlib import Path
 
 from telegram.ext import ContextTypes
@@ -36,11 +36,11 @@ async def get_user_requests_by_status(
                FROM requests 
                WHERE user_id = $1 
                  AND status = $2"""
-    params = (user_id, status.value)
+    params = [user_id, status.value]
 
     if platform:
         query += f" AND platform = $3"
-        params = params + (platform,)
+        params = params.append(platform)
 
     response = await fetch_query(query=query, params=params)
 
@@ -59,7 +59,7 @@ def create_empty_request_user_data(context: ContextTypes.DEFAULT_TYPE):
 
 async def can_request_be_cancelled(
         context: ContextTypes.DEFAULT_TYPE,
-        ix: Optional[int] = None,
+        ix: Optional[str] = None,
         request: Optional[RequestData] = None
 ):
     if ix is None and request is None:
@@ -83,7 +83,7 @@ async def can_request_be_cancelled(
 async def get_user_requests_archive(user_id: int) -> list[dict]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
     query = """SELECT * FROM requests WHERE user_id = $1 ORDER BY id"""
-    response = await fetch_query(query=query, params=(user_id,))
+    response = await fetch_query(query=query, params=[user_id])
     return [dict(r) for r in response]
 
 
@@ -96,7 +96,7 @@ async def request_data_from_record(request: dict) -> RequestData:
     response = await fetch_query(query=query)
 
     if not response:
-        raise DatabaseBotException("Errore nel fatch delle colonne dalla tabella 'requests'")
+        raise DatabaseBotException("Errore nel fetch delle colonne dalla tabella 'requests'")
 
     response = [dict(c)['column_name'] for c in response]
 
@@ -169,7 +169,7 @@ def get_requests_summary(requests: dict[str, RequestData]) -> str:
         request = requests[el]
         
         if isinstance(request, dict):
-            request = RequestData.from_dict(data=request)            
+            request = RequestData.from_dict(data=request)
 
         status = request.status.value
         status_icon = REQUEST_STATUS_DETAILS[status]['icon']
@@ -186,25 +186,29 @@ def get_requests_summary(requests: dict[str, RequestData]) -> str:
 
 
 async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: str, status: RequestStatus):
-    user_requests = context.user_data["active_requests"]
-    bot_requests = context.bot_data["active_requests"]
+    value = status.value
 
-    if status == RequestStatus.CANCELLED:
+    bot_requests = context.bot_data["active_requests"]
+    user_id = bot_requests[ix]["user_id"]
+    user_data = dict(context.application.user_data[user_id])
+    user_requests = user_data["active_requests"]
+
+    if status is RequestStatus.CANCELLED:
         user_requests.pop(ix, None)
         bot_requests.pop(ix, None)
     else:
-        user_requests[ix].status = status
-        bot_requests[ix].status = status
-        context.user_data["active_requests"] = user_requests
+        user_requests[ix]["status"] = value
+        bot_requests[ix]["status"] = value
+        user_data["active_requests"] = user_requests
         context.bot_data["active_requests"] = bot_requests
 
     query = """UPDATE requests SET status = $1 WHERE id = $2"""
 
-    res = await execute_query(query=query, params=(status.value, int(ix)))
+    res = await execute_query(query=query, params=[value, int(ix)])
     if not res:
-        log.error(f"Failed to update request {ix} status to '{status.value}'")
+        log.error(f"Failed to update request {ix} status to '{value}'")
     else:
-        log.info(f"Updated request {ix} status to '{status.value}'")
+        log.info(f"Updated request {ix} status to '{value}'")
 
 
 async def get_request_details(request: RequestData, admin: bool = False):
@@ -245,7 +249,7 @@ def get_active_category_requests(
         context: ContextTypes.DEFAULT_TYPE,
         platform: Platform,
         category: Category
-):
+) -> Dict[str, RequestData]:
     requests = {}
     active = context.bot_data["active_requests"]
     for el in active:
@@ -259,7 +263,7 @@ async def generate_user_archive_requests_pdf_file(requests: list[RequestData], i
     input_path = str(Path(input_path).with_suffix(".tex"))
     tex_p = await generate_user_archive_requests_latex_file(requests=requests, out_path=input_path)
     pdf_p = await convert_latex_to_pdf(tex_path=tex_p)
-    return pdf_p
+    return str(pdf_p)
 
 
 async def generate_user_archive_requests_latex_file(requests: list[RequestData], out_path: str) -> str:

@@ -3,10 +3,11 @@ from telegram.ext import ContextTypes
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
-    render_admin_active_requests_category_panel, render_admin_manage_request_panel
+    render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
+    render_change_request_status_confirmation_panel, render_request_status_changed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.models import Platform
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_request_by_id
+from aimods_bot.src.helpers.constants.models import Platform, RequestStatus
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_request_by_id, edit_request_status
 
 
 async def admin_requests_management_route(update: Update, context: ContextTypes.DEFAULT_TYPE, path: list[str]):
@@ -48,7 +49,9 @@ async def admin_active_requests_management_route(update: Update, context: Contex
         )
         return PCS.ADMIN_CONVERSATION
 
-    return await admin_manage_request_route(update=update, context=context, path=path[3:], ix=path[-1])
+    if len(path) >= 3:
+        # expected: <platform>/<category>/<id>/...
+        return await admin_manage_request_route(update=update, context=context, path=path[3:], ix=path[2])
 
 
 async def admin_manage_request_route(
@@ -68,3 +71,26 @@ async def admin_manage_request_route(
         )
         return PCS.ADMIN_CONVERSATION
 
+    if len(path) == 1:
+        if path[-1] in RequestStatus:
+            await render_change_request_status_confirmation_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request,
+                status=RequestStatus(path[-1])
+            )
+
+    if len(path) == 2:
+        if path[-2] in RequestStatus and path[-1] == "yes":
+            status = RequestStatus(path[-2])
+            await edit_request_status(context=context, ix=ix, status=status)
+            request = get_request_by_id(context=context, ix=ix)
+
+            await render_request_status_changed_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request
+            )
+            return PCS.ADMIN_CONVERSATION

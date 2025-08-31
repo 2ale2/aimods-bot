@@ -315,19 +315,19 @@ class RequestData:
         )
 
     @classmethod
-    def from_json(cls, json_str: str) -> RequestDataDict:
+    def from_json(cls, json_str: str) -> RequestData:
         return cls.from_dict(json.loads(json_str))
 
     def get_category(self, request_dict: RequestDataDict = None) -> Optional[Category]:
         """Determina la categoria per piattaforme Windows"""
         if request_dict:
-            return request_dict["category"]
+            return Category(request_dict["category"])
         return self.category
 
     def get_platform(self, request_dict: RequestDataDict = None) -> Platform:
         """Ritorna la piattaforma"""
         if request_dict:
-            return request_dict["platform"]
+            return Platform(request_dict["platform"])
         return self.platform
 
 
