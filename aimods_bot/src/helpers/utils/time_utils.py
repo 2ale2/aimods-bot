@@ -1,6 +1,7 @@
 import re
 import pytz
-from datetime import timedelta, datetime, timezone
+from zoneinfo import ZoneInfo
+from datetime import timedelta, datetime, timezone, time
 
 
 def pluralize(value: int, singular: str, plural: str) -> str:
@@ -44,13 +45,15 @@ async def parse_duration(duration_string: str) -> timedelta | None:
 async def get_time_until_next_recap():
     # in futuro potrebbe implementare adattamento a giorno e ora personalizzabili
     # ora default domenica a mezzanotte
-    now = datetime.now()
-    days_until_sunday = (6 - now.weekday()) or 7
-    next_recap_time = datetime.combine(
-        now.date() + timedelta(days=days_until_sunday),
-        datetime.min.time()
-    )
-    return next_recap_time - now
+    tz_rome = ZoneInfo("Europe/Rome")
+    now_utc = datetime.now(timezone.utc)
+    now_rome = now_utc.astimezone(tz_rome)
+
+    days_until_sunday = (6 - now_rome.weekday()) or 7
+    next_sunday_date_rome = (now_rome.date() + timedelta(days=days_until_sunday))
+    target_rome = datetime.combine(next_sunday_date_rome, time(0, 0), tzinfo=tz_rome)
+    target_utc = target_rome.astimezone(timezone.utc)
+    return target_utc - now_utc
 
 
 def zero_datetime() -> datetime:
