@@ -300,6 +300,10 @@ def _get_admin_menage_request_keyboard(request: RequestData, back_button_callbac
     return keyboard
 
 
+async def render_admin_manage_request_limit_user():
+    pass
+
+
 async def render_change_request_status_confirmation_panel(
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,

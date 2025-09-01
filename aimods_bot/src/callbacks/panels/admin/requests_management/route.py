@@ -65,6 +65,7 @@ async def admin_manage_request_route(
     request = get_request_by_id(context=context, ix=ix)
 
     if len(path) == 0:
+        # expected: (<platform>/<category>/<id>)
         await render_admin_manage_request_panel(
             update=update,
             context=context,
@@ -74,6 +75,7 @@ async def admin_manage_request_route(
 
     elif len(path) == 1:
         if path[0] in RequestStatus:
+            # expected: (<platform>/<category>/<id>)/<new_status>
             await render_change_request_status_confirmation_panel(
                 update=update,
                 context=context,
@@ -81,8 +83,11 @@ async def admin_manage_request_route(
                 request=request,
                 status=RequestStatus(path[-1])
             )
+        elif path[0].startswith("limit"):
+            pass
 
         elif path[0] == "remove":
+            # expected: (<platform>/<category>/<id>)/remove
             await render_admin_manage_request_remove_confirmation_panel(
                 update=update,
                 context=context,
@@ -93,6 +98,7 @@ async def admin_manage_request_route(
 
     elif len(path) == 2:
         if path[-2] in RequestStatus and path[-1] == "yes":
+            # expected: (<platform>/<category>/<id>)/<new_status>/yes
             status = RequestStatus(path[-2])
             await edit_request_status(context=context, ix=ix, status=status)
             request = get_request_by_id(context=context, ix=ix)
@@ -104,6 +110,7 @@ async def admin_manage_request_route(
                 request=request
             )
         elif path[-2] == "remove" and path[-1] == "yes":
+            # expected: (<platform>/<category>/<id>)/remove/yes
             remove_active_request(
                 context=context,
                 ix=ix
