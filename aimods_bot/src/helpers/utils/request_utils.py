@@ -55,6 +55,17 @@ def get_request_by_id(context: ContextTypes.DEFAULT_TYPE, ix: str):
     return RequestData.from_dict(request_dict)
 
 
+def remove_active_request(context: ContextTypes.DEFAULT_TYPE, ix: str, from_user_data: bool = True):
+    request = get_request_by_id(context=context, ix=ix)
+
+    if from_user_data:
+        user_id = request.user_id
+        user_data = dict(context.application.user_data).get(user_id, None)
+        user_data["active_requests"].pop(ix, None)
+
+    context.bot_data["active_requests"].pop(ix)
+
+
 def create_empty_request_user_data(context: ContextTypes.DEFAULT_TYPE):
     context.user_data.setdefault("active_requests", {})
 

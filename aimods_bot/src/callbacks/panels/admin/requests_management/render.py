@@ -402,8 +402,6 @@ async def render_request_status_changed_panel(
     await request_status_changed_panel.render(update=update, context=context)
 
 
-
-
 async def _get_request_status_changed_text(
         platform: Platform,
         category: Category,
@@ -427,6 +425,83 @@ async def _get_request_status_changed_text(
                  "contrassegnata come completata.</blockquote>\n")
 
     text += f"\n\n✅ <b>Stato {status_icon} <i>{status_label}</i> impostato</b>.\n"
+
+    return text
+
+
+async def render_admin_manage_request_remove_confirmation_panel(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        ix: str,
+        request: RequestData
+):
+    platform = request.get_platform()
+    category = request.get_category()
+
+    text = await _get_admin_manage_request_remove_confirmation_text(
+        platform=platform,
+        category=category,
+        request=request
+    )
+
+    admin_manage_request_remove_confirmation_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/remove",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(text="🗑 Rimuovi", callback_key="yes"),
+                    ButtonItem(text="🔙 Annulla", callback_key=None)
+                ]
+            ]
+        )
+    )
+
+    await admin_manage_request_remove_confirmation_panel.render(update=update, context=context)
+
+
+async def _get_admin_manage_request_remove_confirmation_text(
+        platform: Platform,
+        category: Category,
+        request: RequestData
+):
+    pl_label = PLATFORM_DETAILS[platform.value]['label']
+    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
+
+    text = (f"{_get_header()}\n\n"
+            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
+            "▪️ Da qui puoi gestire questa richiesta.\n\n")
+
+    text += await get_request_details(request=request, admin=True)
+
+    text += "\n🚮 Confermi di <b>rimuovere questa richiesta non attiva</b>?"
+
+    return text
+
+
+async def render_admin_manage_request_removed_panel(
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        ix: str
+):
+    text = _get_admin_manage_request_removed_text()
+
+    admin_manage_request_removed_panel = Panel(
+        PanelConfig(
+            base_path=update.callback_query.data.replace(f"/{ix}/remove/yes", ""),
+            text=text,
+            keyboard=[
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await admin_manage_request_removed_panel.render(update=update, context=context)
+
+
+def _get_admin_manage_request_removed_text():
+    text = ("🗑 <b>Richiesta inattiva rimossa correttamente</b>.\n\n"
+            "<blockquote>ℹ L'utente che ha fatto tale richiesta potrà visualizzarla nell'archivio.</blockquote>")
 
     return text
 

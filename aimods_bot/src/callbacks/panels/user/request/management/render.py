@@ -293,6 +293,9 @@ async def render_user_request_archive_panel(update: Update, context: ContextType
     async def _delete_latex_file(context: ContextTypes.DEFAULT_TYPE):
         delete_os_file(path=p)
 
+    job = context.job_queue.get_jobs_by_name("_delete_latex_file")
+    if job:
+        job[0].schedule_removal()
     context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 

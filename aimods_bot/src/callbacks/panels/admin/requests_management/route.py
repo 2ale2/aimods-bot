@@ -4,10 +4,12 @@ from telegram.ext import ContextTypes
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
-    render_change_request_status_confirmation_panel, render_request_status_changed_panel
+    render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
+    render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import Platform, RequestStatus
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_request_by_id, edit_request_status
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_request_by_id, edit_request_status, \
+    remove_active_request
 
 
 async def admin_requests_management_route(update: Update, context: ContextTypes.DEFAULT_TYPE, path: list[str]):
@@ -69,10 +71,9 @@ async def admin_manage_request_route(
             ix=ix,
             request=request
         )
-        return PCS.ADMIN_CONVERSATION
 
-    if len(path) == 1:
-        if path[-1] in RequestStatus:
+    elif len(path) == 1:
+        if path[0] in RequestStatus:
             await render_change_request_status_confirmation_panel(
                 update=update,
                 context=context,
@@ -81,7 +82,16 @@ async def admin_manage_request_route(
                 status=RequestStatus(path[-1])
             )
 
-    if len(path) == 2:
+        elif path[0] == "remove":
+            await render_admin_manage_request_remove_confirmation_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request
+            )
+
+
+    elif len(path) == 2:
         if path[-2] in RequestStatus and path[-1] == "yes":
             status = RequestStatus(path[-2])
             await edit_request_status(context=context, ix=ix, status=status)
@@ -93,4 +103,16 @@ async def admin_manage_request_route(
                 ix=ix,
                 request=request
             )
-            return PCS.ADMIN_CONVERSATION
+        elif path[-2] == "remove" and path[-1] == "yes":
+            remove_active_request(
+                context=context,
+                ix=ix
+            )
+            await render_admin_manage_request_removed_panel(
+                update=update,
+                context=context,
+                ix=ix
+            )
+
+
+    return PCS.ADMIN_CONVERSATION
