@@ -6,10 +6,12 @@ from pathlib import Path
 
 from telegram.ext import ContextTypes
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
-from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS
+from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, AndroidCategory, \
     WindowsCategory, IOSCategory, MacOSCategory, Category
 from aimods_bot.src.helpers.database import fetch_query, execute_query
+from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
@@ -201,6 +203,16 @@ async def edit_request_status(context: ContextTypes.DEFAULT_TYPE, ix: str, statu
         bot_requests[ix]["status"] = value
         user_data["active_requests"] = user_requests
         context.bot_data["active_requests"] = bot_requests
+
+    if status is RequestStatus.COMPLETED:
+        context.job_queue.run_once(
+            callback=scheduled_remove_completed_requests,
+            when=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
+            data={
+                "user_id": user_id,
+                "ix": ix
+            }
+        )
 
     query = """UPDATE requests SET status = $1 WHERE id = $2"""
 

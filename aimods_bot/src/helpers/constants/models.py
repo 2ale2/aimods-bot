@@ -5,10 +5,10 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Union, Literal, NamedTuple, TypedDict, cast, Iterable, Type
+from typing import Optional, List, Union, Literal, NamedTuple, TypedDict, cast, Type, Tuple
 
 import telegram
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
@@ -173,12 +173,14 @@ class Panel:
         """Renderizza il pannello nel chat."""
         text = self.build_text()
         reply_markup = InlineKeyboardMarkup(self.build_keyboard())
+        preview_options = LinkPreviewOptions(is_disabled=True)
         if self.send or send:
             await context.bot.send_message(
                 chat_id=message_id or update.effective_chat.id,
                 text=text,
                 reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
+                link_preview_options=preview_options
             )
         else:
             if html.unescape(update.effective_message.text_html_urled) != text:
@@ -188,13 +190,15 @@ class Panel:
                         message_id=message_id,
                         text=text,
                         reply_markup=reply_markup,
-                        parse_mode=ParseMode.HTML
+                        parse_mode=ParseMode.HTML,
+                        link_preview_options=preview_options
                     )
                 else:
                     await update.effective_message.edit_text(
                         text=text,
                         reply_markup=reply_markup,
-                        parse_mode=ParseMode.HTML
+                        parse_mode=ParseMode.HTML,
+                        link_preview_options=preview_options
                     )
             try:
                 await update.effective_message.edit_reply_markup(
@@ -204,14 +208,14 @@ class Panel:
                 pass
 
 
-def _iter_category_enums_for_platform(p: Platform) -> Iterable[Type[Enum]]:
+def _iter_category_enums_for_platform(p: Platform) -> Tuple[Type[Enum]]:
     if p is Platform.WINDOWS:
         return (WindowsCategory,)
     if p is Platform.ANDROID:
         return (AndroidCategory,)
     if p is Platform.IOS:
         return (IOSCategory,)
-    if p is Platform.MACOS:
+    else:  # p is Platform.MACOS
         return (MacOSCategory,)
 
 
@@ -291,7 +295,7 @@ class RequestData:
         raw_requesting = data.get("requesting", None)
         raw_editing = data.get("editing", None)
         platform = Platform(raw_platform) if raw_platform else None
-        category = _parse_category(raw_category, platform) if raw_category and platform else None
+        category = _parse_category(str(raw_category), platform) if raw_category and platform else None
         # noinspection PyArgumentList
         status = RequestStatus(raw_status) if raw_status else None
         issued_at = datetime.fromisoformat(raw_issued_at) if raw_issued_at else None

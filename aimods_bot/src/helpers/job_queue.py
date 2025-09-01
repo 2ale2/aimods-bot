@@ -291,3 +291,22 @@ async def send_temporary_message(
 async def _wait_for_job_completion(context, job_id: str):
     while not context.bot_data["jobs"][job_id]["done"]:
         await asyncio.sleep(0.1)
+        
+
+async def scheduled_remove_completed_requests(context: ContextTypes.DEFAULT_TYPE):
+    data = context.job.data
+    if "user_id" not in data or "ix" not in data:
+        raise JobDataMissingException("Dati mancanti: 'user_id' o 'ix'.")
+    
+    user_id = int(data["user_id"])
+    ix = str(data["ix"])
+    
+    active_bot_requests = context.bot_data.get("active_requests")
+    user_data = dict(context.application.user_data[user_id])
+
+    active_bot_requests.pop(ix, None)
+    user_data.pop(ix, None)
+    
+    context.bot_data["active_requests"] = active_bot_requests
+    context.application.user_data[user_id] = user_data
+    

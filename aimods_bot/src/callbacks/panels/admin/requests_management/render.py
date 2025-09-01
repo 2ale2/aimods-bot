@@ -237,7 +237,13 @@ async def _get_admin_manage_request_text(
             f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
             "▪️ Da qui puoi gestire questa richiesta.\n\n")
 
+    status = request.status
+
     text += await get_request_details(request=request, admin=True)
+
+    if status is RequestStatus.COMPLETED:
+        text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
+                 "contrassegnata come completata.</blockquote>\n")
 
     text += "\n🔹 Scegli un'opzione."
 
@@ -247,39 +253,49 @@ async def _get_admin_manage_request_text(
 def _get_admin_menage_request_keyboard(request: RequestData, back_button_callback_key: str = None):
     steps = [None] + [el.value for el in RequestStatus] + [None]
 
-    current_status = request.status.value
-    current_index = steps.index(str(current_status))
+    current_status = request.status
+    current_status_value = current_status.value
+    current_index = steps.index(str(current_status_value))
     next_status_button = steps[current_index + 1]
     previous_status_button = steps[current_index - 1]
 
     keyboard = [[]]
-    if next_status_button:
-        next_status_icon = REQUEST_STATUS_DETAILS[next_status_button]["icon"]
-        next_status_label = REQUEST_STATUS_DETAILS[next_status_button]["label"]
-        keyboard[0].insert(0, ButtonItem(
-            text=f"{next_status_icon} {next_status_label}",
-            callback_key=next_status_button)
-        )
-    if previous_status_button:
-        previous_status_icon = REQUEST_STATUS_DETAILS[previous_status_button]["icon"]
-        previous_status_label = REQUEST_STATUS_DETAILS[previous_status_button]["label"]
-        keyboard[0].insert(0, ButtonItem(
-            text=f"{previous_status_icon} {previous_status_label}",
-            callback_key=previous_status_button)
-        )
+    if current_status is not RequestStatus.COMPLETED:
+        if next_status_button:
+            next_status_icon = REQUEST_STATUS_DETAILS[next_status_button]["icon"]
+            next_status_label = REQUEST_STATUS_DETAILS[next_status_button]["label"]
+            keyboard[0].insert(0, ButtonItem(
+                text=f"{next_status_icon} {next_status_label}",
+                callback_key=next_status_button)
+            )
+        if previous_status_button:
+            previous_status_icon = REQUEST_STATUS_DETAILS[previous_status_button]["icon"]
+            previous_status_label = REQUEST_STATUS_DETAILS[previous_status_button]["label"]
+            keyboard[0].insert(0, ButtonItem(
+                text=f"{previous_status_icon} {previous_status_label}",
+                callback_key=previous_status_button)
+            )
+
+        keyboard.extend([
+            [
+                ButtonItem(text="❌ Rifiuta Richiesta", callback_key="rejected"),
+                ButtonItem(text="🔄 Cambia Stato", callback_key="change_status")
+            ]
+        ])
 
     keyboard.extend([
-        [
-            ButtonItem(text="❌ Rifiuta Richiesta", callback_key="rejected"),
-            ButtonItem(text="🔄 Cambia Stato", callback_key="change_status")
-        ],
         [ButtonItem(text="⛔️ Limita Utente", callback_key=f"limit_{request.user_id}")],
         [ButtonItem(
-            text="🔙 Indietro", 
-            callback_key=back_button_callback_key, 
+            text="🔙 Indietro",
+            callback_key=back_button_callback_key,
             override_path_generation=(back_button_callback_key is not None)
         )]
     ])
+
+    if current_status is RequestStatus.COMPLETED:
+        keyboard[-2].insert(0, ButtonItem(
+            text="🚮 Rimuovi da Attive", callback_key="remove"
+        ))
 
     return keyboard
 
@@ -341,8 +357,13 @@ async def _get_render_change_request_status_confirmation_text(
 
     text += ("\n🔄 Stai <b>cambiando lo stato</b> di questa richiesta:\n\n"
              f"      {actual_status_icon} <i><b>{actual_status_label}</b></i>    ⟼"
-             f"    {new_status_icon} <i><b>{new_status_label}</b></i>\n\n"
-             "🔹 <b>Confermi</b>?")
+             f"    {new_status_icon} <i><b>{new_status_label}</b></i>\n\n")
+
+    if status is RequestStatus.COMPLETED:
+        text += ("<blockquote>⚠️ <b>Attenzione</b> – Se confermi non potrai più cambiare lo stato della richiesta ed"
+                 " essa verrà rimossa dalle richieste attive dopo 24 ore.</blockquote>\n\n")
+
+    text += "🔹 <b>Confermi</b>?"
 
     return text
 
@@ -400,6 +421,10 @@ async def _get_request_status_changed_text(
             "▪️ Da qui puoi gestire questa richiesta.\n\n")
 
     text += await get_request_details(request=request, admin=True)
+
+    if request.status is RequestStatus.COMPLETED:
+        text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
+                 "contrassegnata come completata.</blockquote>\n")
 
     text += f"\n\n✅ <b>Stato {status_icon} <i>{status_label}</i> impostato</b>.\n"
 

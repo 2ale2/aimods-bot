@@ -3,6 +3,8 @@ import re
 from aimods_bot.src.helpers.constants.models import DisplayItem
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
+SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
+
 TOPICS = get_data_from_json("forum_topics")
 pyro_instance = None
 
