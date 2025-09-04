@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
-from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
-from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, Update
+from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
+from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser, Update
 from telegram.ext import ContextTypes
 
 from aimods_bot.src.helpers.constants.models import CanUserRequest
@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username
 
 log = logger.getChild("user_utils")
 
@@ -143,6 +143,26 @@ async def get_member_permissions(
             actual_permissions = get_ptb_permissions(True)
 
     return actual_permissions
+
+
+def get_member_details_text(
+        user: Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser],
+        user_identifier: Union[int, str]
+):
+    if isinstance(user, Union[PTBChatMember, PyroChatMember]):
+        user = user.user
+    if user:
+        text = (f"     🆔 <b>User ID</b> – <code>{user.id}</code>\n"
+                f"     🪪 <b>Nome</b> – {user.first_name}\n")
+        if user.username:
+            text += f"     🔖 <b>Username</b> – {user.username}\n"
+    else:
+        if is_username(user.username):
+            text = f"     🔖 <b>Username</b> – {user_identifier}\n"
+        else:  # is_userid
+            text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
+
+    return text
 
 
 async def can_user_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> CanUserRequest:

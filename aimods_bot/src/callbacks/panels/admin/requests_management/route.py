@@ -74,7 +74,7 @@ async def admin_manage_request_route(
         )
 
     elif len(path) == 1:
-        if path[0] in RequestStatus:
+        if path[0] in RequestStatus and RequestStatus(path[0]) is not RequestStatus.REJECTED:
             # expected: (<platform>/<category>/<id>)/<new_status>
             await render_change_request_status_confirmation_panel(
                 update=update,
@@ -84,6 +84,7 @@ async def admin_manage_request_route(
                 status=RequestStatus(path[-1])
             )
         elif path[0].startswith("limit"):
+            # expected: (<platform>/<category>/<id>)/limit_<user_id>
             pass
 
         elif path[0] == "remove":
