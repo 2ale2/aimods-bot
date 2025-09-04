@@ -1,4 +1,6 @@
 import re
+from typing import Optional
+
 import pytz
 from zoneinfo import ZoneInfo
 from datetime import timedelta, datetime, timezone, time
@@ -8,7 +10,10 @@ def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
 
-async def get_duration_text(seconds: int) -> str:
+async def get_duration_text(seconds: Optional[int]) -> str:
+    if not seconds:
+        return ""
+
     time_timedelta = timedelta(seconds=seconds)
     days = time_timedelta.days
     hours = time_timedelta.seconds // 3600

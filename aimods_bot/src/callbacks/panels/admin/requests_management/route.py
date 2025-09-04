@@ -1,6 +1,9 @@
+from abc import update_abstractmethods
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
@@ -85,7 +88,12 @@ async def admin_manage_request_route(
             )
         elif path[0].startswith("limit"):
             # expected: (<platform>/<category>/<id>)/limit_<user_id>
-            pass
+            return await route_admin_limit_user_request(
+                update=update,
+                context=context,
+                path=path[1:],
+                user_id=int(path[0].split("_")[-1])
+            )
 
         elif path[0] == "remove":
             # expected: (<platform>/<category>/<id>)/remove

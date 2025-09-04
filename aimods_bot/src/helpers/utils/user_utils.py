@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username, add_fucking_at
 
 log = logger.getChild("user_utils")
 
@@ -155,10 +155,10 @@ def get_member_details_text(
         text = (f"     🆔 <b>User ID</b> – <code>{user.id}</code>\n"
                 f"     🪪 <b>Nome</b> – {user.first_name}\n")
         if user.username:
-            text += f"     🔖 <b>Username</b> – {user.username}\n"
+            text += f"     🔖 <b>Username</b> – {add_fucking_at(user.username)}\n"
     else:
         if is_username(user.username):
-            text = f"     🔖 <b>Username</b> – {user_identifier}\n"
+            text = f"     🔖 <b>Username</b> – {add_fucking_at(user_identifier)}\n"
         else:  # is_userid
             text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
 
