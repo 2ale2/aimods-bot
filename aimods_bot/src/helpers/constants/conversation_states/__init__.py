@@ -6,6 +6,7 @@ class PrivateConversationState:
     ADD_ANTISPAM_MENTION_WHITELIST = 4
     REMOVE_ANTISPAM_MENTION_WHITELIST = 5
     NEW_REQUEST = 6
+    SET_REQUEST_LIMITATION_DURATION = 7
 
 
 class RequestConversationState:

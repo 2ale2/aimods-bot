@@ -32,7 +32,7 @@ async def get_duration_text(seconds: Optional[int]) -> str:
     return "🕔 " + ", ".join(parts)
 
 
-async def parse_duration(duration_string: str) -> timedelta | None:
+def parse_duration(duration_string: str) -> timedelta | None:
     mapping = {
         "giorno": "days", "giorni": "days",
         "ora": "hours", "ore": "hours",

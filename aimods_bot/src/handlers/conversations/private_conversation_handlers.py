@@ -85,7 +85,15 @@ private_conversation_handler = ConversationHandler(
             ),
             CallbackQueryHandler(callback=admin_main_router)
         ],
-        PCS.NEW_REQUEST: [android_request_handler, windows_request_handler, ios_request_handler, macos_request_handler]
+        PCS.NEW_REQUEST: [android_request_handler, windows_request_handler, ios_request_handler, macos_request_handler],
+        PCS.SET_REQUEST_LIMITATION_DURATION: [
+            MessageHandler(
+                filters=filters.TEXT,
+                callback=set_punishment_duration
+            ),
+            CallbackQueryHandler(callback=admin_main_router),
+            close_button_handler
+        ]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],
     allow_reentry=True

@@ -62,7 +62,7 @@ async def parse_command(
             extracted["user"] = replied.from_user.username or replied.from_user.id
 
     if "duration" in extracted:
-        extracted["duration"] = await parse_duration(extracted["duration"])
+        extracted["duration"] = parse_duration(extracted["duration"])
 
     response = await resolve_chat_member(context=context, user_identifier=extracted["user"])
 

@@ -51,7 +51,7 @@ async def set_punishment_duration(update: Update, context: CallbackContext, valu
     else:
         await safe_delete(update=update, context=context)
 
-        parsed_duration = await parse_duration(update.effective_message.text)
+        parsed_duration = parse_duration(update.effective_message.text)
         if not parsed_duration:
             await send_action_message_after(
                 update=update,
