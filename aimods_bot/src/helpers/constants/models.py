@@ -201,7 +201,9 @@ class Panel:
                         link_preview_options=preview_options
                     )
             try:
-                await update.effective_message.edit_reply_markup(
+                await context.bot.edit_message_reply_markup(
+                    message_id=message_id or update.effective_message.message_id,
+                    chat_id=update.effective_chat.id,
                     reply_markup=reply_markup
                 )
             except telegram.error:

@@ -157,7 +157,7 @@ def get_member_details_text(
         if user.username:
             text += f"     🔖 <b>Username</b> – {add_fucking_at(user.username)}\n"
     else:
-        if is_username(user.username):
+        if is_username(user_identifier):
             text = f"     🔖 <b>Username</b> – {add_fucking_at(user_identifier)}\n"
         else:  # is_userid
             text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"

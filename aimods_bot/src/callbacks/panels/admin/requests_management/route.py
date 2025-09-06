@@ -1,5 +1,3 @@
-from abc import update_abstractmethods
-
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -26,7 +24,7 @@ async def admin_requests_management_route(update: Update, context: ContextTypes.
         case "manage_topics":
             pass
         case "limit_user_request":
-            pass
+            return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)
 
     return PCS.ADMIN_CONVERSATION
 

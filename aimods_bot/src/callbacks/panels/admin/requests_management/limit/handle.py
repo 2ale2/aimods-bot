@@ -5,18 +5,29 @@ from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 
 
-def new_user_requests_limiting_item(context: ContextTypes.DEFAULT_TYPE):
+def set_user_requests_limiting_item(context: ContextTypes.DEFAULT_TYPE):
+    """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
     topics = {}
     for platform, categories in CATEGORY_DETAILS.items():
         topics[platform] = {}
         for category in categories:
             topics[platform][category] = False
 
-    context.chat_data.setdefault("limit_user_requests", {
+    return context.chat_data.setdefault("limit_user_requests", {
         "user_id": 0,
         "duration": 0,
         "topics": topics
     })
+
+
+def get_limited_user(context: ContextTypes.DEFAULT_TYPE):
+    limiting_item = set_user_requests_limiting_item(context=context)
+    return limiting_item["user_id"]
+
+
+def get_limited_topics(context: ContextTypes.DEFAULT_TYPE):
+    limiting_item = set_user_requests_limiting_item(context=context)
+    return limiting_item["topics"]
 
 
 async def handle_request_limitation_duration(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,4 +48,26 @@ async def handle_request_limitation_duration(update: Update, context: ContextTyp
         return False
 
     context.chat_data["limit_user_requests"]["duration"] = timedelta_to_seconds(parsed)
+    return True
+
+
+async def handle_request_limitation_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = update.callback_query.data.split("/")[-1]
+    topics = get_limited_topics(context=context)
+    if data in ("block_all", "unblock_all"):
+        for platform, categories in topics.items():
+            for category in categories:
+                topics[platform][category] = (data == "block_all")
+        return
+
+    platform_str, category_str = data.split("-")
+    topics[platform_str][category_str] = not topics[platform_str][category_str]
+
+
+def all_topics_are(context: ContextTypes.DEFAULT_TYPE, what: bool):
+    topics = get_limited_topics(context=context)
+    for platform, categories in topics.items():
+        for category in categories:
+            if topics[platform][category] != what:
+                return False
     return True

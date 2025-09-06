@@ -244,7 +244,7 @@ def _create_error_response(error_code: str) -> Dict[str, Any]:
 
 def is_username(string) -> bool:
     """Se string è una stringa alfanumerica, ritorna True."""
-    return not (not string or string.isdigit())
+    return not (not string or str(string).isdigit())
 
 
 def is_user_id(string) -> bool:

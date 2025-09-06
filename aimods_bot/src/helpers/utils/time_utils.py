@@ -23,11 +23,13 @@ async def get_duration_text(seconds: Optional[int]) -> str:
     parts = []
     if days > 0:
         parts.append(pluralize(days, "giorno", "giorni"))
-    if hours > 0 or days > 0:
+    if hours > 0:
         parts.append(pluralize(hours, "ora", "ore"))
-    if minutes > 0 or hours > 0 or days > 0:
+    if minutes > 0:
         parts.append(pluralize(minutes, "minuto", "minuti"))
     parts.append(pluralize(seconds, "secondo", "secondi"))
+
+    parts = [el for el in parts if not el.startswith("0")]
 
     return "🕔 " + ", ".join(parts)
 
