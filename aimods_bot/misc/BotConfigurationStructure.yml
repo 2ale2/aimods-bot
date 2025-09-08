@@ -38,7 +38,7 @@ moderation:
       per_message: 3
       rate_limit:
         toggle: True
-        time: 600
+        timespan: 600
         mention: 3
       user:
         toggle: True

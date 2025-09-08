@@ -57,7 +57,7 @@ class RequestConfig(BaseModel):
 
 class AntispamLinkConfig(BaseModel):
     punishment: PunishmentConfig = Field(default_factory=lambda: PunishmentConfig(type=PunishmentType.WARN, time=0))
-    allow_after: int = Field(default=86400, ge=0, description="Time before links are not allowed")
+    allow_after: int = Field(default=3600, ge=0, description="Time before links are not allowed")
     whitelist: List[str] = Field(default_factory=list, description="Not punished domains")
     blacklist: List[str] = Field(default_factory=list, description="Banned domains")
     greylist: List[str] = Field(default_factory=list, description="Not punished links")
@@ -76,21 +76,37 @@ class AntispamMentionCategoryConfig(BaseModel):
 
 
 class AntispamMentionConfig(BaseModel):
-    allow_after: int = Field(default=86400, ge=0, description="Time before mentions are not allowed")
+    allow_after: int = Field(default=3600, ge=0, description="Time before mentions are not allowed")
     per_message: int = Field(default=3, ge=1, description="Max mentions in a single message")
     rate_limit: AntispamMentionRateLimitConfig = Field(default_factory=AntispamMentionRateLimitConfig)
-    user: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    group: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    channel: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    bot: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
+    user: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=True,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100),
+    ))
+    group: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
+    channel: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
+    bot: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
     whitelist: WhitelistConfig = Field(default_factory=WhitelistConfig)
 
 
 class AntispamForwardRateLimitConfig(BaseModel):
-    timespan: int = Field(default=3600, ge=1, description="Rate Limit Timespan")
-    same_content: int = Field(default=3, ge=1, description="Max forwards with same content within the timespan")
-    same_source: int = Field(default=5, ge=1, description="Max forwards from the same source within the timespan")
-    same_user: int = Field(default=3, ge=1, description="Max forwards from the same user within the timespan")
+    timespan: int = Field(default=100, ge=1, description="Rate Limit Timespan")
+    same_content: int = Field(default=2, ge=1, description="Max forwards with same content within the timespan")
+    same_source: int = Field(default=2, ge=1, description="Max forwards from the same source within the timespan")
+    same_user: int = Field(default=2, ge=1, description="Max forwards from the same user within the timespan")
 
 
 class AntispamForwardCategoryConfig(BaseModel):
@@ -101,11 +117,27 @@ class AntispamForwardCategoryConfig(BaseModel):
 
 class AntispamForwardConfig(BaseModel):
     allow_after: int = Field(default=86400, ge=0, description="Time before forwards are not allowed")
-    rate_limit: AntispamForwardCategoryConfig = Field(default_factory=AntispamForwardCategoryConfig)
-    user: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    group: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    channel: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
-    bot: AntispamMentionCategoryConfig = Field(default_factory=AntispamMentionCategoryConfig)
+    rate_limit: AntispamForwardRateLimitConfig = Field(default_factory=AntispamForwardRateLimitConfig)
+    user: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=True,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
+    group: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
+    channel: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
+    bot: AntispamMentionCategoryConfig = Field(default_factory=lambda: AntispamMentionCategoryConfig(
+        toggle=True,
+        if_not_member=None,
+        punishment=PunishmentConfig(type=PunishmentType.KICK, time=100)
+    ))
 
 
 class AntispamConfig(BaseModel):
@@ -119,13 +151,13 @@ class AntispamConfig(BaseModel):
 
 class AntifloodSettings(BaseModel):
     time_messages: int = Field(default=5, ge=1, description="Antiflood timespan")
-    number_messages: int = Field(default=5, ge=1, description="Max number of messages within the timespan")
+    number_messages: int = Field(default=10, ge=1, description="Max number of messages within the timespan")
 
 
 class AntifloodConfig(BaseModel):
     toggle: bool = True
     settings: AntifloodSettings = Field(default_factory=AntifloodSettings)
-    punishment: PunishmentConfig = Field(default_factory=lambda: PunishmentConfig(type=PunishmentType.MUTE, time=300))
+    punishment: PunishmentConfig = Field(default_factory=lambda: PunishmentConfig(type=PunishmentType.KICK, time=100))
 
 
 class ModerationConfig(BaseModel):
@@ -150,7 +182,7 @@ class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
     group_chat_id: Optional[str] = None
 
-    admins: List[int] = Field(default_factory=list)
+    admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[str, Any] = Field(default_factory=dict)
     user_joined_message_text: str = ""
     rules_text: str = ""

@@ -92,16 +92,6 @@ class WrongFlowException(BotException):
         super().__init__(message)
 
 
-def handle_validation_errors(errors: list[str]):
-    """
-    Logga e solleva eccezione se presenti errori nella validazione della configurazione.
-    """
-    if errors:
-        for err in errors:
-            log.error(f"[ConfigValidation] {err}")
-        raise ConfigValidationException(errors)
-
-
 # ========== TELEGRAM / CALLBACK ==========
 class TelegramDataException(BotException):
     """Errore nei dati ricevuti da Telegram."""

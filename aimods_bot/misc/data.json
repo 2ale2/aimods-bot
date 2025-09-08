@@ -335,7 +335,7 @@
                         "toggle": {
                             "type": "bool"
                         },
-                        "time": {
+                        "timespan": {
                             "type": "int"
                         },
                         "mention": {
