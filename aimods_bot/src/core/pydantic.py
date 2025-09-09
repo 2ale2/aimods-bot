@@ -48,10 +48,10 @@ class MacOSRequestCategoryToggle(BaseModel):
 
 
 class RequestConfig(BaseModel):
-    android: AndroidRequestCategoryToggle
-    windows: WindowsRequestCategoryToggle
-    ios: iOSRequestCategoryToggle
-    macos: MacOSRequestCategoryToggle
+    android: AndroidRequestCategoryToggle = Field(default_factory=AndroidRequestCategoryToggle)
+    windows: WindowsRequestCategoryToggle = Field(default_factory=WindowsRequestCategoryToggle)
+    ios: iOSRequestCategoryToggle = Field(default_factory=iOSRequestCategoryToggle)
+    macos: MacOSRequestCategoryToggle = Field(default_factory=MacOSRequestCategoryToggle)
     cancel_timer: int = Field(default=3600, ge=0, description="Timer for cancelling requests")
 
 
@@ -180,7 +180,7 @@ class Configuration(BaseModel):
 
 class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
-    group_chat_id: Optional[str] = None
+    group_chat_id: Optional[int] = None
 
     admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[str, Any] = Field(default_factory=dict)

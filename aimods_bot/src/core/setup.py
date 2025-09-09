@@ -147,7 +147,12 @@ log = logger.getChild("application_setup")
 
 
 async def set_application_data(application: Application):
-    current_bot_data = BotData(**application.bot_data)
+    try:
+        current_bot_data = BotData(**application.bot_data)
+    except ValidationError as e:
+        log.error(f"Errori di struttura in Bot Data: {e}\n\nInizializzo.")
+        current_bot_data = BotData()
+
     new_bot_data = BotData()
 
     configuration = load_configuration()
@@ -158,13 +163,17 @@ async def set_application_data(application: Application):
         log.error(f"Configurazione non valida: {e}")
         new_bot_data.configuration = Configuration()
     else:
-        group_chat_id = os.getenv("GROUP_CHAT_ID")
+        group_chat_id = int(os.getenv("GROUP_CHAT_ID"))
         if not current_bot_data.group_chat_id or current_bot_data.group_chat_id != group_chat_id:
             new_bot_data.group_chat_id = group_chat_id
+        else:
+            new_bot_data.group_chat_id = current_bot_data.group_chat_id
 
-        admins = await get_admins(application)
+        admins = await get_admins(app=application, chat_id=new_bot_data.group_chat_id)
         if not current_bot_data.admins or current_bot_data.admins != admins:
             new_bot_data.admins = admins
+        else:
+            new_bot_data.admins = current_bot_data.admins
 
         text = get_data_from_json("texts")
         user_joined_message_text = text.get("user_joined_message_text")
@@ -192,18 +201,80 @@ async def set_application_data(application: Application):
             if "setting_duration" in application.chat_data[el]:
                 del application.chat_data[el]["setting_duration"]
 
+        # DA QUI
 
-async def get_admins(app: Application):
+        autorecap_job_name = "auto_recap"
+        if "jobs" in application.bot_data:
+            if "next_recap" in application.bot_data["jobs"]:
+                if not application.bot_data["jobs"][autorecap_job_name]["executed"]:
+                    await create_and_send_recaps(application)
+                    del application.bot_data["jobs"][autorecap_job_name]
+        else:
+            application.bot_data["jobs"] = {}
+
+        time_until_recap = await get_time_until_next_recap()
+        await application.job_queue.start()
+
+        job = application.job_queue.run_repeating(
+            callback=create_and_send_recaps,
+            interval=timedelta(days=7),
+            first=time_until_recap,
+            name=autorecap_job_name
+        )
+
+        log.info(f"Next autorecap settled at {job.next_t}")
+
+        application.bot_data["jobs"] = {
+            job.name: {
+                "next_date": job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+                "executed": False
+            }
+        }
+
+        # Set up Pyrogram instance
+        try:
+            pyro_inst = Client(
+                name="bridge_bot",
+                api_id=os.getenv("API_ID"),
+                api_hash=os.getenv("API_HASH"),
+                bot_token=os.getenv("BRIDGE_TOKEN")
+            )
+        except RPCError as e:
+            log.error(f"Failed to initialize Pyrogram client: {e}")
+            raise
+
+        _pyro_instance = pyro_inst
+
+        constants.pyro_instance = _pyro_instance
+        await constants.pyro_instance.start()
+
+        # Initialize ban list
+        if "ban_list" not in application.bot_data:
+            application.bot_data["ban_list"] = {}
+
+        r = get_data_from_json("restarting")
+
+        if r.get("toggle", False):
+            await application.bot.send_message(
+                chat_id=r["user_id"],
+                text="ℹ Bot Riavviato Correttamente"
+            )
+            set_data_in_json(key=["restarting", "toggle"], value=False)
+            set_data_in_json(key=["restarting", "user_id"], value=0)
+
+
+async def get_admins(app: Application, chat_id: int):
     """
     Retrieves the list of administrators for the group chat.
 
     Args:
         app (Application): The Telegram application instance.
+        chat_id (int): The id of the chat.
 
     Returns:
         dict: A dictionary mapping admin IDs to their names.
     """
-    admins = await app.bot.get_chat_administrators(chat_id=app.bot_data["group_chat_id"])
+    admins = await app.bot.get_chat_administrators(chat_id=chat_id)
     admins_dict = {}
 
     for admin in admins:
