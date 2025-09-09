@@ -10,7 +10,7 @@ from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
-from aimods_bot.src.core.pydantic import Configuration, BotData
+from aimods_bot.src.core.pydantic import Configuration, BotData, JobInfo
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
@@ -191,6 +191,63 @@ async def set_application_data(application: Application):
         for el in application.chat_data:
             if "setting_duration" in application.chat_data[el]:
                 del application.chat_data[el]["setting_duration"]
+
+        autorecap_job_name = "auto_recap"
+        if current_bot_data.jobs:
+            j = current_bot_data.jobs.get(autorecap_job_name, None)
+            if j and not j.executed:
+                await create_and_send_recaps(context=application)
+                del current_bot_data.jobs[autorecap_job_name]
+
+        new_bot_data.jobs = current_bot_data.jobs
+
+        time_until_next_recap = await get_time_until_next_recap()
+        await application.job_queue.start()
+
+        job = application.job_queue.run_repeating(
+            callback=create_and_send_recaps,
+            interval=timedelta(days=7),
+            first=time_until_next_recap,
+            name=autorecap_job_name
+        )
+
+        log.info(f"Next recap settled at {job.next_t}")
+
+        new_bot_data.jobs[autorecap_job_name] = JobInfo(
+            next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+            executed=False
+        )
+
+        try:
+            pyro_inst = Client(
+                name="bridge_bot",
+                api_id=os.getenv("API_ID"),
+                api_hash=os.getenv("API_HASH"),
+                bot_token=os.getenv("BOT_TOKEN")
+            )
+        except RPCError as e:
+            log.error(f"Failed to initialize Pyrogram client: {e}")
+            raise
+
+        _pyro_instance = pyro_inst
+
+        constants.pyro_instance = _pyro_instance
+        await commands.pyro_instance.start()
+
+        if not current_bot_data.ban_list:
+            new_bot_data.ban_list = {}
+        else:
+            new_bot_data.ban_list = current_bot_data.ban_list
+
+        r = get_data_from_json("restarting")
+
+        if r.get("toggle", False):
+            await application.bot.send_message(
+                chat_id=r["user_id"],
+                text="ℹ️ Bot Riavviato Correttamente"
+            )
+            set_data_in_json(key=["restanting", "toggle"], value=False)
+            set_data_in_json(key=["restanting", "user_id"], value=0)
 
 
 async def get_admins(app: Application):

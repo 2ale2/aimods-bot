@@ -16,6 +16,11 @@ class PunishmentType(str, Enum):
     WARN = "warn"
 
 
+class JobInfo(BaseModel):
+    next_date: str
+    executed: bool = False
+
+
 class PunishmentConfig(BaseModel):
     type: PunishmentType
     time: int = Field(ge=0, description="Punishment time in seconds (0 for endless)")
@@ -26,6 +31,7 @@ class WhitelistConfig(BaseModel):
     group: List[int] = Field(default_factory=list)
     channel: List[int] = Field(default_factory=list)
     bot: List[int] = Field(default_factory=list)
+
 
 class AndroidRequestCategoryToggle(BaseModel):
     app: bool = True
@@ -189,7 +195,7 @@ class BotData(BaseModel):
     commands: Dict[str, Any] = Field(default_factory=dict)
     hashtags: Dict[str, Any] = Field(default_factory=dict)
     active_requests: Dict[str, Any] = Field(default_factory=dict)
-    jobs: Dict[str, Any] = Field(default_factory=dict)
+    jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     bot_version: str = "1.0.0"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
