@@ -1,9 +1,15 @@
+import inspect
+
 from functools import wraps
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing import Dict, List, Optional, Any, Callable, Union
 from datetime import datetime
 from enum import Enum
 
+from telegram import Update
+from telegram.ext import ContextTypes, CallbackContext
+
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.core.logger import logger
 
 log = logger.getChild("pydantic")
@@ -182,23 +188,3 @@ class Configuration(BaseModel):
     class Config:
         validate_assignment = True
         extra = "forbid"
-
-
-class BotData(BaseModel):
-    configuration: Configuration = Field(default_factory=Configuration)
-    group_chat_id: Optional[int] = None
-
-    admins: Dict[int, str] = Field(default_factory=dict)
-    ban_list: Dict[str, Any] = Field(default_factory=dict)
-    user_joined_message_text: str = ""
-    rules_text: str = ""
-    commands: Dict[str, Any] = Field(default_factory=dict)
-    hashtags: Dict[str, Any] = Field(default_factory=dict)
-    active_requests: Dict[str, Any] = Field(default_factory=dict)
-    jobs: Dict[str, JobInfo] = Field(default_factory=dict)
-    bot_version: str = "1.0.0"
-    last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-    class Config:
-        validate_assignment = True
-        extra = "allow"

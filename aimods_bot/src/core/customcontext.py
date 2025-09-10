@@ -10,6 +10,7 @@
 
 from typing import Optional
 from telegram.ext import CallbackContext, ExtBot, Application
+from aimods_bot.src.helpers.constants.models import BotData
 
 
 class CustomContext(CallbackContext[ExtBot, dict, dict, dict]):
@@ -21,6 +22,5 @@ class CustomContext(CallbackContext[ExtBot, dict, dict, dict]):
             user_id: Optional[int] = None,
     ):
         super().__init__(application=application, chat_id=chat_id, user_id=user_id)
-        self._message_id: Optional[int] = None
-
+        self.pydantic_bot_data: Optional[BotData] = None
 
