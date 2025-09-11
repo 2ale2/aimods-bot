@@ -11,7 +11,7 @@ from pyrogram import Client
 from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo
-from aimods_bot.src.helpers.constants.models import BotData
+from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap

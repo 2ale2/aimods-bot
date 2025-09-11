@@ -3,6 +3,8 @@ from typing import Union
 
 from telegram import Update
 from telegram.ext import Application, ContextTypes
+
+from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
 from aimods_bot.src.helpers.database import fetch_query, execute_query, add_to_table
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -63,7 +65,8 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Application]):
+@with_bot_data
+async def create_and_send_recaps(context: Union[CustomContext, Application]):
     query = "SELECT * FROM recap_posts"
     res = await fetch_query(query=query)
     if res is None:
@@ -127,7 +130,7 @@ async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Appli
 
         if text:
             await context.bot.send_message(
-                chat_id=context.bot_data["group_chat_id"],
+                chat_id=context.pydantic_bot_data.group_chat_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 text=text,
                 disable_web_page_preview=True,

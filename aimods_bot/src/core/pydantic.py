@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, CallbackContext
 
 from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.core.logger import logger
+from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
 

@@ -1,7 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import with_bot_data
+from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import is_admin, create_empty_user_data
