@@ -65,8 +65,13 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-@with_bot_data
-async def create_and_send_recaps(context: Union[CustomContext, Application]):
+@with_bot_data()
+async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
+    if isinstance(context, CustomContext):
+        bot_data = context.pydantic_bot_data
+    else:
+        bot_data = kwargs["bot_data"]
+
     query = "SELECT * FROM recap_posts"
     res = await fetch_query(query=query)
     if res is None:
@@ -128,22 +133,22 @@ async def create_and_send_recaps(context: Union[CustomContext, Application]):
         elif recap_topics[el]["name"] == "MacOS":
             text = macos_recap_text
 
-        if text:
+        if not text:
             await context.bot.send_message(
-                chat_id=context.pydantic_bot_data.group_chat_id,
+                chat_id=bot_data.group_chat_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 text=text,
                 disable_web_page_preview=True,
                 parse_mode="HTML"
             )
 
-        await context.bot.send_sticker(
-            chat_id=context.bot_data["group_chat_id"],
-            message_thread_id=int(recap_topics[el]["id"]),
-            sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
-        )
+            await context.bot.send_sticker(
+                chat_id=bot_data.group_chat_id,
+                message_thread_id=int(recap_topics[el]["id"]),
+                sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
+            )
 
     # noinspection SqlWithoutWhere
     query = "DELETE FROM recap_posts"
 
-    await execute_query(query=query)
+    # await execute_query(query=query)

@@ -78,6 +78,8 @@ async def set_application_data(application: Application):
             if "setting_duration" in application.chat_data[el]:
                 del application.chat_data[el]["setting_duration"]
 
+        application.bot_data = new_bot_data.model_dump()
+
         autorecap_job_name = "auto_recap"
         if current_bot_data.jobs:
             j = current_bot_data.jobs.get(autorecap_job_name, None)
@@ -116,7 +118,7 @@ async def set_application_data(application: Application):
 
         _pyro_instance = pyro_inst
         constants.pyro_instance = _pyro_instance
-        await commands.pyro_instance.start()
+        await constants.pyro_instance.start()
 
         if not current_bot_data.ban_list:
             new_bot_data.ban_list = {}
@@ -129,8 +131,10 @@ async def set_application_data(application: Application):
                 chat_id=r["user_id"],
                 text="ℹ️ Bot Riavviato Correttamente"
             )
-            set_data_in_json(key=["restanting", "toggle"], value=False)
-            set_data_in_json(key=["restanting", "user_id"], value=0)
+            set_data_in_json(key=["restarting", "toggle"], value=False)
+            set_data_in_json(key=["restarting", "user_id"], value=0)
+
+    application.bot_data = new_bot_data.model_dump()
 
 
 # noinspection PyUnresolvedReferences

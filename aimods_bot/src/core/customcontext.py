@@ -17,6 +17,7 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field, ValidationError
 from telegram.ext import CallbackContext, ExtBot, Application
 
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.core.pydantic import Configuration, JobInfo
 from aimods_bot.src.helpers.loggers import logger
 
@@ -56,27 +57,41 @@ class BotData(BaseModel):
 
 
 def with_bot_data(
-        auto_init: bool = True
+        auto_init: bool = True,
+        param_name: str = "bot_data",
 ):
     """Al momento il decoratore può solo essere usato da funzioni che richiedono update e context come parametri.
     Per renderlo più flessibile si può agire dinamicamente su di esso in base ai paramatri che una funzione possiede.
     Sino a quando non si presenta l'eventualità, non lo farò."""
 
     def decorator(func):
-        sig = inspect.signature(func)
-        params = list(sig.parameters.keys())
-
         @wraps(func)
-        async def async_wrapper(update, context: CustomContext, *args, **kwargs):
-            try:
-                if auto_init and not context.bot_data:
-                    context.pydantic_bot_data = BotData()
+        async def async_wrapper(*args, **kwargs):
+            context = None
+            for arg in args:
+                if isinstance(arg, (CustomContext, CallbackContext, Application)):
+                    context = arg
+                    break
+            if context is None:
+                context = kwargs.get("context", None)
+            if context is None:
+                raise MissingParameterException("You must provide a context.")
 
-                context.pydantic_bot_data = BotData(**context.bot_data)
-                if "update" in params:
-                    return await func(update, context, *args, **kwargs)
+            raw_bot_data = getattr(context, "bot_data", None)
+
+            try:
+                if auto_init and not raw_bot_data:
+                    raw_bot_data = BotData().model_dump()
+                    context.bot_data = raw_bot_data
+
+                pydantic_bot_data = BotData(**raw_bot_data)
+
+                if isinstance(context, CustomContext):
+                    context.pydantic_bot_data = pydantic_bot_data
                 else:
-                    return await func(context, *args, **kwargs)
+                    kwargs[param_name] = pydantic_bot_data
+
+                return await func(*args, **kwargs)
             except ValidationError as e:
                 log.error(f"Errore nella validazione di bot_data in {func.__name__}: {e}")
                 raise
@@ -85,17 +100,32 @@ def with_bot_data(
                 raise
 
         @wraps(func)
-        def sync_wrapper(update, context: CustomContext, *args, **kwargs):
+        def sync_wrapper(*args, **kwargs):
+            context = None
+            for arg in args:
+                if isinstance(arg, (CustomContext, CallbackContext, Application)):
+                    context = arg
+                    break
+            if context is None:
+                context = kwargs.get("context", None)
+            if context is None:
+                raise MissingParameterException("You must provide a context.")
+
+            raw_bot_data = getattr(context, "bot_date", None)
+
             try:
-                if auto_init and not context.bot_data:
-                    context.pydantic_bot_data = BotData()
+                if auto_init and not raw_bot_data:
+                    raw_bot_data = BotData().model_dump()
+                    context.bot_data = raw_bot_data
 
-                context.pydantic_bot_data = BotData(**context.bot_data)
+                pydantic_bot_data = BotData(**raw_bot_data)
 
-                if "update" in params:
-                    return func(update, context, *args, **kwargs)
+                if isinstance(context, CustomContext):
+                    context.pydantic_bot_data = pydantic_bot_data
                 else:
-                    return func(context, *args, **kwargs)
+                    kwargs[param_name] = pydantic_bot_data
+
+                return func(*args, **kwargs)
             except ValidationError as e:
                 log.error(f"Errore nella validazione di bot_data in {func.__name__}: {e}")
                 raise

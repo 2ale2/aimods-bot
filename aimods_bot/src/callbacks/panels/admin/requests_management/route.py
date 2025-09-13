@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from aimods_bot.src.core.customcontext import CustomContext
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
@@ -13,7 +13,7 @@ from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, 
     remove_active_request
 
 
-async def admin_requests_management_route(update: Update, context: ContextTypes.DEFAULT_TYPE, path: list[str]):
+async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_admin_request_management_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
@@ -29,7 +29,7 @@ async def admin_requests_management_route(update: Update, context: ContextTypes.
     return PCS.ADMIN_CONVERSATION
 
 
-async def admin_active_requests_management_route(update: Update, context: ContextTypes.DEFAULT_TYPE, path: list[str]):
+async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_admin_active_requests_management_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
@@ -59,7 +59,7 @@ async def admin_active_requests_management_route(update: Update, context: Contex
 
 async def admin_manage_request_route(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         path: list[str],
         ix: str
 ):

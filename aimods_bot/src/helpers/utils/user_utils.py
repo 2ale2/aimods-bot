@@ -4,6 +4,7 @@ from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as Pyro
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser, Update
 from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import with_bot_data
 from aimods_bot.src.helpers.constants.models import CanUserRequest
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
@@ -15,11 +16,12 @@ from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_
 log = logger.getChild("user_utils")
 
 
+@with_bot_data()
 async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
     Verifica se l'utente è un admin del gruppo.
     """
-    return str(user_id) in context.bot_data["admins"].keys()
+    return user_id in list(context.pydantic_bot_data.admins.keys())
 
 
 async def user_in_chat(user_id: int, context: ContextTypes.DEFAULT_TYPE, chat_id: int = None) -> bool:
