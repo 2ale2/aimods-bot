@@ -6,11 +6,11 @@ from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
-                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions)
-from telegram.ext import ContextTypes, CallbackContext
+                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser)
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
@@ -25,13 +25,13 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     return None
 
 
-async def safe_delete_wrapper(update: Update, context: CallbackContext):
+async def safe_delete_wrapper(update: Update, context: CustomContext):
     await safe_delete(update, context, update.effective_message)
 
 
 async def safe_delete(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         message: telegram.Message = None,
         message_id: int = None
 ):
@@ -140,10 +140,10 @@ def validate_callback_structure(
 
 
 async def resolve_chat_member(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_identifier: Union[int, str],
         chat_id: int = None
-) -> Dict[str, Any]:
+) -> Union[Dict[str, Any], PyroUser, PTBUser]:
     """Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback."""
 
     if not user_identifier:
@@ -210,7 +210,7 @@ async def _try_pyrogram_user_resolve(user_identifier: Union[int, str]) -> Option
         return None
 
 
-async def _try_ptb_resolve(context: ContextTypes.DEFAULT_TYPE, chat_id: Union[int, str],
+async def _try_ptb_resolve(context: CustomContext, chat_id: Union[int, str],
                            user_identifier: Union[int, str]) -> Dict[str, Any]:
     """Tenta di risolvere un ChatMember usando PTB."""
     try:
@@ -296,7 +296,7 @@ def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatP
         raise TypeError(f"Unsupported type: {type(permissions)}")
 
 
-async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def not_implemented_yet(update: Update, context: CustomContext):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="⚠️ Funzionalità non ancora implementata.",
@@ -312,7 +312,7 @@ def get_toggle_text(b: bool) -> str:
 
 async def handle_if_not_file(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         filename: Optional[str],
         callback_data: str
 ) -> bool:
@@ -334,7 +334,7 @@ async def handle_if_not_file(
     return False
 
 
-async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def test(update: Update, context: CustomContext):
     if update.effective_user.id != int(os.getenv("MYID")):
         return
     await create_and_send_recaps(context=context.application)
@@ -342,7 +342,7 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_moderation_bool_setting(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         setting: str,
         sub_setting: str,
         value: bool,
@@ -358,12 +358,12 @@ async def set_moderation_bool_setting(
 
 
 async def edit_message_safely(
-        context: CallbackContext,
+        context: CustomContext,
         message_id: int,
         chat_id: int,
         text: str,
         keyboard: InlineKeyboardMarkup
-) -> None:
+) -> Optional[int]:
     """Wrapper per edit_message_text con gestione errori"""
     try:
         await context.bot.edit_message_text(

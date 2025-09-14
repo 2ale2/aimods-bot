@@ -1,5 +1,4 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.forward.route import antispam_forward_route
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import toggle_antispam
@@ -8,11 +7,12 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.route im
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import render_antispam_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_route
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
-async def antispam_route(update: Update, context: CallbackContext, path: list[str]):
+async def antispam_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_antispam_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
