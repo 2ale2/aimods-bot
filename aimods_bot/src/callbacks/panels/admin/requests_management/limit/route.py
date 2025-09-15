@@ -1,19 +1,19 @@
 from typing import Optional
 
 from telegram import Update
-from telegram.ext import ContextTypes
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
     handle_request_limitation_topic
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_admin_limit_user_request_panel, render_admin_limit_user_request_duration_panel, \
     render_handled_request_limitation_duration_panel, render_admin_limit_user_request_topics_panel
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 
 async def route_admin_limit_user_request(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         path: list[str],
         user_id: Optional[int]
 ):

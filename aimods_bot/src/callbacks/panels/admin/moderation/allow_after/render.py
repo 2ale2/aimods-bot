@@ -1,13 +1,13 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 from aimods_bot.src.helpers.constants.constants import MODERATION_DISPLAY_ITEMS
 
 
-async def render_allow_after_panel(update: Update, context: CallbackContext, setting: str):
+async def render_allow_after_panel(update: Update, context: CustomContext, setting: str):
     text = await _build_text(context=context, setting=setting)
 
     allow_after_panel = Panel(
@@ -44,19 +44,19 @@ async def render_allow_after_panel(update: Update, context: CallbackContext, set
     await allow_after_panel.render(update=update, context=context)
 
 
-async def _build_text(context: CallbackContext, setting: str) -> str:
+async def _build_text(context: CustomContext, setting: str) -> str:
     map_to_word = {
         "link": "link",
         "mention": "menzione"
     }
-    ssetting = setting.split('/')
-    antispam_config = get_value(context, f"moderation.{'.'.join(ssetting)}")
+    setting = setting.split('/')
+    antispam_config = get_value(context, f"moderation.{'.'.join(setting)}")
 
     allow_after = antispam_config['allow_after']
     allow_after_text = get_allow_after_text(allow_after)
     
-    setting_item = MODERATION_DISPLAY_ITEMS[ssetting[0]]
-    sub_setting = map_to_word[ssetting[1]]
+    setting_item = MODERATION_DISPLAY_ITEMS[setting[0]]
+    sub_setting = map_to_word[setting[1]]
 
     text = (f"{setting_item.display_icon} <b>Impostazioni {setting_item.display_name}</b>\n\n"
             f"↦ ⌛️ <i>Blocco {sub_setting.capitalize()} – Consenti Dopo</i>\n\n"

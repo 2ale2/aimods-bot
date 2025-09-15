@@ -1,15 +1,15 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.forward.render import render_antispam_forward_panel, \
     render_antispam_forward_category_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import set_moderation_bool_setting
 
 
-async def antispam_forward_route(update: Update, context: CallbackContext, path: list[str]):
+async def antispam_forward_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_antispam_forward_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
@@ -22,7 +22,7 @@ async def antispam_forward_route(update: Update, context: CallbackContext, path:
     return await antispam_forward_category_route(update=update, context=context, category=path[0], path=path[1:])
 
 
-async def antispam_forward_category_route(update: Update, context: CallbackContext, category: str, path: list[str]):
+async def antispam_forward_category_route(update: Update, context: CustomContext, category: str, path: list[str]):
     if len(path) == 0:
         await render_antispam_forward_category_panel(update=update, context=context, category=category)
         return PCS.ADMIN_CONVERSATION
@@ -65,7 +65,7 @@ async def antispam_forward_category_route(update: Update, context: CallbackConte
     return PCS.ADMIN_CONVERSATION
 
 
-async def antispam_forward_rate_limit_route(update: Update, context: CallbackContext, path: list[str]):
+async def antispam_forward_rate_limit_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         # await render_antispam_forward_rate_limit_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION

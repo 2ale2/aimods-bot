@@ -1,6 +1,6 @@
 from telegram import Update
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, Platform, Category, RequestData, \
     RequestStatus
@@ -11,7 +11,7 @@ from aimods_bot.src.helpers.utils.request_utils import get_active_category_reque
 log = logger.getChild("admin_requests_management_render")
 
 
-async def render_admin_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def render_admin_request_management_panel(update: Update, context: CustomContext):
     text = _get_admin_request_management_text()
 
     admin_request_management_panel = Panel(
@@ -41,7 +41,7 @@ def _get_admin_request_management_text():
     return text
 
 
-async def render_admin_active_requests_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def render_admin_active_requests_management_panel(update: Update, context: CustomContext):
     text = _get_admin_request_management_text()
 
     keyboard = [[]]
@@ -77,7 +77,7 @@ def _get_admin_active_requests_management_text():
 
 async def render_admin_active_requests_category_selector_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         platform: Platform
 ):
     text = _get_admin_active_requests_category_text(platform=platform)
@@ -130,7 +130,7 @@ def _get_admin_active_requests_category_text(platform: Platform):
 
 async def render_admin_active_requests_category_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         platform: Platform,
         category: Category
 ):
@@ -203,7 +203,7 @@ def _get_active_requests_category_text(
 
 async def render_admin_manage_request_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str,
         request: RequestData,
         back_button_callback_key: str = None
@@ -306,7 +306,7 @@ async def render_admin_manage_request_limit_user():
 
 async def render_change_request_status_confirmation_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str,
         request: RequestData,
         status: RequestStatus
@@ -374,7 +374,7 @@ async def _get_render_change_request_status_confirmation_text(
 
 async def render_request_status_changed_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str,
         request: RequestData
 ):
@@ -435,7 +435,7 @@ async def _get_request_status_changed_text(
 
 async def render_admin_manage_request_remove_confirmation_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str,
         request: RequestData
 ):
@@ -485,7 +485,7 @@ async def _get_admin_manage_request_remove_confirmation_text(
 
 async def render_admin_manage_request_removed_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str
 ):
     text = _get_admin_manage_request_removed_text()

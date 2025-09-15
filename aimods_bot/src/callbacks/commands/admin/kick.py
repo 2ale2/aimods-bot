@@ -1,8 +1,9 @@
 from typing import Optional, Union
-from telegram.ext import ContextTypes
+
 from pyrogram.types import ChatMember as PyroChatMember
 from telegram import Update, ChatMember as PTBChatMember
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants import constants as constants
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message
@@ -19,7 +20,7 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
 }
 
 
-async def kick_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def kick_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -105,10 +106,10 @@ def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]) -> Optio
     return None
 
 
-async def _attempt_kick_user_legacy(context: ContextTypes.DEFAULT_TYPE, uid: int | str) -> dict:
+async def _attempt_kick_user_legacy(context: CustomContext, uid: int | str) -> dict:
     try:
         await constants.pyro_instance.unban_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
+            chat_id=context.pydantic_bot_data.group_chat_id,
             user_id=uid
         )
         log.debug(f"Utente {uid} kickato con successo.")
@@ -117,7 +118,7 @@ async def _attempt_kick_user_legacy(context: ContextTypes.DEFAULT_TYPE, uid: int
         if is_user_id(uid):
             try:
                 await context.bot.unban_chat_member(
-                    chat_id=context.bot_data["group_chat_id"],
+                    chat_id=context.pydantic_bot_data.group_chat_id,
                     user_id=uid
                 )
             except Exception as e:
@@ -128,13 +129,13 @@ async def _attempt_kick_user_legacy(context: ContextTypes.DEFAULT_TYPE, uid: int
 
 
 async def _attempt_kick_user(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         admin_id: int
 ) -> dict:
     """Tenta il kick dell'utente uid."""
 
-    chat_id = context.bot_data["group_chat_id"]
+    chat_id = context.pydantic_bot_data.group_chat_id
     user_id = member.id  # ID c'è per forza
     username = member.username  # Lo username no
 
@@ -169,7 +170,7 @@ async def _kick_with_pyrogram(chat_id: int, uid: str):
     await constants.pyro_instance.unban_chat_member(chat_id=chat_id, user_id=uid)
 
 
-async def _kick_with_ptb(context: ContextTypes.DEFAULT_TYPE, chat_id: int, uid: int):
+async def _kick_with_ptb(context: CustomContext, chat_id: int, uid: int):
     """Helper per kick con PTB (unban = kick)"""
     await context.bot.unban_chat_member(chat_id=chat_id, user_id=uid)
 

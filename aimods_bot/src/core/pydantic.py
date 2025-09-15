@@ -1,15 +1,11 @@
-import inspect
+from __future__ import annotations
 
-from functools import wraps
-from pydantic import BaseModel, Field, ValidationError
-from typing import Dict, List, Optional, Any, Callable, Union
 from datetime import datetime
 from enum import Enum
+from typing import List, Optional
 
-from telegram import Update
-from telegram.ext import ContextTypes, CallbackContext
+from pydantic import BaseModel, Field
 
-from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
@@ -23,7 +19,7 @@ class PunishmentType(str, Enum):
 
 
 class JobInfo(BaseModel):
-    next_date: str
+    next_date: str = ""
     executed: bool = False
 
 
@@ -188,3 +184,14 @@ class Configuration(BaseModel):
     class Config:
         validate_assignment = True
         extra = "forbid"
+
+
+class RestartData(BaseModel):
+    toggle: bool = False
+    user_id: int = 0
+
+
+class BanListItem(BaseModel):
+    expires_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    reason: str = ""
+    admin: int = 0

@@ -2,10 +2,10 @@ from typing import Union, Optional, Dict
 from datetime import datetime
 
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
 from telegram import Update, ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants import constants
 from aimods_bot.src.helpers.constants.permissions import permissions_texts, Permissions as Permissions, \
     get_ptb_permissions, get_pyro_permissions
@@ -32,7 +32,7 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
 
 async def limit_user(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         full_command: str,
         delete_flag=False,
         mute_flag=False
@@ -175,7 +175,7 @@ async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
 
 
 async def _attempt_limit_unlimit_user(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: dict,
         permissions: list[int],
         until: datetime,
@@ -237,7 +237,7 @@ async def _attempt_limit_unlimit_user(
 
 
 async def _parse_permissions(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         permissions: list[int],
         chat_member: Union[PyroChatMember, PTBChatMember],
         unlimit=False
@@ -267,7 +267,7 @@ async def _parse_permissions(
 
 
 async def _limit_unlimit_with_ptb(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_id: int,
         permissions: PTBChatPermissions,
         until_date: datetime,
@@ -276,7 +276,7 @@ async def _limit_unlimit_with_ptb(
 ) -> bool:
     try:
         await context.bot.restrict_chat_member(
-            chat_id=int(context.bot_data["group_chat_id"]),
+            chat_id=int(context.pydantic_bot_data.group_chat_id),
             user_id=user_id,
             until_date=until_date,
             permissions=permissions,
@@ -290,7 +290,7 @@ async def _limit_unlimit_with_ptb(
 
 
 async def _limit_unlimit_with_pyro(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_id: int | str,
         permissions: PyroChatPermissions,
         until_date: datetime,
@@ -299,7 +299,7 @@ async def _limit_unlimit_with_pyro(
 ) -> bool:
     try:
         await constants.pyro_instance.restrict_chat_member(
-            chat_id=int(context.bot_data["group_chat_id"]),
+            chat_id=int(context.pydantic_bot_data.group_chat_id),
             user_id=add_fucking_at(user_id) if isinstance(user_id, str) else user_id,
             until_date=until_date,
             permissions=permissions,

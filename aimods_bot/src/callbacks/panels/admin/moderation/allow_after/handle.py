@@ -1,8 +1,8 @@
-from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.customcontext import CustomContext
 
 
-async def set_antispam_link_allow_after(context: CallbackContext, setting: str, raw_value: str):
+async def set_antispam_link_allow_after(context: CustomContext, setting: str, raw_value: str):
     raw_split = raw_value.split("_")
     path = f"moderation.{'.'.join(setting.split('/'))}.allow_after"
     match raw_split[-1]:

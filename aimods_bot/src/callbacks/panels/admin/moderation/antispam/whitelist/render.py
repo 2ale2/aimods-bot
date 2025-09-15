@@ -1,12 +1,12 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 
 
 async def render_antispam_whitelist_panel(
         update: Update,
-        context: CallbackContext,
+        context: CustomContext,
         send: bool = False
 ):
     text = _build_whitelist_text()
@@ -40,7 +40,7 @@ def _build_whitelist_text() -> str:
     return text
 
 
-async def render_antispam_whitelist_view_panel(update: Update, context: CallbackContext):
+async def render_antispam_whitelist_view_panel(update: Update, context: CustomContext):
     text = _build_whitelist_view_text()
 
     antispam_mention_whitelist_view_panel = Panel(

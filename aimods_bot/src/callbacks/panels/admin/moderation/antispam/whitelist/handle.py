@@ -3,9 +3,9 @@ from typing import Literal, List, Optional, Dict, Any
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, KeyboardButtonRequestUsers, \
     KeyboardButtonRequestChat, ReplyKeyboardMarkup
 from telegram.constants import ParseMode
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value, set_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.utils.file_utils import make_temp_file
@@ -37,17 +37,17 @@ class WhitelistManager:
     """Gestione centralizzata delle operazioni sulla whitelist"""
 
     @staticmethod
-    def get_whitelist(context: CallbackContext, category: CategoryType) -> List[int]:
+    def get_whitelist(context: CustomContext, category: CategoryType) -> List[int]:
         """Recupera la whitelist per una categoria"""
         return get_value(context=context, path=f'moderation.antispam.whitelist.{category}') or []
 
     @staticmethod
-    def save_whitelist(context: CallbackContext, category: CategoryType, whitelist: List[int]) -> None:
+    def save_whitelist(context: CustomContext, category: CategoryType, whitelist: List[int]) -> None:
         """Salva la whitelist per una categoria"""
         set_value(context=context, path=f"moderation.antispam.whitelist.{category}", value=whitelist)
 
     @staticmethod
-    def add_to_whitelist(context: CallbackContext, category: CategoryType, items: List[int]) -> List[int]:
+    def add_to_whitelist(context: CustomContext, category: CategoryType, items: List[int]) -> List[int]:
         """Aggiunge elementi alla whitelist e restituisce quelli effettivamente aggiunti"""
         whitelist = WhitelistManager.get_whitelist(context, category)
         added = [item for item in items if item not in whitelist]
@@ -59,7 +59,7 @@ class WhitelistManager:
         return added
 
     @staticmethod
-    def remove_from_whitelist(context: CallbackContext, category: CategoryType, items: List[int]) -> List[int]:
+    def remove_from_whitelist(context: CustomContext, category: CategoryType, items: List[int]) -> List[int]:
         """Rimuove elementi dalla whitelist e restituisce quelli effettivamente rimossi"""
         whitelist = WhitelistManager.get_whitelist(context, category)
         removed = [item for item in items if item in whitelist]
@@ -167,7 +167,7 @@ class KeyboardBuilder:
 
 
 # Funzioni principali refactored
-async def view_whitelist(update: Update, context: CallbackContext, category: CategoryType, from_category: bool = False):
+async def view_whitelist(update: Update, context: CustomContext, category: CategoryType, from_category: bool = False):
     """Visualizza la whitelist per una categoria"""
     whitelist = WhitelistManager.get_whitelist(context, category)
     word = CATEGORY_LABELS[category]
@@ -206,7 +206,7 @@ async def view_whitelist(update: Update, context: CallbackContext, category: Cat
     return PCS.ADMIN_CONVERSATION
 
 
-async def edit_whitelist_pre_step(update: Update, context: CallbackContext, action: ActionType):
+async def edit_whitelist_pre_step(update: Update, context: CustomContext, action: ActionType):
     """Preparazione per aggiunta o rimozione dalla whitelist"""
     sub_text = 'Aggiungi ad una' if action == "add" else 'Rimuovi da una'
     text = MessageBuilder.build_base_text(f"{sub_text} Whitelist")
@@ -217,7 +217,7 @@ async def edit_whitelist_pre_step(update: Update, context: CallbackContext, acti
         return await _handle_remove_preparation(update, context, text)
 
 
-async def remove_from_whitelist(update: Update, context: CallbackContext, category: CategoryType):
+async def remove_from_whitelist(update: Update, context: CustomContext, category: CategoryType):
     """Gestisce la rimozione da una categoria specifica"""
     whitelist = WhitelistManager.get_whitelist(context, category)
 
@@ -245,7 +245,7 @@ async def remove_from_whitelist(update: Update, context: CallbackContext, catego
     return PCS.REMOVE_ANTISPAM_MENTION_WHITELIST
 
 
-async def handle_user_input_antispam_whitelist(update: Update, context: CallbackContext):
+async def handle_user_input_antispam_whitelist(update: Update, context: CustomContext):
     """Gestisce l'input dell'utente per aggiunta/rimozione"""
     data = context.chat_data.get("editing_antispam_whitelist", {})
     action = data.get("action")
@@ -283,7 +283,7 @@ async def _send_empty_list_message(update: Update, category: CategoryType, from_
     )
 
 
-async def _handle_add_preparation(update: Update, context: CallbackContext, text: str):
+async def _handle_add_preparation(update: Update, context: CustomContext, text: str):
     """Gestisce la preparazione per l'aggiunta"""
     await safe_delete(update=update, context=context)
 
@@ -305,7 +305,7 @@ async def _handle_add_preparation(update: Update, context: CallbackContext, text
     return PCS.ADD_ANTISPAM_MENTION_WHITELIST
 
 
-async def _handle_remove_preparation(update: Update, context: CallbackContext, text: str):
+async def _handle_remove_preparation(update: Update, text: str):
     """Gestisce la preparazione per la rimozione"""
     keyboard = KeyboardBuilder.build_category_inline_keyboard(
         "moderation/security_filters/antispam/whitelist/remove/",
@@ -321,7 +321,7 @@ async def _handle_remove_preparation(update: Update, context: CallbackContext, t
     return PCS.ADMIN_CONVERSATION
 
 
-async def _handle_add_action(update: Update, context: CallbackContext, data: Dict[str, Any]):
+async def _handle_add_action(update: Update, context: CustomContext, data: Dict[str, Any]):
     """Gestisce l'azione di aggiunta"""
     ureq = update.effective_message.users_shared
     creq = update.effective_message.chat_shared
@@ -367,7 +367,7 @@ async def _handle_add_action(update: Update, context: CallbackContext, data: Dic
     return PCS.ADMIN_CONVERSATION
 
 
-async def _handle_remove_action(update: Update, context: CallbackContext, data: Dict[str, Any]):
+async def _handle_remove_action(update: Update, context: CustomContext, data: Dict[str, Any]):
     """Gestisce l'azione di rimozione"""
     category = data.get("category")
     if not category:

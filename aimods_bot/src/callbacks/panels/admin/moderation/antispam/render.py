@@ -1,13 +1,13 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, sec_value_limited
 
 
-async def render_antispam_panel(update: Update, context: CallbackContext):
+async def render_antispam_panel(update: Update, context: CustomContext):
     text = await _build_text(context=context)
 
     antispam_panel = Panel(
@@ -39,7 +39,7 @@ async def render_antispam_panel(update: Update, context: CallbackContext):
     await antispam_panel.render(update=update, context=context)
 
 
-async def _build_text(context: CallbackContext):
+async def _build_text(context: CustomContext):
     antispam_config = get_value(context, "moderation.antispam")
 
     toggle = antispam_config["toggle"]

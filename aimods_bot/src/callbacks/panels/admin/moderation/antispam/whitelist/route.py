@@ -1,15 +1,15 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle import view_whitelist, \
     edit_whitelist_pre_step, remove_from_whitelist
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.render import render_antispam_whitelist_panel, \
     render_antispam_whitelist_view_panel
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 
-async def antispam_whitelist_backer(update: Update, context: CallbackContext):
+async def antispam_whitelist_backer(update: Update, context: CustomContext):
     message_id = context.chat_data["editing_antispam_whitelist"]["message_id"]
     await safe_delete(update=update, context=context, message_id=message_id)
     del context.chat_data["editing_antispam_whitelist"]
@@ -17,7 +17,7 @@ async def antispam_whitelist_backer(update: Update, context: CallbackContext):
     return await antispam_whitelist_route(update=update, context=context, path=[], send=True)
 
 
-async def antispam_whitelist_route(update: Update, context: CallbackContext, path: list[str], send: bool = False):
+async def antispam_whitelist_route(update: Update, context: CustomContext, path: list[str], send: bool = False):
     if len(path) == 0:
         await render_antispam_whitelist_panel(update=update, context=context, send=send)
         return PCS.ADMIN_CONVERSATION

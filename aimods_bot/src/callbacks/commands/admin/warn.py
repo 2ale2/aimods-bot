@@ -1,11 +1,11 @@
 import pytz
 from datetime import datetime
 from typing import Union, Optional
-from telegram.ext import ContextTypes
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 
 from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
 from aimods_bot.src.helpers.loggers import logger
@@ -34,7 +34,7 @@ ERROR_MESSAGES = constants.ERROR_MESSAGES | {
 MAX_WARNS = 3
 
 
-async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def warn_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -118,7 +118,7 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
     )
 
 
-async def unwarn_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def unwarn_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -199,7 +199,7 @@ async def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]):
 
 
 async def _attempt_warn_user(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: dict,
         until_date: datetime,
         reason: str,

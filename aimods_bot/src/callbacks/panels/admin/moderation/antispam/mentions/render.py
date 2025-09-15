@@ -1,13 +1,13 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text, get_rate_limit_text, pluralize
 
 
-async def render_antispam_mention_panel(update: Update, context: CallbackContext):
+async def render_antispam_mention_panel(update: Update, context: CustomContext):
     text = await _build_text(context)
 
     antispam_mention_panel = Panel(
@@ -33,7 +33,7 @@ async def render_antispam_mention_panel(update: Update, context: CallbackContext
     await antispam_mention_panel.render(update=update, context=context)
 
 
-async def _build_text(context: CallbackContext) -> str:
+async def _build_text(context: CustomContext) -> str:
     antispam_mention_config = get_value(context, "moderation.antispam.mention")
     allow_after = antispam_mention_config['allow_after']
     allow_after_text = get_allow_after_text(allow_after)
@@ -67,7 +67,7 @@ async def _build_text(context: CallbackContext) -> str:
     return text
 
 
-async def render_antispam_mention_per_message_panel(update: Update, context: CallbackContext):
+async def render_antispam_mention_per_message_panel(update: Update, context: CustomContext):
     text = _build_per_message_text(context)
 
     antispam_mention_per_message_panel = Panel(
@@ -93,7 +93,7 @@ async def render_antispam_mention_per_message_panel(update: Update, context: Cal
     await antispam_mention_per_message_panel.render(update=update, context=context)
 
 
-def _build_per_message_text(context: CallbackContext) -> str:
+def _build_per_message_text(context: CustomContext) -> str:
     antispam_mention_config = get_value(context, "moderation.antispam.mention")
     per_message = antispam_mention_config['per_message']
 
@@ -111,7 +111,7 @@ def _build_per_message_text(context: CallbackContext) -> str:
     return text
 
 
-async def render_antispam_mention_category_panel(update: Update, context: CallbackContext, category: str):
+async def render_antispam_mention_category_panel(update: Update, context: CustomContext, category: str):
     text = _build_mention_category_text(context=context, category=category)
 
     user_if_not_member = get_value(context, "moderation.antispam.mention.user.if_not_member")
@@ -146,7 +146,7 @@ async def render_antispam_mention_category_panel(update: Update, context: Callba
     await antispam_mention_category_panel.render(update=update, context=context)
 
 
-def _build_mention_category_text(context: CallbackContext, category: str) -> str:
+def _build_mention_category_text(context: CustomContext, category: str) -> str:
     map_to_word = {
         "user": "Utenti",
         "group": "Gruppi",

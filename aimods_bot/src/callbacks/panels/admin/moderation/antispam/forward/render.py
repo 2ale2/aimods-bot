@@ -1,13 +1,13 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 
 
-async def render_antispam_forward_panel(update: Update, context: CallbackContext):
+async def render_antispam_forward_panel(update: Update, context: CustomContext):
     text = _get_text(context)
 
     antispam_forward_panel = Panel(
@@ -35,7 +35,7 @@ async def render_antispam_forward_panel(update: Update, context: CallbackContext
     await antispam_forward_panel.render(update=update, context=context)
 
 
-def _get_text(context: CallbackContext) -> str:
+def _get_text(context: CustomContext) -> str:
     antispam_forward_configuration = get_value(context, "moderation.antispam.forward")
 
     allow_after = antispam_forward_configuration["allow_after"]
@@ -64,7 +64,7 @@ def _get_text(context: CallbackContext) -> str:
     return text
 
 
-async def render_antispam_forward_category_panel(update: Update, context: CallbackContext, category: str):
+async def render_antispam_forward_category_panel(update: Update, context: CustomContext, category: str):
     text = await _get_category_text(context, category)
 
     user_if_not_member = get_value(context, "moderation.antispam.forward.user.if_not_member")
@@ -99,7 +99,7 @@ async def render_antispam_forward_category_panel(update: Update, context: Callba
     await antispam_forward_category_panel.render(update=update, context=context)
 
 
-async def _get_category_text(context: CallbackContext, category: str) -> str:
+async def _get_category_text(context: CustomContext, category: str) -> str:
     map_to_word = {
         "user": "Utenti",
         "group": "Gruppi",
@@ -120,7 +120,7 @@ async def _get_category_text(context: CallbackContext, category: str) -> str:
     return text
 
 
-async def render_antispam_forward_rate_limit_panel(update: Update, context: CallbackContext):
+async def render_antispam_forward_rate_limit_panel(update: Update, context: CustomContext):
     text = _get_rate_limit_text(context)
 
     antispam_forward_rate_limit_panel = Panel(
@@ -143,7 +143,7 @@ async def render_antispam_forward_rate_limit_panel(update: Update, context: Call
     await antispam_forward_rate_limit_panel.render(update=update, context=context)
 
 
-def _get_rate_limit_text(context: CallbackContext):
+def _get_rate_limit_text(context: CustomContext):
     config = get_value(context=context, path="moderation.antispam.forward.rate_limit")
     timespan = config["timespan"]
     same_content = config["same_content"]

@@ -5,8 +5,8 @@ from typing import Literal
 from pyrogram.types import InlineKeyboardButton
 from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ChatAction, ParseMode
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
@@ -17,7 +17,7 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         generate_user_archive_requests_pdf_file)
 
 
-async def render_user_request_management_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def render_user_request_management_panel(update: Update, context: CustomContext):
     text = _get_user_request_management_panel_text()
 
     user_request_management_panel = Panel(
@@ -48,7 +48,7 @@ def _get_user_request_management_panel_text() -> str:
 
 async def render_active_request_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE
+        context: CustomContext
 ):
     active_requests = context.user_data["active_requests"]
     text = _get_active_request_panel_text(requests=active_requests)
@@ -92,7 +92,7 @@ def _get_active_request_panel_text(requests: dict[int, RequestData]) -> str:
 
 async def render_user_request_action_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         action: Literal["details", "cancel"]
 ):
     text = await _get_user_request_action_panel_text(
@@ -111,7 +111,7 @@ async def render_user_request_action_panel(
 
 
 async def _get_user_request_action_panel_text(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         action: Literal["details", "cancel"]
 ) -> str:
     text = f"👁‍🗨 <b>Gestione Richieste Attive</b>"
@@ -141,7 +141,7 @@ async def _get_user_request_action_panel_text(
 
 
 async def _get_user_request_action_panel_keyboard(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         action: Literal["details", "cancel"]
 ) -> list[list[ButtonItem]]:
     if action == "cancel":
@@ -164,7 +164,7 @@ async def _get_user_request_action_panel_keyboard(
 
 async def render_request_details_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str
 ):
     request = get_request_by_id(context=context, ix=ix)
@@ -201,7 +201,7 @@ async def _get_request_details_panel_text(request: RequestData) -> str:
 
 async def render_confirm_cancel_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         ix: str
 ):
     request = get_request_by_id(context=context, ix=ix)
@@ -244,7 +244,7 @@ async def _get_confirm_cancel_text(request: RequestData) -> str:
     return text
 
 
-async def render_user_request_archive_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def render_user_request_archive_panel(update: Update, context: CustomContext):
     user_id = update.effective_user.id
     requests = await get_user_requests_archive(user_id=user_id)
 
@@ -290,7 +290,7 @@ async def render_user_request_archive_panel(update: Update, context: ContextType
     delete_os_file(str(Path(p).with_suffix(".tex")))
 
     # Rimuovo il file dopo 10 minuti per evitare sovraccarichi
-    async def _delete_latex_file(context: ContextTypes.DEFAULT_TYPE):
+    async def _delete_latex_file(context: CustomContext):
         delete_os_file(path=p)
 
     job = context.job_queue.get_jobs_by_name("_delete_latex_file")
@@ -324,7 +324,7 @@ async def _get_archive_pdf_file(requests: dict, user_id: int):
 
 async def render_request_cancelled_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE
+        context: CustomContext
 ):
     text = _get_request_cancelled_panel_text()
 

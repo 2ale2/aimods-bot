@@ -1,10 +1,10 @@
 from telegram import Update
-from telegram.ext import ContextTypes
 from pyrogram.types import ChatMember as PyroChatMember
 from telegram import ChatMember as PTBChatMember
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
     handle_request_limitation_duration, get_limited_user, all_topics_are
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete
@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 
 async def render_admin_limit_user_request_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_id: int
 ):
     set_user_requests_limiting_item(context=context)
@@ -46,7 +46,7 @@ async def render_admin_limit_user_request_panel(
     await admin_limit_user_request_panel.render(update=update, context=context, message_id=message_id)
 
 
-async def _get_header(context: ContextTypes.DEFAULT_TYPE, member: PyroChatMember | PTBChatMember, user_id: int):
+async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMember, user_id: int):
     text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
             "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
             "👤 <b>Dettagli Utente</b>\n\n")
@@ -82,7 +82,7 @@ async def _get_header(context: ContextTypes.DEFAULT_TYPE, member: PyroChatMember
 
 
 async def _get_admin_limit_user_request_text(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int
 ):
@@ -94,7 +94,7 @@ async def _get_admin_limit_user_request_text(
 
 async def render_admin_limit_user_request_duration_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_id: int
 ):
     context.chat_data["update_message"] = update.effective_message.id
@@ -119,7 +119,7 @@ async def render_admin_limit_user_request_duration_panel(
 
 
 async def _get_admin_limit_user_request_duration_text(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int
 ):
@@ -133,7 +133,7 @@ async def _get_admin_limit_user_request_duration_text(
 
 async def render_handled_request_limitation_duration_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE
+        context: CustomContext
 ):
     if not update.callback_query:
         await safe_delete(update=update, context=context)
@@ -148,7 +148,7 @@ async def render_handled_request_limitation_duration_panel(
 
 async def render_admin_limit_user_request_topics_panel(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         user_id: int
 ):
     member_response = await resolve_chat_member(
@@ -174,7 +174,7 @@ async def render_admin_limit_user_request_topics_panel(
 
 
 async def _get_admin_limit_user_request_topics_text(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int
 ):
@@ -185,7 +185,7 @@ async def _get_admin_limit_user_request_topics_text(
     return text
 
 
-def _get_admin_limit_user_request_topics_keyboard(context: ContextTypes.DEFAULT_TYPE):
+def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
     keyboard = [[]]
     for platform, categories in CATEGORY_DETAILS.items():
         pl_item = PLATFORM_DETAILS[platform]

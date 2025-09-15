@@ -1,14 +1,13 @@
 from telegram import Update
-from telegram.constants import ParseMode
-from telegram.ext import CallbackContext
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.reboot import reboot
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.file_utils import set_data_in_json
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 
-async def test_mode_command(update: Update, context: CallbackContext):
+async def test_mode_command(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
     args = context.args
     if not args or args[0].lower() not in ("on", "off"):

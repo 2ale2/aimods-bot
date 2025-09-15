@@ -1,12 +1,12 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import view_list, edit_list
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.render import render_antispam_links_list_panel
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 
-async def antispam_links_list_route(update: Update, context: CallbackContext, l: str, path: list[str]):
+async def antispam_links_list_route(update: Update, context: CustomContext, l: str, path: list[str]):
     if len(path) == 0:
         await render_antispam_links_list_panel(update=update, context=context, l=l)
         return PCS.ADMIN_CONVERSATION

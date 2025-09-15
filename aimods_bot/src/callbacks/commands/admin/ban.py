@@ -1,10 +1,11 @@
 import pytz
 from telegram import Update
-from telegram.ext import ContextTypes
 from pyrogram.errors import PeerIdInvalid, UsernameNotOccupied
 from datetime import datetime
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import BanListItem
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, resolve_chat_member, normalize_user, is_username, format_user_mention
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 from aimods_bot.src.helpers.loggers import logger
@@ -36,7 +37,7 @@ ERROR_MESSAGES = {
 
 # ====== BAN ======
 
-async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def ban_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -117,7 +118,7 @@ async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_comm
 
 
 async def attempt_ban_user(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         uid: int | str,
         until: datetime,
         member: dict,
@@ -135,7 +136,7 @@ async def attempt_ban_user(
 
     try:
         await constants.pyro_instance.ban_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
+            chat_id=context.pydantic_bot_data.group_chat_id,
             user_id=uid,
             until_date=until
         )
@@ -144,7 +145,13 @@ async def attempt_ban_user(
 
     except PeerIdInvalid:
         log.warning(f"PeerIdInvalid per utente {uid}, aggiunta a blacklist")
-        return await _add_to_blacklist(context, member, until, reason, admin_id)
+        return await _add_to_blacklist(
+            context=context,
+            member=member,
+            until=until,
+            reason=reason,
+            admin_id=admin_id
+        )
     except UsernameNotOccupied:
         log.warning(f"Lo username {uid} non esiste.")
         return {"status": "error", "message": ERROR_MESSAGES["username_404"].format(uid)}
@@ -153,19 +160,24 @@ async def attempt_ban_user(
         return {"status": "error", "message": ERROR_MESSAGES["ban_error"]}
 
 
-async def _add_to_blacklist(context, member, until, reason, admin_id):
+async def _add_to_blacklist(
+        context: CustomContext,
+        member: dict,
+        until: datetime,
+        reason: str,
+        admin_id: int
+):
     """
     Aggiunge un utente alla blacklist come fallback.
     """
-    context.bot_data.setdefault("ban_list", {})
     if not member["id"]:
         return {"status": "error", "message": ERROR_MESSAGES["unable_to_blacklist"]}
 
-    context.bot_data["ban_list"][member["id"]] = {
-        "expires_at": until.astimezone(pytz.UTC) if until != zero_datetime() else None,
-        "reason": reason or None,
-        "admin": admin_id
-    }
+    context.pydantic_bot_data.ban_list[member["id"]] = BanListItem(
+        expires_at=until.astimezone(pytz.UTC).isoformat(),
+        reason=reason,
+        admin=admin_id
+    )
 
     blacklist_message = (
         f"🖊 Utente {format_user_mention(member['id'], member['username'], member['first_name'])} "
@@ -231,7 +243,7 @@ async def _log_ban_to_database(member, admin_id, reason, until):
 # ====== UNBAN ======
 
 
-async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def unban_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     parsed = await parse_command(update, context, "ban", full_command)
@@ -273,7 +285,7 @@ async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_co
 def _remove_from_blacklist(context, user_id):
     """Rimuove un utente dalla blacklist se presente."""
 
-    ban_list = context.bot_data.get("ban_list", {})
+    ban_list = context.pydantic_bot_data.ban_list
     removed_entry = ban_list.pop(user_id, None)
 
     if removed_entry:
@@ -299,7 +311,7 @@ async def _attempt_unban_user(context, member, uid, admin_id):
 
     try:
         await constants.pyro_instance.unban_chat_member(
-            chat_id=context.bot_data["group_chat_id"],
+            chat_id=context.pydantic_bot_data.group_chat_id,
             user_id=uid
         )
         log.info(f"Utente {uid} sbannato con successo da {admin_id}")
