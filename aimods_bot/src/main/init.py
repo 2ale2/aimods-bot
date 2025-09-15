@@ -3,7 +3,7 @@ import os
 import locale
 import sys
 from telegram.ext import ApplicationBuilder
-from aimods_bot.src.core.persistence import PostgresPersistence
+from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.setup import set_application_data, get_handlers
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.helpers.loggers import logger
@@ -27,13 +27,27 @@ def main():
         log.error("BOT_TOKEN non impostato")
         sys.exit(1)
 
+    persistence = AsyncPostgresPersistence(
+        url=os.getenv("POSTGRES_CONNECTION_URL"),
+        on_flush=False,
+        coalesce_delay=0.1,
+    )
+
+    async def post_init_hook(app):
+        await persistence.initialize()  # crea pool + carica dati nel loop PTB
+        await set_application_data(app)
+
+    async def post_shutdown_hook(app):
+        await post_shutdown(app)
+        await persistence.aclose()
+
     application = (
         ApplicationBuilder()
         .token(bot_token)
-        .persistence(PostgresPersistence(url=os.getenv("POSTGRES_CONNECTION_URL")))
+        .persistence(persistence)
         .arbitrary_callback_data(True)
-        .post_init(set_application_data)
-        .post_shutdown(post_shutdown)
+        .post_init(post_init_hook)
+        .post_shutdown(post_shutdown_hook)
         .build()
     )
 
