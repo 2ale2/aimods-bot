@@ -36,6 +36,11 @@ class CustomContext(CallbackContext[ExtBot, dict, dict, dict]):
         self.pydantic_bot_data: Optional[BotData] = None
 
 
+class RestartData(BaseModel):
+    toggle: bool = False
+    user_id: int = None
+
+
 class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
     group_chat_id: Optional[int] = None
@@ -50,6 +55,7 @@ class BotData(BaseModel):
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     bot_version: str = "1.0.0"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
+    restart: RestartData = Field(default_factory=RestartData)
 
     class Config:
         validate_assignment = True
@@ -58,7 +64,7 @@ class BotData(BaseModel):
 
 def with_bot_data(
         auto_init: bool = True,
-        param_name: str = "bot_data",
+        param_name: str = "pydantic_bot_data",
 ):
     """Al momento il decoratore può solo essere usato da funzioni che richiedono update e context come parametri.
     Per renderlo più flessibile si può agire dinamicamente su di esso in base ai paramatri che una funzione possiede.
