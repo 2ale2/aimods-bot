@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field, ValidationError
 from telegram.ext import CallbackContext, ExtBot, Application
 
 from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem
+from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("custom_context")
@@ -41,12 +41,12 @@ class BotData(BaseModel):
     group_chat_id: Optional[int] = None
 
     admins: Dict[int, str] = Field(default_factory=dict)
-    ban_list: Dict[str, BanListItem] = Field(default_factory=dict)
+    ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
     user_joined_message_text: str = ""
     rules_text: str = ""
-    commands: Dict[str, Any] = Field(default_factory=dict)
+    commands: Dict[str, CommandConfig] = Field(default_factory=dict)
     hashtags: Dict[str, Any] = Field(default_factory=dict)
-    active_requests: Dict[str, Any] = Field(default_factory=dict)
+    active_requests: Dict[int, Request] = Field(default_factory=dict)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     bot_version: str = "1.0.0"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())

@@ -3,17 +3,18 @@ from typing import Dict, Any, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import MessageEntityType
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import ConversationHandler
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
+from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import \
-    RequestField, MessageTemplate, Platform, Category, RequestStatus, RequestData
+    RequestField, MessageTemplate, Platform, Category, RequestData
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
-from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
 
 log = logger.getChild("request_handler")
@@ -61,7 +62,7 @@ class RequestDataManager:
 
     @staticmethod
     def initialize_request(
-            context: ContextTypes.DEFAULT_TYPE,
+            context: CustomContext,
             platform: Optional[Platform] = None,
             category: Optional[Category] = None
     ):
@@ -94,7 +95,7 @@ class RequestDataManager:
     @staticmethod
     async def request_detail(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE,
+            context: CustomContext,
             detail: RequestField
     ):
         request_data = RequestDataManager.get_request_data(context)
@@ -136,7 +137,7 @@ class RequestDataManager:
     @staticmethod
     async def request_detail_to_edit(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE
+            context: CustomContext
     ):
         if not update.callback_query:
             raise MissingParameterException("Manca la callback query in questo Update")
@@ -187,13 +188,13 @@ class RequestDataManager:
         return CONVERSATION_STATES[field_enum]
 
     @staticmethod
-    def get_request_data(context: ContextTypes.DEFAULT_TYPE) -> RequestData:
+    def get_request_data(context: CustomContext) -> RequestData:
         """Ottiene i dati della richiesta corrente"""
         request = context.chat_data.get("new_request")
         return RequestData.from_dict(request)
 
     @staticmethod
-    def update_field(context: ContextTypes.DEFAULT_TYPE, field: str, value: Any) -> None:
+    def update_field(context: CustomContext, field: str, value: Any) -> None:
         """Aggiorna un campo specifico della richiesta"""
         request_data = RequestDataManager.get_request_data(context)
         setattr(request_data, field, value)
@@ -202,11 +203,11 @@ class RequestDataManager:
         log.debug(f"Updated field {field} with value: {value}")
 
     @staticmethod
-    def update_request_data(context: ContextTypes.DEFAULT_TYPE, request_data: RequestData) -> None:
+    def update_request_data(context: CustomContext, request_data: RequestData) -> None:
         context.chat_data["new_request"] = request_data.to_dict()
 
     @staticmethod
-    async def recheck_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def recheck_request(update: Update, context: CustomContext):
         if update.callback_query:
             data = update.callback_query.data
             if data in ("steamtools_yes", "steamtools_no"):
@@ -235,7 +236,7 @@ class RequestDataManager:
     @staticmethod
     async def confirm_request(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE
+            context: CustomContext
     ):
         """Conferma e salva la richiesta nel database"""
         request_data = RequestDataManager.get_request_data(context)
@@ -264,7 +265,7 @@ class RequestDataManager:
     @staticmethod
     async def insert_request(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE,
+            context: CustomContext,
             request_data: RequestData
     ):
         """Aggiorna le richieste dell'utente nel context"""
@@ -296,24 +297,28 @@ class RequestDataManager:
 
         inserted = dict(result[0])
 
-        ix = str(inserted["id"])
+        ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
-        request_data.status = RequestStatus.PENDING
-        request_data.issued_at = issued_at
-        request_data.user_id = uid
 
-        if "active_requests" not in context.user_data:
-            await create_empty_request_user_data(context=context)
-
-        request_dict = request_data.to_dict()
-
-        context.user_data["active_requests"][ix] = request_dict
-        context.bot_data["active_requests"][ix] = request_dict
+        context.pydantic_bot_data.active_requests[ix] = Request(
+            id=ix,
+            user_id=uid,
+            # status = (default) RequestStatus.PENDING,
+            issued_at=issued_at.isoformat(),
+            platform=platform,
+            category=category,
+            name=request_for_db["name"],
+            arch=request_for_db.get("arch", None),
+            version=request_for_db.get("version", ""),
+            link=request_for_db.get("link", ""),
+            functionalities=request_for_db.get("functionalities", ""),
+            steamtools=request_for_db.get("steamtools", None)
+        )
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
 
     @staticmethod
-    def cleanup_request(context: ContextTypes.DEFAULT_TYPE) -> None:
+    def cleanup_request(context: CustomContext) -> None:
         """Pulisce i dati della richiesta dal context"""
         context.chat_data.pop("new_request", None)
         context.chat_data.pop("bot_message_id", None)
@@ -537,7 +542,7 @@ class InputHandler:
     @staticmethod
     async def handle_input(
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE
+            context: CustomContext
     ):
         """Gestisce l'input dell'utente per i diversi campi"""
         if not update.callback_query:
@@ -556,7 +561,7 @@ class InputHandler:
         log.info(f"Handled input for {detail}: {data}")
 
     @staticmethod
-    def _extract_data(update: Update, detail: str):
+    def _extract_data(update: Update, detail: RequestField):
         """Estrae i dati dall'update in base al tipo di campo"""
         if detail == RequestField.LINK:
             for el in update.effective_message.entities:

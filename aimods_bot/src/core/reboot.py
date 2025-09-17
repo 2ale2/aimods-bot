@@ -1,9 +1,9 @@
-import subprocess
 from telegram import Update
-from telegram.ext import ContextTypes
+
+from aimods_bot.src.core.customcontext import CustomContext
 
 
-async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def reboot(update: Update, context: CustomContext):
     try:
         context.bot_data["restart"] = {
             "toggle": True,

@@ -1,7 +1,7 @@
 import re
 from telegram import Update
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingConfigurationException
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, normalize_user, is_user_id
@@ -12,7 +12,7 @@ log = logger.getChild("command_parser")
 
 async def parse_command(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         command: str,
         full_command: str
 ) -> dict | None:
@@ -29,7 +29,7 @@ async def parse_command(
         Dizionario con i campi estratti, oppure None se il parsing fallisce.
     """
     try:
-        cmd_conf = context.bot_data["commands"][command]
+        cmd_conf = context.pydantic_bot_data.commands[command]
         pattern = cmd_conf["pattern"]
         parameters = cmd_conf["parameters"]
     except KeyError:

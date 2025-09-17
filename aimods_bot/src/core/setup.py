@@ -1,5 +1,4 @@
 import os
-import json
 from typing import List
 
 from pydantic import ValidationError
@@ -58,17 +57,29 @@ async def set_application_data(application: Application):
         if (not current_bot_data.user_joined_message_text or
             current_bot_data.user_joined_message_text != user_joined_message_text):
             new_bot_data.user_joined_message_text = user_joined_message_text
+        else:
+            new_bot_data.user_joined_message_text = current_bot_data.user_joined_message_text
         if (not current_bot_data.rules_text or
             current_bot_data.rules_text != rules_text):
             new_bot_data.rules_text = rules_text
+        else:
+            new_bot_data.rules_text = current_bot_data.rules_text
 
-        commands = get_data_from_json("commands")
+        json_commands = get_data_from_json("commands")
+        commands = {}
+        for el in json_commands:
+            commands[el] = CommandConfig(**json_commands[el])
+
         if not current_bot_data.commands or current_bot_data.commands != commands:
             new_bot_data.commands = commands
+        else:
+            new_bot_data.commands = current_bot_data.commands
 
         hashtags = get_data_from_json("hashtags")
         if not current_bot_data.hashtags or current_bot_data.hashtags != hashtags:
             new_bot_data.hashtags = hashtags
+        else:
+            new_bot_data.hashtags = current_bot_data.hashtags
 
         for uid in application.user_data:
             if "settings_main_message" in application.user_data[uid]:

@@ -116,6 +116,13 @@ class MacOSCategory(Enum):
 Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
 
 
+class Arch(Enum):
+    x86 = "x86"
+    x86_64 = "x86_64"
+    ARM = "arm"
+    ARM_64 = "arm64"
+
+
 class MessageTemplate(NamedTuple):
     app: str
     game: str

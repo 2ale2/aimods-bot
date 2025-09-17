@@ -1,11 +1,12 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
@@ -13,7 +14,7 @@ from aimods_bot.src.helpers.constants.models import Platform, AndroidCategory, W
     MacOSCategory, Category, RequestData
 
 
-async def requests_management_route(update: Update, context: CallbackContext, path: list[str]):
+async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_user_request_management_main_panel(update=update, context=context)
         return PCS.USER_CONVERSATION
@@ -25,7 +26,7 @@ async def requests_management_route(update: Update, context: CallbackContext, pa
             return await user_request_check(update=update, context=context, path=path[1:])
 
 
-async def request_category(update: Update, context: CallbackContext) -> int:
+async def request_category(update: Update, context: CustomContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
     if "new_request" not in context.chat_data:
@@ -85,7 +86,7 @@ async def request_category(update: Update, context: CallbackContext) -> int:
     return RCS.REQUEST_CATEGORY
 
 
-async def request_router(update: Update, context: CallbackContext):
+async def request_router(update: Update, context: CustomContext):
     await update.callback_query.answer()
     request_data = RequestDataManager.get_request_data(context=context)
 
@@ -122,6 +123,7 @@ async def request_router(update: Update, context: CallbackContext):
     return await request_detail(update=update, context=context)
 
 
-def is_category_request_allowed(context: CallbackContext, platform: Platform, category: Category) -> bool:
+def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
-    return context.bot_data["configuration"]["settings"]["request"][platform.value][category.value]
+    platform_settings = getattr(context.pydantic_bot_data.configuration.settings.request, platform.value)
+    return getattr(platform_settings, str(category.value))

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from pydantic import BaseModel, Field
 
+from aimods_bot.src.helpers.constants.models import RequestStatus, Platform, Category, Arch
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
@@ -195,3 +196,28 @@ class BanListItem(BaseModel):
     expires_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     reason: str = ""
     admin: int = 0
+
+
+class CommandConfig(BaseModel):
+    pattern: str = ""
+    parameters: List[Literal["mention", "permissions", "duration", "message"]] = []
+
+
+class Architecture(BaseModel):
+    arch: Arch = None
+    arm_bool: bool = arch in (Arch.ARM, Arch.ARM_64)
+
+
+class Request(BaseModel):
+    id: int = 0
+    user_id: int = 0
+    status: RequestStatus = RequestStatus.PENDING
+    issued_at: str = ""
+    platform: Platform = None
+    category: Category = None
+    name: str = ""
+    arch: Optional[Architecture] = None
+    version: str = ""
+    link: str = ""
+    functionalities: str = ""
+    steamtools: bool = None

@@ -1,10 +1,10 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 
 
-async def render_user_request_management_main_panel(update: Update, context: CallbackContext):
+async def render_user_request_management_main_panel(update: Update, context: CustomContext):
     text = _get_user_request_management_panel_text()
 
     user_request_management_panel = Panel(
@@ -34,7 +34,7 @@ def _get_user_request_management_panel_text():
     return text
 
 
-async def render_user_request_panel(update: Update, context: CallbackContext):
+async def render_user_request_panel(update: Update, context: CustomContext):
     text = _get_user_request_panel_text()
     user_request_panel = Panel(
         PanelConfig(
@@ -63,7 +63,7 @@ def _get_user_request_panel_text():
     return text
 
 
-async def render_user_cant_request_panel(update: Update, context: CallbackContext, reason: str):
+async def render_user_cant_request_panel(update: Update, context: CustomContext, reason: str):
     text = _get_user_cant_request_text(reason)
     user_cant_request_panel = Panel(
         PanelConfig(
