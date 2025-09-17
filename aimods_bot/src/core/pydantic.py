@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 
 from pydantic import BaseModel, Field
 
@@ -208,6 +208,29 @@ class Architecture(BaseModel):
     arm_bool: bool = arch in (Arch.ARM, Arch.ARM_64)
 
 
+class RequestConversationFlow(BaseModel):
+    flow: List[Literal["name", "link", "version", "functionalities", "steamtools", "arch"]]
+    back_data: List[
+        Literal[
+            "back_main",
+            "back_category",
+            "back_name",
+            "back_link",
+            "back_version",
+            "back_functionalities",
+            "back_arch",
+            "back_steamtools"
+        ]
+    ]
+
+
+class RequestConversationFlowsConfig(BaseModel):
+    android: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
+    windows: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
+    ios: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
+    macos: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
+
+
 class Request(BaseModel):
     id: int = 0
     user_id: int = 0
@@ -221,3 +244,5 @@ class Request(BaseModel):
     link: str = ""
     functionalities: str = ""
     steamtools: bool = None
+    requesting: bool = False
+    editing: bool = False

@@ -9,7 +9,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import Platform, RequestStatus
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_request_by_id, edit_request_status, \
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_active_request_by_id, edit_request_status, \
     remove_active_request
 
 
@@ -63,7 +63,7 @@ async def admin_manage_request_route(
         path: list[str],
         ix: str
 ):
-    request = get_request_by_id(context=context, ix=ix)
+    request = get_active_request_by_id(context=context, ix=ix)
 
     if len(path) == 0:
         # expected: (<platform>/<category>/<id>)
@@ -108,7 +108,7 @@ async def admin_manage_request_route(
             # expected: (<platform>/<category>/<id>)/<new_status>/yes
             status = RequestStatus(path[-2])
             await edit_request_status(context=context, ix=ix, status=status)
-            request = get_request_by_id(context=context, ix=ix)
+            request = get_active_request_by_id(context=context, ix=ix)
 
             await render_request_status_changed_panel(
                 update=update,

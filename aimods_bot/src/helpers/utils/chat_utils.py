@@ -1,7 +1,6 @@
 from typing import Optional
 
 from telegram import ChatFullInfo, ChatPermissions
-from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.loggers import logger

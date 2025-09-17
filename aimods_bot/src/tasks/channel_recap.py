@@ -2,17 +2,17 @@ import re
 from typing import Union
 
 from telegram import Update
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application
 
 from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
-from aimods_bot.src.helpers.database import fetch_query, execute_query, add_to_table
+from aimods_bot.src.helpers.database import fetch_query, add_to_table
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 log = logger.getChild("channel-recap")
 
 
-async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def catch_post_from_channel(update: Update, context: CustomContext):
     if not update.effective_message.text and not update.effective_message.caption:
         return
 

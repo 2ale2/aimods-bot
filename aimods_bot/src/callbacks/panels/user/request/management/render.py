@@ -11,7 +11,7 @@ from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
-                                                        get_request_details, get_request_by_id,
+                                                        get_request_details, get_active_request_by_id,
                                                         get_user_cancellable_requests, can_request_be_cancelled,
                                                         get_user_requests_archive, request_data_from_record,
                                                         generate_user_archive_requests_pdf_file)
@@ -167,7 +167,7 @@ async def render_request_details_panel(
         context: CustomContext,
         ix: str
 ):
-    request = get_request_by_id(context=context, ix=ix)
+    request = get_active_request_by_id(context=context, ix=ix)
     text = await _get_request_details_panel_text(request=request)
 
     request_details_panel = Panel(
@@ -204,7 +204,7 @@ async def render_confirm_cancel_panel(
         context: CustomContext,
         ix: str
 ):
-    request = get_request_by_id(context=context, ix=ix)
+    request = get_active_request_by_id(context=context, ix=ix)
     if not request:
         raise DatabaseBotException(f"Richiesta {ix} non trovata.")
 

@@ -1,6 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, Platform, Category, RequestData, \
     RequestStatus
@@ -184,7 +185,7 @@ async def render_admin_active_requests_category_panel(
 def _get_active_requests_category_text(
         platform: Platform,
         category: Category,
-        requests: dict[str, RequestData]
+        requests: dict[int, Request]
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']

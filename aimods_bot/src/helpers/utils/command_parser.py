@@ -30,8 +30,8 @@ async def parse_command(
     """
     try:
         cmd_conf = context.pydantic_bot_data.commands[command]
-        pattern = cmd_conf["pattern"]
-        parameters = cmd_conf["parameters"]
+        pattern = cmd_conf.pattern
+        parameters = cmd_conf.parameters
     except KeyError:
         raise MissingConfigurationException(what=command)
 

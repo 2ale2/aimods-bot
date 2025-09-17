@@ -9,7 +9,7 @@ from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
-from aimods_bot.src.core.pydantic import Configuration, JobInfo
+from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow
 from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
@@ -80,6 +80,15 @@ async def set_application_data(application: Application):
             new_bot_data.hashtags = hashtags
         else:
             new_bot_data.hashtags = current_bot_data.hashtags
+
+        json_request_conversation_flows = get_data_from_json("request_conversation_flows")
+        request_conversation_flows = {}
+        for pl in json_request_conversation_flows:
+            request_conversation_flows[pl] = {}
+            for ct in json_request_conversation_flows[pl]:
+                request_conversation_flows[pl][ct] = RequestConversationFlow(
+                    **json_request_conversation_flows[pl][ct]
+                )
 
         for uid in application.user_data:
             if "settings_main_message" in application.user_data[uid]:

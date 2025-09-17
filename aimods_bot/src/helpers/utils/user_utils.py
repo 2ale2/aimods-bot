@@ -2,29 +2,26 @@ from typing import Optional, Union
 
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser, Update
-from telegram.ext import ContextTypes
 
-from aimods_bot.src.core.customcontext import with_bot_data
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import CanUserRequest
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
-from aimods_bot.src.helpers.utils.request_utils import create_empty_request_user_data
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username, add_fucking_at
 
 log = logger.getChild("user_utils")
 
 
-@with_bot_data()
-async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def is_admin(user_id: int, context: CustomContext) -> bool:
     """
     Verifica se l'utente è un admin del gruppo.
     """
     return user_id in list(context.pydantic_bot_data.admins.keys())
 
 
-async def user_in_chat(user_id: int, context: ContextTypes.DEFAULT_TYPE, chat_id: int = None) -> bool:
+async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> Optional[bool]:
     """
     Verifica se l'utente è attualmente nella chat.
     """
@@ -37,10 +34,10 @@ async def user_in_chat(user_id: int, context: ContextTypes.DEFAULT_TYPE, chat_id
     return member.status not in ("left", "kicked")
 
 
-async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int, chat_id: int = None) -> Optional[bool]:
+async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = None) -> Optional[bool]:
     """Verifica se l'utente è bannato (o presente in una lista ban)."""
 
-    ban_list = context.bot_data.get("ban_list", {})
+    ban_list = context.pydantic_bot_data.ban_list
     if str(user_id) in ban_list:
         return True
 
@@ -98,15 +95,8 @@ async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
     return errors
 
 
-async def create_empty_user_data(context: ContextTypes.DEFAULT_TYPE, admin: bool):
-    if admin:
-        pass
-    else:
-        create_empty_request_user_data(context=context)
-
-
 async def get_member_permissions(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         chat_member: Union[PyroChatMember, PTBChatMember],
 ) -> Union[PTBChatPermissions, PyroChatPermissions]:
 
@@ -115,7 +105,7 @@ async def get_member_permissions(
     if pyro and chat_member.status.value == "restricted":
         return chat_member.permissions
 
-    chat_id = context.bot_data["group_chat_id"]
+    chat_id = context.pydantic_bot_data.group_chat_id
 
     if chat_member.status.value in ("restricted", "administrator"):
         included_fields = default_permissions.keys()
@@ -167,7 +157,7 @@ def get_member_details_text(
     return text
 
 
-async def can_user_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> CanUserRequest:
+async def can_user_request(update: Update, context: CustomContext) -> CanUserRequest:
     """Verifica se l'utente può fare richieste, per limiti di moderazione o imposti dalla gestione."""
     return CanUserRequest(
         yn=True,

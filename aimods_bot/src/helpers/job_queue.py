@@ -6,8 +6,8 @@ from uuid import uuid4
 import telegram.error
 from telegram import Update
 from telegram.constants import ChatAction
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.helpers.constants.models import ScheduledJobData, JobData, MediaItem
 from aimods_bot.src.helpers.loggers import logger
@@ -31,7 +31,7 @@ def mark_job_done(context, job_id: str, message_id: int):
 
 # ========== JOB: DELETE ==========
 
-async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_delete_message(context: CustomContext):
     data = context.job.data
 
     if not isinstance(data, ScheduledJobData):
@@ -55,7 +55,7 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 
 # ========== JOB: SEND ==========
 
-async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_send_message(context: CustomContext):
     job = context.job
     data_model = job.data
 
@@ -98,7 +98,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def send_action_message_after(update: Update,
-                                    context: ContextTypes.DEFAULT_TYPE,
+                                    context: CustomContext,
                                     text: str,
                                     recipient_id: Optional[int] = None,
                                     time: int = 1,
@@ -137,7 +137,7 @@ async def send_action_message_after(update: Update,
     }
 
 
-async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
+async def _send_media_message(context: CustomContext, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
     d_media = data_model.additional_data
     d = d_media.files
     as_doc = d_media.send_as_document
@@ -166,6 +166,7 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
                     pass
             return message
         else:
+            file = file.media
             match ftype:
                 case "photo":
                     await context.bot.send_photo(
@@ -194,8 +195,9 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
     else:
         if "reply_markup" in kwargs:
             del kwargs["reply_markup"]
+        # noinspection PyTypeChecker
         message = await context.bot.send_media_group(
-            media=[el[1] for el in normalized_l],
+            media=[el[1].media for el in normalized_l],
             caption=data_model.text,
             **kwargs
         )
@@ -206,7 +208,7 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
 
 # ========== JOB: EDIT ==========
 
-async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_edit_message(context: CustomContext):
     data = context.job.data
     text = data.text
     chat_id = data.chat_id
@@ -234,7 +236,7 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
 
 async def send_temporary_message(
     update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
+    context: CustomContext,
     text: str,
     recipient_id: Optional[int],
     additional_job_data: Optional[JobData] = None,
@@ -289,24 +291,16 @@ async def send_temporary_message(
 
 
 async def _wait_for_job_completion(context, job_id: str):
-    while not context.bot_data["jobs"][job_id]["done"]:
+    while not context.pydantic_bot_data.jobs[job_id].executed:
         await asyncio.sleep(0.1)
         
 
-async def scheduled_remove_completed_requests(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_remove_completed_requests(context: CustomContext):
     data = context.job.data
     if "user_id" not in data or "ix" not in data:
         raise JobDataMissingException("Dati mancanti: 'user_id' o 'ix'.")
-    
-    user_id = int(data["user_id"])
-    ix = str(data["ix"])
-    
-    active_bot_requests = context.bot_data.get("active_requests")
-    user_data = dict(context.application.user_data[user_id])
 
+    ix = int(data["ix"])
+    active_bot_requests = context.pydantic_bot_data.active_requests
     active_bot_requests.pop(ix, None)
-    user_data.pop(ix, None)
-    
-    context.bot_data["active_requests"] = active_bot_requests
-    context.application.user_data[user_id] = user_data
     
