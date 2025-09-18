@@ -2,10 +2,15 @@ import asyncio
 import json
 from logging import getLogger
 from typing import Any, Dict, List, Optional, Tuple
+from pydantic import ValidationError
 
 import asyncpg
 from telegram.ext import DictPersistence
 
+from aimods_bot.src.core.customcontext import BotData
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 CDCData = Tuple[List[Tuple[str, float, Dict[str, Any]]], Dict[str, str]]
 
 
@@ -103,6 +108,20 @@ class AsyncPostgresPersistence(DictPersistence):
         self._initialized = True
         self.logger.info("Database loaded successfully (async pool).")
 
+    @staticmethod
+    def _dump_pydantic(obj: BotData) -> Dict[str, Any]:
+        return obj.model_dump()
+
+    @staticmethod
+    def _load_bot_data(raw: Optional[Dict[str, Any]]) -> BotData:
+        if raw is None:
+            return BotData()
+        try:
+            return BotData.model_validate(raw)
+        except ValidationError:
+            log.warning("Something was wrong with persistence pydantic validation. Parsing what I can.")
+            return migrate_bot_data(raw)
+
     def _dump_into_json(self) -> Dict[str, Any]:
         """
         Costruisce il payload logico da salvare.
@@ -145,6 +164,7 @@ class AsyncPostgresPersistence(DictPersistence):
             raise
 
     # ---------- Coalescing dei flush ravvicinati ----------
+
     async def _schedule_flush(self) -> None:
         """
         Raggruppa più update vicini in un unico write dopo coalesce_delay.
@@ -163,6 +183,18 @@ class AsyncPostgresPersistence(DictPersistence):
 
     # ---------- Override dei metodi di DictPersistence ----------
 
+    async def get_bot_data(self) -> BotData:  # type: ignore[override]
+        """
+        DictPersistence per default restituisce un dict.
+        Noi qui ricostruiamo e ritorniamo BotData per compatibilità con ContextTypes(bot_data=BotData).
+        """
+        if not self._initialized:
+            await self._initialize()
+
+        # noinspection PyTypeChecker
+        base_dict: Dict[str, Any] = await super().get_bot_data()
+        return self._load_bot_data(base_dict)
+
     async def update_conversation(self, name: str, key: Tuple[int, ...], new_state: Optional[object]) -> None:
         await super().update_conversation(name, key, new_state)
         if not self.on_flush:
@@ -178,8 +210,13 @@ class AsyncPostgresPersistence(DictPersistence):
         if not self.on_flush:
             await self._schedule_flush()
 
-    async def update_bot_data(self, data: Dict) -> None:
-        await super().update_bot_data(data)
+    async def update_bot_data(self, data: Any) -> None:
+        """
+        PTB (con ContextTypes.bot_data=BotData) passerà istanze BotData qui.
+        Convertiamo in dict JSON-serializzabile e deleghiamo a DictPersistence.
+        """
+        payload = self._dump_pydantic(data)
+        await super().update_bot_data(payload)
         if not self.on_flush:
             await self._schedule_flush()
 
@@ -210,3 +247,35 @@ class AsyncPostgresPersistence(DictPersistence):
             await self._pool.close()
             self._pool = None
             self.logger.info("Database pool closed.")
+
+
+# ======== FUNZIONI UTILITY ========
+
+def migrate_bot_data(raw: Dict[str, Any]) -> BotData:
+    try:
+        return BotData.model_validate(raw)
+    except ValidationError:
+        pass
+
+    partial: Dict[str, Any] = {}
+    for name, field in BotData.model_fields.items():
+        if name not in raw:
+            continue
+        value = raw[name]
+        try:
+            ta = field.annotation
+            from pydantic import TypeAdapter
+            partial[name] = TypeAdapter(ta).validate_python(value)
+        except Exception:
+            continue
+
+    bd = BotData(**partial)
+
+
+    if getattr(BotData, "model_config", None) and getattr(BotData.model_config, "extra", None) == "allow":
+        for k, v in raw.items():
+            if k not in partial:
+                log.warning(f"Item {k}: {v} not parsed cause of persistence validation error.")
+                setattr(bd, k, v)
+    return bd
+

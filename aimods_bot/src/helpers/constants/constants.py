@@ -238,24 +238,8 @@ class MacOSCategory(Enum):
     DAW = "daw"
 
 
-class AndroidPlatform(Enum):
-    ANDROID = "android"
-
-
-class WindowsPlatform(Enum):
-    WINDOWS = "windows"
-
-
-class iOSPlatform(Enum):
-    IOS = "ios"
-
-
-class MacOSPlatform(Enum):
-    MACOS = "macos"
-
-
 Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
-# Platform = Union[AndroidPlatform, iOSPlatform, WindowsPlatform, MacOSPlatform]
+
 
 class Arch(Enum):
     x86 = "x86"

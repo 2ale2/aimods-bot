@@ -14,7 +14,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Optional, Dict, Any, List
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 from telegram import Update
 from telegram.ext import CallbackContext, ExtBot, Application
 
@@ -24,20 +24,6 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("custom_context")
-
-
-class CustomContext(CallbackContext[ExtBot, dict, dict, dict]):
-
-    def __init__(
-            self,
-            application: Application,
-            chat_id: Optional[int] = None,
-            user_id: Optional[int] = None,
-    ):
-        super().__init__(application=application, chat_id=chat_id, user_id=user_id)
-        self.pydantic_bot_data: Optional[BotData] = None
-        self.is_user_admin: bool = False
-        self.user_active_requests: Optional[List[Request]] = None
 
 
 class BotData(BaseModel):
@@ -57,9 +43,35 @@ class BotData(BaseModel):
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
     restart: RestartData = Field(default_factory=RestartData)
 
-    class Config:
-        validate_assignment = True
-        extra = "allow"
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="allow",
+        use_enum_values=True
+    )
+
+
+class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
+    chat_id: Optional[int] = None
+    user_id: Optional[int] = None
+
+    def __init__(
+            self,
+            application: Application,
+            chat_id: Optional[int] = None,
+            user_id: Optional[int] = None,
+    ):
+        super().__init__(application=application, chat_id=chat_id, user_id=user_id)
+        self.user_active_requests: Optional[List[Request]] = None
+
+    @property
+    def is_user_admin(self) -> bool:
+        """
+        True se l'utente corrente (se presente) è admin.
+        In job o contesti senza user_id -> False (non solleva).
+        """
+        if self.user_id is None:
+            return False
+        return self.user_id in self.bot_data.admins
 
 
 def with_bot_data(
