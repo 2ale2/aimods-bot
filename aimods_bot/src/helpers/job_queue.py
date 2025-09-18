@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, cast
 from uuid import uuid4
 
 import telegram.error
@@ -209,7 +209,7 @@ async def _send_media_message(context: CustomContext, data_model: ScheduledJobDa
 # ========== JOB: EDIT ==========
 
 async def scheduled_edit_message(context: CustomContext):
-    data = context.job.data
+    data = cast(ScheduledJobData, context.job.data)
     text = data.text
     chat_id = data.chat_id
     message_id = data.additional_data.message_id
@@ -290,17 +290,17 @@ async def send_temporary_message(
     )
 
 
-async def _wait_for_job_completion(context, job_id: str):
-    while not context.pydantic_bot_data.jobs[job_id].executed:
+async def _wait_for_job_completion(context: CustomContext, job_id: str):
+    while not context.pyd.jobs[job_id].executed:
         await asyncio.sleep(0.1)
         
 
 async def scheduled_remove_completed_requests(context: CustomContext):
-    data = context.job.data
+    data = cast(dict, context.job.data)
     if "user_id" not in data or "ix" not in data:
         raise JobDataMissingException("Dati mancanti: 'user_id' o 'ix'.")
 
     ix = int(data["ix"])
-    active_bot_requests = context.pydantic_bot_data.active_requests
+    active_bot_requests = context.pyd.active_requests
     active_bot_requests.pop(ix, None)
     

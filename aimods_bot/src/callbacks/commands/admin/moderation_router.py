@@ -4,7 +4,7 @@ from aimods_bot.src.callbacks.commands.admin.kick import kick_user
 from aimods_bot.src.callbacks.commands.admin.limit import limit_user
 from aimods_bot.src.callbacks.commands.admin.warn import warn_user, unwarn_user
 from aimods_bot.src.callbacks.commands.admin.mute import mute_user, unmute_user
-from aimods_bot.src.core.customcontext import with_bot_data, CustomContext
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import is_admin
@@ -23,7 +23,6 @@ action_map = {
 }
 
 
-@with_bot_data()
 async def moderation_command_router(update: Update, context: CustomContext):
     await safe_delete(update, context)
     cmd_raw = update.effective_message.text.split()[0][1:].lower()

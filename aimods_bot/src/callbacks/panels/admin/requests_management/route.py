@@ -10,7 +10,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_active_request_by_id, edit_request_status, \
-    remove_active_request
+    remove_from_active_requests
 
 
 async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -54,14 +54,14 @@ async def admin_active_requests_management_route(update: Update, context: Custom
 
     if len(path) >= 3:
         # expected: <platform>/<category>/<id>/...
-        return await admin_manage_request_route(update=update, context=context, path=path[3:], ix=path[2])
+        return await admin_manage_request_route(update=update, context=context, path=path[3:], ix=int(path[2]))
 
 
 async def admin_manage_request_route(
         update: Update,
         context: CustomContext,
         path: list[str],
-        ix: str
+        ix: int
 ):
     request = get_active_request_by_id(context=context, ix=ix)
 
@@ -118,7 +118,7 @@ async def admin_manage_request_route(
             )
         elif path[-2] == "remove" and path[-1] == "yes":
             # expected: (<platform>/<category>/<id>)/remove/yes
-            remove_active_request(
+            await remove_from_active_requests(
                 context=context,
                 ix=ix
             )

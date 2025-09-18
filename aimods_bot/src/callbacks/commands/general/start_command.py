@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
@@ -52,7 +52,6 @@ async def get_panel(update: Update, admin: bool):
         )
 
 
-@with_bot_data()
 async def start(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 

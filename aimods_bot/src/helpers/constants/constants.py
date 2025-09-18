@@ -248,7 +248,6 @@ class Arch(Enum):
     ARM_64 = "arm64"
 
 
-@dataclass
 class RequestStatus(Enum):
     PENDING = "pending"
     EXAMINING = "examining"

@@ -1,7 +1,7 @@
 import json
 import platform as platf
 from datetime import datetime, timezone
-from typing import Optional, AsyncIterator, Iterable, Text, Dict
+from typing import Optional, AsyncIterator, Iterable, Text
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -56,15 +56,11 @@ async def get_user_requests_by_status(
 
 
 def get_active_request_by_id(context: CustomContext, ix: int):
-    request = context.pydantic_bot_data.active_requests.get(ix, None)
-    if not request:
-        log.warning(f"Request {ix} not found.")
-    return request
-
-
-def remove_active_request(context: CustomContext, ix: int):
-    context.pydantic_bot_data.active_requests.pop(ix, None)
-    log.info(f"Request {ix} removed from active requests.")
+    active_requests = context.pyd.active_requests
+    for request in active_requests:
+        if request.id == ix:
+            return request
+    return None
 
 
 async def can_request_be_cancelled(
@@ -89,7 +85,7 @@ async def can_request_be_cancelled(
                 raise
             request = get_active_request_by_id(context=context, ix=ix)
 
-    cancel_timer_sec = context.pydantic_bot_data.configuration.settings.request.cancel_timer
+    cancel_timer_sec = context.pyd.configuration.settings.request.cancel_timer
 
     if (datetime.now(timezone.utc) - datetime.fromisoformat(request.issued_at)).total_seconds() > cancel_timer_sec:
         return False
@@ -186,33 +182,39 @@ async def get_user_cancellable_requests(context: CustomContext) -> dict[int, Req
     return cancellable_requests
 
 
-def get_requests_summary(requests: dict[int, Request]) -> str:
+def get_requests_summary(requests: list[Request]) -> str:
     text = ""
 
     for n, el in enumerate(requests):
-        request = requests[el]
-
-        status = request.status.value
+        status = el.status.value
         status_icon = REQUEST_STATUS_DETAILS[status]['icon']
         status_label = REQUEST_STATUS_DETAILS[status]['label']
-        platform = request.platform.value
+        platform = el.platform.value
         platform_label = PLATFORM_DETAILS[platform]['label']
         platform_icon = PLATFORM_DETAILS[platform]['icon']
 
-        text += (f"    {n+1}. <i>{request.name}</i>\n"
+        text += (f"    {n+1}. <i>{el.name}</i>\n"
                  f"         🖲️ <u>Piattaforma</u> – {platform_icon} <i>{platform_label}</i>\n"
                  f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n")
 
     return text
 
 
-async def edit_request_status(context: CustomContext, ix: int, status: RequestStatus):
-    active_requests = context.pydantic_bot_data.active_requests
+async def remove_from_active_requests(context: CustomContext, ix: int) -> bool:
+    active_requests = context.pyd.active_requests
 
+    for n, request in enumerate(active_requests):
+        if request.id == ix:
+            active_requests.pop(n)
+            return True
+    return False
+
+
+async def edit_request_status(context: CustomContext, ix: int, status: RequestStatus):
     request = get_active_request_by_id(context=context, ix=ix)
 
     if status is RequestStatus.CANCELLED:
-        active_requests.pop(ix, None)
+        await remove_from_active_requests(context=context, ix=ix)
     else:
         request.status = status
 
@@ -274,13 +276,12 @@ def get_active_category_requests(
         context: CustomContext,
         platform: Platform,
         category: Category
-) -> Dict[int, Request]:
-    requests = {}
-    active = context.pydantic_bot_data.active_requests
-    for el in active:
-        request = active[el]
+) -> list[Request]:
+    requests = []
+    active = context.pyd.active_requests
+    for request in active:
         if request.platform == platform and request.category == category:
-            requests[el] = request
+            requests.append(request)
     return requests
 
 

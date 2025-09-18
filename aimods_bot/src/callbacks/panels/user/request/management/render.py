@@ -51,7 +51,7 @@ async def render_active_request_panel(
         update: Update,
         context: CustomContext
 ):
-    active_requests = context.user_data["active_requests"]
+    active_requests = context.user_active_requests
     text = _get_active_request_panel_text(requests=active_requests)
 
     keyboard = []
@@ -75,7 +75,7 @@ async def render_active_request_panel(
     await user_request_panel.render(update=update, context=context)
 
 
-def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
+def _get_active_request_panel_text(requests: list[Request]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
     if len(requests) == 0:

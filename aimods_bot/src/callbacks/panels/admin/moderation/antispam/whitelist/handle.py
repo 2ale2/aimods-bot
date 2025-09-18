@@ -214,7 +214,7 @@ async def edit_whitelist_pre_step(update: Update, context: CustomContext, action
     if action == "add":
         return await _handle_add_preparation(update, context, text)
     else:
-        return await _handle_remove_preparation(update, context, text)
+        return await _handle_remove_preparation(update=update, text=text)
 
 
 async def remove_from_whitelist(update: Update, context: CustomContext, category: CategoryType):

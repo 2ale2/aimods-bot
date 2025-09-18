@@ -4,7 +4,7 @@ from typing import List
 from pydantic import ValidationError
 
 import aimods_bot.src.helpers.constants.constants as constants
-from datetime import timedelta
+from datetime import timedelta, datetime
 from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
@@ -24,46 +24,39 @@ log = logger.getChild("application_setup")
 # noinspection PyUnresolvedReferences
 async def set_application_data(application: Application):
     try:
-        current_bot_data = BotData(**application.bot_data)
+        if isinstance(application.bot_data, BotData):
+            current_bot_data = application.bot_data
+        else:
+            current_bot_data = BotData.model_validate(application.bot_data)
     except ValidationError as e:
         log.error(f"Errori di struttura in Bot Data: {e}\n\nInizializzo.")
         current_bot_data = BotData()
 
-    new_bot_data = BotData()
-
     configuration = load_configuration()
     try:
         validated_config = Configuration(**configuration)
-        new_bot_data.configuration = validated_config
+        current_bot_data.configuration = validated_config
     except ValidationError as e:
-        log.error(f"Configurazione non valida: {e}")
-        new_bot_data.configuration = Configuration()
+        log.error(f"Invalid configuration: {e}. I will use the old one.")
     else:
         group_chat_id = int(os.getenv("GROUP_CHAT_ID"))
         if not current_bot_data.group_chat_id or current_bot_data.group_chat_id != group_chat_id:
-            new_bot_data.group_chat_id = group_chat_id
-        else:
-            new_bot_data.group_chat_id = current_bot_data.group_chat_id
+            current_bot_data.group_chat_id = group_chat_id
 
-        admins = await get_admins(app=application, chat_id=new_bot_data.group_chat_id)
+        admins = await get_admins(app=application, chat_id=current_bot_data.group_chat_id)
         if not current_bot_data.admins or current_bot_data.admins != admins:
-            new_bot_data.admins = admins
-        else:
-            new_bot_data.admins = current_bot_data.admins
+            current_bot_data.admins = admins
 
         text = get_data_from_json("texts")
         user_joined_message_text = text.get("user_joined_message_text")
         rules_text = text.get("rules_text")
         if (not current_bot_data.user_joined_message_text or
             current_bot_data.user_joined_message_text != user_joined_message_text):
-            new_bot_data.user_joined_message_text = user_joined_message_text
-        else:
-            new_bot_data.user_joined_message_text = current_bot_data.user_joined_message_text
+            current_bot_data.user_joined_message_text = user_joined_message_text
+
         if (not current_bot_data.rules_text or
             current_bot_data.rules_text != rules_text):
-            new_bot_data.rules_text = rules_text
-        else:
-            new_bot_data.rules_text = current_bot_data.rules_text
+            current_bot_data.rules_text = rules_text
 
         json_commands = get_data_from_json("commands")
         commands = {}
@@ -71,15 +64,11 @@ async def set_application_data(application: Application):
             commands[el] = CommandConfig(**json_commands[el])
 
         if not current_bot_data.commands or current_bot_data.commands != commands:
-            new_bot_data.commands = commands
-        else:
-            new_bot_data.commands = current_bot_data.commands
+            current_bot_data.commands = commands
 
         hashtags = get_data_from_json("hashtags")
         if not current_bot_data.hashtags or current_bot_data.hashtags != hashtags:
-            new_bot_data.hashtags = hashtags
-        else:
-            new_bot_data.hashtags = current_bot_data.hashtags
+            current_bot_data.hashtags = hashtags
 
         json_request_conversation_flows = get_data_from_json("request_conversation_flows")
         request_conversation_flows = {}
@@ -98,16 +87,15 @@ async def set_application_data(application: Application):
             if "setting_duration" in application.chat_data[el]:
                 del application.chat_data[el]["setting_duration"]
 
-        application.bot_data = new_bot_data.model_dump()
-
         autorecap_job_name = "auto_recap"
         if current_bot_data.jobs:
             j = current_bot_data.jobs.get(autorecap_job_name, None)
             if j and not j.executed:
-                await create_and_send_recaps(context=application)
+                execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
+                if execution_time <= datetime.now():
+                    await create_and_send_recaps(context=application)
                 del current_bot_data.jobs[autorecap_job_name]
 
-        new_bot_data.jobs = current_bot_data.jobs
         time_until_next_recap = await get_time_until_next_recap()
         await application.job_queue.start()
 
@@ -120,7 +108,7 @@ async def set_application_data(application: Application):
 
         log.info(f"Next recap settled at {job.next_t}")
 
-        new_bot_data.jobs[autorecap_job_name] = JobInfo(
+        current_bot_data.jobs[autorecap_job_name] = JobInfo(
             next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
             executed=False
         )
@@ -140,10 +128,6 @@ async def set_application_data(application: Application):
         constants.pyro_instance = _pyro_instance
         await constants.pyro_instance.start()
 
-        if not current_bot_data.ban_list:
-            new_bot_data.ban_list = {}
-        else:
-            new_bot_data.ban_list = current_bot_data.ban_list
         r = get_data_from_json("restarting")
 
         if r.get("toggle", False):
@@ -154,7 +138,7 @@ async def set_application_data(application: Application):
             set_data_in_json(key=["restarting", "toggle"], value=False)
             set_data_in_json(key=["restarting", "user_id"], value=0)
 
-    application.bot_data = new_bot_data.model_dump()
+    application.bot_data = current_bot_data
 
 
 # noinspection PyUnresolvedReferences

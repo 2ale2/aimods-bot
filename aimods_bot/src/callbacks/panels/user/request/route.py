@@ -6,8 +6,7 @@ from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManag
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
-from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
-from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, WindowsCategory, \
     AndroidCategory, IOSCategory, MacOSCategory, Category
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
@@ -26,7 +25,6 @@ async def requests_management_route(update: Update, context: CustomContext, path
             return await user_request_check(update=update, context=context, path=path[1:])
 
 
-@with_bot_data()
 async def request_category(update: Update, context: CustomContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
@@ -104,7 +102,7 @@ async def request_router(update: Update, context: CustomContext):
             "macos": MacOSCategory
         }
 
-        category = categories[platform.value](callback_data)
+        category = categories[str(platform.value)](callback_data)
         RequestDataManager.update_field(context=context, field="category", value=category)
 
     if not is_category_request_allowed(context=context, platform=platform, category=category):
@@ -127,5 +125,5 @@ async def request_router(update: Update, context: CustomContext):
 
 def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
-    platform_settings = getattr(context.pydantic_bot_data.configuration.settings.request, platform.value)
+    platform_settings = getattr(context.pyd.configuration.settings.request, platform.value)
     return getattr(platform_settings, str(category.value))

@@ -302,7 +302,7 @@ class RequestDataManager:
         ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
 
-        context.pydantic_bot_data.active_requests[ix] = Request(
+        context.pyd.active_requests.append(Request(
             id=ix,
             user_id=uid,
             # status = (default) RequestStatus.PENDING,
@@ -315,7 +315,7 @@ class RequestDataManager:
             link=request_for_db.get("link", ""),
             functionalities=request_for_db.get("functionalities", ""),
             steamtools=request_for_db.get("steamtools", False)
-        )
+        ))
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
 

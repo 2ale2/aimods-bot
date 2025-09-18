@@ -4,7 +4,7 @@ from typing import Union
 from telegram import Update
 from telegram.ext import Application
 
-from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.database import fetch_query, add_to_table
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -65,10 +65,9 @@ async def catch_post_from_channel(update: Update, context: CustomContext):
     )
 
 
-@with_bot_data()
 async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
     if isinstance(context, CustomContext):
-        bot_data = context.pydantic_bot_data
+        bot_data = context.pyd
     else:
         bot_data = kwargs["bot_data"]
 

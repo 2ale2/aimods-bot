@@ -1,6 +1,5 @@
 from uuid import uuid4
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import JobData

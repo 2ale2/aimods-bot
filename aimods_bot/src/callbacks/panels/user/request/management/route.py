@@ -37,14 +37,14 @@ async def user_request_action_route(
     if len(path) == 2:
         match path[0]:
             case "details":
-                await render_request_details_panel(update=update, context=context, ix=path[-1])
+                await render_request_details_panel(update=update, context=context, ix=int(path[-1]))
             case "cancel":
-                await render_confirm_cancel_panel(update=update, context=context, ix=path[-1])
+                await render_confirm_cancel_panel(update=update, context=context, ix=int(path[-1]))
 
         return PCS.USER_CONVERSATION
 
     # len(path) == 3: path."endswith" [cancel, <ix>, yes]
     if path[-3] == "cancel" and path[-1] == "yes":
-        await cancel_request(context=context, ix=path[-2])
+        await cancel_request(context=context, ix=int(path[-2]))
         await render_request_cancelled_panel(update=update, context=context)
         return PCS.USER_CONVERSATION

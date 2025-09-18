@@ -1,10 +1,9 @@
 from typing import Optional, Union
 
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
-from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser, Update
+from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import CanUserRequest
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
@@ -18,7 +17,7 @@ async def is_admin(user_id: int, context: CustomContext) -> bool:
     """
     Verifica se l'utente è un admin del gruppo.
     """
-    return user_id in list(context.pydantic_bot_data.admins.keys())
+    return user_id in list(context.pyd.admins.keys())
 
 
 async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> Optional[bool]:
@@ -37,7 +36,7 @@ async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None
 async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = None) -> Optional[bool]:
     """Verifica se l'utente è bannato (o presente in una lista ban)."""
 
-    ban_list = context.pydantic_bot_data.ban_list
+    ban_list = context.pyd.ban_list
     if str(user_id) in ban_list:
         return True
 
@@ -105,7 +104,7 @@ async def get_member_permissions(
     if pyro and chat_member.status.value == "restricted":
         return chat_member.permissions
 
-    chat_id = context.pydantic_bot_data.group_chat_id
+    chat_id = context.pyd.group_chat_id
 
     if chat_member.status.value in ("restricted", "administrator"):
         included_fields = default_permissions.keys()
@@ -155,11 +154,3 @@ def get_member_details_text(
             text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
 
     return text
-
-
-async def can_user_request(update: Update, context: CustomContext) -> CanUserRequest:
-    """Verifica se l'utente può fare richieste, per limiti di moderazione o imposti dalla gestione."""
-    return CanUserRequest(
-        yn=True,
-        reason=None
-    )

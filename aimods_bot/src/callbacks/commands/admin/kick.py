@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 from pyrogram.types import ChatMember as PyroChatMember
-from telegram import Update, ChatMember as PTBChatMember
+from telegram import Update, ChatMemberMember as PTBChatMember
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants import constants as constants
@@ -109,7 +109,7 @@ def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]) -> Optio
 async def _attempt_kick_user_legacy(context: CustomContext, uid: int | str) -> dict:
     try:
         await constants.pyro_instance.unban_chat_member(
-            chat_id=context.pydantic_bot_data.group_chat_id,
+            chat_id=context.pyd.group_chat_id,
             user_id=uid
         )
         log.debug(f"Utente {uid} kickato con successo.")
@@ -118,7 +118,7 @@ async def _attempt_kick_user_legacy(context: CustomContext, uid: int | str) -> d
         if is_user_id(uid):
             try:
                 await context.bot.unban_chat_member(
-                    chat_id=context.pydantic_bot_data.group_chat_id,
+                    chat_id=context.pyd.group_chat_id,
                     user_id=uid
                 )
             except Exception as e:
@@ -135,9 +135,9 @@ async def _attempt_kick_user(
 ) -> dict:
     """Tenta il kick dell'utente uid."""
 
-    chat_id = context.pydantic_bot_data.group_chat_id
-    user_id = member.id  # ID c'è per forza
-    username = member.username  # Lo username no
+    chat_id = context.pyd.group_chat_id
+    user_id = member.user.id  # ID c'è per forza
+    username = member.user.username  # Lo username no
 
     kick_methods = [
         ("ptb", lambda: _kick_with_ptb(context=context, chat_id=chat_id, uid=user_id)),
@@ -164,7 +164,7 @@ async def _attempt_kick_user(
     return {"status": "error", "message": ERROR_MESSAGES["kick_error"]}
 
 
-async def _kick_with_pyrogram(chat_id: int, uid: str):
+async def _kick_with_pyrogram(chat_id: int, uid: Union[str, int]):
     """Helper per kick con pyrogram (ban + unban)"""
     await constants.pyro_instance.ban_chat_member(chat_id=chat_id, user_id=uid)
     await constants.pyro_instance.unban_chat_member(chat_id=chat_id, user_id=uid)

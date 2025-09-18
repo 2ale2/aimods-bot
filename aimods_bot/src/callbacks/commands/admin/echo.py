@@ -160,7 +160,7 @@ def _check_echo_command_in_group_media(context: CustomContext, message_data: Lis
         Controlla la lista di media, verificando la presenza di una descrizione che comincia col comando
         'echo' o 'annuncio'. Se lo trova, ritorna l'elemento della lista che contiene tale descrizione.
     """
-    echo_pattern = context.pydantic_bot_data.commands["echo"].pattern
+    echo_pattern = context.pyd.commands["echo"].pattern
     for el in message_data:
         caption = el["caption"]
         if not caption:
@@ -188,7 +188,7 @@ async def handle_media_group(update: Update, context: CustomContext):
     }
     jobs = context.job_queue.get_jobs_by_name(str(message.media_group_id))
     if jobs:
-        jobs[0].data.append(msg_dict)
+        cast(list, jobs[0].data).append(msg_dict)
     else:
         context.job_queue.run_once(
             callback=partial(multimedia_echo, update),

@@ -3,10 +3,9 @@ from telegram import Update
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_router
 from aimods_bot.src.callbacks.panels.admin.requests_management.route import admin_requests_management_route
-from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
+from aimods_bot.src.core.customcontext import CustomContext
 
 
-@with_bot_data()
 async def admin_main_router(update: Update, context: CustomContext):
     s = update.callback_query.data.split("/")
 

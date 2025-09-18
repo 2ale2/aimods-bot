@@ -136,7 +136,7 @@ async def attempt_ban_user(
 
     try:
         await constants.pyro_instance.ban_chat_member(
-            chat_id=context.pydantic_bot_data.group_chat_id,
+            chat_id=context.pyd.group_chat_id,
             user_id=uid,
             until_date=until
         )
@@ -173,7 +173,7 @@ async def _add_to_blacklist(
     if not member["id"]:
         return {"status": "error", "message": ERROR_MESSAGES["unable_to_blacklist"]}
 
-    context.pydantic_bot_data.ban_list[member["id"]] = BanListItem(
+    context.pyd.ban_list[member["id"]] = BanListItem(
         expires_at=until.astimezone(pytz.UTC).isoformat(),
         reason=reason,
         admin=admin_id
@@ -285,7 +285,7 @@ async def unban_user(update: Update, context: CustomContext, full_command: str, 
 def _remove_from_blacklist(context, user_id):
     """Rimuove un utente dalla blacklist se presente."""
 
-    ban_list = context.pydantic_bot_data.ban_list
+    ban_list = context.pyd.ban_list
     removed_entry = ban_list.pop(user_id, None)
 
     if removed_entry:
@@ -311,7 +311,7 @@ async def _attempt_unban_user(context, member, uid, admin_id):
 
     try:
         await constants.pyro_instance.unban_chat_member(
-            chat_id=context.pydantic_bot_data.group_chat_id,
+            chat_id=context.pyd.group_chat_id,
             user_id=uid
         )
         log.info(f"Utente {uid} sbannato con successo da {admin_id}")

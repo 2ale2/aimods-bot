@@ -1,7 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.callbacks.commands.admin.echo import echo, handle_media_group
-from aimods_bot.src.core.customcontext import with_bot_data, CustomContext
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
@@ -16,7 +16,6 @@ action_map = {
 }
 
 
-@with_bot_data()
 async def service_command_router(update: Update, context: CustomContext):
     if update.message.media_group_id:
         return await handle_media_group(update=update, context=context)

@@ -7,7 +7,7 @@ from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGOR
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import get_active_category_requests, get_requests_summary, \
-    get_request_details, get_platform_categories
+    get_request_details, get_platform_categories, get_active_request_by_id
 
 log = logger.getChild("admin_requests_management_render")
 
@@ -144,8 +144,8 @@ async def render_admin_active_requests_category_panel(
         back_button_callback_key = f"admin/manage_requests/active_requests"
 
     if len(requests) == 1:
-        ix = list(requests.keys())[0]
-        request_data = requests[ix]
+        ix = requests[0].id
+        request_data = get_active_request_by_id(context=context, ix=ix)
 
         return await render_admin_manage_request_panel(
             update=update,
@@ -185,7 +185,7 @@ async def render_admin_active_requests_category_panel(
 def _get_active_requests_category_text(
         platform: Platform,
         category: Category,
-        requests: dict[int, Request]
+        requests: list[Request]
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
@@ -210,8 +210,8 @@ async def render_admin_manage_request_panel(
         back_button_callback_key: str = None
 ):
 
-    platform = request.get_platform()
-    category = request.get_category()
+    platform = request.platform
+    category = request.category
 
     text = await _get_admin_manage_request_text(request=request, platform=platform, category=category)
     keyboard = _get_admin_menage_request_keyboard(request=request, back_button_callback_key=back_button_callback_key)
@@ -308,12 +308,12 @@ async def render_admin_manage_request_limit_user():
 async def render_change_request_status_confirmation_panel(
         update: Update,
         context: CustomContext,
-        ix: str,
+        ix: int,
         request: Request,
         status: RequestStatus
 ):
-    platform = request.get_platform()
-    category = request.get_category()
+    platform = request.platform
+    category = request.category
     text = await _get_render_change_request_status_confirmation_text(
         platform=platform,
         category=category,
@@ -379,8 +379,8 @@ async def render_request_status_changed_panel(
         ix: str,
         request: Request
 ):
-    platform = request.get_platform()
-    category = request.get_category()
+    platform = request.platform
+    category = request.category
 
     categories = get_platform_categories(platform=platform)
     if len(categories) > 1:
@@ -440,8 +440,8 @@ async def render_admin_manage_request_remove_confirmation_panel(
         ix: str,
         request: Request
 ):
-    platform = request.get_platform()
-    category = request.get_category()
+    platform = request.platform
+    category = request.category
 
     text = await _get_admin_manage_request_remove_confirmation_text(
         platform=platform,
@@ -487,7 +487,7 @@ async def _get_admin_manage_request_remove_confirmation_text(
 async def render_admin_manage_request_removed_panel(
         update: Update,
         context: CustomContext,
-        ix: str
+        ix: int
 ):
     text = _get_admin_manage_request_removed_text()
 
