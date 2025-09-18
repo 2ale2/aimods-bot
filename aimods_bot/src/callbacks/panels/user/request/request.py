@@ -1,11 +1,11 @@
 from typing import Optional
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler, \
-    RequestField
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
+from aimods_bot.src.helpers.constants.constants import RequestField
+from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
+from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.utils.user_utils import can_user_request
-from aimods_bot.src.helpers.constants.models import RequestData
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
     render_user_cant_request_panel
 from aimods_bot.src.core.exceptions import WrongFlowException
@@ -47,19 +47,24 @@ async def request_detail(update: Update, context: CustomContext) -> int:
         detail=detail
     )
 
-    return RETURN_CONVERSATION_STATES[detail.value]
+    return RETURN_CONVERSATION_STATES[str(detail.value)]
 
 
-def prepare_next_detail(request_data: RequestData) -> Optional[RequestField]:
+def prepare_next_detail(request_data: Request) -> RequestField:
     """Deduce il prossimo dettaglio da chiedere all'utente in base allo step attuale.
     Lo step è valutato basandosi sul flow della conversazione, che è determinato dalla categoria
     dell'elemento richiesto."""
-    platform = request_data.get_platform()
-    category = request_data.get_category()
+    platform = request_data.platform
+    category = request_data.category
     requesting = request_data.requesting
 
     flow = REQUEST_FLOWS[platform.value][category.value]["flow"]
     ix = flow.index(requesting.value)
+    """
+    name (0) -> link (1)
+    link (1) -> version (2)
+    version (2) -> functionalities (3)
+    """
     if len(flow) >= ix + 1:
         return RequestField(flow[ix + 1])
 
@@ -89,7 +94,7 @@ async def edit_request_detail(update: Update, context: CustomContext):
 
 
 async def edited_detail(update: Update, context: CustomContext):
-    """Gestisce l'input dell'utente succesivamente a una richiesta di modifica."""
+    """Gestisce l'input dell'utente successivamente a una richiesta di modifica."""
     await InputHandler.handle_input(update=update, context=context)
 
     try:
@@ -98,6 +103,7 @@ async def edited_detail(update: Update, context: CustomContext):
         RequestDataManager.update_field(context=context, field="editing", value=None)
 
 
+@with_bot_data()
 async def confirm_request(update: Update, context: CustomContext):
     """Conferma la richiesta e la elabora."""
     return await RequestDataManager.confirm_request(update=update, context=context)

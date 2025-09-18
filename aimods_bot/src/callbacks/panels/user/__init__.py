@@ -1,11 +1,11 @@
 from telegram import Update
-from telegram.ext import CallbackContext
-
 from aimods_bot.src.callbacks.panels.user.request.route import requests_management_route
 from aimods_bot.src.callbacks.commands.general.start_command import start
+from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
 
 
-async def user_main_router(update: Update, context: CallbackContext):
+@with_bot_data()
+async def user_main_router(update: Update, context: CustomContext):
     c_data = update.callback_query.data
     path = c_data.split("/")
 

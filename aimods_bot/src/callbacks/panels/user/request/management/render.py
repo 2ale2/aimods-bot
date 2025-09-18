@@ -8,7 +8,8 @@ from telegram.constants import ChatAction, ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, RequestData
+from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details, get_active_request_by_id,
@@ -74,7 +75,7 @@ async def render_active_request_panel(
     await user_request_panel.render(update=update, context=context)
 
 
-def _get_active_request_panel_text(requests: dict[int, RequestData]) -> str:
+def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
     if len(requests) == 0:
@@ -165,7 +166,7 @@ async def _get_user_request_action_panel_keyboard(
 async def render_request_details_panel(
         update: Update,
         context: CustomContext,
-        ix: str
+        ix: int
 ):
     request = get_active_request_by_id(context=context, ix=ix)
     text = await _get_request_details_panel_text(request=request)
@@ -188,7 +189,7 @@ async def render_request_details_panel(
     await request_details_panel.render(update=update, context=context)
 
 
-async def _get_request_details_panel_text(request: RequestData) -> str:
+async def _get_request_details_panel_text(request: Request) -> str:
     text = (f"👁‍🗨 <b>Gestione Richieste Attive</b>"
             "\n\n→ 📋 <b>Informazioni</b>\n\n"
             "▫️ Ecco i dettagli della tua richiesta.\n\n")
@@ -202,7 +203,7 @@ async def _get_request_details_panel_text(request: RequestData) -> str:
 async def render_confirm_cancel_panel(
         update: Update,
         context: CustomContext,
-        ix: str
+        ix: int
 ):
     request = get_active_request_by_id(context=context, ix=ix)
     if not request:
@@ -234,7 +235,7 @@ async def render_confirm_cancel_panel(
     await confirm_cancel_panel.render(update=update, context=context)
 
 
-async def _get_confirm_cancel_text(request: RequestData) -> str:
+async def _get_confirm_cancel_text(request: Request) -> str:
     details_text = await get_request_details(request=request)
     text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
             "→ 🗑 <b>Cancellazione</b>\n\n")
@@ -310,7 +311,7 @@ async def _get_user_request_archive_text(requests: list[dict]):
     return text
 
 
-async def _get_archive_pdf_file(requests: dict, user_id: int):
+async def _get_archive_pdf_file(requests: list[dict], user_id: int):
     if os.path.exists(f"archive_{user_id}_{len(requests)}.pdf"):
         return f"archive_{user_id}_{len(requests)}.pdf"
 

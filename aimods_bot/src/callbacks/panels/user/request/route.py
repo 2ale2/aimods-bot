@@ -6,12 +6,12 @@ from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManag
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
-from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
+from aimods_bot.src.core.customcontext import CustomContext, with_bot_data
+from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, WindowsCategory, \
+    AndroidCategory, IOSCategory, MacOSCategory, Category
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.models import Platform, AndroidCategory, WindowsCategory, IOSCategory, \
-    MacOSCategory, Category, RequestData
 
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -26,6 +26,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
             return await user_request_check(update=update, context=context, path=path[1:])
 
 
+@with_bot_data()
 async def request_category(update: Update, context: CustomContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
@@ -33,7 +34,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
         RequestDataManager.initialize_request(context=context)
 
     request_data = RequestDataManager.get_request_data(context=context)
-    platform = RequestData.get_platform(request_data)
+    platform = request_data.platform
     if not platform:
         data = update.callback_query.data.split("/")[-1]
 
@@ -46,6 +47,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
         "ios": IOSCategory,
         "macos": MacOSCategory
     }
+
     category = categories[platform.value]
     category_items = CATEGORY_DETAILS[platform.value]
 
@@ -90,8 +92,8 @@ async def request_router(update: Update, context: CustomContext):
     await update.callback_query.answer()
     request_data = RequestDataManager.get_request_data(context=context)
 
-    platform = request_data.get_platform()
-    category = request_data.get_category()
+    platform = request_data.platform
+    category = request_data.category
 
     if not category:
         callback_data = update.callback_query.data

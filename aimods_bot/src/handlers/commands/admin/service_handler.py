@@ -3,9 +3,12 @@ import os
 from telegram.ext import MessageHandler, filters, PrefixHandler
 
 from aimods_bot.src.callbacks.commands.admin.test_mode import test_mode_command
-from aimods_bot.src.helpers.constants.constants import echo_pattern
 from aimods_bot.src.helpers.filters import MediaGroupIDMessageFilter
 from aimods_bot.src.callbacks.commands.admin.service_router import service_command_router
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+
+
+echo_pattern = get_data_from_json("commands")["echo"]["pattern"]
 
 
 # Tutti i messaggi a eccezione di quelli che possiedono più di un allegato

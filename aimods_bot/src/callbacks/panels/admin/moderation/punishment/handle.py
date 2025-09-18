@@ -1,11 +1,8 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import CallbackContext
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.render import render_antispam_links_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.render import \
-    render_antispam_mention_category_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel
 from aimods_bot.src.core.config_accessor import set_value, get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
@@ -13,7 +10,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
 
 
-async def set_as_parent(update: Update, context: CallbackContext, setting: str):
+async def set_as_parent(update: Update, context: CustomContext, setting: str):
     category_name = setting.split("/")[0]
     category_punishment = get_value(context=context, path=f"moderation.{category_name}.punishment")
     t = category_punishment["type"]
@@ -23,11 +20,11 @@ async def set_as_parent(update: Update, context: CallbackContext, setting: str):
     await set_punishment_duration(update=update, context=context, value=d)
 
 
-async def set_punishment_type(context: CallbackContext, setting: str, punishment: str):
+async def set_punishment_type(context: CustomContext, setting: str, punishment: str):
     set_value(context=context, path=f"moderation.{setting}.punishment.type", value=punishment)
 
 
-async def set_punishment_duration(update: Update, context: CallbackContext, value: int = None):
+async def set_punishment_duration(update: Update, context: CustomContext, value: int = None):
     """
         Gestisce i messaggi per l'impostazione della durata di una punizione,
         in accordo con le impostazioni di moderazione.

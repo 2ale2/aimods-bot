@@ -2,9 +2,9 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem, Platform, Category, RequestData, \
-    RequestStatus
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
+    Platform, Category, RequestStatus
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import get_active_category_requests, get_requests_summary, \
     get_request_details, get_platform_categories
@@ -161,7 +161,7 @@ async def render_admin_active_requests_category_panel(
     for n, el in enumerate(requests):
         if len(keyboard[-1]) == 2:
             keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=el))
+        keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=str(el)))
 
     back_button = ButtonItem(
         text="🔙 Indietro", 
@@ -205,8 +205,8 @@ def _get_active_requests_category_text(
 async def render_admin_manage_request_panel(
         update: Update,
         context: CustomContext,
-        ix: str,
-        request: RequestData,
+        ix: int,
+        request: Request,
         back_button_callback_key: str = None
 ):
 
@@ -228,7 +228,7 @@ async def render_admin_manage_request_panel(
 
 
 async def _get_admin_manage_request_text(
-        request: RequestData,
+        request: Request,
         platform: Platform,
         category: Category
 ):
@@ -251,7 +251,7 @@ async def _get_admin_manage_request_text(
     return text
 
 
-def _get_admin_menage_request_keyboard(request: RequestData, back_button_callback_key: str = None):
+def _get_admin_menage_request_keyboard(request: Request, back_button_callback_key: str = None):
     steps = [None] + [el.value for el in RequestStatus] + [None]
 
     current_status = request.status
@@ -309,7 +309,7 @@ async def render_change_request_status_confirmation_panel(
         update: Update,
         context: CustomContext,
         ix: str,
-        request: RequestData,
+        request: Request,
         status: RequestStatus
 ):
     platform = request.get_platform()
@@ -340,7 +340,7 @@ async def render_change_request_status_confirmation_panel(
 async def _get_render_change_request_status_confirmation_text(
         platform: Platform,
         category: Category,
-        request: RequestData,
+        request: Request,
         status: RequestStatus
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
@@ -377,7 +377,7 @@ async def render_request_status_changed_panel(
         update: Update,
         context: CustomContext,
         ix: str,
-        request: RequestData
+        request: Request
 ):
     platform = request.get_platform()
     category = request.get_category()
@@ -410,7 +410,7 @@ async def render_request_status_changed_panel(
 async def _get_request_status_changed_text(
         platform: Platform,
         category: Category,
-        request: RequestData
+        request: Request
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
@@ -438,7 +438,7 @@ async def render_admin_manage_request_remove_confirmation_panel(
         update: Update,
         context: CustomContext,
         ix: str,
-        request: RequestData
+        request: Request
 ):
     platform = request.get_platform()
     category = request.get_category()
@@ -468,7 +468,7 @@ async def render_admin_manage_request_remove_confirmation_panel(
 async def _get_admin_manage_request_remove_confirmation_text(
         platform: Platform,
         category: Category,
-        request: RequestData
+        request: Request
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']

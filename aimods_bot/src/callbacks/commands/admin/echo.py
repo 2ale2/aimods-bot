@@ -9,7 +9,6 @@ from telegram.helpers import effective_message_type
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
-from aimods_bot.src.helpers.constants.constants import echo_pattern
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
@@ -111,7 +110,7 @@ async def multimedia_echo(update: Update, context: CustomContext):
     job_data = cast(List[MsgDict], context.job.data)
     media_group_sender_id = update.effective_user.id
 
-    echo_element = _check_echo_command_in_group_media(job_data)
+    echo_element = _check_echo_command_in_group_media(context=context, message_data=job_data)
 
     if not echo_element:
         log.info("Nessun comando tipo 'echo' presente nel media group.")
@@ -156,11 +155,12 @@ async def multimedia_echo(update: Update, context: CustomContext):
     )
 
 
-def _check_echo_command_in_group_media(message_data: List[MsgDict]) -> Optional[MsgDict]:
+def _check_echo_command_in_group_media(context: CustomContext, message_data: List[MsgDict]) -> Optional[MsgDict]:
     """
         Controlla la lista di media, verificando la presenza di una descrizione che comincia col comando
         'echo' o 'annuncio'. Se lo trova, ritorna l'elemento della lista che contiene tale descrizione.
     """
+    echo_pattern = context.pydantic_bot_data.commands["echo"].pattern
     for el in message_data:
         caption = el["caption"]
         if not caption:

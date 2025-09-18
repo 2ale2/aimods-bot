@@ -10,9 +10,8 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
-from aimods_bot.src.helpers.constants.models import RequestStatus, RequestData, Platform, AndroidCategory, \
-    WindowsCategory, IOSCategory, MacOSCategory, Category, Arch
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, Platform, WindowsCategory, AndroidCategory, IOSCategory, \
+    MacOSCategory, Category, Arch, RequestStatus
 from aimods_bot.src.helpers.database import fetch_query, execute_query
 from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
 from aimods_bot.src.helpers.loggers import logger
@@ -143,6 +142,7 @@ async def request_data_from_record(request: dict) -> Request:
     else:
         category = None
 
+    # noinspection PyArgumentList
     status = RequestStatus(raw_status) if raw_status else None
     # noinspection PyTypeChecker
     content = json.loads(raw_content) if raw_content else None
@@ -174,7 +174,7 @@ async def request_data_from_record(request: dict) -> Request:
     )
 
 
-async def get_user_cancellable_requests(context: CustomContext) -> dict[int, RequestData]:
+async def get_user_cancellable_requests(context: CustomContext) -> dict[int, Request]:
     """Ritorna le richieste attive cancellabili"""
     user_requests = context.user_active_requests
     cancellable_requests = {}
@@ -288,26 +288,26 @@ def is_request_active(request: Request):
     return request.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
 
 
-async def generate_user_archive_requests_pdf_file(requests: list[RequestData], input_path: str) -> str:
+async def generate_user_archive_requests_pdf_file(requests: list[Request], input_path: str) -> str:
     input_path = str(Path(input_path).with_suffix(".tex"))
     tex_p = await generate_user_archive_requests_latex_file(requests=requests, out_path=input_path)
     pdf_p = await convert_latex_to_pdf(tex_path=tex_p)
     return str(pdf_p)
 
 
-async def generate_user_archive_requests_latex_file(requests: list[RequestData], out_path: str) -> str:
+async def generate_user_archive_requests_latex_file(requests: list[Request], out_path: str) -> str:
     p = await create_latex_file(out_path, iter_archive_tex(requests))
     return str(p)
 
 
-async def iter_archive_tex(requests: Iterable[RequestData]) -> AsyncIterator[Text]:
+async def iter_archive_tex(requests: Iterable[Request]) -> AsyncIterator[Text]:
     yield render_requests_latex_header()
     for r in requests:
         yield render_request_latex_item(r)
     yield render_requests_latex_footer()
 
 
-def render_request_latex_item(r: RequestData) -> str:
+def render_request_latex_item(r: Request) -> str:
     lines = [rf"\item\begin{{minipage}}[t]{{\linewidth}}\raggedright"]
 
     PLATFORM_LATEX_EMOJIS = {
@@ -348,7 +348,7 @@ def render_request_latex_item(r: RequestData) -> str:
     if r.functionalities:
         lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
     if r.issued_at:
-        s = format_time_as_rome(until=r.issued_at).replace("<b>", "").replace("</b>", "")
+        s = format_time_as_rome(until=datetime.fromisoformat(r.issued_at)).replace("<b>", "").replace("</b>", "")
         lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
     if r.status:
         icon = STATUS_LATEX_EMOJIS[r.status.value]

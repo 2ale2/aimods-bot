@@ -9,7 +9,7 @@ from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
-from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow
+from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json

@@ -1,11 +1,12 @@
-import re
+from __future__ import annotations
 
-from aimods_bot.src.helpers.constants.models import DisplayItem
-from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+from dataclasses import dataclass
+from enum import Enum
+from typing import Union
+
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
-TOPICS = get_data_from_json("forum_topics")
 pyro_instance = None
 
 ERROR_MESSAGES = {
@@ -41,9 +42,13 @@ LIST_DETAILS = {
     }
 }
 
-_commands = get_data_from_json("commands")
 
-echo_pattern = re.compile(_commands["echo"]["pattern"], re.IGNORECASE)
+@dataclass
+class DisplayItem:
+    display_icon: str
+    display_name: str
+    target_description: str
+
 
 MODERATION_DISPLAY_ITEMS = {
     "antispam": DisplayItem("📨", "Anti-Spam", "a chi spamma"),
@@ -204,3 +209,74 @@ REQUEST_DETAILS_CONFIG = {
                 }
             }
         }
+
+
+class Platform(Enum):
+    ANDROID = "android"
+    IOS = "ios"
+    WINDOWS = "windows"
+    MACOS = "macos"
+
+
+class WindowsCategory(Enum):
+    GAME = "game"
+    DAW = "daw"
+    ADOBE = "adobe"
+    SOFTWARE = "software"
+
+
+class AndroidCategory(Enum):
+    APP = "app"
+
+
+class IOSCategory(Enum):
+    APP = "app"
+
+
+class MacOSCategory(Enum):
+    SOFTWARE = "software"
+    DAW = "daw"
+
+
+class AndroidPlatform(Enum):
+    ANDROID = "android"
+
+
+class WindowsPlatform(Enum):
+    WINDOWS = "windows"
+
+
+class iOSPlatform(Enum):
+    IOS = "ios"
+
+
+class MacOSPlatform(Enum):
+    MACOS = "macos"
+
+
+Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
+# Platform = Union[AndroidPlatform, iOSPlatform, WindowsPlatform, MacOSPlatform]
+
+class Arch(Enum):
+    x86 = "x86"
+    x86_64 = "x86_64"
+    ARM = "arm"
+    ARM_64 = "arm64"
+
+
+@dataclass
+class RequestStatus(Enum):
+    PENDING = "pending"
+    EXAMINING = "examining"
+    TESTING = "testing"
+    COMPLETED = "completed"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class RequestField(Enum):
+    NAME = "name"
+    LINK = "link"
+    VERSION = "version"
+    FUNCTIONALITIES = "functionalities"
+    STEAMTOOLS = "steamtools"

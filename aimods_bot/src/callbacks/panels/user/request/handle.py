@@ -8,10 +8,10 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG
+from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG, Platform, Category, \
+    RequestField
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.models import \
-    RequestField, MessageTemplate, Platform, Category, RequestData
+from aimods_bot.src.helpers.constants.models import MessageTemplate
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -81,8 +81,8 @@ class RequestDataManager:
             except Exception as e:
                 log.warning("cleanup_request failed: %s", e, exc_info=e)
 
-        request_data = RequestData(platform=platform, category=category)
-        chat["new_request"] = request_data.to_dict()
+        request_data = Request(platform=platform, category=category)
+        chat["new_request"] = request_data.model_dump()
 
         log.info(
             "Initialized new request",
@@ -99,7 +99,7 @@ class RequestDataManager:
             detail: RequestField
     ):
         request_data = RequestDataManager.get_request_data(context)
-        category = request_data.get_category()
+        category = request_data.category
         text = MessageBuilder.build_request_summary(request_data=request_data)
 
         RequestDataManager.update_field(context=context, field="requesting", value=detail)
@@ -150,7 +150,7 @@ class RequestDataManager:
         # Expect: "edit_<field>"
         detail = update.callback_query.data.split("_")[1]
         request_data = RequestDataManager.get_request_data(context)
-        category = request_data.get_category()
+        category = request_data.category
 
         RequestDataManager.update_field(context, "editing", RequestField(detail))
 
@@ -188,10 +188,10 @@ class RequestDataManager:
         return CONVERSATION_STATES[field_enum]
 
     @staticmethod
-    def get_request_data(context: CustomContext) -> RequestData:
+    def get_request_data(context: CustomContext) -> Request:
         """Ottiene i dati della richiesta corrente"""
         request = context.chat_data.get("new_request")
-        return RequestData.from_dict(request)
+        return Request(**request)
 
     @staticmethod
     def update_field(context: CustomContext, field: str, value: Any) -> None:
@@ -203,8 +203,8 @@ class RequestDataManager:
         log.debug(f"Updated field {field} with value: {value}")
 
     @staticmethod
-    def update_request_data(context: CustomContext, request_data: RequestData) -> None:
-        context.chat_data["new_request"] = request_data.to_dict()
+    def update_request_data(context: CustomContext, request_data: Request) -> None:
+        context.chat_data["new_request"] = request_data.model_dump()
 
     @staticmethod
     async def recheck_request(update: Update, context: CustomContext):
@@ -266,20 +266,22 @@ class RequestDataManager:
     async def insert_request(
             update: Update,
             context: CustomContext,
-            request_data: RequestData
+            request_data: Request
     ):
         """Aggiorna le richieste dell'utente nel context"""
 
-        platform = request_data.get_platform()
-        category = request_data.get_category()
+        platform = request_data.platform
+        category = request_data.category
         uid = update.effective_user.id
 
-        request_for_db = request_data.to_dict()
+        request_for_db = request_data.model_dump()
         request_for_db.pop("platform", None)
         request_for_db.pop("category", None)
         request_for_db.pop("status", None)
         request_for_db.pop("requesting", None)
         request_for_db.pop("editing", None)
+        request_for_db.pop("id", None)
+        request_for_db.pop("user_id", None)
         request_for_db_str = json.dumps(request_for_db)
 
         query = """
@@ -312,7 +314,7 @@ class RequestDataManager:
             version=request_for_db.get("version", ""),
             link=request_for_db.get("link", ""),
             functionalities=request_for_db.get("functionalities", ""),
-            steamtools=request_for_db.get("steamtools", None)
+            steamtools=request_for_db.get("steamtools", False)
         )
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
@@ -329,14 +331,14 @@ class KeyboardBuilder:
 
     @staticmethod
     def get_back_keyboard(
-            request_data: RequestData,
+            request_data: Request,
             detail: Optional[RequestField],
             steamtools_keyboard: bool = False,
             callback_data: str = None
     ) -> InlineKeyboardMarkup:
         """Keyboard semplice con solo tasto indietro, oppure la tastiera completa nel caso dei giochi"""
         platform = request_data.platform
-        category = request_data.get_category()
+        category = request_data.category
         callback_data = callback_data or KeyboardBuilder.get_back_callback_data(
             platform=platform,
             category=category,
@@ -356,7 +358,7 @@ class KeyboardBuilder:
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
-    def get_review_keyboard(request_data: RequestData) -> InlineKeyboardMarkup:
+    def get_review_keyboard(request_data: Request) -> InlineKeyboardMarkup:
         """
         Tastiera per la review finale, generata in modo dichiarativo:
         - definisce l'ordine dei campi per categoria
@@ -364,7 +366,7 @@ class KeyboardBuilder:
         - inserisce 'SteamTools' solo per i giochi, con callback di toggle
         - aggiunge sempre '✅ Conferma' e '❌ Annulla' in fondo
         """
-        category = request_data.get_category()
+        category = request_data.category
         cat = category.value if category else "software"
 
         order_by_category = {
@@ -429,7 +431,7 @@ class KeyboardBuilder:
         return InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="users/manage_requests"),
-                InlineKeyboardButton(text="🔙 Indietro", callback_data="users")
+                InlineKeyboardButton(text="🏠 Torna alla Home", callback_data="users")
             ]
         ])
 
@@ -452,7 +454,7 @@ class MessageBuilder:
 
     @staticmethod
     def build_request_summary(
-            request_data: RequestData,
+            request_data: Request,
             editing_field: Optional[str] = None
     ) -> str:
         """Costruisce il riepilogo della richiesta con evidenziazione del campo in editing"""
@@ -469,10 +471,10 @@ class MessageBuilder:
         return text
 
     @staticmethod
-    def _build_header(request_data: RequestData) -> str:
+    def _build_header(request_data: Request) -> str:
         """Costruisce l'intestazione del messaggio"""
-        platform = request_data.get_platform()
-        category = request_data.get_category()
+        platform = request_data.platform
+        category = request_data.category
 
         category_item = CATEGORY_DETAILS[platform.value][category.value]
 
@@ -482,10 +484,10 @@ class MessageBuilder:
         return f"{icon} <b>Nuova Richiesta – {name}</b>"
 
     @staticmethod
-    def _build_fields(request_data: RequestData, editing_field: Optional[str] = None) -> str:
+    def _build_fields(request_data: Request, editing_field: Optional[str] = None) -> str:
         """Costruisce la lista dei campi della richiesta"""
-        category = request_data.get_category()
-        platform = request_data.get_platform()
+        category = request_data.category
+        platform = request_data.platform
 
         fields = []
 

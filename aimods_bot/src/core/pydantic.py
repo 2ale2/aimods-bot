@@ -6,7 +6,7 @@ from typing import List, Optional, Literal, Dict
 
 from pydantic import BaseModel, Field
 
-from aimods_bot.src.helpers.constants.models import RequestStatus, Platform, Category, Arch
+from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
@@ -232,17 +232,17 @@ class RequestConversationFlowsConfig(BaseModel):
 
 
 class Request(BaseModel):
-    id: int = 0
-    user_id: int = 0
+    id: Optional[int] = 0
+    user_id: Optional[int] = 0
     status: RequestStatus = RequestStatus.PENDING
     issued_at: str = ""
-    platform: Platform = None
-    category: Category = None
+    platform: Optional[Platform] = None
+    category: Optional[Category] = None
     name: str = ""
     arch: Optional[Architecture] = None
     version: str = ""
     link: str = ""
     functionalities: str = ""
-    steamtools: bool = None
-    requesting: bool = False
-    editing: bool = False
+    steamtools: bool = False
+    requesting: Optional[RequestField] = None
+    editing: Optional[RequestField] = None

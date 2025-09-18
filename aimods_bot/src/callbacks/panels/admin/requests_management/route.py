@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.models import Platform, RequestStatus
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_active_request_by_id, edit_request_status, \
     remove_active_request
 

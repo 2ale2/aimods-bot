@@ -2,6 +2,7 @@ import copy
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Configuration
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 
 def get_config(context: CustomContext) -> Configuration:
