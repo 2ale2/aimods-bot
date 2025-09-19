@@ -297,10 +297,8 @@ async def _wait_for_job_completion(context: CustomContext, job_id: str):
 
 async def scheduled_remove_completed_requests(context: CustomContext):
     data = cast(dict, context.job.data)
-    if "user_id" not in data or "ix" not in data:
-        raise JobDataMissingException("Dati mancanti: 'user_id' o 'ix'.")
+    if "ix" not in data:
+        raise JobDataMissingException("Dato mancante: 'ix'")
 
-    ix = int(data["ix"])
-    active_bot_requests = context.pyd.active_requests
-    active_bot_requests.pop(ix, None)
+    context.remove_from_active_requests(ix=int(data["ix"]))
     

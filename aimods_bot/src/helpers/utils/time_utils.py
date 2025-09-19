@@ -82,7 +82,7 @@ def get_until_date(duration) -> datetime:
     return now_utc + duration
 
 
-def format_time_as_rome(until: datetime) -> str:
+def format_time_as_rome(until: datetime) -> Optional[str]:
     """Formatta il testo nel fuso orario italiano se diverso da zero_datetime(), altrimenti a tempo indeterminato."""
     if until is None:
         raise Exception("Devi fornire il parametro 'until'")

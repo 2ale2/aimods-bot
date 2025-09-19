@@ -6,8 +6,9 @@ from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGOR
     Platform, Category, RequestStatus
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.request_utils import get_active_category_requests, get_requests_summary, \
-    get_request_details, get_platform_categories, get_active_request_by_id
+from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
+                                                        get_request_details,
+                                                        get_platform_categories)
 
 log = logger.getChild("admin_requests_management_render")
 
@@ -135,7 +136,7 @@ async def render_admin_active_requests_category_panel(
         platform: Platform,
         category: Category
 ):
-    requests = get_active_category_requests(context=context, platform=platform, category=category)
+    requests = context.get_active_category_requests(platform=platform, category=category)
 
     categories = get_platform_categories(platform=platform)
     if len(categories) > 1:
@@ -144,8 +145,8 @@ async def render_admin_active_requests_category_panel(
         back_button_callback_key = f"admin/manage_requests/active_requests"
 
     if len(requests) == 1:
-        ix = requests[0].id
-        request_data = get_active_request_by_id(context=context, ix=ix)
+        ix = list(requests.values())[0].id
+        request_data = context.get_active_request_by_id(ix=ix)
 
         return await render_admin_manage_request_panel(
             update=update,
@@ -158,10 +159,11 @@ async def render_admin_active_requests_category_panel(
     text = _get_active_requests_category_text(platform=platform, category=category, requests=requests)
 
     keyboard = [[]]
-    for n, el in enumerate(requests):
+    for n, ix in enumerate(requests):
+        request = requests[ix]
         if len(keyboard[-1]) == 2:
             keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=str(el)))
+        keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=request.id))
 
     back_button = ButtonItem(
         text="🔙 Indietro", 
@@ -185,7 +187,7 @@ async def render_admin_active_requests_category_panel(
 def _get_active_requests_category_text(
         platform: Platform,
         category: Category,
-        requests: list[Request]
+        requests: dict[int, Request]
 ):
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
@@ -376,7 +378,7 @@ async def _get_render_change_request_status_confirmation_text(
 async def render_request_status_changed_panel(
         update: Update,
         context: CustomContext,
-        ix: str,
+        ix: int,
         request: Request
 ):
     platform = request.platform
@@ -437,7 +439,7 @@ async def _get_request_status_changed_text(
 async def render_admin_manage_request_remove_confirmation_panel(
         update: Update,
         context: CustomContext,
-        ix: str,
+        ix: int,
         request: Request
 ):
     platform = request.platform
@@ -505,9 +507,8 @@ async def render_admin_manage_request_removed_panel(
 
 
 def _get_admin_manage_request_removed_text():
-    text = ("🗑 <b>Richiesta inattiva rimossa correttamente</b>.\n\n"
+    text = ("🗑 <b>Richiesta Inattiva Rimossa Correttamente</b>.\n\n"
             "<blockquote>ℹ L'utente che ha fatto tale richiesta potrà visualizzarla nell'archivio.</blockquote>")
-
     return text
 
 

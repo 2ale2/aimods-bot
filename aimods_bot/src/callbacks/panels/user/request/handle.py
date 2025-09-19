@@ -204,7 +204,7 @@ class RequestDataManager:
 
     @staticmethod
     def update_request_data(context: CustomContext, request_data: Request) -> None:
-        context.chat_data["new_request"] = request_data.model_dump()
+        context.chat_data["new_request"] = request_data.model_dump(mode="json")
 
     @staticmethod
     async def recheck_request(update: Update, context: CustomContext):
@@ -302,7 +302,7 @@ class RequestDataManager:
         ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
 
-        context.pyd.active_requests.append(Request(
+        context.pyd.active_requests[ix] = (Request(
             id=ix,
             user_id=uid,
             # status = (default) RequestStatus.PENDING,

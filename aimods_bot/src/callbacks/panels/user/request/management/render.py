@@ -12,9 +12,8 @@ from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
-                                                        get_request_details, get_active_request_by_id,
-                                                        get_user_cancellable_requests, can_request_be_cancelled,
-                                                        get_user_requests_archive, request_data_from_record,
+                                                        get_request_details,
+                                                        get_user_requests_archive,
                                                         generate_user_archive_requests_pdf_file)
 
 
@@ -75,7 +74,7 @@ async def render_active_request_panel(
     await user_request_panel.render(update=update, context=context)
 
 
-def _get_active_request_panel_text(requests: list[Request]) -> str:
+def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
     if len(requests) == 0:
@@ -100,12 +99,12 @@ async def render_user_request_action_panel(
         context=context,
         action=action
     )
-    keybaord = await _get_user_request_action_panel_keyboard(context=context, action=action)
+    keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action)
 
     user_request_action_panel = Panel(PanelConfig(
         base_path=f"user/manage_requests/view_requests/active_requests/{action}",
         text=text,
-        keyboard=keybaord
+        keyboard=keyboard
     ))
 
     await user_request_action_panel.render(update=update, context=context)
@@ -119,7 +118,7 @@ async def _get_user_request_action_panel_text(
     if action == "cancel":
         text += "\n\n→ 🗑 <b>Cancellazione</b>"
 
-        requests = await get_user_cancellable_requests(context=context)
+        requests = context.user_cancellable_requests
         if len(requests) == 0:
             text += "\n\nℹ️ Non hai richieste cancellabili.\n\n"
             return text
@@ -127,7 +126,7 @@ async def _get_user_request_action_panel_text(
     else:  # action == "details"
         text += "\n\n→ 📋 <b>Informazioni</b>"
 
-        requests = context.user_data["active_requests"]
+        requests = context.user_active_requests
         if len(requests) == 0:
             text += "\n\nℹ️ Non hai richieste da visionare.\n\n"
             return text
@@ -146,16 +145,17 @@ async def _get_user_request_action_panel_keyboard(
         action: Literal["details", "cancel"]
 ) -> list[list[ButtonItem]]:
     if action == "cancel":
-        requests = await get_user_cancellable_requests(context=context)
+        requests = context.user_cancellable_requests
     else:
-        requests = context.user_data["active_requests"]
+        requests = context.user_active_requests
 
     if len(requests) != 0:
         keyboard = [[]]
-        for n, el in enumerate(requests):
+        for n, ix in enumerate(requests):
+            request = requests[ix]
             if len(keyboard[-1]) >= 4:
                 keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=str(n + 1), callback_key=str(el)))
+            keyboard[-1].append(ButtonItem(text=str(n + 1), callback_key=request.id))
         keyboard.insert(len(keyboard) + 1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
     else:
         keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
@@ -168,7 +168,7 @@ async def render_request_details_panel(
         context: CustomContext,
         ix: int
 ):
-    request = get_active_request_by_id(context=context, ix=ix)
+    request = context.get_active_request_by_id(ix=ix)
     text = await _get_request_details_panel_text(request=request)
 
     request_details_panel = Panel(
@@ -205,11 +205,12 @@ async def render_confirm_cancel_panel(
         context: CustomContext,
         ix: int
 ):
-    request = get_active_request_by_id(context=context, ix=ix)
+    request = context.get_active_request_by_id(ix=ix)
     if not request:
         raise DatabaseBotException(f"Richiesta {ix} non trovata.")
 
-    if await can_request_be_cancelled(context=context, request=request):
+    timer_sec = context.pyd.configuration.settings.request.cancel_timer
+    if request.can_be_cancelled(timer_sec):
         text = await _get_confirm_cancel_text(request=request)
         keyboard = [
             [
@@ -300,7 +301,7 @@ async def render_user_request_archive_panel(update: Update, context: CustomConte
     context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 
-async def _get_user_request_archive_text(requests: list[dict]):
+async def _get_user_request_archive_text(requests: list[Request]):
     text = "📕 <b>Archivio Richieste</b>\n\n"
 
     if len(requests) == 0:
@@ -311,11 +312,10 @@ async def _get_user_request_archive_text(requests: list[dict]):
     return text
 
 
-async def _get_archive_pdf_file(requests: list[dict], user_id: int):
+async def _get_archive_pdf_file(requests: list[Request], user_id: int):
     if os.path.exists(f"archive_{user_id}_{len(requests)}.pdf"):
         return f"archive_{user_id}_{len(requests)}.pdf"
 
-    requests = [await request_data_from_record(request=el) for el in requests]
     p = await generate_user_archive_requests_pdf_file(
         requests=requests,
         input_path=f"archive_{user_id}_{len(requests)}.tex"
@@ -330,7 +330,7 @@ async def render_request_cancelled_panel(
     text = _get_request_cancelled_panel_text()
 
     keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
-    requests = await get_user_cancellable_requests(context=context)
+    requests = context.user_cancellable_requests
 
     if len(requests) != 0:
         keyboard.insert(0, [

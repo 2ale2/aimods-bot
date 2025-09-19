@@ -1,19 +1,15 @@
 import json
 import platform as platf
-from datetime import datetime, timezone
-from typing import Optional, AsyncIterator, Iterable, Text
+from datetime import datetime
 from pathlib import Path
+from typing import AsyncIterator, Iterable, Text
 
-from pydantic import ValidationError
-
-from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Category, Arch, RequestStatus
-from aimods_bot.src.helpers.database import fetch_query, execute_query
-from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
+    Platform, WindowsCategory, AndroidCategory, IOSCategory, \
+    MacOSCategory, Arch, RequestStatus
+from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
@@ -31,75 +27,14 @@ def get_platform_categories(platform: Platform):
     return categories[platform]
 
 
-async def get_user_requests_by_status(
-        user_id: int,
-        platform: Optional[Platform],
-        status: RequestStatus
-) -> dict[int, Request]:
-    query = """SELECT * 
-               FROM requests 
-               WHERE user_id = $1 
-                 AND status = $2"""
-    params = [user_id, status.value]
-
-    if platform:
-        query += f" AND platform = $3"
-        params = params.append(platform.value)
-
-    response = await fetch_query(query=query, params=params)
-    if response is not None:
-        response = [dict(el) for el in response]
-    else:
-        response = {}
-
-    return response
-
-
-def get_active_request_by_id(context: CustomContext, ix: int):
-    active_requests = context.pyd.active_requests
-    for request in active_requests:
-        if request.id == ix:
-            return request
-    return None
-
-
-async def can_request_be_cancelled(
-        context: CustomContext,
-        ix: Optional[int] = None,
-        request: Optional[Request] = None
-):
-    if ix is None and request is None:
-        raise MissingParameterException("Se ometti 'request', devi fornire 'context' e 'ix'.")
-
-    if request is None:
-        request = get_active_request_by_id(context=context, ix=ix)
-        if not request:
-            raise ValueError(f"Richiesta {ix} non trovata.")
-
-    if isinstance(request, dict):
-        try:
-            request = Request(**request)
-        except ValidationError:
-            if context is None or ix is None:
-                log.warning("Attempt to overwhelm Request validation error failed: missing 'ix' and/or 'context'.")
-                raise
-            request = get_active_request_by_id(context=context, ix=ix)
-
-    cancel_timer_sec = context.pyd.configuration.settings.request.cancel_timer
-
-    if (datetime.now(timezone.utc) - datetime.fromisoformat(request.issued_at)).total_seconds() > cancel_timer_sec:
-        return False
-    return True
-
-
-async def get_user_requests_archive(user_id: int) -> list[dict]:
+async def get_user_requests_archive(user_id: int) -> list[Request]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
     query = """SELECT * FROM requests WHERE user_id = $1 ORDER BY id"""
     response = await fetch_query(query=query, params=[user_id])
-    return [dict(r) for r in response]
+    return [await request_from_record(dict(el)) for el in response]
 
 
-async def request_data_from_record(request: dict) -> Request:
+async def request_from_record(request: dict) -> Request:
     """Utility Function per trasformare un Record del database in un'istanza di Request."""
 
     query = """SELECT column_name 
@@ -158,7 +93,7 @@ async def request_data_from_record(request: dict) -> Request:
         id=raw_id,
         user_id=user_id,
         status=status,
-        issued_at=issued_at,
+        issued_at=issued_at.isoformat(),
         platform=platform,
         category=category,
         name=name,
@@ -170,72 +105,23 @@ async def request_data_from_record(request: dict) -> Request:
     )
 
 
-async def get_user_cancellable_requests(context: CustomContext) -> dict[int, Request]:
-    """Ritorna le richieste attive cancellabili"""
-    user_requests = context.user_active_requests
-    cancellable_requests = {}
-
-    for el in user_requests:
-        if await can_request_be_cancelled(request=el, context=context):
-            cancellable_requests[el.id] = el
-
-    return cancellable_requests
-
-
-def get_requests_summary(requests: list[Request]) -> str:
+def get_requests_summary(requests: dict[int, Request]) -> str:
     text = ""
 
-    for n, el in enumerate(requests):
-        status = el.status.value
+    for n, ix in enumerate(requests):
+        request = requests[ix]
+        status = request.status.value
         status_icon = REQUEST_STATUS_DETAILS[status]['icon']
         status_label = REQUEST_STATUS_DETAILS[status]['label']
-        platform = el.platform.value
+        platform = request.platform.value
         platform_label = PLATFORM_DETAILS[platform]['label']
         platform_icon = PLATFORM_DETAILS[platform]['icon']
 
-        text += (f"    {n+1}. <i>{el.name}</i>\n"
+        text += (f"    {n+1}. <i>{request.name}</i>\n"
                  f"         🖲️ <u>Piattaforma</u> – {platform_icon} <i>{platform_label}</i>\n"
                  f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n")
 
     return text
-
-
-async def remove_from_active_requests(context: CustomContext, ix: int) -> bool:
-    active_requests = context.pyd.active_requests
-
-    for n, request in enumerate(active_requests):
-        if request.id == ix:
-            active_requests.pop(n)
-            return True
-    return False
-
-
-async def edit_request_status(context: CustomContext, ix: int, status: RequestStatus):
-    request = get_active_request_by_id(context=context, ix=ix)
-
-    if status is RequestStatus.CANCELLED:
-        await remove_from_active_requests(context=context, ix=ix)
-    else:
-        request.status = status
-
-    if status is RequestStatus.COMPLETED:
-        context.job_queue.run_once(
-            callback=scheduled_remove_completed_requests,
-            when=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
-            data={
-                "user_id": request.user_id,
-                "ix": ix
-            }
-        )
-
-    status_value = status.value
-    query = """UPDATE requests SET status = $1 WHERE id = $2"""
-
-    res = await execute_query(query=query, params=[status_value, int(ix)])
-    if not res:
-        log.error(f"Failed to update request {ix} status to '{status_value}'")
-    else:
-        log.info(f"Updated request {ix} status to '{status_value}'")
 
 
 async def get_request_details(request: Request, admin: bool = False):
@@ -270,19 +156,6 @@ async def get_request_details(request: Request, admin: bool = False):
         text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
 
     return text
-
-
-def get_active_category_requests(
-        context: CustomContext,
-        platform: Platform,
-        category: Category
-) -> list[Request]:
-    requests = []
-    active = context.pyd.active_requests
-    for request in active:
-        if request.platform == platform and request.category == category:
-            requests.append(request)
-    return requests
 
 
 def is_request_active(request: Request):

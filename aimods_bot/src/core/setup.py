@@ -11,6 +11,7 @@ from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
+from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
@@ -138,7 +139,7 @@ async def set_application_data(application: Application):
             set_data_in_json(key=["restarting", "toggle"], value=False)
             set_data_in_json(key=["restarting", "user_id"], value=0)
 
-    application.bot_data = current_bot_data
+        application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 
 
 # noinspection PyUnresolvedReferences

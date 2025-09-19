@@ -9,8 +9,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories, get_active_request_by_id, edit_request_status, \
-    remove_from_active_requests
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 
 async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -63,7 +62,7 @@ async def admin_manage_request_route(
         path: list[str],
         ix: int
 ):
-    request = get_active_request_by_id(context=context, ix=ix)
+    request = context.get_active_request_by_id(ix=ix)
 
     if len(path) == 0:
         # expected: (<platform>/<category>/<id>)
@@ -107,8 +106,8 @@ async def admin_manage_request_route(
         if path[-2] in RequestStatus and path[-1] == "yes":
             # expected: (<platform>/<category>/<id>)/<new_status>/yes
             status = RequestStatus(path[-2])
-            await edit_request_status(context=context, ix=ix, status=status)
-            request = get_active_request_by_id(context=context, ix=ix)
+            await context.edit_request_status(ix=ix, status=status)
+            request = context.get_active_request_by_id(ix=ix)
 
             await render_request_status_changed_panel(
                 update=update,
@@ -118,10 +117,7 @@ async def admin_manage_request_route(
             )
         elif path[-2] == "remove" and path[-1] == "yes":
             # expected: (<platform>/<category>/<id>)/remove/yes
-            await remove_from_active_requests(
-                context=context,
-                ix=ix
-            )
+            context.remove_from_active_requests(ix=ix)
             await render_admin_manage_request_removed_panel(
                 update=update,
                 context=context,

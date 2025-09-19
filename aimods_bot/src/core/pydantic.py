@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional, Literal, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField
+from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
@@ -61,7 +62,7 @@ class RequestConfig(BaseModel):
     windows: WindowsRequestCategoryToggle = Field(default_factory=WindowsRequestCategoryToggle)
     ios: iOSRequestCategoryToggle = Field(default_factory=iOSRequestCategoryToggle)
     macos: MacOSRequestCategoryToggle = Field(default_factory=MacOSRequestCategoryToggle)
-    cancel_timer: int = Field(default=3600, ge=0, description="Timer for cancelling requests")
+    cancel_timer: int = Field(default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, ge=0, description="Timer for cancelling requests")
 
 
 class AntispamLinkConfig(BaseModel):
@@ -182,9 +183,11 @@ class Configuration(BaseModel):
     settings: SettingsConfig = Field(default_factory=SettingsConfig)
     moderation: ModerationConfig = Field(default_factory=ModerationConfig)
 
-    class Config:
-        validate_assignment = True
-        extra = "forbid"
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="allow",
+        use_enum_values=True
+    )
 
 
 class RestartData(BaseModel):
@@ -243,6 +246,15 @@ class Request(BaseModel):
     version: str = ""
     link: str = ""
     functionalities: str = ""
-    steamtools: bool = False
+    steamtools: Optional[bool] = None
     requesting: Optional[RequestField] = None
     editing: Optional[RequestField] = None
+
+    def can_be_cancelled(self, cancel_time_sec: int):
+        issued_datetime = datetime.fromisoformat(self.issued_at)
+        if issued_datetime.tzinfo is None:
+            issued_datetime = issued_datetime.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - issued_datetime).total_seconds() < cancel_time_sec
+
+    def edit_status(self, status: RequestStatus):
+        self.status = status
