@@ -4,6 +4,7 @@ from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as Pyro
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser
 
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
@@ -136,10 +137,19 @@ async def get_member_permissions(
     return actual_permissions
 
 
-def get_member_details_text(
-        user: Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser],
-        user_identifier: Union[int, str]
-):
+async def get_member_details_text(
+        context: Optional[CustomContext] = None,
+        user_identifier: Optional[Union[int, str]] = None,
+        user: Optional[Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser]] = None
+) -> str:
+    if not user_identifier and not user:
+        raise MissingParameterException("You must provide at least 'user' or 'user_identifier'.")
+
+    if not user and context:
+        resolving_attempt = await resolve_chat_member(context=context, user_identifier=user_identifier)
+        if resolving_attempt["status"] == "success":
+            user = resolving_attempt["member"].user
+
     if isinstance(user, Union[PTBChatMember, PyroChatMember]):
         user = user.user
     if user:
@@ -154,3 +164,12 @@ def get_member_details_text(
             text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
 
     return text
+
+
+async def id_to_username(context: CustomContext, user_id: int) -> Union[str, int]:
+    """Ritorna lo username o il first name quando possibile, altrimenti torna user_id."""
+    resolving_attempt = await resolve_chat_member(context=context, user_identifier=user_id)
+    if resolving_attempt["status"] == "success":
+        user = resolving_attempt["member"].user
+        return user.username or user_id
+    return user_id

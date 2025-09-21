@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Optional, Any, Union, Dict
 
 import telegram
@@ -242,9 +243,16 @@ def _create_error_response(error_code: str) -> Dict[str, Any]:
     }
 
 
-def is_username(string) -> bool:
-    """Se string è una stringa alfanumerica, ritorna True."""
-    return not (not string or str(string).isdigit())
+async def is_username(string: str) -> bool:
+    """
+    Restituisce True se la stringa è un possibile username Telegram.
+    Regole:
+    - Solo lettere (a-z), numeri (0-9), underscore (_)
+    - Lunghezza: 5-32 caratteri
+    NOTA - In casi limite (es.: first_name "mario1") non posso sapere se la stringa è uno username se non ha la @
+    """
+
+    return string.startswith("@") or bool(re.fullmatch(r"[a-z0-9_]{5,32}", string, flags=re.IGNORECASE))
 
 
 def is_user_id(string) -> bool:
@@ -270,8 +278,8 @@ def normalize_user(user) -> dict:
 def format_user_mention(user_id: str | int = None, username: str = None, first_name: str = None) -> str:
     if username:
         if user_id:
-            return f"{'@' + username.removeprefix('@')} (<code>{user_id}</code>)"
-        return f"{'@' + username.removeprefix('@')}"
+            return f"{add_fucking_at(username)} (<code>{user_id}</code>)"
+        return f"{add_fucking_at(username)}"
     if user_id:
         if first_name:
             f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
@@ -280,6 +288,7 @@ def format_user_mention(user_id: str | int = None, username: str = None, first_n
 
 
 def add_fucking_at(s: str) -> str:
+    """Aggiunge la c*zzo di chiocciola."""
     return '@' + s.removeprefix("@")
 
 

@@ -64,13 +64,19 @@ async def admin_manage_request_route(
 ):
     request = context.get_active_request_by_id(ix=ix)
 
+    if len(context.get_active_category_requests(platform=request.platform, category=request.category)) == 1:
+        back_button_callback_key = "admin/manage_requests/active_requests"
+    else:
+        back_button_callback_key = None
+
     if len(path) == 0:
         # expected: (<platform>/<category>/<id>)
         await render_admin_manage_request_panel(
             update=update,
             context=context,
             ix=ix,
-            request=request
+            request=request,
+            back_button_callback_key=back_button_callback_key
         )
 
     elif len(path) == 1:

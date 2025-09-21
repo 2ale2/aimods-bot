@@ -3,11 +3,11 @@ from typing import Optional
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_topic, handle_limitation_reason
+    handle_request_limitation_topic
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_admin_limit_user_request_panel, render_admin_limit_user_request_duration_panel, \
     render_handled_request_limitation_duration_panel, render_admin_limit_user_request_topics_panel, \
-    render_admin_user_limitation_reason_panel
+    render_admin_user_limitation_reason_panel, render_user_requests_limitations_info_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
@@ -31,20 +31,47 @@ async def route_admin_limit_user_request(
         limiting_item["user_id"] = user_id
 
     if len(path) == 0:
-        await render_admin_limit_user_request_panel(update=update, context=context, user_id=user_id)
+        await render_admin_limit_user_request_panel(
+            update=update,
+            context=context,
+            user_id=user_id,
+            back_button_callback_key="/".join(context.full_keyboard_path.split("/")[:-1])
+        )
         return PCS.ADMIN_CONVERSATION
 
     if len(path) == 1:
         match path[0]:
+            case "info":
+                await render_user_requests_limitations_info_panel(
+                    update=update,
+                    context=context,
+                    user_id=user_id,
+                    back_button_callback_key=context.full_keyboard_path
+                )
+                return PCS.ADMIN_CONVERSATION
             case "duration":
-                await render_admin_limit_user_request_duration_panel(update=update, context=context, user_id=user_id)
+                await render_admin_limit_user_request_duration_panel(
+                    update=update,
+                    context=context,
+                    user_id=user_id
+                )
                 return PCS.SET_REQUEST_LIMITATION_DURATION
             case "topics":
-                await render_admin_limit_user_request_topics_panel(update=update, context=context, user_id=user_id)
+                await render_admin_limit_user_request_topics_panel(
+                    update=update,
+                    context=context,
+                    user_id=user_id
+                )
                 return PCS.ADMIN_CONVERSATION
             case "reason":
-                await render_admin_user_limitation_reason_panel(update=update, context=context, user_id=user_id)
-                return PCS.SET_REQUEST_LIMITATION_REASON
+                if not await render_admin_user_limitation_reason_panel(
+                        update=update,
+                        context=context,
+                        user_id=user_id
+                ):
+                    return PCS.SET_REQUEST_LIMITATION_REASON
+                else:
+                    return PCS.ADMIN_CONVERSATION
 
     if len(path) == 2:
         if path[0] == "duration" and path[1] == "endless":

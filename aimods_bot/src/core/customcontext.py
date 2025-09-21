@@ -55,6 +55,7 @@ class BotData(BaseModel):
 class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     user_id: Optional[int]
     chat_id: Optional[int]
+    full_keyboard_path: Optional[str]
 
     @property
     def pyd(self) -> BotData:
@@ -74,6 +75,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ctx = super().from_update(update, application)
         ctx.user_id = update.effective_user.id if update.effective_user else None
         ctx.chat_id = update.effective_chat.id if update.effective_chat else None
+        ctx.full_keyboard_path = update.callback_query.data if update.callback_query else None
         return ctx
 
     @property

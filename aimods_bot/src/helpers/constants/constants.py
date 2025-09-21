@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import pytz
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
 
+LOCAL_TZ = pytz.timezone('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 

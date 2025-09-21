@@ -237,9 +237,9 @@ class RequestConversationFlowsConfig(BaseModel):
 class RequestSectionLimitation(BaseModel):
     section: str = ""
     until: Optional[datetime] = None
-    reason: Optional[list[str]] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    reasons: Optional[list[str]] = Field(default_factory=list)
+    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: int = Field(default_factory=int)
     updated_by: int = Field(default_factory=int)
 

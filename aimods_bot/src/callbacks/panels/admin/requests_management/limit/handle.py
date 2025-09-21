@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime, timezone
-from typing import Literal
+from typing import Literal, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -37,7 +37,7 @@ def get_request_limiting_detail(context: CustomContext, what: Literal["user_id",
 def set_request_limiting_detail(
         context: CustomContext,
         what: Literal["user_id", "duration", "sections", "reason"],
-        value: str
+        value: Union[str, int, dict]
 ):
     item = context.chat_data.get("limit_user_requests", None)
     if item is None:
@@ -91,34 +91,44 @@ def all_topics_are(context: CustomContext, what: bool):
 
 
 async def handle_limitation_confirmation(update: Update, context: CustomContext):
+    await handle_limitation_reason(update=update, context=context)
+
     user_id = get_request_limiting_detail(context=context, what="user_id")
 
     new_limitations = get_request_limitations(update=update, context=context)
-    current_limitations = context.get_user_request_limitations()
+    current_limitations = context.get_user_request_limitations(user_id=user_id)
 
     if current_limitations:
-        new_map = {el.section: {"until": el.until, "reason": el.reason} for el in new_limitations}
-        current_map = {el.section: {"until": el.until, "reason": el.reason} for el in current_limitations}
+        new_map = {el.section: {"until": el.until, "reason": el.reasons} for el in new_limitations}
+        current_map = {
+            el.section: {"until": el.until, "reason": el.reasons, "updated": False} for el in current_limitations
+        }
         for section in new_map:
             if section in current_map:
                 nu = new_map[section]["until"]
                 cu = current_map[section]["until"]
-                current_map[section]["until"] = nu if nu is None else (cu if cu is None else max(cu, nu))
+                current_map[section]["until"] = nu if nu is None else (cu if cu is None else cu + nu)
                 current_map[section]["reason"].extend(new_map[section]["reason"])
+                current_map[section]["updated"] = True
             else:
                 current_map[section] = {
                     "until": new_map[section]["until"],
                     "reason": new_map[section]["reason"]
                 }
 
-        total_limitations = [
-            RequestSectionLimitation(
-                section=section,
-                until=details["until"],
-                reason=details["reason"],
-                created_by=update.effective_user.id
-            ) for section, details in current_map.items()
-        ]
+        total_limitations = []
+        for l in current_limitations:
+            map_item = current_map[l.section]
+            updated = current_map[l.section]["updated"]
+            total_limitations.append(RequestSectionLimitation(
+                section=l.section,
+                until=map_item["until"],
+                reasons=map_item["reason"],
+                created_by=l.created_by if updated else update.effective_user.id,
+                created_at=l.created_at if updated else None,  # default: now(utc)
+                updated_by=update.effective_user.id,
+                updated_at=None  # default: now(utc)
+            ))
     else:
         total_limitations = new_limitations
 
@@ -143,8 +153,11 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
     duration = get_request_limiting_detail(context=context, what="duration")
     reason = get_request_limiting_detail(context=context, what="reason")
 
-    duration_delta = timedelta(seconds=duration) if duration else None
-    until = datetime.now(timezone.utc) + duration_delta
+    if duration:
+        duration_delta = timedelta(seconds=duration)
+        until = datetime.now(timezone.utc) + duration_delta
+    else:
+        until = None
 
     limitations = []
     for pl in sections:
@@ -153,8 +166,9 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
                 limitations.append(RequestSectionLimitation(
                     section=f"{pl}:{ca}",
                     until=until,
-                    reason=[reason],
-                    created_by=update.effective_user.id
+                    reasons=[reason],
+                    created_by=update.effective_user.id,
+                    updated_by=update.effective_user.id
                 ))
 
     return limitations

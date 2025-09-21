@@ -142,7 +142,7 @@ async def render_admin_active_requests_category_panel(
     if len(categories) > 1:
         back_button_callback_key = f"admin/manage_requests/active_requests/{platform.value}"
     else:
-        back_button_callback_key = f"admin/manage_requests/active_requests"
+        back_button_callback_key = "admin/manage_requests/active_requests"
 
     if len(requests) == 1:
         ix = list(requests.values())[0].id

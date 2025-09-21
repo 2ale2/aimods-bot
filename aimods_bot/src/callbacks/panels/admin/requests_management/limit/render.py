@@ -1,25 +1,33 @@
-from telegram import Update
+from typing import Optional
+
+import pytz
 from pyrogram.types import ChatMember as PyroChatMember
 from telegram import ChatMember as PTBChatMember
+from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_duration, get_request_limiting_detail, all_topics_are, handle_limitation_reason
+    handle_request_limitation_duration, get_request_limiting_detail, all_topics_are, handle_limitation_confirmation, \
+    set_request_limiting_detail
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
-from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete
-from aimods_bot.src.helpers.utils.time_utils import get_duration_text
-from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete, is_user_id, \
+    add_fucking_at
+from aimods_bot.src.helpers.utils.time_utils import get_duration_text
+from aimods_bot.src.helpers.utils.user_utils import get_member_details_text, id_to_username
+
+BASE_PATH = "admin/manage_requests/limit_user_request/limit_{}"  # .format(user id da limitare)
 
 
 async def render_admin_limit_user_request_panel(
         update: Update,
         context: CustomContext,
-        user_id: int
+        user_id: int,
+        back_button_callback_key: Optional[str] = None
 ):
     set_user_requests_limiting_item(context=context)
-    context.chat_data["limit_user_requests"]["user_id"] = user_id
+    set_request_limiting_detail(context=context, what="user_id", value=user_id)
 
     member_response = await resolve_chat_member(
         context=context,
@@ -27,18 +35,29 @@ async def render_admin_limit_user_request_panel(
     )
     text = await _get_admin_limit_user_request_text(member=member_response["member"], user_id=user_id, context=context)
 
+    keyboard = [
+        [
+            ButtonItem(text="⏳ Durata", callback_key="duration"),
+            ButtonItem(text="🗄 Topic", callback_key="topics")
+        ],
+        [
+            ButtonItem(text="✅ Conferma", callback_key="reason"),
+            ButtonItem(
+                text="🔙 Annulla",
+                callback_key=back_button_callback_key,
+                override_path_generation=back_button_callback_key is not None
+            )
+        ]
+    ]
+
+    if context.get_user_request_limitations(user_id=user_id):
+        keyboard.insert(0, [ButtonItem(text="👁‍🗨 Visiona Limitazioni", callback_key="info")])
+
     admin_limit_user_request_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/limit_user_request/limit_{user_id}",
+            base_path=BASE_PATH.format(user_id),
             text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="⏳ Durata", callback_key="duration"),
-                    ButtonItem(text="🗄 Topic", callback_key="topics")
-                ],
-                [ButtonItem(text="✅ Conferma", callback_key="reason")],
-                [ButtonItem(text="🔙 Annulla", callback_key=None)]
-            ]
+            keyboard=keyboard
         )
     )
 
@@ -52,7 +71,7 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
             "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
             "👤 <b>Dettagli Utente</b>\n\n")
 
-    text += get_member_details_text(user=member, user_identifier=user_id)
+    text += await get_member_details_text(user=member, user_identifier=user_id)
 
     if "limit_user_requests" not in context.chat_data:
         set_user_requests_limiting_item(context=context)
@@ -88,6 +107,11 @@ async def _get_admin_limit_user_request_text(
         user_id: int
 ):
     text = await _get_header(context=context, member=member, user_id=user_id)
+
+    if context.get_user_request_limitations(user_id=user_id):
+        text += ("\n<blockquote>ℹ Questo utente possiede già delle limitazioni sulle richieste. "
+                 "<b>Le durate in comune si sommeranno</b>. <b>Le permanenti prevalgono</b>.</blockquote>\n")
+
     text += "\n🔹 Scegli un'opzione."
 
     return text
@@ -107,7 +131,7 @@ async def render_admin_limit_user_request_duration_panel(
 
     admin_limit_user_request_duration_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/limit_user_request/limit_{user_id}/duration",
+            base_path=BASE_PATH.format(user_id) + "/duration",
             text=text,
             keyboard=[
                 [ButtonItem(text="♾ A tempo indeterminato", callback_key="endless")],
@@ -165,9 +189,9 @@ async def render_admin_limit_user_request_topics_panel(
 
     admin_limit_user_request_topics_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/limit_user_request/limit_{user_id}/topics",
+            base_path=BASE_PATH.format(user_id) + "/topics",
             text=text,
-            keyboard=keyboard,
+            keyboard=keyboard
         )
     )
 
@@ -213,22 +237,31 @@ def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
     return keyboard
 
 
-async def render_admin_user_limitation_reason_panel(update: Update, context: CustomContext, user_id: int):
+async def render_admin_user_limitation_reason_panel(
+        update: Update,
+        context: CustomContext,
+        user_id: int
+) -> bool:
+    """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
+
     context.chat_data["update_message"] = update.effective_message.id
     member_response = await resolve_chat_member(
         context=context,
         user_identifier=user_id
     )
 
+    all_topics_false = all_topics_are(context=context, what=False)
+
     text = await _get_admin_user_limitation_reason_text(
         context=context,
         member=member_response["member"],
-        user_id=user_id
+        user_id=user_id,
+        all_topics_false=all_topics_false
     )
 
     admin_confirm_user_limitation_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/limit_user_request/limit_{user_id}/reason",
+            base_path=BASE_PATH.format(user_id) + "reason",
             text=text,
             keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
@@ -238,15 +271,21 @@ async def render_admin_user_limitation_reason_panel(update: Update, context: Cus
 
     await admin_confirm_user_limitation_panel.render(update=update, context=context)
 
+    return all_topics_false
+
 
 async def _get_admin_user_limitation_reason_text(
         context: CustomContext,
         member: PyroChatMember | PTBChatMember,
-        user_id: int
+        user_id: int,
+        all_topics_false: Optional[bool] = False
 ):
     text = await _get_header(context=context, member=member, user_id=user_id)
 
-    text += "\n✍ <b>Fornisci una motivazione</b>."
+    if all_topics_false:
+        text += "\n<blockquote>⚠️ <b>Non hai selezionato alcuna sezione da limitare</b>.</blockquote>"
+    else:
+        text += "\n✍ <b>Fornisci una motivazione</b>."
 
     return text
 
@@ -255,14 +294,14 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await safe_delete(update=update, context=context)
 
     message_id = context.chat_data["update_message"]
-    await handle_limitation_reason(update=update, context=context)
+    await handle_limitation_confirmation(update=update, context=context)
 
     user_id = get_request_limiting_detail(context=context, what="user_id")
     text = _get_admin_user_limitation_confirmed_text(user_id=user_id)
 
     admin_user_limitation_confirmed_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/limit_user_request",
+            base_path=BASE_PATH.removesuffix("/limit_{}/"),  # "admin/manage_requests/limit_user_request",
             text=text,
             keyboard=[
                 [
@@ -281,9 +320,90 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
         )
     )
 
+    context.chat_data.pop("limit_user_requests", None)
     await admin_user_limitation_confirmed_panel.render(update=update, context=context, message_id=message_id)
 
 
 def _get_admin_user_limitation_confirmed_text(user_id: int):
     text = f"✅ <b>Utente <code>{user_id}</code> Limitato</b>"
+    return text
+
+
+async def render_user_requests_limitations_info_panel(
+        update: Update,
+        context: CustomContext,
+        user_id: int,
+        back_button_callback_key: Optional[str] = None
+):
+    keyboard = [
+        [
+            ButtonItem(text="➕ Aggiungi", callback_key="add"),
+            ButtonItem(text="➖ Rimuovi", callback_key="remove")
+        ],
+        [ButtonItem(
+            text="🔙 Indietro",
+            callback_key=back_button_callback_key,
+            override_path_generation=back_button_callback_key is not None
+        )]
+    ]
+
+    text = await _get_user_request_limitations_text(context=context, user_id=user_id)
+
+    user_requests_limitations_info_panel = Panel(
+        PanelConfig(
+            base_path=BASE_PATH.format(user_id) + "/info",
+            text=text,
+            keyboard=keyboard
+        )
+    )
+
+    await user_requests_limitations_info_panel.render(update=update, context=context)
+
+
+async def _get_user_request_limitations_text(context: CustomContext, user_id: int):
+    text = ("⛔ <b>Limitazioni Richieste Utente</b>\n\n"
+            "▪️ Qui le informazioni sulle limitazioni imposte ad un utente nel fare le richieste.\n\n"
+            "👤 <b>Dettagli Utente</b>\n\n")
+
+    text += await get_member_details_text(context=context, user_identifier=user_id)
+    text += "\n🔎 <b>Dettaglio Limitazioni</b>\n"
+    limitations = context.get_user_request_limitations(user_id=user_id)
+    for n, l in enumerate(limitations):
+        pl, ca = l.section.split(":")  # es. section: "windows:software"
+        if l.until is not None:
+            until = l.until.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("%d %b %Y %H:%M:%S")
+        else:
+            until = "♾ A tempo indeterminato"
+
+        if len(l.reasons) == 1:
+            reasons = l.reasons[0]
+        else:
+            reasons = "\n        ".join(f"– {r}" for r in l.reasons if l.reasons)
+
+        created_at = l.created_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
+        created_by = await id_to_username(context=context, user_id=l.created_by)
+
+        if l.updated_at:
+            updated_at = l.updated_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
+            updated_by = await id_to_username(context=context, user_id=l.updated_by)
+        else:
+            updated_at = updated_by = None
+
+        pl_label = PLATFORM_DETAILS[pl]["label"]
+        ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+
+        text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
+                 f"      🔸 <u>Scadenza</u> – <i>{until}</i>\n"
+                 f"      🔸 <u>Motivazioni</u> – {f'<i>{reasons}</i>' if reasons else '<code>Not Provided</code>'}\n\n"
+                 f"      👤 <i>Aggiunta da "
+                 f"{add_fucking_at(created_by) if not is_user_id(created_by) else f'<code>{created_by}</code>'}"
+                 f" {created_at}</i>\n")
+
+        if updated_at and updated_by:
+            text += ("      🔄 <i>Aggiornata da "
+                     f"{add_fucking_at(updated_by) if not is_user_id(updated_by) else f'<code>{updated_by}</code>'}"
+                     f" {created_at}</i>\n")
+
+    text += "\n🔹 Scegli un'opzione."
+
     return text
