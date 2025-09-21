@@ -3,8 +3,9 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import handle_limitation_reason
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
-    render_handled_request_limitation_duration_panel
+    render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import \
     handle_user_input as handler_user_input_links
@@ -95,6 +96,13 @@ private_conversation_handler = ConversationHandler(
             ),
             CallbackQueryHandler(callback=admin_main_router),
             close_button_handler
+        ],
+        PCS.SET_REQUEST_LIMITATION_REASON: [
+            MessageHandler(
+                filters=filters.TEXT,
+                callback=render_admin_user_limitation_confirmed_panel
+            ),
+            CallbackQueryHandler(callback=admin_main_router)
         ]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],

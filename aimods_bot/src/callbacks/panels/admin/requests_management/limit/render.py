@@ -3,7 +3,7 @@ from pyrogram.types import ChatMember as PyroChatMember
 from telegram import ChatMember as PTBChatMember
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_duration, get_limited_user, all_topics_are
+    handle_request_limitation_duration, get_request_limiting_detail, all_topics_are, handle_limitation_reason
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
@@ -36,6 +36,7 @@ async def render_admin_limit_user_request_panel(
                     ButtonItem(text="⏳ Durata", callback_key="duration"),
                     ButtonItem(text="🗄 Topic", callback_key="topics")
                 ],
+                [ButtonItem(text="✅ Conferma", callback_key="reason")],
                 [ButtonItem(text="🔙 Annulla", callback_key=None)]
             ]
         )
@@ -63,19 +64,19 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
     else:
         duration_text = await get_duration_text(seconds=total_sec)
 
-    topics = context.chat_data["limit_user_requests"]["topics"]
-    topics_text = ""
-    for platform, categories in topics.items():
+    sections = context.chat_data["limit_user_requests"]["sections"]
+    section_text = ""
+    for platform, categories in sections.items():
         pl_item = PLATFORM_DETAILS[platform]
         pl_icon, pl_label = pl_item["icon"], pl_item["label"]
-        topics_text += f"           {pl_icon} <b>{pl_label}</b>\n"
+        section_text += f"           {pl_icon} <b>{pl_label}</b>\n"
         for category in categories:
             ct_item = CATEGORY_DETAILS[platform][category]
             ct_icon, ct_label = ct_item["icon"], ct_item["label"]
             value = categories[category]
-            topics_text += f"                 🔸 <i>{ct_label}</i> – <code>{value}</code>\n"
+            section_text += f"                 🔸 <i>{ct_label}</i> – <code>{value}</code>\n"
 
-    text += f"\n     🗄 <b>Topics</b>\n{topics_text}"
+    text += f"\n     🗄 <b>Topics</b>\n{section_text}"
     text += f"\n     ⏳ <b>Durata</b> – {f'<i>{duration_text}</i>' if duration_text else '<code>None</code>'}\n"
 
     return text
@@ -138,7 +139,7 @@ async def render_handled_request_limitation_duration_panel(
     if not update.callback_query:
         await safe_delete(update=update, context=context)
 
-    user_id = get_limited_user(context=context)
+    user_id = get_request_limiting_detail(context=context, what="user_id")
     if not await handle_request_limitation_duration(update=update, context=context):
         return PCS.SET_REQUEST_LIMITATION_DURATION
 
@@ -210,3 +211,79 @@ def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
     ])
 
     return keyboard
+
+
+async def render_admin_user_limitation_reason_panel(update: Update, context: CustomContext, user_id: int):
+    context.chat_data["update_message"] = update.effective_message.id
+    member_response = await resolve_chat_member(
+        context=context,
+        user_identifier=user_id
+    )
+
+    text = await _get_admin_user_limitation_reason_text(
+        context=context,
+        member=member_response["member"],
+        user_id=user_id
+    )
+
+    admin_confirm_user_limitation_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/limit_user_request/limit_{user_id}/reason",
+            text=text,
+            keyboard=[
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await admin_confirm_user_limitation_panel.render(update=update, context=context)
+
+
+async def _get_admin_user_limitation_reason_text(
+        context: CustomContext,
+        member: PyroChatMember | PTBChatMember,
+        user_id: int
+):
+    text = await _get_header(context=context, member=member, user_id=user_id)
+
+    text += "\n✍ <b>Fornisci una motivazione</b>."
+
+    return text
+
+
+async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext):
+    await safe_delete(update=update, context=context)
+
+    message_id = context.chat_data["update_message"]
+    await handle_limitation_reason(update=update, context=context)
+
+    user_id = get_request_limiting_detail(context=context, what="user_id")
+    text = _get_admin_user_limitation_confirmed_text(user_id=user_id)
+
+    admin_user_limitation_confirmed_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/limit_user_request",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(
+                        text="❔ Gestione Richieste",
+                        callback_key="admin/manage_requests",
+                        override_path_generation=True
+                    ),
+                    ButtonItem(
+                        text="🏠 Home",
+                        callback_key="admin",
+                        override_path_generation=True
+                    )
+                ]
+            ]
+        )
+    )
+
+    await admin_user_limitation_confirmed_panel.render(update=update, context=context, message_id=message_id)
+
+
+def _get_admin_user_limitation_confirmed_text(user_id: int):
+    text = f"✅ <b>Utente <code>{user_id}</code> Limitato</b>"
+    return text

@@ -234,6 +234,21 @@ class RequestConversationFlowsConfig(BaseModel):
     macos: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
 
 
+class RequestSectionLimitation(BaseModel):
+    section: str = ""
+    until: Optional[datetime] = None
+    reason: Optional[list[str]] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: int = Field(default_factory=int)
+    updated_by: int = Field(default_factory=int)
+
+
+class UserLimitations(BaseModel):
+    user_id: int = 0
+    requests: Optional[list[RequestSectionLimitation]] = Field(default_factory=list)
+
+
 class Request(BaseModel):
     id: Optional[int] = 0
     user_id: Optional[int] = 0

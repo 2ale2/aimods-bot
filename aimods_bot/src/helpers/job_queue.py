@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Optional, Any, Dict, cast
+from typing import Optional, Any, Dict, cast, TypedDict
 from uuid import uuid4
 
 import telegram.error
@@ -294,6 +294,7 @@ async def _wait_for_job_completion(context: CustomContext, job_id: str):
     while not context.pyd.jobs[job_id].executed:
         await asyncio.sleep(0.1)
         
+# ========== JOB: REQUESTS ==========
 
 async def scheduled_remove_completed_requests(context: CustomContext):
     data = cast(dict, context.job.data)
@@ -301,4 +302,20 @@ async def scheduled_remove_completed_requests(context: CustomContext):
         raise JobDataMissingException("Dato mancante: 'ix'")
 
     context.remove_from_active_requests(ix=int(data["ix"]))
-    
+
+
+# ========== JOB: LIMITATIONS ==========
+
+class RemoveLimitJobData(TypedDict):
+    user_id: int
+    section: str  # es. "windows:game"
+
+async def scheduled_remove_user_request_section_limitation(context: CustomContext):
+    """Esegue la rimozione programmata di una limitazione sulle richieste (utente e sezione indicati)"""
+    data: RemoveLimitJobData = context.job.data
+    user_id = data["user_id"]
+    section = data["section"]
+
+    current = context.get_user_request_limitations(user_id=user_id)
+    remaining = [x for x in current if x.section != section]
+    context.set_user_request_limitations(user_id=user_id, limitations=remaining)

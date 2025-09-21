@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from telegram.ext import CallbackContext, ExtBot, Application
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
-    RequestConversationFlowsConfig
+    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.database import execute_query
@@ -26,25 +26,28 @@ log = logger.getChild("custom_context")
 
 class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
-    group_chat_id: Optional[int] = None
+    bot_version: str = "1.0.0"
+    last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
+    group_chat_id: Optional[int] = None
     admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
-    user_joined_message_text: str = ""
-    rules_text: str = ""
+    user_limitations: Dict[int, UserLimitations] = Field(default_factory=dict)
+
     commands: Dict[str, CommandConfig] = Field(default_factory=dict)
     hashtags: Dict[str, Any] = Field(default_factory=dict)
+    rules_text: str = ""
+    user_joined_message_text: str = ""
+
     request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
     active_requests: Dict[int, Request] = Field(default_factory=dict)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
-    bot_version: str = "1.0.0"
-    last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
     restart: RestartData = Field(default_factory=RestartData)
 
     model_config = ConfigDict(
         validate_assignment=True,
         extra="allow",
-        use_enum_values=True
+        use_enum_values=True,
     )
 
 
@@ -171,3 +174,18 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             log.error(f"Failed to update request {ix} status to '{status}'")
         else:
             log.info(f"Updated request {ix} status to '{status}'")
+
+    def get_user_limitations(self, user_id: Optional[int] = None) -> Optional[UserLimitations]:
+        return self.pyd.user_limitations.get(user_id or self.user_id, None)
+
+    def get_user_request_limitations(self, user_id: Optional[int] = None) -> Optional[list[RequestSectionLimitation]]:
+         user_limitations = self.get_user_limitations(user_id=user_id)
+         if user_limitations:
+             return user_limitations.requests
+         return None
+
+    def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
+        if not self.get_user_limitations():
+            self.pyd.user_limitations[user_id or self.user_id] = UserLimitations(requests=limitations)
+        else:
+            self.pyd.user_limitations[user_id or self.user_id].requests = limitations

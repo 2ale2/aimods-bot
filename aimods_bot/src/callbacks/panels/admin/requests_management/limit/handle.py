@@ -1,33 +1,50 @@
+from datetime import timedelta, datetime, timezone
+from typing import Literal
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
+from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild("handle_request_limitation")
 
 
 def set_user_requests_limiting_item(context: CustomContext):
     """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
-    topics = {}
+    sections = {}
     for platform, categories in CATEGORY_DETAILS.items():
-        topics[platform] = {}
+        sections[platform] = {}
         for category in categories:
-            topics[platform][category] = False
+            sections[platform][category] = False
 
     return context.chat_data.setdefault("limit_user_requests", {
         "user_id": 0,
         "duration": 0,
-        "topics": topics
+        "sections": sections,
+        "reason": ""
     })
 
 
-def get_limited_user(context: CustomContext):
+def get_request_limiting_detail(context: CustomContext, what: Literal["user_id", "duration", "sections", "reason"]):
     limiting_item = set_user_requests_limiting_item(context=context)
-    return limiting_item["user_id"]
+    return limiting_item[what]
 
 
-def get_limited_topics(context: CustomContext):
-    limiting_item = set_user_requests_limiting_item(context=context)
-    return limiting_item["topics"]
+def set_request_limiting_detail(
+        context: CustomContext,
+        what: Literal["user_id", "duration", "sections", "reason"],
+        value: str
+):
+    item = context.chat_data.get("limit_user_requests", None)
+    if item is None:
+        log.warning("Key 'limit_user_requests' was not found.")
+        return False
+
+    context.chat_data["limit_user_requests"][what] = value
 
 
 async def handle_request_limitation_duration(update: Update, context: CustomContext):
@@ -53,21 +70,91 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
 
 async def handle_request_limitation_topic(update: Update, context: CustomContext):
     data = update.callback_query.data.split("/")[-1]
-    topics = get_limited_topics(context=context)
+    sections = get_request_limiting_detail(context=context, what="sections")
     if data in ("block_all", "unblock_all"):
-        for platform, categories in topics.items():
+        for platform, categories in sections.items():
             for category in categories:
-                topics[platform][category] = (data == "block_all")
+                sections[platform][category] = (data == "block_all")
         return
 
     platform_str, category_str = data.split("-")
-    topics[platform_str][category_str] = not topics[platform_str][category_str]
+    sections[platform_str][category_str] = not sections[platform_str][category_str]
 
 
 def all_topics_are(context: CustomContext, what: bool):
-    topics = get_limited_topics(context=context)
-    for platform, categories in topics.items():
+    sections = get_request_limiting_detail(context=context, what="sections")
+    for platform, categories in sections.items():
         for category in categories:
-            if topics[platform][category] != what:
+            if sections[platform][category] != what:
                 return False
     return True
+
+
+async def handle_limitation_confirmation(update: Update, context: CustomContext):
+    user_id = get_request_limiting_detail(context=context, what="user_id")
+
+    new_limitations = get_request_limitations(update=update, context=context)
+    current_limitations = context.get_user_request_limitations()
+
+    if current_limitations:
+        new_map = {el.section: {"until": el.until, "reason": el.reason} for el in new_limitations}
+        current_map = {el.section: {"until": el.until, "reason": el.reason} for el in current_limitations}
+        for section in new_map:
+            if section in current_map:
+                nu = new_map[section]["until"]
+                cu = current_map[section]["until"]
+                current_map[section]["until"] = nu if nu is None else (cu if cu is None else max(cu, nu))
+                current_map[section]["reason"].extend(new_map[section]["reason"])
+            else:
+                current_map[section] = {
+                    "until": new_map[section]["until"],
+                    "reason": new_map[section]["reason"]
+                }
+
+        total_limitations = [
+            RequestSectionLimitation(
+                section=section,
+                until=details["until"],
+                reason=details["reason"],
+                created_by=update.effective_user.id
+            ) for section, details in current_map.items()
+        ]
+    else:
+        total_limitations = new_limitations
+
+    for limitation in total_limitations:
+        if limitation.until is not None:
+            await schedule_request_limitation_deletion(
+                context=context,
+                user_id=user_id,
+                section=limitation.section,
+                until=limitation.until
+            )
+
+    context.set_user_request_limitations(user_id=user_id, limitations=total_limitations)
+
+
+async def handle_limitation_reason(update: Update, context: CustomContext):
+    set_request_limiting_detail(context=context, what="reason", value=update.effective_message.text)
+
+
+def get_request_limitations(update: Update, context: CustomContext) -> list[RequestSectionLimitation]:
+    sections = get_request_limiting_detail(context=context, what="sections")
+    duration = get_request_limiting_detail(context=context, what="duration")
+    reason = get_request_limiting_detail(context=context, what="reason")
+
+    duration_delta = timedelta(seconds=duration) if duration else None
+    until = datetime.now(timezone.utc) + duration_delta
+
+    limitations = []
+    for pl in sections:
+        for ca in sections[pl]:
+            if sections[pl][ca]:
+                limitations.append(RequestSectionLimitation(
+                    section=f"{pl}:{ca}",
+                    until=until,
+                    reason=[reason],
+                    created_by=update.effective_user.id
+                ))
+
+    return limitations
