@@ -10,7 +10,7 @@ def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
 
-async def get_duration_text(seconds: Optional[int]) -> str:
+def get_duration_text(seconds: Optional[int]) -> str:
     if not seconds:
         return ""
 

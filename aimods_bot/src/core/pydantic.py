@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional, Literal, Dict
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
@@ -242,6 +242,11 @@ class RequestSectionLimitation(BaseModel):
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: int = Field(default_factory=int)
     updated_by: int = Field(default_factory=int)
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def fill_now_if_none(cls, v):
+        return v or datetime.now(timezone.utc)
 
 
 class UserLimitations(BaseModel):

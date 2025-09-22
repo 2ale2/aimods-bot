@@ -128,16 +128,17 @@ async def backer(update: Update, context: CustomContext):
 async def route_back_to_main(update: Update, context: CustomContext):
     """Gestisce il ritorno al menu principale"""
     RequestDataManager.cleanup_request(context=context)
+    # noinspection PyTypeChecker
     await user_request_check(update=update, context=context, path=[])
     return RCS.MAIN_BACKER
 
 
 async def user_request_check(update: Update, context: CustomContext, path=Optional[list[str]]):
     if path is not None and len(path) == 0:
-        # answer = True  # await can_user_request(update=update, context=context)
-        #if answer.yn:
-        await render_user_request_panel(update=update, context=context)
-        return PCS.NEW_REQUEST
-        # else:
-        #     await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
-        #     return PCS.USER_CONVERSATION
+        # answer = await can_user_request(update=update, context=context)
+        if True:
+            await render_user_request_panel(update=update, context=context)
+            return PCS.NEW_REQUEST
+        else:
+            await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
+            return PCS.USER_CONVERSATION

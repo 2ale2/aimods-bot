@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -40,6 +40,7 @@ class BotData(BaseModel):
     user_joined_message_text: str = ""
 
     request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
+    base_path: Optional[str] = None
     active_requests: Dict[int, Request] = Field(default_factory=dict)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     restart: RestartData = Field(default_factory=RestartData)
@@ -55,7 +56,6 @@ class BotData(BaseModel):
 class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     user_id: Optional[int]
     chat_id: Optional[int]
-    full_keyboard_path: Optional[str]
 
     @property
     def pyd(self) -> BotData:
@@ -66,7 +66,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             self,
             application: Application,
             chat_id: Optional[int] = None,
-            user_id: Optional[int] = None,
+            user_id: Optional[int] = None
     ):
         super().__init__(application=application, chat_id=chat_id, user_id=user_id)
 
@@ -75,7 +75,6 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ctx = super().from_update(update, application)
         ctx.user_id = update.effective_user.id if update.effective_user else None
         ctx.chat_id = update.effective_chat.id if update.effective_chat else None
-        ctx.full_keyboard_path = update.callback_query.data if update.callback_query else None
         return ctx
 
     @property
@@ -83,6 +82,13 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         if self.user_id is None:
             return False
         return self.user_id in self.bot_data.admins
+
+    def set_base_path(self, base_path: str):
+        """Strategia del path ad anello mononodo: salvo il path base per costruire il secondario."""
+        self.pyd.base_path = base_path
+
+    def free_base_path(self):
+        self.pyd.base_path = None
 
     @property
     def user_active_requests(self) -> dict[int, Request]:
@@ -147,6 +153,53 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     ) -> dict[int, Request]:
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
 
+    def get_user_limitations(self, user_id: Optional[int] = None) -> Optional[UserLimitations]:
+        return self.pyd.user_limitations.get(user_id or self.user_id, None)
+
+    def get_user_request_limitations(
+            self,
+            user_id: Optional[int] = None
+    ) -> Optional[list[RequestSectionLimitation]]:
+         user_limitations = self.get_user_limitations(user_id=user_id or self.user_id)
+         if user_limitations:
+             return user_limitations.requests
+         return None
+
+    def is_user_request_limited(
+            self,
+            platform: Optional[Platform],
+            category: Optional[Category],
+            user_id: Optional[int] = None
+    ) -> Optional[RequestSectionLimitation]:
+        """Esegue il double check e ritorna l'eventuale limitazione, oppure None se l'utente non è limitato."""
+
+        self.check_user_request_limitations(user_id=user_id or self.user_id)
+        ul = self.get_user_request_limitations()
+        if ul:
+            for l in ul:
+                if l.section == f"{platform.value}:{category.value}":
+                    return l
+        return None
+
+    def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
+        if not self.get_user_limitations():
+            self.pyd.user_limitations[user_id or self.user_id] = UserLimitations(requests=limitations)
+        else:
+            self.pyd.user_limitations[user_id or self.user_id].requests = limitations
+
+    def check_user_request_limitations(self, user_id: Optional[int] = None):
+        """Fa un double check per togliere le limitazioni che non sono state rimosse automaticamente."""
+
+        ul = self.get_user_request_limitations(user_id=user_id or self.user_id)
+        if ul:
+            n_ul = []
+            for l in ul:
+                if l.until < datetime.now(tz=timezone.utc):
+                    continue
+                n_ul.append(l)
+            self.set_user_request_limitations(user_id=user_id or self.user_id, limitations=n_ul)
+
+
     def remove_from_active_requests(self, ix: int) -> bool:
         return bool(self.pyd.active_requests.pop(ix, None))
 
@@ -176,18 +229,3 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             log.error(f"Failed to update request {ix} status to '{status}'")
         else:
             log.info(f"Updated request {ix} status to '{status}'")
-
-    def get_user_limitations(self, user_id: Optional[int] = None) -> Optional[UserLimitations]:
-        return self.pyd.user_limitations.get(user_id or self.user_id, None)
-
-    def get_user_request_limitations(self, user_id: Optional[int] = None) -> Optional[list[RequestSectionLimitation]]:
-         user_limitations = self.get_user_limitations(user_id=user_id)
-         if user_limitations:
-             return user_limitations.requests
-         return None
-
-    def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
-        if not self.get_user_limitations():
-            self.pyd.user_limitations[user_id or self.user_id] = UserLimitations(requests=limitations)
-        else:
-            self.pyd.user_limitations[user_id or self.user_id].requests = limitations

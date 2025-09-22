@@ -26,8 +26,11 @@ async def render_admin_limit_user_request_panel(
         user_id: int,
         back_button_callback_key: Optional[str] = None
 ):
-    set_user_requests_limiting_item(context=context)
-    set_request_limiting_detail(context=context, what="user_id", value=user_id)
+    if limiting_user := get_request_limiting_detail(context=context, what="user_id"):
+        user_id = limiting_user
+    else:
+        set_user_requests_limiting_item(context=context)
+        set_request_limiting_detail(context=context, what="user_id", value=user_id)
 
     member_response = await resolve_chat_member(
         context=context,
@@ -41,7 +44,7 @@ async def render_admin_limit_user_request_panel(
             ButtonItem(text="🗄 Topic", callback_key="topics")
         ],
         [
-            ButtonItem(text="✅ Conferma", callback_key="reason"),
+            ButtonItem(text="✅ Conferma", callback_key="confirm"),
             ButtonItem(
                 text="🔙 Annulla",
                 callback_key=back_button_callback_key,
@@ -81,7 +84,7 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
     if total_sec is not None and total_sec == 0:
         duration_text = "♾ A Tempo Indeterminato"
     else:
-        duration_text = await get_duration_text(seconds=total_sec)
+        duration_text = get_duration_text(seconds=total_sec)
 
     sections = context.chat_data["limit_user_requests"]["sections"]
     section_text = ""
@@ -231,7 +234,7 @@ def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
 
     keyboard.extend([
         [all_button],
-        [ButtonItem(text="🔙 Fine", callback_key="confirm")]
+        [ButtonItem(text="🔙 Fine", callback_key=None)]
     ])
 
     return keyboard
@@ -297,7 +300,9 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await handle_limitation_confirmation(update=update, context=context)
 
     user_id = get_request_limiting_detail(context=context, what="user_id")
-    text = _get_admin_user_limitation_confirmed_text(user_id=user_id)
+    duration = get_request_limiting_detail(context=context, what="duration")
+    sections = get_request_limiting_detail(context=context, what="sections")
+    text = _get_admin_user_limitation_confirmed_text(user_id=user_id, duration=duration, sections=sections)
 
     admin_user_limitation_confirmed_panel = Panel(
         PanelConfig(
@@ -324,28 +329,26 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await admin_user_limitation_confirmed_panel.render(update=update, context=context, message_id=message_id)
 
 
-def _get_admin_user_limitation_confirmed_text(user_id: int):
-    text = f"✅ <b>Utente <code>{user_id}</code> Limitato</b>"
+def _get_admin_user_limitation_confirmed_text(user_id: int, duration: Optional[int], sections: dict):
+    sections_text = "alla sezione " if len(sections) == 1 else "alle sezioni "
+    for pl in sections:
+        for ca in sections[pl]:
+            if sections[pl][ca]:
+                pl_label = PLATFORM_DETAILS[pl]["label"]
+                ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+                sections_text += f"<b>{ca_label}</b> (<b>{pl_label})</b>, "
+    text = (f"✅ <b>Utente <code>{user_id}</code> Limitato</b>\n\n"
+            f"🔹 Hai aggiunto <b>{get_duration_text(duration) if duration else "♾ tempo illimitato"}</b> "
+            f"{sections_text.removesuffix(', ')}.")
     return text
 
 
 async def render_user_requests_limitations_info_panel(
         update: Update,
         context: CustomContext,
-        user_id: int,
-        back_button_callback_key: Optional[str] = None
+        user_id: int
 ):
-    keyboard = [
-        [
-            ButtonItem(text="➕ Aggiungi", callback_key="add"),
-            ButtonItem(text="➖ Rimuovi", callback_key="remove")
-        ],
-        [ButtonItem(
-            text="🔙 Indietro",
-            callback_key=back_button_callback_key,
-            override_path_generation=back_button_callback_key is not None
-        )]
-    ]
+    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
 
     text = await _get_user_request_limitations_text(context=context, user_id=user_id)
 
@@ -375,10 +378,9 @@ async def _get_user_request_limitations_text(context: CustomContext, user_id: in
         else:
             until = "♾ A tempo indeterminato"
 
-        if len(l.reasons) == 1:
-            reasons = l.reasons[0]
-        else:
-            reasons = "\n        ".join(f"– {r}" for r in l.reasons if l.reasons)
+        reasons_text = ""
+        for r in l.reasons:
+            reasons_text += f"            – {r}\n"
 
         created_at = l.created_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
         created_by = await id_to_username(context=context, user_id=l.created_by)
@@ -393,16 +395,17 @@ async def _get_user_request_limitations_text(context: CustomContext, user_id: in
         ca_label = CATEGORY_DETAILS[pl][ca]["label"]
 
         text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
-                 f"      🔸 <u>Scadenza</u> – <i>{until}</i>\n"
-                 f"      🔸 <u>Motivazioni</u> – {f'<i>{reasons}</i>' if reasons else '<code>Not Provided</code>'}\n\n"
-                 f"      👤 <i>Aggiunta da "
+                 f"        🔸 <u>Scadenza</u> – <i>{until}</i>\n"
+                 f"        🔸 <u>Motivazioni</u>\n"
+                 f"{f'<i>{reasons_text}</i>' if reasons_text else '<code>Not Provided</code>'}\n"
+                 f"        👤 <i>Aggiunta da "
                  f"{add_fucking_at(created_by) if not is_user_id(created_by) else f'<code>{created_by}</code>'}"
                  f" {created_at}</i>\n")
 
         if updated_at and updated_by:
-            text += ("      🔄 <i>Aggiornata da "
+            text += ("        🔄 <i>Aggiornata da "
                      f"{add_fucking_at(updated_by) if not is_user_id(updated_by) else f'<code>{updated_by}</code>'}"
-                     f" {created_at}</i>\n")
+                     f" {updated_at}</i>\n")
 
     text += "\n🔹 Scegli un'opzione."
 

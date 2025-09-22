@@ -1,5 +1,4 @@
 from typing import Optional
-
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
@@ -18,6 +17,9 @@ async def route_admin_limit_user_request(
         path: list[str],
         user_id: Optional[int]
 ):
+    if not context.pyd.base_path:
+        context.set_base_path(base_path="/".join(update.callback_query.data.split("/")[:-1]))
+
     # AGGIUNGERE BLOCCO PER CAPIRE SE LEN(PATH) QUI È 0, IN TAL CASO DEVO CHIEDERE QUALE
     # UTENTE SI DESIDERA LIMITARE
     if len(path) > 0 and path[0].startswith("limit_"):
@@ -35,18 +37,17 @@ async def route_admin_limit_user_request(
             update=update,
             context=context,
             user_id=user_id,
-            back_button_callback_key="/".join(context.full_keyboard_path.split("/")[:-1])
+            back_button_callback_key=context.pyd.base_path  # se torno indietro, torno al percorso principale
         )
         return PCS.ADMIN_CONVERSATION
 
-    if len(path) == 1:
+    if len(path) == 1:  # non mi devo preoccupare del percorso principale
         match path[0]:
             case "info":
                 await render_user_requests_limitations_info_panel(
                     update=update,
                     context=context,
-                    user_id=user_id,
-                    back_button_callback_key=context.full_keyboard_path
+                    user_id=user_id
                 )
                 return PCS.ADMIN_CONVERSATION
             case "duration":
@@ -63,7 +64,7 @@ async def route_admin_limit_user_request(
                     user_id=user_id
                 )
                 return PCS.ADMIN_CONVERSATION
-            case "reason":
+            case "confirm":
                 if not await render_admin_user_limitation_reason_panel(
                         update=update,
                         context=context,
@@ -79,10 +80,7 @@ async def route_admin_limit_user_request(
                 update=update,
                 context=context
             )
-        if path[0] == "topics":
-            if path[1] != "confirm":
-                await handle_request_limitation_topic(update=update, context=context)
-                await render_admin_limit_user_request_topics_panel(update=update, context=context, user_id=user_id)
-            else:
-                await render_admin_limit_user_request_panel(update=update, context=context, user_id=user_id)
-                return PCS.ADMIN_CONVERSATION
+        elif path[0] == "topics":
+            await handle_request_limitation_topic(update=update, context=context)
+            await render_admin_limit_user_request_topics_panel(update=update, context=context, user_id=user_id)
+            return PCS.ADMIN_CONVERSATION

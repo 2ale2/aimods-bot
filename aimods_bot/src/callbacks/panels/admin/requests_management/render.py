@@ -216,7 +216,11 @@ async def render_admin_manage_request_panel(
     category = request.category
 
     text = await _get_admin_manage_request_text(request=request, platform=platform, category=category)
-    keyboard = _get_admin_menage_request_keyboard(request=request, back_button_callback_key=back_button_callback_key)
+    keyboard = _get_admin_menage_request_keyboard(
+        context=context,
+        request=request,
+        back_button_callback_key=back_button_callback_key
+    )
 
     admin_manage_request_panel = Panel(
         PanelConfig(
@@ -253,7 +257,7 @@ async def _get_admin_manage_request_text(
     return text
 
 
-def _get_admin_menage_request_keyboard(request: Request, back_button_callback_key: str = None):
+def _get_admin_menage_request_keyboard(context: CustomContext, request: Request, back_button_callback_key: str = None):
     steps = [None] + [el.value for el in RequestStatus] + [None]
 
     current_status = request.status
@@ -286,8 +290,12 @@ def _get_admin_menage_request_keyboard(request: Request, back_button_callback_ke
             ]
         ])
 
+    limit_buttons = [ButtonItem(text="⛔️ Limita Utente", callback_key=f"limit_{request.user_id}")]
+    if context.get_user_request_limitations(user_id=request.user_id):
+        limit_buttons.append(ButtonItem(text="🆓 Libera Utente", callback_key=f"unlimit_{request.user_id}"))
+
     keyboard.extend([
-        [ButtonItem(text="⛔️ Limita Utente", callback_key=f"limit_{request.user_id}")],
+        limit_buttons,
         [ButtonItem(
             text="🔙 Indietro",
             callback_key=back_button_callback_key,
@@ -396,7 +404,11 @@ async def render_request_status_changed_panel(
         request=request
     )
 
-    keyboard = _get_admin_menage_request_keyboard(request=request, back_button_callback_key=back_button_callback_key)
+    keyboard = _get_admin_menage_request_keyboard(
+        context=context,
+        request=request,
+        back_button_callback_key=back_button_callback_key
+    )
 
     request_status_changed_panel = Panel(
         PanelConfig(

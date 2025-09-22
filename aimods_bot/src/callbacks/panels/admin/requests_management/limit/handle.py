@@ -19,7 +19,10 @@ def set_user_requests_limiting_item(context: CustomContext):
     for platform, categories in CATEGORY_DETAILS.items():
         sections[platform] = {}
         for category in categories:
-            sections[platform][category] = False
+            if context.pyd.base_path and f"{platform}/{category}" in context.pyd.base_path:
+                sections[platform][category] = True
+            else:
+                sections[platform][category] = False
 
     return context.chat_data.setdefault("limit_user_requests", {
         "user_id": 0,
@@ -107,7 +110,10 @@ async def handle_limitation_confirmation(update: Update, context: CustomContext)
             if section in current_map:
                 nu = new_map[section]["until"]
                 cu = current_map[section]["until"]
-                current_map[section]["until"] = nu if nu is None else (cu if cu is None else cu + nu)
+                if nu is None or cu is None:
+                    current_map[section]["until"] = None
+                else:
+                    current_map[section]["until"] = cu + (nu - datetime.now(timezone.utc))
                 current_map[section]["reason"].extend(new_map[section]["reason"])
                 current_map[section]["updated"] = True
             else:

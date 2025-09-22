@@ -22,6 +22,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
         case "view_requests":
             return await user_request_management_route(update=update, context=context, path=path[1:])
         case "add_request":
+            RequestDataManager.initialize_request(context=context)
             return await user_request_check(update=update, context=context, path=path[1:])
 
 
@@ -30,6 +31,10 @@ async def request_category(update: Update, context: CustomContext) -> int:
     await update.callback_query.answer()
     if "new_request" not in context.chat_data:
         RequestDataManager.initialize_request(context=context)
+
+    RequestDataManager.update_field(context=context, field="category", value=None)
+    RequestDataManager.update_field(context=context, field="name", value="")
+    RequestDataManager.update_field(context=context, field="requesting", value=None)
 
     request_data = RequestDataManager.get_request_data(context=context)
     platform = request_data.platform
@@ -104,6 +109,29 @@ async def request_router(update: Update, context: CustomContext):
 
         category = categories[str(platform.value)](callback_data)
         RequestDataManager.update_field(context=context, field="category", value=category)
+
+    l = context.is_user_request_limited(platform=platform, category=category)
+    if l:
+        until_str = f"{l.until.strftime('fino al %d %b %Y alle %H:%M:%S')}" if l.until else "a tempo indeterminato"
+        if len(l.reasons) == 1:
+            reasons_text = "– " + l.reasons[0]
+        else:
+            reasons_text = "\n"
+            for r in l.reasons:
+                reasons_text += f"        – {r}\n"
+        text = ("⛔ <b>Richieste Bloccate</b>\n\n"
+                "<blockquote>ℹ Sei stato bloccato dallo staff: non potrai formulare richieste"
+                f" per questa sezione <b>{until_str}</b>.</blockquote>\n\n"
+                f"<b>Motivazioni</b> {reasons_text}")
+        keyboard = [
+            [InlineKeyboardButton(text="🔙 Indietro", callback_data="user/manage_requests/add_request")]
+        ]
+        await update.effective_message.edit_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.HTML
+        )
+        return ConversationHandler.END
 
     if not is_category_request_allowed(context=context, platform=platform, category=category):
         RequestDataManager.initialize_request(context=context)

@@ -48,7 +48,7 @@ async def _build_text(context: CustomContext):
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
-        await get_duration_text(time_total_seconds) if not punishment_limited
+        get_duration_text(time_total_seconds) if not punishment_limited
         else "♾️ A Tempo Indeterminato"
     )
 

@@ -29,6 +29,11 @@ async def admin_requests_management_route(update: Update, context: CustomContext
 
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
+    if update.callback_query and update.callback_query.data == context.pyd.base_path:
+        #  Se la path è uguale a quella salvata, significa che sono tornato da una funzionalità secondaria
+        #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
+        context.free_base_path()
+
     if len(path) == 0:
         await render_admin_active_requests_management_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION

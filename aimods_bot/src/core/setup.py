@@ -80,6 +80,7 @@ async def set_application_data(application: Application):
                     **json_request_conversation_flows[pl][ct]
                 )
 
+        # La pulizia su application.user_data/chat_data è ora inutile dacché tali dizionari non vengono salvati.
         for uid in application.user_data:
             if "settings_main_message" in application.user_data[uid]:
                 del application.user_data[uid]["settings_main_message"]
@@ -89,6 +90,8 @@ async def set_application_data(application: Application):
                 del application.chat_data[el]["setting_duration"]
             if "update_message" in application.chat_data[el]:
                 del application.chat_data[el]["update_message"]
+
+        application.bot_data.base_path = None
 
         autorecap_job_name = "auto_recap"
         if current_bot_data.jobs:
