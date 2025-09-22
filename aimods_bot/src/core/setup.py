@@ -3,7 +3,7 @@ import json
 from typing import List
 
 import aimods_bot.src.helpers.constants.constants as constants
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
@@ -85,9 +85,12 @@ async def set_application_data(application: Application):
     autorecap_job_name = "auto_recap"
     if "jobs" in application.bot_data:
         if "next_recap" in application.bot_data["jobs"]:
-            if not application.bot_data["jobs"][autorecap_job_name]["executed"]:
-                await create_and_send_recaps(application)
-                del application.bot_data["jobs"][autorecap_job_name]
+            j = application.bot_data["jobs"][autorecap_job_name]
+            if not j["executed"]:
+                dt_next = datetime.strptime(j["next_recap"], "%d_%m_%Y_%H_%M_%S").replace(tzinfo=timezone.utc)
+                if dt_next <= datetime.now(timezone.utc):
+                    await create_and_send_recaps(application)
+                    del application.bot_data["jobs"][autorecap_job_name]
     else:
         application.bot_data["jobs"] = {}
 
