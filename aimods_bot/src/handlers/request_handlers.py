@@ -74,7 +74,8 @@ windows_request_handler = ConversationHandler(
                 fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
-                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+                    RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 }
             ),
             ConversationHandler(
@@ -101,7 +102,8 @@ windows_request_handler = ConversationHandler(
                 fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
-                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+                    RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 }
             ),
             ConversationHandler(
@@ -128,7 +130,8 @@ windows_request_handler = ConversationHandler(
                 fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
-                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+                    RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 }
             ),
             ConversationHandler(
@@ -156,13 +159,14 @@ windows_request_handler = ConversationHandler(
                 fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
-                    RCS.MAIN_BACKER: RCS.MAIN_BACKER
+                    RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+                    RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 }
             )
         ],
     },
     fallbacks=[
-        CallbackQueryHandler(pattern="back_category", callback=request_category),
+        CallbackQueryHandler(pattern=r"^back_category$", callback=request_category),
         CallbackQueryHandler(pattern="^back_.+$", callback=backer)
     ],
     map_to_parent={
@@ -270,7 +274,7 @@ macos_request_handler = ConversationHandler(
         ],
     },
     fallbacks=[
-        CallbackQueryHandler(pattern="back_category", callback=request_category),
+        CallbackQueryHandler(pattern=r"^back_category$", callback=request_category),
         CallbackQueryHandler(pattern="^back_.+$", callback=backer)
     ],
     map_to_parent={

@@ -5,8 +5,8 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel, \
-    render_user_has_cooldown_panel
-from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
+    render_user_has_cooldown_panel, render_user_request_panel
+from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, WindowsCategory, \
     AndroidCategory, IOSCategory, MacOSCategory, Category
@@ -15,6 +15,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
+    RequestDataManager.cleanup_request(context=context)
     if len(path) == 0:
         await render_user_request_management_main_panel(update=update, context=context)
         return PCS.USER_CONVERSATION
@@ -28,21 +29,24 @@ async def requests_management_route(update: Update, context: CustomContext, path
                 # L'utente ha un cooldown
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
+            if len(path) > 1:
+                # expected: ".../add_request/<platform>
+                return await request_category(update=update, context=context)
+
             RequestDataManager.initialize_request(context=context)
-            return await user_request_check(update=update, context=context, path=path[1:])
+            await render_user_request_panel(update=update, context=context)
+            return PCS.NEW_REQUEST
 
 
 async def request_category(update: Update, context: CustomContext) -> int:
     """Inizia il flusso della conversazione chiedendo la categoria di software"""
     await update.callback_query.answer()
-    if "new_request" not in context.chat_data:
-        RequestDataManager.initialize_request(context=context)
-
-    RequestDataManager.update_field(context=context, field="category", value=None)
-    RequestDataManager.update_field(context=context, field="name", value="")
-    RequestDataManager.update_field(context=context, field="requesting", value=None)
 
     request_data = RequestDataManager.get_request_data(context=context)
+
+    RequestDataManager.update_field(context=context, field="category", value=None)
+    RequestDataManager.update_field(context=context, field="requesting", value=None)
+
     platform = request_data.platform
     if not platform:
         data = update.callback_query.data.split("/")[-1]

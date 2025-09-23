@@ -1,16 +1,13 @@
-from typing import Optional
 from telegram import Update
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
-from aimods_bot.src.helpers.constants.constants import RequestField
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
-    render_user_cant_request_panel
 from aimods_bot.src.core.exceptions import WrongFlowException
-from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS, \
-    PrivateConversationState as PCS
+from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.helpers.constants.constants import RequestField
+from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
@@ -130,24 +127,13 @@ async def backer(update: Update, context: CustomContext):
         return await RequestDataManager.recheck_request(update=update, context=context)
 
     setattr(request_data, detail, None)
+    await RequestDataManager.request_detail(update=update, context=context, detail=RequestField(detail))
 
-    return await RequestDataManager.request_detail(update=update, context=context, detail=RequestField(detail))
+    return RETURN_CONVERSATION_STATES[detail]
 
 
 async def route_back_to_main(update: Update, context: CustomContext):
     """Gestisce il ritorno al menu principale"""
-    RequestDataManager.cleanup_request(context=context)
-    # noinspection PyTypeChecker
-    await user_request_check(update=update, context=context, path=[])
+    RequestDataManager.initialize_request(context=context)
+    await render_user_request_panel(update=update, context=context)
     return RCS.MAIN_BACKER
-
-
-async def user_request_check(update: Update, context: CustomContext, path=Optional[list[str]]):
-    if path is not None and len(path) == 0:
-        # answer = await can_user_request(update=update, context=context)
-        if True:
-            await render_user_request_panel(update=update, context=context)
-            return PCS.NEW_REQUEST
-        else:
-            await render_user_cant_request_panel(update=update, context=context, reason=answer.reason)
-            return PCS.USER_CONVERSATION
