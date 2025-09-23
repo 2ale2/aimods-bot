@@ -20,12 +20,18 @@ async def route_admin_limit_user_request(
     if not context.pyd.base_path:
         context.set_base_path(base_path="/".join(update.callback_query.data.split("/")[:-1]))
 
-    # AGGIUNGERE BLOCCO PER CAPIRE SE LEN(PATH) QUI È 0, IN TAL CASO DEVO CHIEDERE QUALE
-    # UTENTE SI DESIDERA LIMITARE
     if len(path) > 0 and path[0].startswith("limit_"):
         # expected: limit_<user_id>/...
         user_id = user_id or int(path[0].split("_")[1])
         path = path[1:]
+
+    if user_id is None:
+        if not update.message:
+            pass
+            # ask user for userid
+        else:
+            pass
+            # attempt parsing, if no results i warn but i proceed anyway
 
     limiting_item = set_user_requests_limiting_item(context=context)
 
