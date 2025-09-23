@@ -1,5 +1,6 @@
 from typing import Optional
 from telegram import Update
+from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
 from aimods_bot.src.helpers.constants.constants import RequestField
@@ -11,6 +12,7 @@ from aimods_bot.src.core.exceptions import WrongFlowException
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS, \
     PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 log = logger.getChild("request")
@@ -103,8 +105,15 @@ async def edited_detail(update: Update, context: CustomContext):
 
 
 async def confirm_request(update: Update, context: CustomContext):
-    """Conferma la richiesta e la elabora."""
-    return await RequestDataManager.confirm_request(update=update, context=context)
+    """Elabora la richiesta, setta e programma il cooldown."""
+    await RequestDataManager.confirm_request(update=update, context=context)
+
+    # Setta il cooldown richieste
+    rc = context.set_user_request_cooldown(user_id=update.effective_user.id)
+    # Programma la rimozione del cooldown
+    await schedule_request_cooldown_removal(context=context, user_id=rc.user_id, until=rc.until)
+
+    return ConversationHandler.END
 
 
 async def backer(update: Update, context: CustomContext):

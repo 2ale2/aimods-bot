@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import List, Optional, Literal, Dict
 
@@ -63,6 +63,13 @@ class RequestConfig(BaseModel):
     ios: iOSRequestCategoryToggle = Field(default_factory=iOSRequestCategoryToggle)
     macos: MacOSRequestCategoryToggle = Field(default_factory=MacOSRequestCategoryToggle)
     cancel_timer: int = Field(default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, ge=0, description="Timer for cancelling requests")
+    cooldown: timedelta = Field(default_factory=lambda: timedelta(days=7))
+
+    @field_validator("cooldown", mode="before")
+    def seconds_to_timedelta(cls, v):
+        if isinstance(v, int):
+            return timedelta(seconds=v)
+        return v
 
 
 class AntispamLinkConfig(BaseModel):
@@ -234,6 +241,11 @@ class RequestConversationFlowsConfig(BaseModel):
     macos: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
 
 
+class RequestCooldown(BaseModel):
+    user_id: int = Field(default_factory=int)
+    until: datetime = Field(default_factory=lambda: datetime.now() + timedelta(days=7))
+
+
 class RequestSectionLimitation(BaseModel):
     section: str = ""
     until: Optional[datetime] = None
@@ -269,6 +281,10 @@ class Request(BaseModel):
     steamtools: Optional[bool] = None
     requesting: Optional[RequestField] = None
     editing: Optional[RequestField] = None
+
+    @property
+    def is_active(self):
+        return self.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
 
     def can_be_cancelled(self, cancel_time_sec: int):
         issued_datetime = datetime.fromisoformat(self.issued_at)

@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import AsyncIterator, Iterable, Text
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
@@ -156,10 +157,6 @@ async def get_request_details(request: Request, admin: bool = False):
         text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
 
     return text
-
-
-def is_request_active(request: Request):
-    return request.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
 
 
 async def generate_user_archive_requests_pdf_file(requests: list[Request], input_path: str) -> str:

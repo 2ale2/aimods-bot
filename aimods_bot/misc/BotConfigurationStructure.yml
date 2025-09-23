@@ -14,6 +14,7 @@ settings:
       software: False
       daw: False
     cancel_timer: 86400
+    cooldown: 30  # una settimana
 moderation:
   antispam:
     toggle: True

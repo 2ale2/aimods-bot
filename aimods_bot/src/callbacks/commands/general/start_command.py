@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 log = logger.getChild("start_command")
 
 
-async def get_panel(update: Update, admin: bool):
+async def get_panel(update: Update, context: CustomContext, admin: bool):
     fn = update.effective_user.first_name
     if admin:
         return Panel(
@@ -43,7 +43,10 @@ async def get_panel(update: Update, admin: bool):
                 keyboard=[
                     [
                         ButtonItem(text="♟ Gestisci Richieste", callback_key="manage_requests"),
-                        ButtonItem(text="❔ Effettua una Richiesta", callback_key="manage_requests/add_request")
+                        ButtonItem(
+                            text=f"{'❔' if not context.user_request_cooldown() else '⏳'} Effettua una Richiesta",
+                            callback_key="manage_requests/add_request"
+                        )
                     ],
                     [ButtonItem(text="🔐 Chiudi", callback_key="close_menu")]
                 ]
@@ -57,7 +60,7 @@ async def start(update: Update, context: CustomContext):
 
     admin = context.is_user_admin
 
-    panel = await get_panel(update=update, admin=admin)
+    panel = await get_panel(update=update, context=context, admin=admin)
     await panel.render(update=update, context=context)
 
     return PCS.ADMIN_CONVERSATION if admin else PCS.USER_CONVERSATION

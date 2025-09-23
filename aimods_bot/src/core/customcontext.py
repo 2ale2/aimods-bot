@@ -16,10 +16,10 @@ from pydantic import BaseModel, Field, ConfigDict
 from telegram.ext import CallbackContext, ExtBot, Application
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
-    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation
+    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
-from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.database import execute_query
+from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("custom_context")
 
@@ -33,6 +33,7 @@ class BotData(BaseModel):
     admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
     user_limitations: Dict[int, UserLimitations] = Field(default_factory=dict)
+    user_request_cooldowns: Dict[int, RequestCooldown] = Field(default_factory=dict)
 
     commands: Dict[str, CommandConfig] = Field(default_factory=dict)
     hashtags: Dict[str, Any] = Field(default_factory=dict)
@@ -153,6 +154,24 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     ) -> dict[int, Request]:
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
 
+
+    def user_request_cooldown(self, user_id: Optional[int] = None) -> Optional[RequestCooldown]:
+        return self.pyd.user_request_cooldowns.get(user_id or self.user_id, None)
+
+    def set_user_request_cooldown(self, user_id: int) -> RequestCooldown:
+        rc = RequestCooldown(
+            user_id=user_id,
+            until=datetime.now(timezone.utc) + self.pyd.configuration.settings.request.cooldown
+        )
+        self.pyd.user_request_cooldowns[user_id] = rc
+        return rc
+
+    def remove_user_request_cooldown(self, user_id: int) -> Optional[RequestCooldown]:
+        rc = self.pyd.user_request_cooldowns.pop(user_id, None)
+        if not rc:
+            log.warning("User does not have a current request cooldown.")
+        return rc
+
     def get_user_limitations(self, user_id: Optional[int] = None) -> Optional[UserLimitations]:
         return self.pyd.user_limitations.get(user_id or self.user_id, None)
 
@@ -198,7 +217,6 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
                     continue
                 n_ul.append(l)
             self.set_user_request_limitations(user_id=user_id or self.user_id, limitations=n_ul)
-
 
     def remove_from_active_requests(self, ix: int) -> bool:
         return bool(self.pyd.active_requests.pop(ix, None))

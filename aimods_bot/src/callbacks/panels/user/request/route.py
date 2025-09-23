@@ -4,7 +4,8 @@ from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel, \
+    render_user_has_cooldown_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail, user_request_check
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, WindowsCategory, \
@@ -22,6 +23,11 @@ async def requests_management_route(update: Update, context: CustomContext, path
         case "view_requests":
             return await user_request_management_route(update=update, context=context, path=path[1:])
         case "add_request":
+            rc = context.user_request_cooldown()
+            if rc:
+                # L'utente ha un cooldown
+                await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
+                return PCS.USER_CONVERSATION
             RequestDataManager.initialize_request(context=context)
             return await user_request_check(update=update, context=context, path=path[1:])
 

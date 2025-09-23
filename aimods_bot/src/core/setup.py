@@ -12,6 +12,7 @@ from pyrogram.errors import RPCError
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
@@ -35,7 +36,7 @@ async def set_application_data(application: Application):
 
     configuration = load_configuration()
     try:
-        validated_config = Configuration(**configuration)
+        validated_config = Configuration.model_validate(configuration)
         current_bot_data.configuration = validated_config
     except ValidationError as e:
         log.error(f"Invalid configuration: {e}. I will use the old one.")
@@ -81,15 +82,15 @@ async def set_application_data(application: Application):
                 )
 
         # La pulizia su application.user_data/chat_data è ora inutile dacché tali dizionari non vengono salvati.
-        for uid in application.user_data:
-            if "settings_main_message" in application.user_data[uid]:
-                del application.user_data[uid]["settings_main_message"]
-
-        for el in application.chat_data:
-            if "setting_duration" in application.chat_data[el]:
-                del application.chat_data[el]["setting_duration"]
-            if "update_message" in application.chat_data[el]:
-                del application.chat_data[el]["update_message"]
+        # for uid in application.user_data:
+        #     if "settings_main_message" in application.user_data[uid]:
+        #         del application.user_data[uid]["settings_main_message"]
+        #
+        # for el in application.chat_data:
+        #     if "setting_duration" in application.chat_data[el]:
+        #         del application.chat_data[el]["setting_duration"]
+        #     if "update_message" in application.chat_data[el]:
+        #         del application.chat_data[el]["update_message"]
 
         application.bot_data.base_path = None
 
@@ -100,7 +101,7 @@ async def set_application_data(application: Application):
                 execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
                 if execution_time <= datetime.now():
                     await create_and_send_recaps(context=application)
-                del current_bot_data.jobs[autorecap_job_name]
+            del current_bot_data.jobs[autorecap_job_name]
 
         time_until_next_recap = await get_time_until_next_recap()
         await application.job_queue.start()
@@ -118,6 +119,18 @@ async def set_application_data(application: Application):
             next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
             executed=False
         )
+
+        urcs = current_bot_data.user_request_cooldowns
+        for uid in urcs:
+            rc = urcs[uid]
+            if rc.until <= datetime.now(timezone.utc):
+                urcs.pop(uid, None)
+            else:
+                application.job_queue.run_once(
+                    callback=scheduled_remove_request_cooldown,
+                    when=rc.until,
+                    data={"user_id": uid}
+                )
 
         try:
             pyro_inst = Client(

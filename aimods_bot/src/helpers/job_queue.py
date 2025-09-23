@@ -304,6 +304,14 @@ async def scheduled_remove_completed_requests(context: CustomContext):
     context.remove_from_active_requests(ix=int(data["ix"]))
 
 
+async def scheduled_remove_request_cooldown(context: CustomContext):
+    data = context.job.data
+
+    if "user_id" not in data:
+        raise JobDataMissingException("Cannot remove request cooldown without a user_id.")
+
+    context.remove_user_request_cooldown(user_id=int(data["user_id"]))
+
 # ========== JOB: LIMITATIONS ==========
 
 class RemoveLimitJobData(TypedDict):

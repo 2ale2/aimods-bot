@@ -10,7 +10,7 @@ def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
 
-def get_duration_text(seconds: Optional[int]) -> str:
+def get_duration_text(seconds: Optional[int], with_emoji: bool = True) -> str:
     if not seconds:
         return ""
 
@@ -31,7 +31,7 @@ def get_duration_text(seconds: Optional[int]) -> str:
 
     parts = [el for el in parts if not el.startswith("0")]
 
-    return "🕔 " + ", ".join(parts)
+    return f"{'🕔 ' if with_emoji else ''}" + ", ".join(parts)
 
 
 def parse_duration(duration_string: str) -> timedelta | None:

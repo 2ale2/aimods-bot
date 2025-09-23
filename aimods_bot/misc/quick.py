@@ -1,39 +1,14 @@
-# stress_persistence.py
-import asyncio, os, random, time
-from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
-from dotenv import load_dotenv
+from openai import OpenAI
+client = OpenAI(api_key="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")
 
+response = client.moderations.create(
+    model="omni-moderation-latest",
+    input=[{
+        "type": "image_url",
+        "image_url": {
+            "url": "https://x.uuu.cam/pics/spizoo/chloe-surreal/holed-amateur-fistingpinxxx/chloe-surreal-8.jpg"
+        }
+    }]
+)
 
-async def main():
-    p = AsyncPostgresPersistence(
-        url=os.getenv("POSTGRES_CONNECTION_URL"),
-        on_flush=False,        # coalescing attivo
-        coalesce_delay=0.05,   # alza/abbassa per test
-        update_interval=0,     # parametro PTB ignorato qui, ma lo lasciamo
-    )
-    await p.initialize()
-
-    N_TASKS = 50          # numero di coroutine concorrenti
-    OPS_PER_TASK = 1000   # update per ciascuna coroutine
-
-    async def worker(tid: int):
-        for i in range(OPS_PER_TASK):
-            uid = random.randint(1, 100)
-            # simula uno user_data che cambia
-            data = {"count": i, "tid": tid}
-            await p.update_user_data(uid, data)
-            # jitter minimo
-            await asyncio.sleep(random.random() * 0.002)
-
-    t0 = time.perf_counter()
-    await asyncio.gather(*[worker(t) for t in range(N_TASKS)])
-    # forza l’ultimo flush
-    await p.flush()
-    dt = time.perf_counter() - t0
-    print(f"Done {N_TASKS*OPS_PER_TASK} updates in {dt:.2f}s")
-
-    await p.aclose()
-
-if __name__ == "__main__":
-    load_dotenv()
-    asyncio.run(main())
+print(response)
