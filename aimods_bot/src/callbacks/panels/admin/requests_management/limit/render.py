@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import pytz
 from pyrogram.types import ChatMember as PyroChatMember
@@ -20,23 +20,53 @@ from aimods_bot.src.helpers.utils.user_utils import get_member_details_text, id_
 BASE_PATH = "admin/manage_requests/limit_user_request/limit_{}"  # .format(user id da limitare)
 
 
-async def render_admin_limit_user_request_panel(
+async def render_admin_limit_user_request_panel(update: Update, context: CustomContext):
+    text = _get_admin_limit_user_request_text()
+
+    admin_limit_user_request_panel = Panel(
+        PanelConfig(
+            base_path="admin/manage_requests/limit_user_request",
+            text=text,
+            keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+        )
+    )
+
+    await admin_limit_user_request_panel.render(update=update, context=context)
+
+
+def _get_admin_limit_user_request_text():
+    text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
+            "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
+            "🔹 Indica uno UserID o uno username da limitare.")
+    return text
+
+
+async def render_admin_limit_user_panel(
         update: Update,
         context: CustomContext,
-        user_id: int,
+        user_id: Union[int, str],
         back_button_callback_key: Optional[str] = None
 ):
+    member_responses = context.chat_data.setdefault("resolved_users", {})
+    member_response = member_responses.get(str(user_id), None)
+
+    if not member_response:
+        member_response = await resolve_chat_member(
+            context=context,
+            user_identifier=user_id
+        )
+        member_responses[str(user_id)] = member_response
+
     if limiting_user := get_request_limiting_detail(context=context, what="user_id"):
         user_id = limiting_user
     else:
+        if not is_user_id(str(user_id)):
+            if member_response["status"] == "success":
+                user_id = member_response["member"].user.id
         set_user_requests_limiting_item(context=context)
         set_request_limiting_detail(context=context, what="user_id", value=user_id)
 
-    member_response = await resolve_chat_member(
-        context=context,
-        user_identifier=user_id
-    )
-    text = await _get_admin_limit_user_request_text(member=member_response["member"], user_id=user_id, context=context)
+    text = await _get_admin_limit_user_text(member=member_response["member"], user_id=user_id, context=context)
 
     keyboard = [
         [
@@ -104,7 +134,7 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
     return text
 
 
-async def _get_admin_limit_user_request_text(
+async def _get_admin_limit_user_text(
         context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int
@@ -126,10 +156,16 @@ async def render_admin_limit_user_request_duration_panel(
         user_id: int
 ):
     context.chat_data["update_message"] = update.effective_message.id
-    member_response = await resolve_chat_member(
-        context=context,
-        user_identifier=user_id
-    )
+
+    member_responses = context.chat_data.setdefault("resolved_users", {})
+    member_response = member_responses.get(str(user_id), None)
+    if not member_response:
+        member_response = await resolve_chat_member(
+            context=context,
+            user_identifier=user_id
+        )
+        member_responses[str(user_id)] = member_response
+
     text = await _get_admin_limit_user_request_duration_text(context=context, member=member_response["member"], user_id=user_id)
 
     admin_limit_user_request_duration_panel = Panel(
@@ -170,7 +206,7 @@ async def render_handled_request_limitation_duration_panel(
     if not await handle_request_limitation_duration(update=update, context=context):
         return PCS.SET_REQUEST_LIMITATION_DURATION
 
-    await render_admin_limit_user_request_panel(update=update, context=context, user_id=user_id)
+    await render_admin_limit_user_panel(update=update, context=context, user_id=user_id)
     return PCS.ADMIN_CONVERSATION
 
 
@@ -179,10 +215,15 @@ async def render_admin_limit_user_request_topics_panel(
         context: CustomContext,
         user_id: int
 ):
-    member_response = await resolve_chat_member(
-        context=context,
-        user_identifier=user_id
-    )
+    member_responses = context.chat_data.setdefault("resolved_users", {})
+    member_response = member_responses.get(str(user_id), None)
+    if not member_response:
+        member_response = await resolve_chat_member(
+            context=context,
+            user_identifier=user_id
+        )
+        member_responses[str(user_id)] = member_response
+
     text = await _get_admin_limit_user_request_topics_text(
         context=context,
         member=member_response["member"],
@@ -248,10 +289,15 @@ async def render_admin_user_limitation_reason_panel(
     """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
 
     context.chat_data["update_message"] = update.effective_message.id
-    member_response = await resolve_chat_member(
-        context=context,
-        user_identifier=user_id
-    )
+
+    member_responses = context.chat_data.setdefault("resolved_users", {})
+    member_response = member_responses.get(str(user_id), None)
+    if not member_response:
+        member_response = await resolve_chat_member(
+            context=context,
+            user_identifier=user_id
+        )
+        member_responses[str(user_id)] = member_response
 
     all_topics_false = all_topics_are(context=context, what=False)
 
@@ -264,7 +310,7 @@ async def render_admin_user_limitation_reason_panel(
 
     admin_confirm_user_limitation_panel = Panel(
         PanelConfig(
-            base_path=BASE_PATH.format(user_id) + "reason",
+            base_path=BASE_PATH.format(user_id) + "/reason",
             text=text,
             keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]

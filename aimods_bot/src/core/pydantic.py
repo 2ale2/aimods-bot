@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import List, Optional, Literal, Dict
+from typing import List, Optional, Literal, Dict, Union
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -262,7 +262,7 @@ class RequestSectionLimitation(BaseModel):
 
 
 class UserLimitations(BaseModel):
-    user_id: int = 0
+    user_id: Union[int, str] = Field(default_factory=str)
     requests: Optional[list[RequestSectionLimitation]] = Field(default_factory=list)
 
 

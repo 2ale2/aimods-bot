@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.permissions import default_permissions, ge
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, is_username, add_fucking_at
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id
 
 log = logger.getChild("user_utils")
 
@@ -146,7 +146,11 @@ async def get_member_details_text(
         raise MissingParameterException("You must provide at least 'user' or 'user_identifier'.")
 
     if not user and context:
-        resolving_attempt = await resolve_chat_member(context=context, user_identifier=user_identifier)
+        resolved = context.chat_data.setdefault("resolved_users", {})
+        resolving_attempt = resolved.get(str(user_identifier), None)
+        if not resolving_attempt:
+            resolving_attempt = await resolve_chat_member(context=context, user_identifier=user_identifier)
+            resolved[str(user_identifier)] = resolving_attempt
         if resolving_attempt["status"] == "success":
             user = resolving_attempt["member"].user
 
@@ -158,10 +162,10 @@ async def get_member_details_text(
         if user.username:
             text += f"     🔖 <b>Username</b> – {add_fucking_at(user.username)}\n"
     else:
-        if is_username(user_identifier):
-            text = f"     🔖 <b>Username</b> – {add_fucking_at(user_identifier)}\n"
-        else:  # is_userid
+        if is_user_id(user_identifier):
             text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
+        else:  # is_username
+            text = f"     🔖 <b>Username</b> – {add_fucking_at(user_identifier)}\n"
 
     return text
 

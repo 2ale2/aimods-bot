@@ -310,7 +310,7 @@ async def not_implemented_yet(update: Update, context: CustomContext):
         chat_id=update.effective_chat.id,
         text="⚠️ Funzionalità non ancora implementata.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiude", callback_data="close")]]
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
         )
     )
 
@@ -395,3 +395,14 @@ async def edit_message_safely(
             return message.id
         except Exception as e:
             log.error(f"Impossibile modificare o inviare un nuovo messaggio: {e}")
+
+
+async def wrong_input_message(update: Update, context: CustomContext, correct_format=str):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"⚠️ Manda {correct_format}.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+        ),
+        parse_mode=ParseMode.HTML
+    )

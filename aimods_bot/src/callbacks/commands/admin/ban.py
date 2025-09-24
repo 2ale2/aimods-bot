@@ -94,7 +94,7 @@ async def ban_user(update: Update, context: CustomContext, full_command: str, de
     if parsed["username_not_participant"]:
         member = await _resolve_member_for_logging(context, member, update)
         if member is None:
-            confirmation_text = _build_confirmation_message(uid, until, reason)
+            confirmation_text = await _build_confirmation_message(uid, until, reason)
             await send_temporary_message(
                 update=update,
                 context=context,
@@ -107,7 +107,7 @@ async def ban_user(update: Update, context: CustomContext, full_command: str, de
 
     await _log_ban_to_database(member, update.effective_user.id, reason, until)
 
-    confirmation_text = _build_confirmation_message(member, until, reason)
+    confirmation_text = await _build_confirmation_message(member, until, reason)
     await send_temporary_message(
         update=update,
         context=context,
@@ -272,7 +272,7 @@ async def unban_user(update: Update, context: CustomContext, full_command: str, 
         await safe_delete(update, context, message.reply_to_message)
 
     reason = parsed["message"]
-    confirmation_text = _build_confirmation_message(member, unban_type, reason, popped=blacklist_removed, unban=True)
+    confirmation_text = await _build_confirmation_message(member, unban_type, reason, popped=blacklist_removed, unban=True)
     await send_temporary_message(
         update=update,
         context=context,
@@ -332,7 +332,7 @@ async def _attempt_unban_user(context, member, uid, admin_id):
 
 # ====== UTILITIES ======
 
-def _build_confirmation_message(member, until, reason=None, unban=False, popped=None):
+async def _build_confirmation_message(member, until, reason=None, unban=False, popped=None):
     """Costruisce il messaggio di conferma del ban."""
 
     if isinstance(member, dict):
@@ -342,7 +342,7 @@ def _build_confirmation_message(member, until, reason=None, unban=False, popped=
             member["first_name"]
         )
     else:
-        if is_username(member):
+        if await is_username(member):
             user_mention = format_user_mention(user_id=None, username=member, first_name=None)
         else:
             user_mention = format_user_mention(user_id=member, username=None, first_name=None)
