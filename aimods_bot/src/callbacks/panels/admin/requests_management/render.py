@@ -526,3 +526,60 @@ def _get_admin_manage_request_removed_text():
 
 def _get_header():
     return "❔ <b>Gestione Richieste</b>"
+
+
+async def render_admin_manage_request_change_status_panel(
+        update: Update,
+        context: CustomContext,
+        ix: int,
+        request: Request
+):
+    text = await _get_admin_manage_request_change_status_text(request=request)
+
+    platform = request.platform
+    category = request.category
+
+    path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}"
+
+    keyboard = [[]]
+    for sk in REQUEST_STATUS_DETAILS:
+        if sk == "cancelled":
+            continue
+        status = REQUEST_STATUS_DETAILS[sk]
+        if len(keyboard[-1]) >= 2:
+            keyboard.append([])
+        if request.status.value != sk:
+            ckey = sk
+            override = False
+        else:
+            ckey = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}"
+            override = True
+        keyboard[-1].append(ButtonItem(
+            text=f"{status['icon']} {status['label']}",
+            callback_key=ckey,
+            override_path_generation=override
+        ))
+
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=path, override_path_generation=True)])
+
+    admin_manage_request_change_status_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}",
+            text=text,
+            keyboard=keyboard
+        )
+    )
+
+    await admin_manage_request_change_status_panel.render(update=update, context=context)
+
+
+async def _get_admin_manage_request_change_status_text(request: Request):
+    text = (f"{_get_header()}\n\n"
+            f"→ 🔄 <i>Cambio Stato Richiesta</i>\n\n"
+            "▪️ Da qui puoi gestire questa richiesta.\n\n")
+
+    text += await get_request_details(request=request, admin=True)
+
+    text += "\n\n🔹 Scegli il nuovo stato da impostare."
+
+    return text

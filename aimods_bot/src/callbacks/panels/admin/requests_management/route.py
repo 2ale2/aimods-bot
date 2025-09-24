@@ -6,7 +6,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
     render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
-    render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel
+    render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
+    render_admin_manage_request_change_status_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
@@ -94,6 +95,7 @@ async def admin_manage_request_route(
                 request=request,
                 status=RequestStatus(path[-1])
             )
+
         elif path[0].startswith("limit"):
             # expected: (<platform>/<category>/<id>)/limit_<user_id>
             return await route_admin_limit_user_request(
@@ -106,6 +108,14 @@ async def admin_manage_request_route(
         elif path[0] == "remove":
             # expected: (<platform>/<category>/<id>)/remove
             await render_admin_manage_request_remove_confirmation_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request
+            )
+
+        elif path[0] == "change_status":
+            await render_admin_manage_request_change_status_panel(
                 update=update,
                 context=context,
                 ix=ix,

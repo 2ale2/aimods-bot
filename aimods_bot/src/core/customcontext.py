@@ -235,7 +235,8 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         request = self.pyd.active_requests.get(ix, None)
         if request:
             request.edit_status(status=status)
-        log.warning(f"Request {ix} not found.")
+        else:
+            log.warning(f"Request {ix} not found.")
 
         status_value = status.value
         query = """UPDATE requests \
