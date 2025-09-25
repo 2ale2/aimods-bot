@@ -84,7 +84,7 @@ async def handle_request_limitation_topic(update: Update, context: CustomContext
     sections[platform_str][category_str] = not sections[platform_str][category_str]
 
 
-def all_topics_are(context: CustomContext, what: bool):
+def all_sections_are(context: CustomContext, what: bool):
     sections = get_request_limiting_detail(context=context, what="sections")
     for platform, categories in sections.items():
         for category in categories:

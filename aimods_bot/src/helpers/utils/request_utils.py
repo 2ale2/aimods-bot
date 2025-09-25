@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import AsyncIterator, Iterable, Text
 
-from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
@@ -66,6 +65,8 @@ async def request_from_record(request: dict) -> Request:
     raw_status = request.get("status", None)
     issued_at = request.get("issued_at", None)
     raw_content = request.get("content", None)
+
+    assert isinstance(issued_at, datetime)
 
     platform = Platform(raw_platform) if raw_platform else None
     if raw_platform and raw_category:
@@ -147,7 +148,7 @@ async def get_request_details(request: Request, admin: bool = False):
     if request.functionalities:
         text += f"     🔸 <u>Funzionalità</u> – <i>{request.functionalities}</i>\n"
     if request.steamtools is not None:
-        text += f"     🔸 <u>SteamTools</u> - <i>{'Sì' if request.steamtools else 'No'}</i>\n"
+        text += f"     🔸 <u>SteamTools</u> - <i>{'✔️' if request.steamtools else '✖️'}</i>\n"
     if request.issued_at:
         text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n"
 

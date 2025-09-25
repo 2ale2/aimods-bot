@@ -6,7 +6,7 @@ from telegram import ChatMember as PTBChatMember
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_duration, get_request_limiting_detail, all_topics_are, handle_limitation_confirmation, \
+    handle_request_limitation_duration, get_request_limiting_detail, all_sections_are, handle_limitation_confirmation, \
     set_request_limiting_detail
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
@@ -71,7 +71,7 @@ async def render_admin_limit_user_panel(
     keyboard = [
         [
             ButtonItem(text="⏳ Durata", callback_key="duration"),
-            ButtonItem(text="🗄 Topic", callback_key="topics")
+            ButtonItem(text="🗄 Sezioni", callback_key="sections")
         ],
         [
             ButtonItem(text="✅ Conferma", callback_key="confirm"),
@@ -126,9 +126,9 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
             ct_item = CATEGORY_DETAILS[platform][category]
             ct_icon, ct_label = ct_item["icon"], ct_item["label"]
             value = categories[category]
-            section_text += f"                 🔸 <i>{ct_label}</i> – <code>{value}</code>\n"
+            section_text += f"                 🔸 <i>{ct_label}</i> – {'🔐' if value else '🔓'}\n"
 
-    text += f"\n     🗄 <b>Topics</b>\n{section_text}"
+    text += f"\n     🗄 <b>Sezioni</b>\n{section_text}"
     text += f"\n     ⏳ <b>Durata</b> – {f'<i>{duration_text}</i>' if duration_text else '<code>None</code>'}\n"
 
     return text
@@ -210,7 +210,7 @@ async def render_handled_request_limitation_duration_panel(
     return PCS.ADMIN_CONVERSATION
 
 
-async def render_admin_limit_user_request_topics_panel(
+async def render_admin_limit_user_request_sections_panel(
         update: Update,
         context: CustomContext,
         user_id: int
@@ -224,25 +224,25 @@ async def render_admin_limit_user_request_topics_panel(
         )
         member_responses[str(user_id)] = member_response
 
-    text = await _get_admin_limit_user_request_topics_text(
+    text = await _get_admin_limit_user_request_sections_text(
         context=context,
         member=member_response["member"],
         user_id=user_id
     )
-    keyboard = _get_admin_limit_user_request_topics_keyboard(context=context)
+    keyboard = _get_admin_limit_user_request_sections_keyboard(context=context)
 
-    admin_limit_user_request_topics_panel = Panel(
+    admin_limit_user_request_sections_panel = Panel(
         PanelConfig(
-            base_path=BASE_PATH.format(user_id) + "/topics",
+            base_path=BASE_PATH.format(user_id) + "/sections",
             text=text,
             keyboard=keyboard
         )
     )
 
-    await admin_limit_user_request_topics_panel.render(update=update, context=context)
+    await admin_limit_user_request_sections_panel.render(update=update, context=context)
 
 
-async def _get_admin_limit_user_request_topics_text(
+async def _get_admin_limit_user_request_sections_text(
         context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int
@@ -254,7 +254,7 @@ async def _get_admin_limit_user_request_topics_text(
     return text
 
 
-def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
+def _get_admin_limit_user_request_sections_keyboard(context: CustomContext):
     keyboard = [[]]
     for platform, categories in CATEGORY_DETAILS.items():
         pl_item = PLATFORM_DETAILS[platform]
@@ -268,7 +268,7 @@ def _get_admin_limit_user_request_topics_keyboard(context: CustomContext):
                 callback_key=f"{platform}-{category}")
             )
 
-    if all_topics_are(context=context, what=True):
+    if all_sections_are(context=context, what=True):
         all_button = ButtonItem(text="🆓 Sblocca Tutti", callback_key="unblock_all")
     else:
         all_button = ButtonItem(text="🚫 Blocca Tutti", callback_key="block_all")
@@ -299,13 +299,13 @@ async def render_admin_user_limitation_reason_panel(
         )
         member_responses[str(user_id)] = member_response
 
-    all_topics_false = all_topics_are(context=context, what=False)
+    all_sections_false = all_sections_are(context=context, what=False)
 
     text = await _get_admin_user_limitation_reason_text(
         context=context,
         member=member_response["member"],
         user_id=user_id,
-        all_topics_false=all_topics_false
+        all_sections_false=all_sections_false
     )
 
     admin_confirm_user_limitation_panel = Panel(
@@ -320,18 +320,18 @@ async def render_admin_user_limitation_reason_panel(
 
     await admin_confirm_user_limitation_panel.render(update=update, context=context)
 
-    return all_topics_false
+    return all_sections_false
 
 
 async def _get_admin_user_limitation_reason_text(
         context: CustomContext,
         member: PyroChatMember | PTBChatMember,
         user_id: int,
-        all_topics_false: Optional[bool] = False
+        all_sections_false: Optional[bool] = False
 ):
     text = await _get_header(context=context, member=member, user_id=user_id)
 
-    if all_topics_false:
+    if all_sections_false:
         text += "\n<blockquote>⚠️ <b>Non hai selezionato alcuna sezione da limitare</b>.</blockquote>"
     else:
         text += "\n✍ <b>Fornisci una motivazione</b>."

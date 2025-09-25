@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle impo
     handle_request_limitation_topic
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_admin_limit_user_panel, render_admin_limit_user_request_duration_panel, \
-    render_handled_request_limitation_duration_panel, render_admin_limit_user_request_topics_panel, \
+    render_handled_request_limitation_duration_panel, render_admin_limit_user_request_sections_panel, \
     render_admin_user_limitation_reason_panel, render_user_requests_limitations_info_panel, \
     render_admin_limit_user_request_panel
 from aimods_bot.src.core.customcontext import CustomContext
@@ -86,8 +86,8 @@ async def route_admin_limit_user_request(
                     user_id=user_id
                 )
                 return PCS.SET_REQUEST_LIMITATION_DURATION
-            case "topics":
-                await render_admin_limit_user_request_topics_panel(
+            case "sections":
+                await render_admin_limit_user_request_sections_panel(
                     update=update,
                     context=context,
                     user_id=user_id
@@ -110,7 +110,7 @@ async def route_admin_limit_user_request(
                 update=update,
                 context=context
             )
-        elif path[0] == "topics":
+        elif path[0] == "sections":
             await handle_request_limitation_topic(update=update, context=context)
-            await render_admin_limit_user_request_topics_panel(update=update, context=context, user_id=user_id)
+            await render_admin_limit_user_request_sections_panel(update=update, context=context, user_id=user_id)
             return PCS.ADMIN_CONVERSATION

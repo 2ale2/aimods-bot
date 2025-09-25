@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.topics_management.handle import confirm_rejection
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import confirm_rejection
 from aimods_bot.src.core.customcontext import CustomContext
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
@@ -24,7 +24,7 @@ async def admin_requests_management_route(update: Update, context: CustomContext
     match path[0]:
         case "active_requests":
             return await admin_active_requests_management_route(update=update, context=context, path=path[1:])
-        case "manage_topics":
+        case "manage_sections":
             pass
         case "limit_user_request":
             return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)

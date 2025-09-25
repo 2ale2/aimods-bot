@@ -25,7 +25,7 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
             keyboard=[
                 [
                     ButtonItem(text="📕 Richieste Attive", callback_key="active_requests"),
-                    ButtonItem(text="⏯️ Gestione Topic", callback_key="manage_topics")
+                    ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections")
                 ],
                 [
                     ButtonItem(text="⛔️ Limita Utente", callback_key="limit_user_request"),

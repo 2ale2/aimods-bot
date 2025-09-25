@@ -6,7 +6,7 @@ from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
-from aimods_bot.src.callbacks.panels.admin.requests_management.topics_management.handle import \
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_request_rejection_reason
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import \
