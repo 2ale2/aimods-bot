@@ -268,6 +268,16 @@ class RequestField(Enum):
     STEAMTOOLS = "steamtools"
 
 
+class RejectRequestReason(Enum):
+    SERVERSIDE = "serverside"
+    NOT_AVAILABLE = "not_available"
+    ALREADY_AVAILABLE = "already_available"
+    UNCLEAR = "unclear"
 
 
-
+REQUEST_REJECTION_REASONS = {
+    "serverside": "Serverside",
+    "not_available": "Non disponibile al momento",
+    "already_available": "Già disponibile sul canale",
+    "unclear": "Richiesta non chiara"
+}

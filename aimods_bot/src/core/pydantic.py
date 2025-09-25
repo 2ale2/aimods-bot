@@ -281,16 +281,24 @@ class Request(BaseModel):
     steamtools: Optional[bool] = None
     requesting: Optional[RequestField] = None
     editing: Optional[RequestField] = None
+    rejection_reason: Optional[str] = Field(default_factory=str)
 
     @property
     def is_active(self):
         return self.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
 
     def can_be_cancelled(self, cancel_time_sec: int):
+        if self.status != RequestStatus.PENDING:
+            return False
         issued_datetime = datetime.fromisoformat(self.issued_at)
         if issued_datetime.tzinfo is None:
             issued_datetime = issued_datetime.replace(tzinfo=timezone.utc)
         return (datetime.now(timezone.utc) - issued_datetime).total_seconds() < cancel_time_sec
 
-    def edit_status(self, status: RequestStatus):
+    def edit_status(self, status: RequestStatus, rejection_reason: Optional[str] = None):
+        if status == RequestStatus.REJECTED:
+            if not rejection_reason:
+                log.warning("A rejection reason should bt not provided.")
+            else:
+                self.rejection_reason = rejection_reason
         self.status = status

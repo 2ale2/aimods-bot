@@ -95,9 +95,18 @@ async def render_user_request_action_panel(
         context: CustomContext,
         action: Literal["details", "cancel"]
 ):
+    if action == "details":
+        requests = context.user_active_requests
+        # if len(requests) == 1:
+        #     return await render_request_details_panel(update=update, context=context, ix=requests[0].id)
+    else:
+        # Se cancello, faccio comunque il passaggio in più.
+        requests = context.user_cancellable_requests
+
     text = await _get_user_request_action_panel_text(
         context=context,
-        action=action
+        action=action,
+        requests=requests
     )
     keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action)
 
@@ -112,21 +121,18 @@ async def render_user_request_action_panel(
 
 async def _get_user_request_action_panel_text(
         context: CustomContext,
-        action: Literal["details", "cancel"]
+        action: Literal["details", "cancel"],
+        requests: dict[int, Request]
 ) -> str:
     text = f"👁‍🗨 <b>Gestione Richieste Attive</b>"
     if action == "cancel":
         text += "\n\n→ 🗑 <b>Cancellazione</b>"
-
-        requests = context.user_cancellable_requests
         if len(requests) == 0:
             text += "\n\nℹ️ Non hai richieste cancellabili.\n\n"
             return text
 
     else:  # action == "details"
         text += "\n\n→ 📋 <b>Informazioni</b>"
-
-        requests = context.user_active_requests
         if len(requests) == 0:
             text += "\n\nℹ️ Non hai richieste da visionare.\n\n"
             return text
@@ -173,7 +179,7 @@ async def render_request_details_panel(
 
     request_details_panel = Panel(
         PanelConfig(
-            base_path=f"user/manage_requests/view_requests/active_requests/details/{str(ix)}",
+            base_path=f"user/manage_requests/view_requests/active_requests/details/{ix}",
             text=text,
             keyboard=[
                 [ButtonItem(

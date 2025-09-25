@@ -1,9 +1,11 @@
+from typing import Union
+
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
-    Platform, Category, RequestStatus
+    Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
@@ -248,9 +250,10 @@ async def _get_admin_manage_request_text(
 
     text += await get_request_details(request=request, admin=True)
 
-    if status is RequestStatus.COMPLETED:
+    if status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
-                 "contrassegnata come completata.</blockquote>\n")
+                 f"contrassegnata come {'completata' if status == RequestStatus.COMPLETED else 'rifiutata'}."
+                 f"</blockquote>\n")
 
     text += "\n🔹 Scegli un'opzione."
 
@@ -267,7 +270,7 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
     previous_status_button = steps[current_index - 1]
 
     keyboard = [[]]
-    if current_status is not RequestStatus.COMPLETED:
+    if current_status not in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         if next_status_button:
             next_status_icon = REQUEST_STATUS_DETAILS[next_status_button]["icon"]
             next_status_label = REQUEST_STATUS_DETAILS[next_status_button]["label"]
@@ -285,7 +288,7 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
 
         keyboard.extend([
             [
-                ButtonItem(text="❌ Rifiuta Richiesta", callback_key="rejected"),
+                ButtonItem(text="❌ Rifiuta Richiesta", callback_key="reject"),
                 ButtonItem(text="🔄 Cambia Stato", callback_key="change_status")
             ]
         ])
@@ -303,7 +306,7 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
         )]
     ])
 
-    if current_status is RequestStatus.COMPLETED:
+    if current_status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         keyboard[-2].insert(0, ButtonItem(
             text="🚮 Rimuovi da Attive", callback_key="remove"
         ))
@@ -324,6 +327,7 @@ async def render_change_request_status_confirmation_panel(
 ):
     platform = request.platform
     category = request.category
+
     text = await _get_render_change_request_status_confirmation_text(
         platform=platform,
         category=category,
@@ -581,5 +585,144 @@ async def _get_admin_manage_request_change_status_text(request: Request):
     text += await get_request_details(request=request, admin=True)
 
     text += "\n\n🔹 Scegli il nuovo stato da impostare."
+
+    return text
+
+
+async def render_admin_reject_request_panel(
+        update: Update,
+        context: CustomContext,
+        ix: int,
+        request: Request
+):
+    text = await _get_admin_reject_request_text(request=request)
+
+    platform = request.platform
+    category = request.category
+
+    admin_reject_request_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject",
+            text=text,
+            keyboard=[
+                [ButtonItem(text="Serverside", callback_key=RejectRequestReason.SERVERSIDE.value)],
+                [ButtonItem(text="Non disponibile al momento", callback_key=RejectRequestReason.NOT_AVAILABLE.value)],
+                [ButtonItem(text="Già disponibile", callback_key=RejectRequestReason.ALREADY_AVAILABLE.value)],
+                [ButtonItem(text="Richiesta non chiara", callback_key=RejectRequestReason.UNCLEAR.value)],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            ]
+        )
+    )
+
+    await admin_reject_request_panel.render(update=update, context=context)
+
+
+async def _get_admin_reject_request_text(request: Request):
+    text = (f"{_get_header()}\n\n"
+            f"→ ❌ <i>Rifiuto Richiesta</i>\n\n"
+            "▪️ Da qui puoi gestire questa richiesta.\n\n")
+
+    text += await get_request_details(request=request, admin=True)
+
+    text += "\n❓ Scegli il motivo del rifiuto o scrivine uno."
+
+    return text
+
+
+async def render_admin_confirm_rejection_panel(
+        update: Update,
+        context: CustomContext,
+        ix: int,
+        request: Request,
+        reason: Union[RejectRequestReason, str]
+):
+    text = await _get_admin_confirm_rejection_text(request=request, rejection_reason=reason)
+    message_id = context.chat_data.pop("update_message", None)
+
+    platform = request.platform
+    category = request.category
+
+    base_path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject/{reason}"
+
+    admin_confirm_rejection_panel = Panel(
+        PanelConfig(
+            base_path=base_path,
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(text="✅ Conferma", callback_key="yes"),
+                    ButtonItem(text="🔙 Indietro", callback_key=None)
+                ]
+            ]
+        )
+    )
+
+    await admin_confirm_rejection_panel.render(update=update, context=context, message_id=message_id)
+
+
+async def _get_admin_confirm_rejection_text(request: Request, rejection_reason: Union[RejectRequestReason, str]):
+    text = (f"{_get_header()}\n\n"
+            f"→ ❌ <i>Rifiuto Richiesta</i>\n\n"
+            "▪️ Da qui puoi gestire questa richiesta.\n\n")
+
+    text += await get_request_details(request=request, admin=True)
+
+    if rejection_reason in REQUEST_REJECTION_REASONS:
+        rejection_reason = REQUEST_REJECTION_REASONS[rejection_reason]
+
+    text += ("\n\n<b>❗ Stai rifiutando questa richiesta per il seguente motivo:\n\n"
+             f"      ↪ <i>{rejection_reason}</i></b>\n\n"
+             "<blockquote>⚠️ <b>Attenzione</b> – Se confermi non potrai più cambiare lo stato della richiesta ed"
+                 " essa verrà rimossa dalle richieste attive dopo 24 ore.</blockquote>\n\n"
+             "🔹 <b>Confermi?</b>")
+
+    return text
+
+
+async def render_admin_rejection_confirmed_panel(
+        update: Update,
+        context: CustomContext,
+        ix: int,
+        request: Request,
+        reason: str
+):
+    platform = request.platform
+    category = request.category
+
+    text = _get_admin_rejection_confirmed_text(ix=ix, reason=reason)
+    base_path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject/{reason}/yes"
+
+    admin_rejection_confirmed_panel = Panel(
+        PanelConfig(
+            base_path=base_path,
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(
+                        text="🔙 Indietro",
+                        callback_key="admin/manage_requests/active_requests",
+                        override_path_generation=True
+                    ),
+                    ButtonItem(
+                        text="🏠 Home",
+                        callback_key="admin",
+                        override_path_generation=True
+                    )
+                ]
+            ]
+        )
+    )
+
+    await admin_rejection_confirmed_panel.render(update=update, context=context)
+
+
+def _get_admin_rejection_confirmed_text(ix: int, reason: str):
+    if reason in REQUEST_REJECTION_REASONS:
+        reason = REQUEST_REJECTION_REASONS[reason]
+
+    text = ("❌ <b>Richiesta Rifiutata Correttamente</b>\n\n"
+            f"      🔸 <u>ID</u> – <code>{ix}</code>\n"
+            f"      🔸 <u>Motivazione</u> – <i>{reason}</i>\n\n"
+            "🔹 Scegli un'opzione.")
 
     return text

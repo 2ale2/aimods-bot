@@ -1,4 +1,6 @@
 from telegram import Update
+
+from aimods_bot.src.callbacks.panels.admin.requests_management.topics_management.handle import confirm_rejection
 from aimods_bot.src.core.customcontext import CustomContext
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
@@ -7,9 +9,10 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
     render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
-    render_admin_manage_request_change_status_panel
+    render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
+    render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 
@@ -20,7 +23,7 @@ async def admin_requests_management_route(update: Update, context: CustomContext
 
     match path[0]:
         case "active_requests":
-            await admin_active_requests_management_route(update=update, context=context, path=path[1:])
+            return await admin_active_requests_management_route(update=update, context=context, path=path[1:])
         case "manage_topics":
             pass
         case "limit_user_request":
@@ -122,6 +125,17 @@ async def admin_manage_request_route(
                 request=request
             )
 
+        elif path[0] == "reject":
+            context.chat_data["rejecting"] = request
+            context.chat_data["update_message"] = update.effective_message.id
+            await render_admin_reject_request_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request
+            )
+            return PCS.SET_REQUEST_REJECTION_REASON
+
 
     elif len(path) == 2:
         if path[-2] in RequestStatus and path[-1] == "yes":
@@ -136,6 +150,7 @@ async def admin_manage_request_route(
                 ix=ix,
                 request=request
             )
+
         elif path[-2] == "remove" and path[-1] == "yes":
             # expected: (<platform>/<category>/<id>)/remove/yes
             context.remove_from_active_requests(ix=ix)
@@ -145,5 +160,24 @@ async def admin_manage_request_route(
                 ix=ix
             )
 
+        elif path[-2] == "reject" and path[-1] in RejectRequestReason:
+            await render_admin_confirm_rejection_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request,
+                reason=path[-1]
+            )
+
+    elif len(path) == 3:
+        if path[-3] == "reject" and path[-1] == "yes":
+            await confirm_rejection(context, ix=ix, reason=path[-2])
+            await render_admin_rejection_confirmed_panel(
+                update=update,
+                context=context,
+                ix=ix,
+                request=request,
+                reason=path[-2]
+            )
 
     return PCS.ADMIN_CONVERSATION

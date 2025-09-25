@@ -155,6 +155,8 @@ async def get_request_details(request: Request, admin: bool = False):
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']
         icon = REQUEST_STATUS_DETAILS[request.status.value]['icon']
         text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
+        if request.status == RequestStatus.REJECTED:
+            text += f"      <b><u>Motivazione</u></b> – {request.rejection_reason}\n"
 
     return text
 

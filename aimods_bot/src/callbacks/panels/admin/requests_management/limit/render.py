@@ -37,7 +37,7 @@ async def render_admin_limit_user_request_panel(update: Update, context: CustomC
 def _get_admin_limit_user_request_text():
     text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
             "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
-            "🔹 Indica uno UserID o uno username da limitare.")
+            "🔹 Indica un ID o uno username da limitare.")
     return text
 
 

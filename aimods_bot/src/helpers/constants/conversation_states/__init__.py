@@ -9,6 +9,7 @@ class PrivateConversationState:
     SET_REQUEST_LIMITATION_DURATION = 7
     SET_REQUEST_LIMITATION_REASON = 8
     SET_REQUEST_LIMITATION_USER = 9
+    SET_REQUEST_REJECTION_REASON = 10
 
 
 class RequestConversationState:

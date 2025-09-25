@@ -221,10 +221,10 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def remove_from_active_requests(self, ix: int) -> bool:
         return bool(self.pyd.active_requests.pop(ix, None))
 
-    async def edit_request_status(self, ix: int, status: RequestStatus):
+    async def edit_request_status(self, ix: int, status: RequestStatus, rejection_reason: Optional[str] = None):
         if status == RequestStatus.CANCELLED:
             self.remove_from_active_requests(ix=ix)
-        elif status == RequestStatus.COMPLETED:
+        elif status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
             from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
             self.job_queue.run_once(
                 callback=scheduled_remove_completed_requests,
@@ -234,7 +234,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
         request = self.pyd.active_requests.get(ix, None)
         if request:
-            request.edit_status(status=status)
+            request.edit_status(status=status, rejection_reason=rejection_reason)
         else:
             log.warning(f"Request {ix} not found.")
 
