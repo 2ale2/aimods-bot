@@ -2,17 +2,33 @@
 settings:
   request:
     android:
-      app: True
+      app:
+        toggle: True
+        limit: 3
     windows:
-      software: True
-      game: True
-      adobe: True
-      daw: True
+      software:
+        toggle: True
+        limit: 3
+      game:
+        toggle: True
+        limit: 3
+      adobe:
+        toggle: True
+        limit: 3
+      daw:
+        toggle: True
+        limit: 3
     ios:
-      app: False
+      app:
+        toggle: False
+        limit: 3
     macos:
-      software: False
-      daw: False
+      software:
+        toggle: False
+        limit: 3
+      daw:
+        toggle: True
+        limit: 3
     cancel_timer: 86400
     cooldown: 30  # una settimana
 moderation:

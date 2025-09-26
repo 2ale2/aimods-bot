@@ -37,31 +37,47 @@ class WhitelistConfig(BaseModel):
     bot: List[int] = Field(default_factory=list)
 
 
-class AndroidRequestCategoryToggle(BaseModel):
-    app: bool = True
+class CategorySetting(BaseModel):
+    toggle: bool = True
+    limit: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Numero massimo di richieste consentite; None = illimitato"
+    )
+
+    @field_validator("limit", mode="before")
+    @classmethod
+    def normalize_limit(cls, v):
+        if v == 0:
+            return None
+        return v
 
 
-class WindowsRequestCategoryToggle(BaseModel):
-    software: bool = True
-    game: bool = True
-    adobe: bool = True
-    daw: bool = True
+class AndroidRequestCategoryConfig(BaseModel):
+    app: CategorySetting = Field(default_factory=CategorySetting)
 
 
-class iOSRequestCategoryToggle(BaseModel):
-    app: bool = True
+class WindowsRequestCategoryConfig(BaseModel):
+    software: CategorySetting = Field(default_factory=CategorySetting)
+    game: CategorySetting = Field(default_factory=CategorySetting)
+    adobe: CategorySetting = Field(default_factory=CategorySetting)
+    daw: CategorySetting = Field(default_factory=CategorySetting)
 
 
-class MacOSRequestCategoryToggle(BaseModel):
-    software: bool = True
-    daw: bool = True
+class iOSRequestCategoryConfig(BaseModel):
+    app: CategorySetting = Field(default_factory=CategorySetting)
+
+
+class MacOSRequestCategoryConfig(BaseModel):
+    software: CategorySetting = Field(default_factory=CategorySetting)
+    daw: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class RequestConfig(BaseModel):
-    android: AndroidRequestCategoryToggle = Field(default_factory=AndroidRequestCategoryToggle)
-    windows: WindowsRequestCategoryToggle = Field(default_factory=WindowsRequestCategoryToggle)
-    ios: iOSRequestCategoryToggle = Field(default_factory=iOSRequestCategoryToggle)
-    macos: MacOSRequestCategoryToggle = Field(default_factory=MacOSRequestCategoryToggle)
+    android: AndroidRequestCategoryConfig = Field(default_factory=AndroidRequestCategoryConfig)
+    windows: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
+    ios: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
+    macos: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
     cancel_timer: int = Field(default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, ge=0, description="Timer for cancelling requests")
     cooldown: timedelta = Field(default_factory=lambda: timedelta(days=7))
 
