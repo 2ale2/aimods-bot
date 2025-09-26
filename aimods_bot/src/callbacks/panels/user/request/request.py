@@ -5,12 +5,12 @@ from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManag
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import WrongFlowException
-from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestField
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
-from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, save_yaml_configuration
 
 log = logger.getChild("request")
 
@@ -103,12 +103,26 @@ async def edited_detail(update: Update, context: CustomContext):
 
 async def confirm_request(update: Update, context: CustomContext):
     """Elabora la richiesta, setta e programma il cooldown."""
+    request = RequestDataManager.get_request_data(context=context)
+    platform = request.platform
+    category = request.category
+
     await RequestDataManager.confirm_request(update=update, context=context)
 
     # Setta il cooldown richieste
     rc = context.set_user_request_cooldown(user_id=update.effective_user.id)
     # Programma la rimozione del cooldown
     await schedule_request_cooldown_removal(context=context, user_id=rc.user_id, until=rc.until)
+
+    config = getattr(getattr(context.pyd.configuration.request, platform.value), category.value)
+    assert isinstance(config, CategorySetting)
+
+    if config is not None:
+        if len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
+            log.info(f"Section {platform.value} - {category.value} reached requests limit ({config.limit}): "
+                     f"closing it...")
+            config.toggle = False
+            await save_yaml_configuration(context=context)
 
     return ConversationHandler.END
 
