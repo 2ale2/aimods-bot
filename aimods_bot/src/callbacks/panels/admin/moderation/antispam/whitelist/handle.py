@@ -199,7 +199,7 @@ async def view_whitelist(update: Update, context: CustomContext, category: Categ
             files=filename,
             send_as_document=True,
             delete_after_sending=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
         )
     )
 

@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.conversation_states import RequestConversa
 android_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
-            pattern="user/manage_requests/add_request/android",
+            pattern="user/add_request/android",
             callback=request_category
         )
     ],
@@ -42,7 +42,7 @@ android_request_handler = ConversationHandler(
 windows_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
-            pattern="user/manage_requests/add_request/windows",
+            pattern="user/add_request/windows",
             callback=request_category
         )
     ],
@@ -177,7 +177,7 @@ windows_request_handler = ConversationHandler(
 ios_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
-            pattern="user/manage_requests/add_request/ios",
+            pattern="user/add_request/ios",
             callback=request_category
         )
     ],
@@ -210,7 +210,7 @@ ios_request_handler = ConversationHandler(
 macos_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(
-            pattern="user/manage_requests/add_request/macos",
+            pattern="user/add_request/macos",
             callback=request_category
         )
     ],

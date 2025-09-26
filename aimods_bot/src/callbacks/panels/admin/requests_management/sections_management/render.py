@@ -118,11 +118,15 @@ async def render_admin_request_section_configure_category_panel(
 def _get_admin_request_section_configure_category_text(config: CategorySetting, platform: Platform, category: Category):
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
+    if config.limit is not None:
+        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
+    else:
+        l_text = "🆓 <b>Nessun Limite</b>"
+
     text = _get_header()
     text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
              f"          🔸 <u>Stato</u> – {'📬 <i>Aperto</i>' if config.toggle else '📪 <i>Chiuso</i>'}\n"
-             "          🔸 <u>Limite Richieste</u> – "
-             f"<i>{pluralize(config.limit, 'richiesta', 'richieste')}</i>\n\n"
+             f"          🔸 <u>Limite Richieste</u> – <i>{l_text}</i>\n\n"
              "🔹 Scegli un'opzione.")
 
     return text
@@ -176,12 +180,12 @@ def _get_admin_request_section_toggle_panel_text(
              f"gli utenti {'non ' if not opens else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
     if opens and (r := len(context.get_active_category_requests(platform=platform, category=category))) >= config.limit:
-        text += ("<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive pari o superiore al limite "
-                 f"impostato per questa sezione ({pluralize(r, 'richiesta', 'richieste')} su "
-                 f"{config.limit}); se la riapri, il limite verrà automaticamente impostato a "
-                 f"0 (nessun limite).</blockquote>\n\n")
+        text += ("<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore al limite</b>"
+                 f" impostato per questa sezione (<b>{pluralize(r, 'richiesta', 'richieste')} su "
+                 f"{config.limit}</b>); se la riapri, il <b>limite verrà automaticamente impostato a "
+                 f"0 (nessun limite)</b>.</blockquote>\n\n")
 
-    text += "🔹 Confermi?"
+    text += "🔹 <b>Confermi</b>?"
 
     return text
 
@@ -217,7 +221,7 @@ def _get_admin_request_section_toggled_text(
     opening = action == "open"
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ca_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-    text = (f"✅ <b>Sezione {pl_label} – {ca_label} {'Aperta' if opening else 'Chiusa'}</b>\n\n"
+    text = (f"✅ <b>Sezione {ca_label} ({pl_label}) {'Aperta' if opening else 'Chiusa'}</b>\n\n"
             f"🔹 Scegli un'opzione.")
 
     return text
@@ -273,9 +277,13 @@ def _get_admin_request_section_limit_text(context: CustomContext, platform: Plat
     config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
-    text += (f"{ca_item['icon']} <b>{ca_item['label']}</b>\n"
-             f"      🔸 <u>Limite Attuale</u> – <i>"
-             f"{pluralize(config.limit, 'richiesta', 'richieste')}</i>\n\n"
+    if config.limit is not None:
+        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
+    else:
+        l_text = "🆓 <b>Nessun Limite</b>"
+
+    text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+             f"        🔸 <u>Limite Attuale</u> – <i>{l_text}</i>\n\n"
              "<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà chiusa "
              "automaticamente.</blockquote>\n\n"
              "🔹 Scegli un'opzione.")
@@ -331,11 +339,19 @@ def _get_admin_request_section_limit_confirm_text(
     else:
         r_text = "🆓 Nessun Limite"
 
+    if config.limit is not None:
+        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
+    else:
+        l_text = "🆓 <b>Nessun Limite</b>"
+
+    warn_text = ("<blockquote>⚠️ <b>Attenzione</b> – Se il limite viene ridotto e il numero di richieste attive "
+                 "presenti per questa sezione sono in numero pari o superiore, la sezione verrà automaticamente "
+                 "chiusa.</blockquote>\n\n")
+
     text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
-             f"            🔸 <u>Limite Attuale</u> – <i>"
-             f"{pluralize(config.limit, 'richiesta', 'richieste')}</i>\n\n"
-             "\n🔹 Stai modificando il limite di richieste per questa sezione a:\n\n"
-             f"            <b>{r_text}</b>\n\n"
+             f"            🔸 <u>Limite Attuale</u> – <i>{l_text}</i>\n\n"
+             "🔹 Stai <b>modificando il limite di richieste</b> per questa sezione a:\n\n"
+             f"            <b>{r_text}</b>\n\n{warn_text if limit and config.limit and limit < config.limit else ''}"
              "🔹 <b>Confermi?</b>")
 
     return text
@@ -371,8 +387,10 @@ def _get_admin_request_section_limit_confirmed_text(
         category: Category,
         limit: int
 ):
-    c_item = CATEGORY_DETAILS[platform.value][category.value]
-    r_text = f"{pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "Nessun Limite"
-    text = (f"✅ <b>Limite {c_item['icon']} {c_item['label']} Impostato a {r_text}</b>\n\n"
+    p_label = PLATFORM_DETAILS[platform.value]["label"]
+    c_label = CATEGORY_DETAILS[platform.value][category.value]["label"]
+    r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"
+    text = (f"✅ <b>Limite Richieste {c_label} ({p_label}) Impostato a:</b>\n\n"
+            f"        <i>{r_text}</i>\n\n"
             "🔹 Scegli un'opzione.")
     return text

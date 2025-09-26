@@ -36,19 +36,19 @@ async def get_panel(update: Update, context: CustomContext, admin: bool):
         return Panel(
             PanelConfig(
                 base_path="user",
-                text=("🚪 <b>Pannello Utente</b>\n\n"
+                text=("🌍 <b>Pannello Utente</b>\n\n"
                       f"▫️ Ciao {fn}! Questo è il tuo pannello utente. Qui potrai gestire le tue richieste.\n\n"
                       "➕ <u>In futuro tante altre funzionalità</u>.\n\n"
                       "🔹 Scegli un'opzione per cominciare."),
                 keyboard=[
                     [
-                        ButtonItem(text="♟ Gestisci Richieste", callback_key="manage_requests"),
+                        ButtonItem(text="👁 Visiona Richieste", callback_key="view_requests"),
                         ButtonItem(
-                            text=f"{'❔' if not context.user_request_cooldown() else '⏳'} Effettua una Richiesta",
-                            callback_key="manage_requests/add_request"
+                            text=f"{'❔' if not context.user_request_cooldown() else '⏳'} Formula Richiesta",
+                            callback_key="add_request"
                         )
                     ],
-                    [ButtonItem(text="🔐 Chiudi", callback_key="close_menu")]
+                    [ButtonItem(text="🔐 Chiudi", callback_key="close")]
                 ]
             ),
             send=True

@@ -3,6 +3,7 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import handle_limitation_identifier
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
@@ -44,7 +45,7 @@ class TestHandler:
 
 
 close_button_handler = CallbackQueryHandler(
-    pattern=r"(^|.*)close.*",
+    pattern=r"^.*close_menu.*$",
     callback=safe_delete_wrapper
 )
 
@@ -54,9 +55,15 @@ private_conversation_handler = ConversationHandler(
     ],
     states={
         # User main router
-        PCS.USER_CONVERSATION: [CallbackQueryHandler(callback=user_main_router), close_button_handler],
+        PCS.USER_CONVERSATION: [
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=user_main_router),
+            close_button_handler
+        ],
         # Admin main router
-        PCS.ADMIN_CONVERSATION: [CallbackQueryHandler(callback=admin_main_router), close_button_handler],
+        PCS.ADMIN_CONVERSATION: [
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router),
+            close_button_handler
+        ],
         PCS.SET_PUNISHMENT_DURATION: [
             MessageHandler(
                 filters=filters.TEXT,
@@ -118,6 +125,13 @@ private_conversation_handler = ConversationHandler(
             MessageHandler(
                 filters=filters.TEXT,
                 callback=handle_request_rejection_reason
+            ),
+            CallbackQueryHandler(callback=admin_main_router)
+        ],
+        PCS.SET_VIEW_REQUEST_LIMITATION_USER: [
+            MessageHandler(
+                filters=filters.TEXT,
+                callback=handle_limitation_identifier
             ),
             CallbackQueryHandler(callback=admin_main_router)
         ]

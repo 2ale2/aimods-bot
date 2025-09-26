@@ -7,10 +7,34 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
     render_admin_limit_user_panel, render_admin_limit_user_request_duration_panel, \
     render_handled_request_limitation_duration_panel, render_admin_limit_user_request_sections_panel, \
     render_admin_user_limitation_reason_panel, render_user_requests_limitations_info_panel, \
-    render_admin_limit_user_request_panel
+    render_admin_limit_user_request_panel, render_admin_manage_limitations_panel, render_admin_view_limitations_panel, \
+    render_admin_remove_limitations_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_chat_member
+
+
+async def route_admin_manage_limitations(
+        update: Update,
+        context: CustomContext,
+        path: list[str]
+):
+    if len(path) == 0:
+        await render_admin_manage_limitations_panel(update=update, context=context)
+        return PCS.ADMIN_CONVERSATION
+
+    if len(path) == 1:
+        match path[0]:
+            case "limit_user_request":
+                return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)
+            case "view_limitations":
+                context.chat_data["action"] = "view"
+                context.chat_data["update_message"] = update.effective_message.id
+                await render_admin_view_limitations_panel(update=update, context=context)
+                return PCS.SET_VIEW_REQUEST_LIMITATION_USER
+            case "remove_limitations":
+                context.chat_data["action"] = "remove"
+                await render_admin_remove_limitations_panel(update=update, context=context)
 
 
 async def route_admin_limit_user_request(

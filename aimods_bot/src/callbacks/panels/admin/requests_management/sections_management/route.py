@@ -7,6 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel, \
     render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel, \
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
+from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
@@ -82,13 +83,25 @@ async def admin_request_section_configure_route(update: Update, context: CustomC
             return PCS.ADMIN_CONVERSATION
 
         if path[2] == "limit" and path[3].isnumeric():
-            await render_admin_request_section_limit_confirm_panel(
-                update=update,
-                context=context,
-                platform=platform,
-                category=category,
-                limit=int(path[3])
-            )
+            limit = int(path[3])
+            config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+            assert isinstance(config, CategorySetting)
+
+            if config.limit == limit or (config.limit is None and limit == 0):
+                await render_admin_request_section_configure_category_panel(
+                    update=update,
+                    context=context,
+                    platform=platform,
+                    category=category
+                )
+            else:
+                await render_admin_request_section_limit_confirm_panel(
+                    update=update,
+                    context=context,
+                    platform=platform,
+                    category=category,
+                    limit=int(path[3])
+                )
             return PCS.ADMIN_CONVERSATION
 
     if len(path) == 5:

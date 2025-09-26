@@ -12,7 +12,7 @@ async def render_user_has_cooldown_panel(update: Update, context: CustomContext,
 
     user_has_cooldown_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/add_request",
+            base_path="user/add_request",
             text=text,
             keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
         )
@@ -32,28 +32,6 @@ def _get_user_has_cooldown_text(context: CustomContext, rc: RequestCooldown):
     return text
 
 
-async def render_user_request_management_main_panel(update: Update, context: CustomContext):
-    text = _get_user_request_management_panel_text()
-
-    add_request_icon = "❔" if not context.user_request_cooldown() else "⏳"
-
-    user_request_management_panel = Panel(
-        PanelConfig(
-            base_path="user/manage_requests",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="👁 Visiona Richieste", callback_key="view_requests"),
-                    ButtonItem(text=f"{add_request_icon} Formula Richiesta", callback_key="add_request")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
-    )
-
-    await user_request_management_panel.render(update, context)
-
-
 def _get_user_request_management_panel_text():
     text = ("♟ <b>Gestione Richieste</b>\n\n"
             "▫️ Da qui puoi:\n\n"
@@ -68,7 +46,7 @@ async def render_user_request_panel(update: Update, context: CustomContext):
     text = _get_user_request_panel_text()
     user_request_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/add_request",
+            base_path="user/add_request",
             text=text,
             keyboard=[
                 [
@@ -96,7 +74,7 @@ async def render_user_cant_request_panel(update: Update, context: CustomContext,
     text = _get_user_cant_request_text(reason)
     user_cant_request_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests",
+            base_path="user/view_requests",
             text=text,
             keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
@@ -116,12 +94,12 @@ def _get_user_cant_request_text(reason: str):
 async def render_cant_request_panel(update: Update, context: CustomContext, message: str):
     cant_request_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/add_request",
+            base_path="user/add_request",
             text=message,
             keyboard=[
                 [ButtonItem(
                     text="🔙 Indietro",
-                    callback_key="user/manage_requests/add_request",
+                    callback_key="user/add_request",
                     override_path_generation=True
                 )]
             ]

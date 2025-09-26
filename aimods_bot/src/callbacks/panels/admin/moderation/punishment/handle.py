@@ -59,7 +59,10 @@ async def set_punishment_duration(update: Update, context: CustomContext, value:
                      "<code>1 giorno 2 minuti 32 ore</code>\n\t"
                      "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
                 additional_job_data=JobData(
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                        text="🚮 Chiudi",
+                        callback_data="close_menu")]]
+                    )
                 )
             )
 

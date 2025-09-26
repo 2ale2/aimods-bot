@@ -28,7 +28,7 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
                     ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections")
                 ],
                 [
-                    ButtonItem(text="⛔️ Limita Utente", callback_key="limit_user_request"),
+                    ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations"),
                     ButtonItem(text="🔙 Indietro", callback_key=None)
                 ]
             ]

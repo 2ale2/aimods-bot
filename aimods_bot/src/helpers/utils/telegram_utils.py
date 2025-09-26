@@ -310,7 +310,7 @@ async def not_implemented_yet(update: Update, context: CustomContext):
         chat_id=update.effective_chat.id,
         text="⚠️ Funzionalità non ancora implementata.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
         )
     )
 
@@ -402,7 +402,7 @@ async def wrong_input_message(update: Update, context: CustomContext, correct_fo
         chat_id=update.effective_chat.id,
         text=f"⚠️ Manda {correct_format}.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
         ),
         parse_mode=ParseMode.HTML
     )

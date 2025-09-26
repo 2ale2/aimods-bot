@@ -47,7 +47,7 @@ async def view_list(update: Update, context: CustomContext, l: str):
             files=filename,
             send_as_document=True,
             delete_after_sending=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
         )
     )
 
@@ -221,7 +221,7 @@ def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_
 async def _send_validation_error(update: Update, context: CustomContext, domain_type: dict):
     """Invia messaggio di errore per validazione fallita"""
     text = f"⚠ Il messaggio non contiene link. Invia uno o più {domain_type['plural']}."
-    keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+    keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
 
     await send_action_message_after(
         update=update,

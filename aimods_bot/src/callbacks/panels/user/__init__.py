@@ -13,9 +13,8 @@ async def user_main_router(update: Update, context: CustomContext):
 
     path.pop(0)
     try:
-        match path[0]:
-            case "manage_requests":
-                return await requests_management_route(update=update, context=context, path=path[1:])
+        if path[0] in ("add_request", "view_requests"):
+            return await requests_management_route(update=update, context=context, path=path)
     finally:
         try:
             await update.callback_query.answer()

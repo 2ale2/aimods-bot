@@ -22,7 +22,7 @@ async def render_user_request_management_panel(update: Update, context: CustomCo
 
     user_request_management_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/view_requests",
+            base_path="user/view_requests",
             text=text,
             keyboard=[
                 [
@@ -65,7 +65,7 @@ async def render_active_request_panel(
 
     user_request_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/view_requests/active_requests",
+            base_path="user/view_requests/active_requests",
             text=text,
             keyboard=keyboard
         )
@@ -111,7 +111,7 @@ async def render_user_request_action_panel(
     keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action)
 
     user_request_action_panel = Panel(PanelConfig(
-        base_path=f"user/manage_requests/view_requests/active_requests/{action}",
+        base_path=f"user/view_requests/active_requests/{action}",
         text=text,
         keyboard=keyboard
     ))
@@ -179,12 +179,12 @@ async def render_request_details_panel(
 
     request_details_panel = Panel(
         PanelConfig(
-            base_path=f"user/manage_requests/view_requests/active_requests/details/{ix}",
+            base_path=f"user/view_requests/active_requests/details/{ix}",
             text=text,
             keyboard=[
                 [ButtonItem(
                     text="📋 Visiona Altra Richiesta",
-                    callback_key="user/manage_requests/view_requests/active_requests/details",
+                    callback_key="user/view_requests/active_requests/details",
                     override_path_generation=True
                 )],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
@@ -233,7 +233,7 @@ async def render_confirm_cancel_panel(
 
     confirm_cancel_panel = Panel(
         PanelConfig(
-            base_path=f"user/manage_requests/view_requests/active_requests/cancel/{ix}",
+            base_path=f"user/view_requests/active_requests/cancel/{ix}",
             text=text,
             keyboard=keyboard
         )
@@ -271,7 +271,7 @@ async def render_user_request_archive_panel(update: Update, context: CustomConte
 
     user_request_archive_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/view_requests/requests_archive",
+            base_path="user/view_requests/requests_archive",
             text=text,
             keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
@@ -280,31 +280,31 @@ async def render_user_request_archive_panel(update: Update, context: CustomConte
     )
 
     await user_request_archive_panel.render(update=update, context=context)
+    if p:
+        await context.bot.send_document(
+            chat_id=user_id,
+            document=p,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(
+                    text="🚮 Chiudi",
+                    callback_data="close_menu"
+                )
+            ]])
+        )
 
-    await context.bot.send_document(
-        chat_id=user_id,
-        document=p,
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton(
-                text="🚮 Chiudi",
-                callback_data="close"
-            )
-        ]])
-    )
+        delete_os_file(str(Path(p).with_suffix(".aux")))
+        delete_os_file(str(Path(p).with_suffix(".log")))
+        delete_os_file(str(Path(p).with_suffix(".out")))
+        delete_os_file(str(Path(p).with_suffix(".tex")))
 
-    delete_os_file(str(Path(p).with_suffix(".aux")))
-    delete_os_file(str(Path(p).with_suffix(".log")))
-    delete_os_file(str(Path(p).with_suffix(".out")))
-    delete_os_file(str(Path(p).with_suffix(".tex")))
+        # Rimuovo il file dopo 10 minuti per evitare sovraccarichi
+        async def _delete_latex_file(context: CustomContext):
+            delete_os_file(path=p)
 
-    # Rimuovo il file dopo 10 minuti per evitare sovraccarichi
-    async def _delete_latex_file(context: CustomContext):
-        delete_os_file(path=p)
-
-    job = context.job_queue.get_jobs_by_name("_delete_latex_file")
-    if job:
-        job[0].schedule_removal()
-    context.job_queue.run_once(callback=_delete_latex_file, when=600)
+        job = context.job_queue.get_jobs_by_name("_delete_latex_file")
+        if job:
+            job[0].schedule_removal()
+        context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 
 async def _get_user_request_archive_text(requests: list[Request]):
@@ -342,14 +342,14 @@ async def render_request_cancelled_panel(
         keyboard.insert(0, [
             ButtonItem(
                 text="🗑 Cancella Altra Richiesta",
-                callback_key="user/manage_requests/view_requests/active_requests/cancel",
+                callback_key="user/view_requests/active_requests/cancel",
                 override_path_generation=True
             )
         ])
 
     request_cancelled_panel = Panel(
         PanelConfig(
-            base_path="user/manage_requests/view_requests/active_requests/cancel",
+            base_path="user/view_requests/active_requests/cancel",
             text=text,
             keyboard=keyboard
         )

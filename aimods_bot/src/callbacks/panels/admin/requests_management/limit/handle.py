@@ -3,12 +3,17 @@ from typing import Literal, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
+    render_admin_view_user_limitations_panel, render_admin_remove_user_limitation_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete, wrong_input_message
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+
 
 log = logger.getChild("handle_request_limitation")
 
@@ -62,7 +67,7 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
         await update.effective_message.reply_text(
             text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]
+                [InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]
             ])
         )
         return False
@@ -178,3 +183,27 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
                 ))
 
     return limitations
+
+
+async def handle_limitation_identifier(update: Update, context: CustomContext):
+    await safe_delete(update=update, context=context)
+
+    action = context.chat_data["action"]
+    identifier = update.message.text
+
+    if not identifier.isnumeric():
+        user_response = await resolve_chat_member(context=context, user_identifier=identifier)
+        if user_response["status"] == "success":
+            identifier = user_response["member"].user.id
+        else:
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_format="un ID o uno @username valido"
+            )
+            return PCS.SET_VIEW_REQUEST_LIMITATION_USER
+    if action == "view":
+        await render_admin_view_user_limitations_panel(update=update, context=context, user_id=identifier)
+    elif action == "remove":
+        await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=identifier)
+    return PCS.ADMIN_CONVERSATION

@@ -5,7 +5,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request, \
+    route_admin_manage_limitations
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
@@ -28,8 +29,8 @@ async def admin_requests_management_route(update: Update, context: CustomContext
             return await admin_active_requests_management_route(update=update, context=context, path=path[1:])
         case "manage_sections":
             return await admin_request_section_configure_route(update=update, context=context, path=path[1:])
-        case "limit_user_request":
-            return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)
+        case "manage_limitations":
+            return await route_admin_manage_limitations(update=update, context=context, path=path[1:])
 
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):

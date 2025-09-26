@@ -4,8 +4,8 @@ from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel, \
-    render_user_has_cooldown_panel, render_user_request_panel, render_cant_request_panel
+from aimods_bot.src.callbacks.panels.user.request.render import (render_user_has_cooldown_panel,
+                                                                 render_user_request_panel, render_cant_request_panel)
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
@@ -17,9 +17,6 @@ from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
     RequestDataManager.cleanup_request(context=context)
-    if len(path) == 0:
-        await render_user_request_management_main_panel(update=update, context=context)
-        return PCS.USER_CONVERSATION
 
     match path[0]:
         case "view_requests":
