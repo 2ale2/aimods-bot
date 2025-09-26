@@ -5,13 +5,14 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_management_main_panel, \
-    render_user_has_cooldown_panel, render_user_request_panel
+    render_user_has_cooldown_panel, render_user_request_panel, render_cant_request_panel
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, WindowsCategory, \
-    AndroidCategory, IOSCategory, MacOSCategory, Category
+from aimods_bot.src.core.pydantic import CategorySetting
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -54,14 +55,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
         platform = Platform(data)
         RequestDataManager.update_field(context=context, field="platform", value=platform)
 
-    categories = {
-        "android": AndroidCategory,
-        "windows": WindowsCategory,
-        "ios": IOSCategory,
-        "macos": MacOSCategory
-    }
-
-    category = categories[platform.value]
+    category = get_platform_categories(platform=platform)
     category_items = CATEGORY_DETAILS[platform.value]
 
     if len(category_items) == 1:
@@ -110,14 +104,8 @@ async def request_router(update: Update, context: CustomContext):
 
     if not category:
         callback_data = update.callback_query.data
-        categories = {
-            "android": AndroidCategory,
-            "windows": WindowsCategory,
-            "ios": IOSCategory,
-            "macos": MacOSCategory
-        }
 
-        category = categories[str(platform.value)](callback_data)
+        category = get_platform_categories(platform)(callback_data)
         RequestDataManager.update_field(context=context, field="category", value=category)
 
     l = context.is_user_request_limited(platform=platform, category=category)
@@ -133,29 +121,16 @@ async def request_router(update: Update, context: CustomContext):
                 "<blockquote>ℹ Sei stato bloccato dallo staff: non potrai formulare richieste"
                 f" per questa sezione <b>{until_str}</b>.</blockquote>\n\n"
                 f"<b>Motivazioni</b> {reasons_text}")
-        keyboard = [
-            [InlineKeyboardButton(text="🔙 Indietro", callback_data="user/manage_requests/add_request")]
-        ]
-        await update.effective_message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
-        )
+        await render_cant_request_panel(update=update, context=context, message=text)
         return ConversationHandler.END
 
     if not is_category_request_allowed(context=context, platform=platform, category=category):
         RequestDataManager.initialize_request(context=context)
         text = ("🔐 <b>Richieste Chiuse</b>\n\n"
-                "▪️ Non è al momento possibile formulare nuove richieste per questa categoria.")
-        keyboard = [[InlineKeyboardButton(
-                text="🔙 Indietro",
-                callback_data="user/manage_requests/add_request"
-        )]]
-        await update.effective_message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
-        )
+                "▪️ <b>Non è al momento possibile formulare nuove richieste</b> per questa categoria, perché ha "
+                "<b>raggiunto il limite</b> di richieste impostato o perché stato <b>chiuso manualmente</b> "
+                "dallo staff.")
+        await render_cant_request_panel(update=update, context=context, message=text)
         return ConversationHandler.END
 
     return await request_detail(update=update, context=context)
@@ -164,4 +139,6 @@ async def request_router(update: Update, context: CustomContext):
 def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
     platform_settings = getattr(context.pyd.configuration.settings.request, platform.value)
-    return getattr(platform_settings, str(category.value))
+    category_config = getattr(platform_settings, str(category.value))
+    assert isinstance(category_config, CategorySetting)
+    return category_config.toggle

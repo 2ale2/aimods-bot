@@ -4,11 +4,16 @@ import mimetypes
 import os
 import aiofiles
 import asyncio
+import yaml
 from pathlib import Path
 from typing import Any, List, Literal, Union, Tuple, Optional, AsyncIterator
 
 from telegram import InputMedia, InputMediaDocument
+from yaml import YAMLError
 
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import Configuration
+from aimods_bot.src.helpers.constants.constants import YAML_CONFIG_PATH
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.constants.models import MediaItem
 from aimods_bot.src.helpers.loggers import logger
@@ -211,3 +216,13 @@ def delete_os_file(path: str):
         log.warning(f"File {path} non trovato.")
     except PermissionError:
         log.error(f"Non ho i permessi per cancellare {path}")
+
+
+async def save_yaml_configuration(context: CustomContext):
+    yaml_configuration = context.pyd.configuration
+    with open(YAML_CONFIG_PATH, "w") as f:
+        try:
+            yaml.safe_dump(yaml_configuration.model_dump(), f, sort_keys=False)
+            log.info("YAML Configuration Updated Successfully")
+        except YAMLError as e:
+            log.error(f"Unable to save YAML configuration: {e}")

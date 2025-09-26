@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union
 
+YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
+
 LOCAL_TZ = pytz.timezone('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400

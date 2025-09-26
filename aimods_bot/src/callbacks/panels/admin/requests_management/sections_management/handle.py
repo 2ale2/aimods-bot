@@ -3,9 +3,10 @@ from typing import Literal
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 
 
-def handle_request_section_toggle(
+async def handle_request_section_toggle(
         context: CustomContext,
         platform: Platform,
         category: Category,
@@ -20,8 +21,10 @@ def handle_request_section_toggle(
 
     config.toggle = opening
 
+    await save_yaml_configuration(context=context)
 
-def handle_request_section_limit(
+
+async def handle_request_section_limit(
         context: CustomContext,
         platform: Platform,
         category: Category,
@@ -32,3 +35,5 @@ def handle_request_section_limit(
 
     if len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
         config.toggle = False
+
+    await save_yaml_configuration(context=context)

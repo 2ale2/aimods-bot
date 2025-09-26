@@ -166,19 +166,16 @@ def _get_admin_request_section_toggle_panel_text(
         category: Category,
         action: Literal["open", "close"]
 ):
-    opening = action == "open"
+    opens = action == "open"
 
     config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
-    text = _get_header(subheader=f"  → <i>{'📬 Apertura' if opening else '📪 Chiusura'} Manuale</i>")
-    text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if opening else 'chiudi'} questa sezione, "
-             f"gli utenti {'non ' if not opening else ''}potranno formulare altre richieste.</blockquote>\n\n")
+    text = _get_header(subheader=f"  → <i>{'📬 Apertura' if opens else '📪 Chiusura'} Manuale</i>")
+    text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if opens else 'chiudi'} questa sezione, "
+             f"gli utenti {'non ' if not opens else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
-    if opening and (r := len(context.get_active_category_requests(
-            platform=Platform(platform),
-            category=Category(category)))
-    ) >= config.limit:
+    if opens and (r := len(context.get_active_category_requests(platform=platform, category=category))) >= config.limit:
         text += ("<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive pari o superiore al limite "
                  f"impostato per questa sezione ({pluralize(r, 'richiesta', 'richieste')} su "
                  f"{config.limit}); se la riapri, il limite verrà automaticamente impostato a "
@@ -337,9 +334,9 @@ def _get_admin_request_section_limit_confirm_text(
     text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
              f"            🔸 <u>Limite Attuale</u> – <i>"
              f"{pluralize(config.limit, 'richiesta', 'richieste')}</i>\n\n"
-             "🔹 Stai modificando il limite di richieste per questa sezione a:\n\n"
-             f"          <b>{r_text}</b>\n\n"
-             "🔹 Confermi?")
+             "\n🔹 Stai modificando il limite di richieste per questa sezione a:\n\n"
+             f"            <b>{r_text}</b>\n\n"
+             "🔹 <b>Confermi?</b>")
 
     return text
 

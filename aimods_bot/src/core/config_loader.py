@@ -1,4 +1,6 @@
 import yaml
+
+from aimods_bot.src.helpers.constants.constants import YAML_CONFIG_PATH
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("config_loader")
@@ -16,7 +18,7 @@ def load_configuration():
     """
 
     try:
-        with open("aimods_bot/misc/BotConfigurationStructure.yml", "r") as stream:
+        with open(YAML_CONFIG_PATH, "r") as stream:
             yaml_data = yaml.load(stream, Loader=yaml.FullLoader)
     except Exception as e:
         log.error(f"Failed to load configuration: {e}")

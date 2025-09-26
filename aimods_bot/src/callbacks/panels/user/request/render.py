@@ -111,3 +111,22 @@ def _get_user_cant_request_text(reason: str):
             "❗ Non puoi effettuare una nuova richiesta al momento.\n\n"
             f"▪ <b>Motivo</b> – {reason}")
     return text
+
+
+async def render_cant_request_panel(update: Update, context: CustomContext, message: str):
+    cant_request_panel = Panel(
+        PanelConfig(
+            base_path="user/manage_requests/add_request",
+            text=message,
+            keyboard=[
+                [ButtonItem(
+                    text="🔙 Indietro",
+                    callback_key="user/manage_requests/add_request",
+                    override_path_generation=True
+                )]
+            ]
+        )
+    )
+
+    await cant_request_panel.render(update=update, context=context)
+

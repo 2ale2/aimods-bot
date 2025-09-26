@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import List, Optional, Literal, Dict, Union
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
@@ -29,6 +29,9 @@ class PunishmentConfig(BaseModel):
     type: PunishmentType
     time: int = Field(ge=0, description="Punishment time in seconds (0 for endless)")
 
+    @field_serializer("type")
+    def _serialize_punishment_type(self, type: PunishmentType):
+        return type.value
 
 class WhitelistConfig(BaseModel):
     user: List[int] = Field(default_factory=list)
@@ -86,6 +89,10 @@ class RequestConfig(BaseModel):
         if isinstance(v, int):
             return timedelta(seconds=v)
         return v
+
+    @field_serializer("cooldown")
+    def _serialize_timedelta(self, td: timedelta):
+        return int(td.total_seconds())
 
 
 class AntispamLinkConfig(BaseModel):

@@ -66,7 +66,7 @@ async def admin_request_section_configure_route(update: Update, context: CustomC
         platform = Platform(path[0])
         category = get_platform_categories(platform)(path[1])
         if path[2] in ("open", "close") and path[3] == "yes":
-            handle_request_section_toggle(
+            await handle_request_section_toggle(
                 context=context,
                 platform=platform,
                 category=category,
@@ -95,7 +95,7 @@ async def admin_request_section_configure_route(update: Update, context: CustomC
         platform = Platform(path[0])
         category = get_platform_categories(platform)(path[1])
         if path[2] == "limit" and path[3].isnumeric() and path[4] == "yes":
-            handle_request_section_limit(
+            await handle_request_section_limit(
                 context=context,
                 platform=platform,
                 category=category,
