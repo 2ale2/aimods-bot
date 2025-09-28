@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
@@ -9,7 +11,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import (render_user_has
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
@@ -107,7 +109,12 @@ async def request_router(update: Update, context: CustomContext):
 
     l = context.is_user_request_limited(platform=platform, category=category)
     if l:
-        until_str = f"{l.until.strftime('fino al %d %b %Y alle %H:%M:%S')}" if l.until else "a tempo indeterminato"
+        if l.until:
+            until = l.until.replace(tzinfo=ZoneInfo("UTC")).astimezone(LOCAL_TZ)
+            until_str = until.strftime('fino al %d %b %Y alle %H:%M:%S')
+        else:
+            until_str = "a tempo indeterminato"
+
         if len(l.reasons) == 1:
             reasons_text = "– " + l.reasons[0]
         else:

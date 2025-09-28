@@ -1,5 +1,5 @@
 from typing import Optional
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
     handle_request_limitation_topic
@@ -8,10 +8,13 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
     render_handled_request_limitation_duration_panel, render_admin_limit_user_request_sections_panel, \
     render_admin_user_limitation_reason_panel, render_user_requests_limitations_info_panel, \
     render_admin_limit_user_request_panel, render_admin_manage_limitations_panel, render_admin_view_limitations_panel, \
-    render_admin_remove_limitations_panel
+    render_admin_remove_limitations_panel, render_admin_remove_user_limitation_confirmation_panel, \
+    render_admin_user_limitation_removed_panel, render_admin_remove_user_limitation_panel
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
+    handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_chat_member
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user
 
 
 async def route_admin_manage_limitations(
@@ -23,7 +26,7 @@ async def route_admin_manage_limitations(
         await render_admin_manage_limitations_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
 
-    if len(path) == 1:
+    if len(path) >= 1:
         match path[0]:
             case "limit_user_request":
                 return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)
@@ -33,8 +36,51 @@ async def route_admin_manage_limitations(
                 await render_admin_view_limitations_panel(update=update, context=context)
                 return PCS.SET_VIEW_REQUEST_LIMITATION_USER
             case "remove_limitations":
-                context.chat_data["action"] = "remove"
-                await render_admin_remove_limitations_panel(update=update, context=context)
+                if len(path) == 1:
+                    context.chat_data["action"] = "remove"
+                    context.chat_data["update_message"] = update.effective_message.id
+                    await render_admin_remove_limitations_panel(update=update, context=context)
+                    return PCS.SET_VIEW_REQUEST_LIMITATION_USER
+                if len(path) == 2:
+                    # expected: ../remove_limitations/<user_id>
+                    user_id = int(path[1])
+                    await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=user_id)
+                    return PCS.ADMIN_CONVERSATION
+                if len(path) == 3:
+                    # expected: ../remove_limitations/<user_id>/platform:category
+                    user_id = int(path[-2])
+                    pl, ca = path[-1].split(":")
+                    for limitation in context.get_user_request_limitations(user_id=user_id):
+                        if [pl, ca] == limitation.section.split(":"):
+                            await render_admin_remove_user_limitation_confirmation_panel(
+                                update=update,
+                                context=context,
+                                user_id=int(path[-2]),
+                                l=limitation
+                            )
+                            return PCS.ADMIN_CONVERSATION
+                    await update.effective_message.edit_text(
+                        text="⚠️ Limitazione non trovata.",
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(
+                                text="🔙 Indietro",
+                                callback_data=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}"
+                            )
+                        ]])
+                    )
+                    return PCS.ADMIN_CONVERSATION
+                if len(path) == 4:
+                    # expected: ../remove_limitations/<user_id>/platform:category/yes
+                    user_id = int(path[-3])
+                    section = path[-2]
+                    await handle_remove_user_request_limitation(context=context, user_id=user_id, section=section)
+                    await render_admin_user_limitation_removed_panel(
+                        update=update,
+                        context=context,
+                        user_id=user_id,
+                        section=section
+                    )
+                    return PCS.ADMIN_CONVERSATION
 
 
 async def route_admin_limit_user_request(
@@ -49,18 +95,6 @@ async def route_admin_limit_user_request(
     if path and len(path) > 0 and path[0].startswith("limit_"):
         # expected: limit_<user_id>/...
         user_id = user_id or path[0].split("_")[1]
-        if not user_id.isdigit():
-            member_responses = context.chat_data.setdefault("resolved_users", {})
-            member_response = member_responses.get(str(user_id), None)
-            if not member_response:
-                member_response = await resolve_chat_member(
-                    context=context,
-                    user_identifier=user_id
-                )
-                member_responses[str(user_id)] = member_response
-            if member_response["status"] == "success":
-                user_id = member_response["member"].user.id
-
         path = path[1:]
 
     if user_id is None:
@@ -79,6 +113,17 @@ async def route_admin_limit_user_request(
                 )
                 return PCS.SET_REQUEST_LIMITATION_USER
 
+    if user_id is not None and isinstance(user_id, str) and not user_id.isdigit():
+        user_responses = context.chat_data.setdefault("resolved_users", {})
+        member_response = user_responses.get(str(user_id), None)
+        if not member_response:
+            member_response = await resolve_user(identifier=user_id)
+            user_responses[str(user_id)] = member_response
+        if member_response["status"] == "success":
+            user_id = member_response["user"].id
+
+    user_id = int(user_id)
+
     limiting_item = set_user_requests_limiting_item(context=context)
 
     if not limiting_item["user_id"]:
@@ -86,6 +131,7 @@ async def route_admin_limit_user_request(
 
     if not path or len(path) == 0:
         context.chat_data.setdefault("resolved_users", {})
+        context.chat_data.setdefault("resolved_members", {})
         await render_admin_limit_user_panel(
             update=update,
             context=context,
@@ -124,6 +170,7 @@ async def route_admin_limit_user_request(
                         user_id=user_id
                 ):
                     context.chat_data.pop("resolved_users", None)
+                    context.chat_data.pop("resolved_members", None)
                     return PCS.SET_REQUEST_LIMITATION_REASON
                 else:
                     return PCS.ADMIN_CONVERSATION

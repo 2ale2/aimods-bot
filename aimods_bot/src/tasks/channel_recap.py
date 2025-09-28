@@ -69,7 +69,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
     if isinstance(context, CustomContext):
         bot_data = context.pyd
     else:
-        bot_data = kwargs["bot_data"]
+        bot_data = context.bot_data
 
     query = "SELECT * FROM recap_posts"
     res = await fetch_query(query=query)

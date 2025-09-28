@@ -4,7 +4,7 @@ from typing import Optional, Any, Union, Dict
 
 import telegram
 from telegram.constants import ParseMode
-from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
+from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied, RPCError
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
                       LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser)
@@ -178,6 +178,26 @@ async def resolve_chat_member(
     return pyro_result
 
 
+async def id_to_username(username: Union[int, str]):
+    if isinstance(username, int) or username.isnumeric():
+        return username
+    try:
+        user = await _try_pyrogram_user_resolve(user_identifier=username)
+        if isinstance(user, list):
+            user = user[0]
+    except RPCError as e:
+        log.warning(f"Unable to resolve username {username}; make sure it exists: {e}")
+        return None
+    return user.id
+
+
+async def resolve_user(identifier: Union[int, str]):
+    user = await _try_pyrogram_user_resolve(user_identifier=identifier)
+    if user:
+        return _create_success_response(member=user)
+    return _create_error_response("unable_to_identify")
+
+
 async def _try_pyrogram_chat_member_resolve(
         chat_id: Union[int, str],
         user_identifier: Union[int, str]
@@ -227,18 +247,28 @@ async def _try_ptb_resolve(context: CustomContext, chat_id: Union[int, str],
         return _create_error_response("cannot_resolve")
 
 
-def _create_success_response(member) -> Dict[str, Any]:
-    return {
-        "status": "success",
-        "error": "",
-        "member": member
-    }
+def _create_success_response(member: Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]) -> Dict[str, Any]:
+    if isinstance(member, Union[PTBChatMember, PyroChatMember]):
+        return {
+            "status": "success",
+            "error": "",
+            "user": member.user,
+            "member": member
+        }
+    else:
+        return {
+            "status": "success",
+            "error": "",
+            "user": member,
+            "member": None
+        }
 
 
 def _create_error_response(error_code: str) -> Dict[str, Any]:
     return {
         "status": "failed",
         "error": error_code,
+        "user": None,
         "member": None
     }
 

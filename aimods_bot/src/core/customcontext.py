@@ -213,7 +213,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         if ul:
             n_ul = []
             for l in ul:
-                if l.until < datetime.now(tz=timezone.utc):
+                if l.until is not None and l.until < datetime.now(tz=timezone.utc):
                     continue
                 n_ul.append(l)
             self.set_user_request_limitations(user_id=user_id or self.user_id, limitations=n_ul)

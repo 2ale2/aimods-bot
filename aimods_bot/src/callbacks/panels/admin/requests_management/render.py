@@ -295,7 +295,13 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
 
     limit_buttons = [ButtonItem(text="⛔️ Limita Utente", callback_key=f"limit_{request.user_id}")]
     if context.get_user_request_limitations(user_id=request.user_id):
-        limit_buttons.append(ButtonItem(text="🆓 Libera Utente", callback_key=f"unlimit_{request.user_id}"))
+        limit_buttons.append(
+            ButtonItem(
+                text="🆓 Libera Utente",
+                callback_key=f"admin/manage_requests/manage_limitations/remove_limitations/{request.user_id}",
+                override_path_generation=True
+            )
+        )
 
     keyboard.extend([
         limit_buttons,

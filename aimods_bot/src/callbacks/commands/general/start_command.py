@@ -48,7 +48,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool):
                             callback_key="add_request"
                         )
                     ],
-                    [ButtonItem(text="🔐 Chiudi", callback_key="close")]
+                    [ButtonItem(text="🔐 Chiudi", callback_key="close_menu")]
                 ]
             ),
             send=True

@@ -125,7 +125,7 @@ class Panel:
         preview_options = LinkPreviewOptions(is_disabled=True)
         if self.send or send:
             await context.bot.send_message(
-                chat_id=message_id or update.effective_chat.id,
+                chat_id=update.effective_chat.id,
                 text=text,
                 reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML,

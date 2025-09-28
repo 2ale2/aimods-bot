@@ -2,8 +2,8 @@ settings:
   request:
     android:
       app:
-        toggle: false
-        limit: 4
+        toggle: true
+        limit: null
     windows:
       software:
         toggle: true

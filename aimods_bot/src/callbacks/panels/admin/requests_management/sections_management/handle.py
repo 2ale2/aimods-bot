@@ -38,3 +38,15 @@ async def handle_request_section_limit(
             config.toggle = False
 
     await save_yaml_configuration(context=context)
+
+
+async def handle_remove_user_request_limitation(context: CustomContext, user_id: int, section: str):
+    user_limitations = context.get_user_request_limitations(user_id=user_id)
+    new_limitations = []
+
+    for el in user_limitations:
+        if el.section == section:
+            continue
+        new_limitations.append(el)
+
+    context.set_user_request_limitations(user_id=user_id, limitations=new_limitations)

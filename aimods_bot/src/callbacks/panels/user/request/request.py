@@ -118,7 +118,8 @@ async def confirm_request(update: Update, context: CustomContext):
     assert isinstance(config, CategorySetting)
 
     if config is not None:
-        if len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
+        n_active_requests = len(context.get_active_category_requests(platform=platform, category=category))
+        if config.limit and n_active_requests >= config.limit:
             log.info(f"Section {platform.value} - {category.value} reached requests limit ({config.limit}): "
                      f"closing it...")
             config.toggle = False
