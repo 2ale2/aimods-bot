@@ -75,7 +75,7 @@ class RequestDataManager:
         """
         chat = context.chat_data
 
-        if chat.get("new_request") is not None:
+        if chat.get("new_request", None) is not None:
             try:
                 RequestDataManager.cleanup_request(context=context)
             except Exception as e:
@@ -190,8 +190,11 @@ class RequestDataManager:
     @staticmethod
     def get_request_data(context: CustomContext) -> Request:
         """Ottiene i dati della richiesta corrente"""
-        request = context.chat_data.get("new_request")
-        return Request(**request)
+        request = context.chat_data.get("new_request", None)
+        if request is None:
+            RequestDataManager.initialize_request(context=context)
+            request = context.chat_data.get("new_request")
+        return Request.model_validate(request)
 
     @staticmethod
     def update_field(context: CustomContext, field: str, value: Any) -> None:
@@ -302,7 +305,7 @@ class RequestDataManager:
         ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
 
-        context.pyd.active_requests[ix] = (Request(
+        context.pyd.active_requests[ix] = Request(
             id=ix,
             user_id=uid,
             # status = (default) RequestStatus.PENDING,
@@ -315,7 +318,7 @@ class RequestDataManager:
             link=request_for_db.get("link", ""),
             functionalities=request_for_db.get("functionalities", ""),
             steamtools=request_for_db.get("steamtools", False)
-        ))
+        )
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
 

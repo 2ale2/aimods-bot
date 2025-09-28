@@ -37,7 +37,9 @@ android_request_handler = ConversationHandler(
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
-    }
+    },
+    name="android_request_conversation",
+    persistent=True
 )
 windows_request_handler = ConversationHandler(
     entry_points=[
@@ -76,7 +78,9 @@ windows_request_handler = ConversationHandler(
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
-                }
+                },
+                name="windows_request_game_conversation",
+                persistent=True
             ),
             ConversationHandler(
                 entry_points=[CallbackQueryHandler(pattern="adobe", callback=request_router)],
@@ -104,7 +108,9 @@ windows_request_handler = ConversationHandler(
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
-                }
+                },
+                name="windows_adobe_request_conversation",
+                persistent=True
             ),
             ConversationHandler(
                 entry_points=[CallbackQueryHandler(pattern="daw", callback=request_router)],
@@ -132,7 +138,9 @@ windows_request_handler = ConversationHandler(
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
-                }
+                },
+                name="windows_daw_request_conversation",
+                persistent=True
             ),
             ConversationHandler(
                 entry_points=[CallbackQueryHandler(pattern="software", callback=request_router)],
@@ -161,7 +169,9 @@ windows_request_handler = ConversationHandler(
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
-                }
+                },
+                name="windows_software_request_conversation",
+                persistent=True
             )
         ],
     },
@@ -172,7 +182,9 @@ windows_request_handler = ConversationHandler(
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
-    }
+    },
+    name="windows_request_conversation",
+    persistent=True
 )
 ios_request_handler = ConversationHandler(
     entry_points=[
@@ -205,7 +217,9 @@ ios_request_handler = ConversationHandler(
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
-    }
+    },
+    name="ios_request_conversation",
+    persistent=True
 )
 macos_request_handler = ConversationHandler(
     entry_points=[
@@ -241,7 +255,9 @@ macos_request_handler = ConversationHandler(
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER
-                }
+                },
+                name="macos_request_daw_conversation",
+                persistent=True
             ),
             ConversationHandler(
                 entry_points=[CallbackQueryHandler(pattern="software", callback=request_router)],
@@ -269,7 +285,9 @@ macos_request_handler = ConversationHandler(
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER
-                }
+                },
+                name="macos_request_software_conversation",
+                persistent=True
             )
         ],
     },
@@ -280,5 +298,7 @@ macos_request_handler = ConversationHandler(
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
-    }
+    },
+    name="macos_request_conversation",
+    persistent=True
 )

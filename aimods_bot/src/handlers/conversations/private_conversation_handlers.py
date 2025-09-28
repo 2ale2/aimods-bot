@@ -137,5 +137,7 @@ private_conversation_handler = ConversationHandler(
         ]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],
-    allow_reentry=True
+    allow_reentry=True,
+    name="private_conversation",
+    persistent=True
 )
