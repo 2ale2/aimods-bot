@@ -18,7 +18,7 @@ async def is_admin(user_id: int, context: CustomContext) -> bool:
     """
     Verifica se l'utente è un admin del gruppo.
     """
-    return user_id in list(context.pyd.admins.keys())
+    return user_id in list(context.pydb.admins.keys())
 
 
 async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> Optional[bool]:
@@ -37,7 +37,7 @@ async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None
 async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = None) -> Optional[bool]:
     """Verifica se l'utente è bannato (o presente in una lista ban)."""
 
-    ban_list = context.pyd.ban_list
+    ban_list = context.pydb.ban_list
     if str(user_id) in ban_list:
         return True
 
@@ -105,7 +105,7 @@ async def get_member_permissions(
     if pyro and chat_member.status.value == "restricted":
         return chat_member.permissions
 
-    chat_id = context.pyd.group_chat_id
+    chat_id = context.pydb.group_chat_id
 
     if chat_member.status.value in ("restricted", "administrator"):
         included_fields = default_permissions.keys()

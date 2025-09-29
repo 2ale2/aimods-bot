@@ -142,7 +142,7 @@ async def request_router(update: Update, context: CustomContext):
 
 def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
-    platform_settings = getattr(context.pyd.configuration.settings.request, platform.value)
+    platform_settings = getattr(context.pydb.configuration.settings.request, platform.value)
     category_config = getattr(platform_settings, str(category.value))
     assert isinstance(category_config, CategorySetting)
     return category_config.toggle

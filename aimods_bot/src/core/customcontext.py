@@ -10,10 +10,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 from pydantic import BaseModel, Field, ConfigDict
 from telegram.ext import CallbackContext, ExtBot, Application
+from telegram import User as PTBUser, ChatMember as PTBChatMember
+from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
     RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown
@@ -22,6 +24,72 @@ from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("custom_context")
+
+
+class UserDataPersistent(BaseModel):
+    alerts: Dict[str, str] = Field(default_factory=dict)
+
+
+class UserDataEphimeral(BaseModel):
+    # TO BE IMPLEMENTED
+    pass
+
+
+class UserData(BaseModel):
+    persistent: UserDataPersistent = Field(default_factory=UserDataPersistent)
+    ephimeral: UserDataEphimeral = Field(default_factory=UserDataEphimeral)
+
+
+class AdminLimitingUserRequests(BaseModel):
+    user_id: int = Field(default_factory=int, description="User ID of the user to be limited")
+    duration: int = Field(default_factory=int, description="Limit duration in seconds (0 if unlimited)")
+    sections: Dict[str, bool] = Field(default_factory=dict, description="Sections to be limited (True if limited)")
+    reason: str = Field(default_factory=str, description="Reason for limiting")
+
+
+class ChatDataPersistent(BaseModel):
+    # ======== Both Admins & Users ========
+    bot_message_id: Optional[int] = Field(
+        default_factory=int,
+        description="Memory space for saving bot message IDs in the case an input from the user is expected."
+    )
+    # ======== Admins ========
+    limiting_user_requests: Optional[AdminLimitingUserRequests] = Field(
+        default_factory=None,
+        description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
+    )
+    # ======== Users ========
+    new_request: Optional[Request] = Field(
+        default_factory=None,
+        description="Memory space to keep request data before adding it into bot data"
+    )
+
+
+class ChatDataEphimeral(BaseModel):
+    # ======== Both Admins & Users ========
+    action: Optional[str] = Field(
+        default_factory=str,
+        description="Memory space to keep which action the user is performing"
+    )
+    # ======== Admins ========
+    rejecting: Optional[Request] = Field(
+        default_factory=None,
+        description="Request that has been selected for rejection from admin (allows to write personalized reason)."
+    )
+    resolved_members: Optional[Dict[int, Union[PTBChatMember, PyroChatMember]]] = Field(
+        default_factory=None,
+        description="Members cache to avoid flood limit while resolving. Must be not in persistence."
+    )
+    resolved_users: Optional[Dict[int, Union[PTBUser, PyroUser]]] = Field(
+        default_factory=None,
+        description="Users cache to avoid flood limit while resolving. Must be not in persistence."
+    )
+    # ======== Users ========
+
+
+class ChatData(BaseModel):
+    persistent: ChatDataPersistent = Field(default_factory=ChatDataPersistent)
+    ephimeral: ChatDataEphimeral = Field(default_factory=ChatDataEphimeral)
 
 
 class BotData(BaseModel):
@@ -59,9 +127,16 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     chat_id: Optional[int]
 
     @property
-    def pyd(self) -> BotData:
-        # noinspection PyTypeChecker
+    def pydb(self) -> BotData:
         return self.bot_data
+
+    @property
+    def pydc(self) -> ChatData:
+        return self.chat_data
+
+    @property
+    def pydu(self) -> ChatData:
+        return self.user_data
 
     def __init__(
             self,
@@ -86,18 +161,18 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def set_base_path(self, base_path: str):
         """Strategia del path ad anello mononodo: salvo il path base per costruire il secondario."""
-        self.pyd.base_path = base_path
+        self.pydb.base_path = base_path
 
     def free_base_path(self):
-        self.pyd.base_path = None
+        self.pydb.base_path = None
 
     @property
     def user_active_requests(self) -> dict[int, Request]:
-        return {ix: r for ix, r in self.pyd.active_requests.items() if (r.user_id == self.user_id)}
+        return {ix: r for ix, r in self.pydb.active_requests.items() if (r.user_id == self.user_id)}
 
     def cancellable_requests(self, from_user: Optional[bool] = False) -> dict[int, Request]:
-        timer_sec = self.pyd.configuration.settings.request.cancel_timer
-        active_requests = self.pyd.active_requests if not from_user else self.user_active_requests
+        timer_sec = self.pydb.configuration.settings.request.cancel_timer
+        active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {rid: r for rid, r in active_requests.items() if r.can_be_cancelled(timer_sec)}
 
     @property
@@ -105,7 +180,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         return self.cancellable_requests(from_user=True)
 
     def get_active_request_by_id(self, ix: int):
-        return self.pyd.active_requests.get(ix, None)
+        return self.pydb.active_requests.get(ix, None)
 
     def get_requests_by_status(
             self,
@@ -117,7 +192,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         if status == RequestStatus.CANCELLED:
             log.warning("bot_data only contains active requests.")
             return {}
-        requests = self.pyd.active_requests if not from_user else self.user_active_requests
+        requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in requests.items()
             if (
@@ -141,7 +216,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             category: Category,
             from_user: Optional[bool] = False
     ) -> dict[int, Request]:
-        active_requests = self.pyd.active_requests if not from_user else self.user_active_requests
+        active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in active_requests.items()
             if r.platform == platform and category == r.category
@@ -154,35 +229,34 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     ) -> dict[int, Request]:
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
 
-
     def user_request_cooldown(self, user_id: Optional[int] = None) -> Optional[RequestCooldown]:
-        return self.pyd.user_request_cooldowns.get(user_id or self.user_id, None)
+        return self.pydb.user_request_cooldowns.get(user_id or self.user_id, None)
 
     def set_user_request_cooldown(self, user_id: int) -> RequestCooldown:
         rc = RequestCooldown(
             user_id=user_id,
-            until=datetime.now(timezone.utc) + self.pyd.configuration.settings.request.cooldown
+            until=datetime.now(timezone.utc) + self.pydb.configuration.settings.request.cooldown
         )
-        self.pyd.user_request_cooldowns[user_id] = rc
+        self.pydb.user_request_cooldowns[user_id] = rc
         return rc
 
     def remove_user_request_cooldown(self, user_id: int) -> Optional[RequestCooldown]:
-        rc = self.pyd.user_request_cooldowns.pop(user_id, None)
+        rc = self.pydb.user_request_cooldowns.pop(user_id, None)
         if not rc:
             log.warning("User does not have a current request cooldown.")
         return rc
 
     def get_user_limitations(self, user_id: Optional[int] = None) -> Optional[UserLimitations]:
-        return self.pyd.user_limitations.get(user_id or self.user_id, None)
+        return self.pydb.user_limitations.get(user_id or self.user_id, None)
 
     def get_user_request_limitations(
             self,
             user_id: Optional[int] = None
     ) -> Optional[list[RequestSectionLimitation]]:
-         user_limitations = self.get_user_limitations(user_id=user_id or self.user_id)
-         if user_limitations:
-             return user_limitations.requests
-         return None
+        user_limitations = self.get_user_limitations(user_id=user_id or self.user_id)
+        if user_limitations:
+            return user_limitations.requests
+        return None
 
     def is_user_request_limited(
             self,
@@ -202,9 +276,9 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
         if not self.get_user_limitations():
-            self.pyd.user_limitations[user_id or self.user_id] = UserLimitations(requests=limitations)
+            self.pydb.user_limitations[user_id or self.user_id] = UserLimitations(requests=limitations)
         else:
-            self.pyd.user_limitations[user_id or self.user_id].requests = limitations
+            self.pydb.user_limitations[user_id or self.user_id].requests = limitations
 
     def check_user_request_limitations(self, user_id: Optional[int] = None):
         """Fa un double check per togliere le limitazioni che non sono state rimosse automaticamente."""
@@ -219,7 +293,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             self.set_user_request_limitations(user_id=user_id or self.user_id, limitations=n_ul)
 
     def remove_from_active_requests(self, ix: int) -> bool:
-        return bool(self.pyd.active_requests.pop(ix, None))
+        return bool(self.pydb.active_requests.pop(ix, None))
 
     async def edit_request_status(self, ix: int, status: RequestStatus, rejection_reason: Optional[str] = None):
         if status == RequestStatus.CANCELLED:
@@ -232,7 +306,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
                 data={"ix": ix}
             )
 
-        request = self.pyd.active_requests.get(ix, None)
+        request = self.pydb.active_requests.get(ix, None)
         if request:
             request.edit_status(status=status, rejection_reason=rejection_reason)
         else:

@@ -155,7 +155,7 @@ async def resolve_chat_member(
     if user_identifier == me.id:
         return me
 
-    chat_id = chat_id or context.pyd.group_chat_id
+    chat_id = chat_id or context.pydb.group_chat_id
     user_id_str = str(user_identifier)
 
     pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)

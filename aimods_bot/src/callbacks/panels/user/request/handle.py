@@ -305,7 +305,7 @@ class RequestDataManager:
         ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
 
-        context.pyd.active_requests[ix] = Request(
+        context.pydb.active_requests[ix] = Request(
             id=ix,
             user_id=uid,
             # status = (default) RequestStatus.PENDING,

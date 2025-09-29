@@ -84,7 +84,7 @@ async def admin_request_section_configure_route(update: Update, context: CustomC
 
         if path[2] == "limit" and path[3].isnumeric():
             limit = int(path[3])
-            config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+            config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
             assert isinstance(config, CategorySetting)
 
             if config.limit == limit or (config.limit is None and limit == 0):

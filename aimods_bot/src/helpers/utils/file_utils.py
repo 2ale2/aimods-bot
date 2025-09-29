@@ -219,7 +219,7 @@ def delete_os_file(path: str):
 
 
 async def save_yaml_configuration(context: CustomContext):
-    yaml_configuration = context.pyd.configuration
+    yaml_configuration = context.pydb.configuration
     with open(YAML_CONFIG_PATH, "w") as f:
         try:
             yaml.safe_dump(yaml_configuration.model_dump(), f, sort_keys=False)

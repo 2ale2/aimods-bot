@@ -291,7 +291,7 @@ async def send_temporary_message(
 
 
 async def _wait_for_job_completion(context: CustomContext, job_id: str):
-    while not context.pyd.jobs[job_id].executed:
+    while not context.pydb.jobs[job_id].executed:
         await asyncio.sleep(0.1)
         
 # ========== JOB: REQUESTS ==========

@@ -22,7 +22,7 @@ async def render_user_has_cooldown_panel(update: Update, context: CustomContext,
 
 
 def _get_user_has_cooldown_text(context: CustomContext, rc: RequestCooldown):
-    cooldown_secs = int(context.pyd.configuration.settings.request.cooldown.total_seconds())
+    cooldown_secs = int(context.pydb.configuration.settings.request.cooldown.total_seconds())
     cooldown_text = get_duration_text(cooldown_secs, with_emoji=False)
 
     text = ("⏳ <b>Hai già formulato una richiesta.</b>\n\n"

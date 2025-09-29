@@ -109,7 +109,7 @@ def _validate_user_status(member: Union[PyroChatMember, PTBChatMember]) -> Optio
 async def _attempt_kick_user_legacy(context: CustomContext, uid: int | str) -> dict:
     try:
         await constants.pyro_instance.unban_chat_member(
-            chat_id=context.pyd.group_chat_id,
+            chat_id=context.pydb.group_chat_id,
             user_id=uid
         )
         log.debug(f"Utente {uid} kickato con successo.")
@@ -118,7 +118,7 @@ async def _attempt_kick_user_legacy(context: CustomContext, uid: int | str) -> d
         if is_user_id(uid):
             try:
                 await context.bot.unban_chat_member(
-                    chat_id=context.pyd.group_chat_id,
+                    chat_id=context.pydb.group_chat_id,
                     user_id=uid
                 )
             except Exception as e:
@@ -135,7 +135,7 @@ async def _attempt_kick_user(
 ) -> dict:
     """Tenta il kick dell'utente uid."""
 
-    chat_id = context.pyd.group_chat_id
+    chat_id = context.pydb.group_chat_id
     user_id = member.user.id  # ID c'è per forza
     username = member.user.username  # Lo username no
 

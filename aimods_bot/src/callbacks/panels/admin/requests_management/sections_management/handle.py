@@ -13,7 +13,7 @@ async def handle_request_section_toggle(
         action: Literal["open", "close"]
 ):
     opening = action == "open"
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     if opening and len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
@@ -30,7 +30,7 @@ async def handle_request_section_limit(
         category: Category,
         limit: int
 ):
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     config.limit = limit if limit != 0 else None
 
     if config.limit is not None:

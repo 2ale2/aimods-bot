@@ -160,7 +160,7 @@ def _check_echo_command_in_group_media(context: CustomContext, message_data: Lis
         Controlla la lista di media, verificando la presenza di una descrizione che comincia col comando
         'echo' o 'annuncio'. Se lo trova, ritorna l'elemento della lista che contiene tale descrizione.
     """
-    echo_pattern = context.pyd.commands["echo"].pattern
+    echo_pattern = context.pydb.commands["echo"].pattern
     for el in message_data:
         caption = el["caption"]
         if not caption:

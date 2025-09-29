@@ -34,7 +34,7 @@ async def admin_requests_management_route(update: Update, context: CustomContext
 
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
-    if update.callback_query and update.callback_query.data == context.pyd.base_path:
+    if update.callback_query and update.callback_query.data == context.pydb.base_path:
         #  Se la path è uguale a quella salvata, significa che sono tornato da una funzionalità secondaria
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
@@ -127,8 +127,8 @@ async def admin_manage_request_route(
             )
 
         elif path[0] == "reject":
-            context.chat_data["rejecting"] = request
-            context.chat_data["update_message"] = update.effective_message.id
+            context.pydc.ephimeral.rejecting = request
+            context.pydc.persistent.bot_message_id = update.effective_message.id
             await render_admin_reject_request_panel(
                 update=update,
                 context=context,

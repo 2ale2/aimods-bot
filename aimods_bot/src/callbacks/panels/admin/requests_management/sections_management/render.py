@@ -91,7 +91,7 @@ async def render_admin_request_section_configure_category_panel(
         platform: Platform,
         category: Category
 ):
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     text = _get_admin_request_section_configure_category_text(config=config, platform=platform, category=category)
@@ -172,7 +172,7 @@ def _get_admin_request_section_toggle_panel_text(
 ):
     opens = action == "open"
 
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     text = _get_header(subheader=f"  → <i>{'📬 Apertura' if opens else '📪 Chiusura'} Manuale</i>")
@@ -274,7 +274,7 @@ def _get_admin_request_section_limit_text(context: CustomContext, platform: Plat
 
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     if config.limit is not None:
@@ -331,7 +331,7 @@ def _get_admin_request_section_limit_confirm_text(
 
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     if limit != 0:

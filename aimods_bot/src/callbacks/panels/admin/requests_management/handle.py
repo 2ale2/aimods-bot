@@ -13,9 +13,12 @@ async def handle_request_rejection_reason(update: Update, context: CustomContext
     await safe_delete(update=update, context=context)
 
     reason = update.message.text
-    request = context.chat_data.pop("rejecting", None)
+
+    request = context.pydc.ephimeral.rejecting
+    context.pydc.ephimeral.rejecting = None
+
     if request is None:
-        raise MissingParameterException("Missing 'request' parameter inside chat_data.")
+        raise MissingParameterException("Missing 'request' parameter inside ChatData.")
 
     assert isinstance(request, Request)
 

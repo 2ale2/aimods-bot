@@ -67,7 +67,7 @@ async def catch_post_from_channel(update: Update, context: CustomContext):
 
 async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
     if isinstance(context, CustomContext):
-        bot_data = context.pyd
+        bot_data = context.pydb
     else:
         bot_data = context.bot_data
 

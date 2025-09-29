@@ -19,7 +19,7 @@ def set_user_requests_limiting_item(context: CustomContext):
     for platform, categories in CATEGORY_DETAILS.items():
         sections[platform] = {}
         for category in categories:
-            if context.pyd.base_path and f"{platform}/{category}" in context.pyd.base_path:
+            if context.pydb.base_path and f"{platform}/{category}" in context.pydb.base_path:
                 sections[platform][category] = True
             else:
                 sections[platform][category] = False

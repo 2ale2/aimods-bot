@@ -31,15 +31,15 @@ async def new_member_joined_forum(update: Update, context: CustomContext):
 
 
 async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: int) -> bool:
-    if uid not in context.pyd.ban_list:
+    if uid not in context.pydb.ban_list:
         return False
 
-    ban_data = context.pyd.ban_list.pop(uid)
+    ban_data = context.pydb.ban_list.pop(uid)
     until_date = ban_data["expires_at"]
     rome_until = until_date.astimezone(pytz.timezone('Europe/Rome')) if until_date else None
 
     await constants.pyro_instance.ban_chat_member(
-        chat_id=context.pyd.group_chat_id,
+        chat_id=context.pydb.group_chat_id,
         user_id=uid,
         until_date=until_date
     )
@@ -73,7 +73,7 @@ async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: in
         update=update,
         context=context,
         text=text,
-        recipient_id=context.pyd.group_chat_id,
+        recipient_id=context.pydb.group_chat_id,
         delay_delete=300
     )
 
@@ -101,7 +101,7 @@ async def _send_rules_and_schedule_expiry(update: Update, context: CustomContext
     if update.callback_query:
         await safe_delete(update, context)
 
-    rules_text = context.pyd.user_joined_message_text.format(update.effective_user.full_name)
+    rules_text = context.pydb.user_joined_message_text.format(update.effective_user.full_name)
     confirm_keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋", callback_data=f"accept_rules {uid}")]
     ])

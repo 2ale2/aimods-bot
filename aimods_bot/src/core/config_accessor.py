@@ -5,7 +5,7 @@ from aimods_bot.src.core.pydantic import Configuration
 
 
 def get_config(context: CustomContext) -> Configuration:
-    return context.pyd.configuration
+    return context.pydb.configuration
 
 
 def get_value(context, path: str, default=None):

@@ -276,7 +276,7 @@ async def _limit_unlimit_with_ptb(
 ) -> bool:
     try:
         await context.bot.restrict_chat_member(
-            chat_id=int(context.pyd.group_chat_id),
+            chat_id=int(context.pydb.group_chat_id),
             user_id=user_id,
             until_date=until_date,
             permissions=permissions,
@@ -299,7 +299,7 @@ async def _limit_unlimit_with_pyro(
 ) -> bool:
     try:
         await constants.pyro_instance.restrict_chat_member(
-            chat_id=int(context.pyd.group_chat_id),
+            chat_id=int(context.pydb.group_chat_id),
             user_id=add_fucking_at(user_id) if isinstance(user_id, str) else user_id,
             until_date=until_date,
             permissions=permissions,

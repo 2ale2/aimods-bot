@@ -114,7 +114,7 @@ async def confirm_request(update: Update, context: CustomContext):
     # Programma la rimozione del cooldown
     await schedule_request_cooldown_removal(context=context, user_id=rc.user_id, until=rc.until)
 
-    config = getattr(getattr(context.pyd.configuration.settings.request, platform.value), category.value)
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
     if config is not None:

@@ -215,7 +215,7 @@ async def render_confirm_cancel_panel(
     if not request:
         raise DatabaseBotException(f"Richiesta {ix} non trovata.")
 
-    timer_sec = context.pyd.configuration.settings.request.cancel_timer
+    timer_sec = context.pydb.configuration.settings.request.cancel_timer
     if request.can_be_cancelled(timer_sec):
         text = await _get_confirm_cancel_text(request=request)
         keyboard = [

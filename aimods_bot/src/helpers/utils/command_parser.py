@@ -29,7 +29,7 @@ async def parse_command(
         Dizionario con i campi estratti, oppure None se il parsing fallisce.
     """
     try:
-        cmd_conf = context.pyd.commands[command]
+        cmd_conf = context.pydb.commands[command]
         pattern = cmd_conf.pattern
         parameters = cmd_conf.parameters
     except KeyError:

@@ -643,7 +643,8 @@ async def render_admin_confirm_rejection_panel(
         reason: Union[RejectRequestReason, str]
 ):
     text = await _get_admin_confirm_rejection_text(request=request, rejection_reason=reason)
-    message_id = context.chat_data.pop("update_message", None)
+    message_id = context.pydc.persistent.bot_message_id
+    context.pydc.persistent.bot_message_id = None
 
     platform = request.platform
     category = request.category
