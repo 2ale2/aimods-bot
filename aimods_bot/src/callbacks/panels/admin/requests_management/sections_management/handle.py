@@ -16,7 +16,8 @@ async def handle_request_section_toggle(
     config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
 
-    if opening and len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
+    r = len(context.get_active_category_requests(platform=platform, category=category))
+    if opening and config.limit is not None and r >= config.limit:
         config.limit = None
 
     config.toggle = opening

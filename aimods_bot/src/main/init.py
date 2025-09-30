@@ -2,9 +2,9 @@ import logging
 import os
 import locale
 import sys
-from telegram.ext import ApplicationBuilder, ContextTypes, PersistenceInput, Application
+from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
-from aimods_bot.src.core.customcontext import CustomContext, BotData
+from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
 from aimods_bot.src.core.setup import set_application_data, get_handlers
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.helpers.loggers import logger
@@ -31,11 +31,10 @@ def main():
     persistence = AsyncPostgresPersistence(
         url=os.getenv("POSTGRES_CONNECTION_URL"),
         on_flush=False,
-        coalesce_delay=0.1,
-        store_data = PersistenceInput(chat_data=False, user_data=False)
+        coalesce_delay=0.1
     )
 
-    context_types = ContextTypes(context=CustomContext, bot_data=BotData)
+    context_types = ContextTypes(context=CustomContext, bot_data=BotData, chat_data=ChatData, user_data=UserData)
 
     async def post_init_hook(app):
         await persistence.initialize()  # crea pool + carica dati nel loop PTB

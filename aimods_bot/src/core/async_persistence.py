@@ -152,26 +152,26 @@ class AsyncPostgresPersistence(DictPersistence):
             return migrate_bot_data(raw)
 
     @staticmethod
-    def _load_user_data(raw: Optional[Dict[str, Any]]) -> UserData:
+    def _load_user_data(raw: Optional[Dict[str, Any]]) -> Dict[int, UserData]:
         if raw is None:
-            return UserData()
+            return {}
         try:
-            return UserData.model_validate(raw)
+            return {int(user_id): UserData.model_validate(data) for user_id, data in raw.items()}
         except ValidationError:
             log.warning("UserData validation failed, building empty object.")
-            # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
-            return UserData()
+            # It's dangerous to load an empty object. Consider building a migrate method just like bot_data
+            return {}
 
     @staticmethod
-    def _load_chat_data(raw: Optional[Dict[str, Any]]) -> ChatData:
+    def _load_chat_data(raw: Optional[Dict[str, Any]]) -> Dict[int, ChatData]:
         if raw is None:
-            return ChatData()
+            return {}
         try:
-            return ChatData.model_validate(raw)
+            return {int(chat_id): ChatData.model_validate(data) for chat_id, data in raw.items()}
         except ValidationError:
             log.warning("ChatData validation failed, building empty object.")
             # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
-            return ChatData()
+            return {}
 
     def _dump_into_json(self) -> Dict[str, Any]:
         return {
@@ -238,15 +238,15 @@ class AsyncPostgresPersistence(DictPersistence):
 
     async def get_bot_data(self) -> BotData:
         await self._ensure_pool()
-        base_dict: Dict[str, Any] = await super().get_bot_data()
+        base_dict: Dict[str, Any] = await super().get_bot_data()  # It's better to keep str here to avoid cast issues
         return self._load_bot_data(base_dict)
 
-    async def get_chat_data(self) -> ChatData:
+    async def get_chat_data(self) -> Dict[int, ChatData]:
         await self._ensure_pool()
         base_dict: Dict[str, Any] = await super().get_chat_data()
         return self._load_chat_data(base_dict)
 
-    async def get_user_data(self) -> UserData:
+    async def get_user_data(self) -> Dict[int, UserData]:
         await self._ensure_pool()
         base_dict: Dict[str, Any] = await super().get_user_data()
         return self._load_user_data(base_dict)

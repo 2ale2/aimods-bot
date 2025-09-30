@@ -6,8 +6,8 @@ settings:
         limit: null
     windows:
       software:
-        toggle: true
-        limit: 5
+        toggle: false
+        limit: null
       game:
         toggle: true
         limit: 5

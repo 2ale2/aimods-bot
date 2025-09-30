@@ -2,6 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import Literal, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
@@ -22,7 +23,7 @@ def set_user_requests_limiting_item(context: CustomContext):
 
 def get_request_limiting_detail(context: CustomContext, what: Literal["user_id", "duration", "sections", "reason"]):
     limiting_item = set_user_requests_limiting_item(context=context)
-    return limiting_item[what]
+    return getattr(limiting_item, what)
 
 
 def set_request_limiting_detail(
@@ -52,7 +53,8 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
             text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]
-            ])
+            ]),
+            parse_mode=ParseMode.HTML
         )
         return False
 

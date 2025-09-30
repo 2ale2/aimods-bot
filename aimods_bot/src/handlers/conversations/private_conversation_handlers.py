@@ -78,7 +78,7 @@ private_conversation_handler = ConversationHandler(
                 callback=handler_user_input_links
             ),
             close_button_handler,
-            CallbackQueryHandler(callback=admin_main_router)
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
         ],
         PCS.ADD_ANTISPAM_MENTION_WHITELIST: [
             MessageHandler(
@@ -103,7 +103,7 @@ private_conversation_handler = ConversationHandler(
                 filters=filters.TEXT,
                 callback=render_handled_request_limitation_duration_panel
             ),
-            CallbackQueryHandler(callback=admin_main_router),
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router),
             close_button_handler
         ],
         PCS.SET_REQUEST_LIMITATION_REASON: [
@@ -119,7 +119,7 @@ private_conversation_handler = ConversationHandler(
                 callback=route_admin_limit_user_request
             ),
             close_button_handler,
-            CallbackQueryHandler(callback=admin_main_router)
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
         ],
         PCS.SET_REQUEST_REJECTION_REASON: [
             MessageHandler(

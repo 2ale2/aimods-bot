@@ -30,8 +30,9 @@ class PunishmentConfig(BaseModel):
     time: int = Field(ge=0, description="Punishment time in seconds (0 for endless)")
 
     @field_serializer("type")
-    def _serialize_punishment_type(self, type: PunishmentType):
-        return type.value
+    def _serialize_punishment_type(self, ptype: PunishmentType):
+        return ptype.value
+
 
 class WhitelistConfig(BaseModel):
     user: List[int] = Field(default_factory=list)

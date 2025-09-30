@@ -89,7 +89,7 @@ async def route_admin_limit_user_request(
         path: Optional[list[str]] = None,
         user_id: Optional[int] = None
 ):
-    if not context.pydb.base_path:
+    if not context.pydb.base_path and update.callback_query:
         context.set_base_path(base_path="/".join(update.callback_query.data.split("/")[:-1]))
 
     if path and len(path) > 0 and path[0].startswith("limit_"):
@@ -126,8 +126,8 @@ async def route_admin_limit_user_request(
 
     limiting_item = set_user_requests_limiting_item(context=context)
 
-    if not limiting_item["user_id"]:
-        limiting_item["user_id"] = user_id
+    if not limiting_item.user_id:
+        limiting_item.user_id = user_id
 
     if not path or len(path) == 0:
         await render_admin_limit_user_panel(

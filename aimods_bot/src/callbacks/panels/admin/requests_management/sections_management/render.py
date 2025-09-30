@@ -179,7 +179,8 @@ def _get_admin_request_section_toggle_panel_text(
     text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if opens else 'chiudi'} questa sezione, "
              f"gli utenti {'non ' if not opens else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
-    if opens and (r := len(context.get_active_category_requests(platform=platform, category=category))) >= config.limit:
+    r = len(context.get_active_category_requests(platform=platform, category=category))
+    if opens and config.limit is not None and r >= config.limit:
         text += ("<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore al limite</b>"
                  f" impostato per questa sezione (<b>{pluralize(r, 'richiesta', 'richieste')} su "
                  f"{config.limit}</b>); se la riapri, il <b>limite verrà automaticamente impostato a "

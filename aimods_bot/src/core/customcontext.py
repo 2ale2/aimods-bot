@@ -76,6 +76,7 @@ class ChatDataPersistent(BaseModel):
 
 
 class ChatDataEphemeral(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # Consent ChatMember and User objs
     # ======== Both Admins & Users ========
     action: Optional[str] = Field(
         default_factory=str,
