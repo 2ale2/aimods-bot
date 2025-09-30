@@ -33,7 +33,7 @@ android_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -73,7 +73,7 @@ windows_request_handler = ConversationHandler(
                     RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                     RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
-                fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+                fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -103,7 +103,7 @@ windows_request_handler = ConversationHandler(
                     RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                     RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
-                fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+                fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -133,7 +133,7 @@ windows_request_handler = ConversationHandler(
                     RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                     RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
-                fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+                fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -164,7 +164,7 @@ windows_request_handler = ConversationHandler(
                     RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                     RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
                 },
-                fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+                fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
                 map_to_parent={
                     ConversationHandler.END: ConversationHandler.END,
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER,

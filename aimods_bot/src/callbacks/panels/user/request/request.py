@@ -27,7 +27,8 @@ REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
 
 async def request_detail(update: Update, context: CustomContext) -> int:
     """Gestisce l'input utente se necessario e richiede il dettaglio successivo."""
-    context.pydc.persistent.bot_message_id = update.effective_message.id
+    if not context.pydc.persistent.bot_message_id:
+        context.pydc.persistent.bot_message_id = update.effective_message.id
 
     request_data = RequestDataManager.get_request_data(context)
     if request_data.requesting:

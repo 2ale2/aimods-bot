@@ -4,13 +4,13 @@ from typing import List
 from pydantic import ValidationError
 
 import aimods_bot.src.helpers.constants.constants as constants
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
-from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
+from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger

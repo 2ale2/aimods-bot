@@ -1,6 +1,8 @@
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.handle import confirm_rejection
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
+    render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
@@ -17,6 +19,9 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 
 async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -74,6 +79,11 @@ async def admin_manage_request_route(
 ):
     request = context.get_active_request_by_id(ix=ix)
 
+    if request is None:
+        log.warning("Request variable is None. The request may have been deleted while managing it.")
+        await render_request_deleted_panel(update=update, context=context)
+        return PCS.ADMIN_CONVERSATION
+
     if len(context.get_active_category_requests(platform=request.platform, category=request.category)) == 1:
         back_button_callback_key = "admin/manage_requests/active_requests"
     else:
@@ -91,6 +101,10 @@ async def admin_manage_request_route(
 
     elif len(path) == 1:
         if path[0] in RequestStatus and RequestStatus(path[0]) is not RequestStatus.REJECTED:
+            if not request.is_active:
+                await render_request_inactive_panel(update=update, context=context)
+                return PCS.ADMIN_CONVERSATION
+
             # expected: (<platform>/<category>/<id>)/<new_status>
             await render_change_request_status_confirmation_panel(
                 update=update,
@@ -119,6 +133,10 @@ async def admin_manage_request_route(
             )
 
         elif path[0] == "change_status":
+            if not request.is_active:
+                await render_request_inactive_panel(update=update, context=context)
+                return PCS.ADMIN_CONVERSATION
+
             await render_admin_manage_request_change_status_panel(
                 update=update,
                 context=context,
@@ -127,6 +145,9 @@ async def admin_manage_request_route(
             )
 
         elif path[0] == "reject":
+            if not request.is_active:
+                await render_request_inactive_panel(update=update, context=context)
+                return PCS.ADMIN_CONVERSATION
             context.pydc.ephemeral.rejecting = request
             context.pydc.persistent.bot_message_id = update.effective_message.id
             await render_admin_reject_request_panel(
@@ -140,6 +161,10 @@ async def admin_manage_request_route(
 
     elif len(path) == 2:
         if path[-2] in RequestStatus and path[-1] == "yes":
+            if not request.is_active:
+                await render_request_inactive_panel(update=update, context=context)
+                return PCS.ADMIN_CONVERSATION
+
             # expected: (<platform>/<category>/<id>)/<new_status>/yes
             status = RequestStatus(path[-2])
             await context.edit_request_status(ix=ix, status=status)
@@ -162,6 +187,10 @@ async def admin_manage_request_route(
             )
 
         elif path[-2] == "reject" and path[-1] in RejectRequestReason:
+            if not request.is_active:
+                await render_request_inactive_panel(update=update, context=context)
+                return PCS.ADMIN_CONVERSATION
+
             await render_admin_confirm_rejection_panel(
                 update=update,
                 context=context,
@@ -171,6 +200,10 @@ async def admin_manage_request_route(
             )
 
     elif len(path) == 3:
+        if not request.is_active:
+            await render_request_inactive_panel(update=update, context=context)
+            return PCS.ADMIN_CONVERSATION
+
         if path[-3] == "reject" and path[-1] == "yes":
             await confirm_rejection(context, ix=ix, reason=path[-2])
             await render_admin_rejection_confirmed_panel(

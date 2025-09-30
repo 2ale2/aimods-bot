@@ -770,3 +770,48 @@ def _get_admin_user_limitation_removed_text(user_id: int, section: str):
             "🔹 Scegli un'opzione.")
 
     return text
+
+
+async def render_request_deleted_panel(update: Update, context: CustomContext):
+    text = _get_request_deleted_text()
+
+    request_deleted_panel = Panel(
+        PanelConfig(
+            base_path="admin",
+            text=text,
+            keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
+        )
+    )
+
+    await request_deleted_panel.render(update=update, context=context)
+
+
+def _get_request_deleted_text():
+    text = ("⚠️ <b>Problema con la Richiesta</b>\n\n"
+            "▫ Questa richiesta non è più tra le richieste attive.\n\n"
+            "<blockquote>ℹ <b>Info</b> – È possibile che la richiesta sia stata rimossa da un admin mentre un altro "
+            "admin la gestiva. Prova a verificare se è ancora presente tra le richieste attive.</blockquote>")
+    return text
+
+
+async def render_request_inactive_panel(update: Update, context: CustomContext):
+    text = _get_request_inactive_text()
+
+    request_inactive_panel = Panel(
+        PanelConfig(
+            base_path="admin",
+            text=text,
+            keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
+        )
+    )
+
+    await request_inactive_panel.render(update=update, context=context)
+
+
+def _get_request_inactive_text():
+    text = ("⚠️ <b>Richiesta Non Più Attiva</b>\n\n"
+            "▫ La richiesta non è più attiva.\n\n"
+            "<blockquote>ℹ <b>Info</b> – Un altro admin potrebbe aver completato o rifiutato la richiesta "
+            "mentre tu la gestivi. Verifica lo stato attuale nelle richieste attive.</blockquote>")
+
+    return text

@@ -3,7 +3,7 @@ settings:
     android:
       app:
         toggle: true
-        limit: null
+        limit: 3
     windows:
       software:
         toggle: false
