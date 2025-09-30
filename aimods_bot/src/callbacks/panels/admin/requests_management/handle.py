@@ -14,8 +14,8 @@ async def handle_request_rejection_reason(update: Update, context: CustomContext
 
     reason = update.message.text
 
-    request = context.pydc.ephimeral.rejecting
-    context.pydc.ephimeral.rejecting = None
+    request = context.pydc.ephemeral.rejecting
+    context.pydc.ephemeral.rejecting = None
 
     if request is None:
         raise MissingParameterException("Missing 'request' parameter inside ChatData.")

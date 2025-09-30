@@ -127,7 +127,7 @@ async def admin_manage_request_route(
             )
 
         elif path[0] == "reject":
-            context.pydc.ephimeral.rejecting = request
+            context.pydc.ephemeral.rejecting = request
             context.pydc.persistent.bot_message_id = update.effective_message.id
             await render_admin_reject_request_panel(
                 update=update,

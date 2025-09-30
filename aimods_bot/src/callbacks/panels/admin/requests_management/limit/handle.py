@@ -3,9 +3,8 @@ from typing import Literal, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.loggers import logger
@@ -15,21 +14,10 @@ log = logger.getChild("handle_request_limitation")
 
 def set_user_requests_limiting_item(context: CustomContext):
     """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
-    sections = {}
-    for platform, categories in CATEGORY_DETAILS.items():
-        sections[platform] = {}
-        for category in categories:
-            if context.pydb.base_path and f"{platform}/{category}" in context.pydb.base_path:
-                sections[platform][category] = True
-            else:
-                sections[platform][category] = False
+    if context.pydc.persistent.limiting_user_requests is None:
+        context.pydc.persistent.limiting_user_requests = AdminLimitingUserRequests()
 
-    return context.chat_data.setdefault("limit_user_requests", {
-        "user_id": 0,
-        "duration": 0,
-        "sections": sections,
-        "reason": ""
-    })
+    return context.pydc.persistent.limiting_user_requests
 
 
 def get_request_limiting_detail(context: CustomContext, what: Literal["user_id", "duration", "sections", "reason"]):
@@ -42,17 +30,18 @@ def set_request_limiting_detail(
         what: Literal["user_id", "duration", "sections", "reason"],
         value: Union[str, int, dict]
 ):
-    item = context.chat_data.get("limit_user_requests", None)
+    item = context.pydc.persistent.limiting_user_requests
     if item is None:
-        log.warning("Key 'limit_user_requests' was not found.")
+        log.warning("Key 'limit_user_requests' was not initialized.")
         return False
 
-    context.chat_data["limit_user_requests"][what] = value
+    setattr(item, what, value)
 
 
 async def handle_request_limitation_duration(update: Update, context: CustomContext):
+    item = context.pydc.persistent.limiting_user_requests
     if update.callback_query and update.callback_query.data.endswith("endless"):
-        context.chat_data["limit_user_requests"]["duration"] = 0
+        item.duration = 0
         return True
 
     text = update.effective_message.text
@@ -67,25 +56,31 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
         )
         return False
 
-    context.chat_data["limit_user_requests"]["duration"] = timedelta_to_seconds(parsed)
+    item.duration = timedelta_to_seconds(parsed)
     return True
 
 
 async def handle_request_limitation_topic(update: Update, context: CustomContext):
     data = update.callback_query.data.split("/")[-1]
-    sections = get_request_limiting_detail(context=context, what="sections")
-    if data in ("block_all", "unblock_all"):
-        for platform, categories in sections.items():
-            for category in categories:
-                sections[platform][category] = (data == "block_all")
-        return
+    item = context.pydc.persistent.limiting_user_requests
+    sections = item.sections
 
-    platform_str, category_str = data.split("-")
-    sections[platform_str][category_str] = not sections[platform_str][category_str]
+    if data in ("block_all", "unblock_all"):
+        flag = (data == "block_all")
+        for cats in sections.values():
+            for k in cats:
+                cats[k] = flag
+    else:
+        platform_str, category_str = data.split("-")
+        cats = sections.get(platform_str)
+        cats[category_str] = not cats[category_str]
+
+    # opzionale: trigger valida/persistenza
+    item.sections = sections
 
 
 def all_sections_are(context: CustomContext, what: bool):
-    sections = get_request_limiting_detail(context=context, what="sections")
+    sections = context.pydc.persistent.limiting_user_requests.sections
     for platform, categories in sections.items():
         for category in categories:
             if sections[platform][category] != what:

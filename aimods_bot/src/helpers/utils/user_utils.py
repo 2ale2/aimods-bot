@@ -66,7 +66,7 @@ async def get_user_warnings(user_id: int) -> Optional[dict]:
         return {}
 
     if result is None:
-        log.error(f"Impossibile ottenere le ammonzioni per user_id={user_id}")
+        log.error(f"Impossibile ottenere le ammonizioni per user_id={user_id}")
         return None
 
     return {i: result[i] for i in range(0, len(result))}
@@ -146,13 +146,11 @@ async def get_member_details_text(
         raise MissingParameterException("You must provide at least 'user' or 'user_identifier'.")
 
     if not user and context:
-        resolved = context.chat_data.setdefault("resolved_users", {})
-        resolving_attempt = resolved.get(str(user_identifier), None)
-        if not resolving_attempt:
+        resolved = context.pydc.ephemeral.resolved_users
+        resolving_attempt = resolved.get(str(user_identifier), False)
+        if resolving_attempt is None:  # User has not been resolved yet
             resolving_attempt = await resolve_user(identifier=user_identifier)
-            resolved[str(user_identifier)] = resolving_attempt
-        if resolving_attempt["status"] == "success":
-            user = resolving_attempt["user"]
+            resolved[str(user_identifier)] = resolving_attempt["user"]
 
     if user:
         if isinstance(user, Union[PTBChatMember, PyroChatMember]):

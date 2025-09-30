@@ -73,23 +73,23 @@ class RequestDataManager:
         - Resetta flag/ID di messaggi e campo in editing.
         - Salva un timestamp di avvio richiesta.
         """
-        chat = context.chat_data
+        chat = context.pydc
 
-        if chat.get("new_request", None) is not None:
+        if context.pydc.persistent.new_request is not None:
             try:
                 RequestDataManager.cleanup_request(context=context)
             except Exception as e:
                 log.warning("cleanup_request failed: %s", e, exc_info=e)
 
         request_data = Request(platform=platform, category=category)
-        chat["new_request"] = request_data.model_dump()
+        context.pydc.persistent.new_request = request_data
 
         log.info(
             "Initialized new request",
             extra={
                 "platform": getattr(platform, "value", None),
                 "category": getattr(category, "value", None),
-            },
+            }
         )
 
     @staticmethod
@@ -126,9 +126,9 @@ class RequestDataManager:
             steamtools_keyboard=(detail == RequestField.STEAMTOOLS)
         )
 
-        context.chat_data["bot_message_id"] = await edit_message_safely(
+        context.pydc.persistent.bot_message_id = await edit_message_safely(
             context=context,
-            message_id=context.chat_data["bot_message_id"],
+            message_id=context.pydc.persistent.bot_message_id,
             chat_id=update.effective_message.chat_id,
             text=text,
             keyboard=keyboard
@@ -178,9 +178,9 @@ class RequestDataManager:
             callback_data="no_edit"
         )
 
-        context.chat_data["bot_message_id"] = await edit_message_safely(
+        context.pydc.persistent.bot_message_id = await edit_message_safely(
             context=context,
-            message_id=context.chat_data["bot_message_id"],
+            message_id=context.pydc.persistent.bot_message_id,
             chat_id=update.effective_chat.id,
             text=text,
             keyboard=keyboard)
@@ -190,11 +190,11 @@ class RequestDataManager:
     @staticmethod
     def get_request_data(context: CustomContext) -> Request:
         """Ottiene i dati della richiesta corrente"""
-        request = context.chat_data.get("new_request", None)
+        request = context.pydc.persistent.new_request
         if request is None:
             RequestDataManager.initialize_request(context=context)
-            request = context.chat_data.get("new_request")
-        return Request.model_validate(request)
+            request = context.pydc.persistent.new_request
+        return request
 
     @staticmethod
     def update_field(context: CustomContext, field: str, value: Any) -> None:
@@ -206,8 +206,8 @@ class RequestDataManager:
         log.debug(f"Updated field {field} with value: {value}")
 
     @staticmethod
-    def update_request_data(context: CustomContext, request_data: Request) -> None:
-        context.chat_data["new_request"] = request_data.model_dump(mode="json")
+    def update_request_data(context: CustomContext, request_data: Request):
+        context.pydc.persistent.new_request = request_data
 
     @staticmethod
     async def recheck_request(update: Update, context: CustomContext):
@@ -226,9 +226,9 @@ class RequestDataManager:
 
         keyboard = KeyboardBuilder.get_review_keyboard(request_data=request_data)
 
-        context.chat_data["bot_message_id"] = await edit_message_safely(
+        context.pydc.persistent.bot_message_id = await edit_message_safely(
             context=context,
-            message_id=context.chat_data["bot_message_id"],
+            message_id=context.pydc.persistent.bot_message_id,
             chat_id=update.effective_chat.id,
             text=text,
             keyboard=keyboard
@@ -253,9 +253,9 @@ class RequestDataManager:
         confirmation_text = MessageBuilder.build_confirmation_message()
         confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
 
-        context.chat_data["bot_message_id"] = await edit_message_safely(
+        context.pydc.persistent.bot_message_id = await edit_message_safely(
             context=context,
-            message_id=context.chat_data["bot_message_id"],
+            message_id=context.pydc.persistent.bot_message_id,
             chat_id=update.effective_chat.id,
             text=confirmation_text,
             keyboard=confirmation_keyboard
@@ -325,8 +325,8 @@ class RequestDataManager:
     @staticmethod
     def cleanup_request(context: CustomContext) -> None:
         """Pulisce i dati della richiesta dal context"""
-        context.chat_data.pop("new_request", None)
-        context.chat_data.pop("bot_message_id", None)
+        context.pydc.persistent.new_request = None
+        context.pydc.persistent.bot_message_id = None
 
 
 class KeyboardBuilder:

@@ -19,7 +19,8 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
     RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown
-from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
+    CATEGORY_DETAILS
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 
@@ -30,42 +31,51 @@ class UserDataPersistent(BaseModel):
     alerts: Dict[str, str] = Field(default_factory=dict)
 
 
-class UserDataEphimeral(BaseModel):
+class UserDataEphemeral(BaseModel):
     # TO BE IMPLEMENTED
     pass
 
 
 class UserData(BaseModel):
     persistent: UserDataPersistent = Field(default_factory=UserDataPersistent)
-    ephimeral: UserDataEphimeral = Field(default_factory=UserDataEphimeral)
+    ephemeral: UserDataEphemeral = Field(default_factory=UserDataEphemeral)
 
 
 class AdminLimitingUserRequests(BaseModel):
     user_id: int = Field(default_factory=int, description="User ID of the user to be limited")
     duration: int = Field(default_factory=int, description="Limit duration in seconds (0 if unlimited)")
-    sections: Dict[str, bool] = Field(default_factory=dict, description="Sections to be limited (True if limited)")
+    sections: Dict[str, Dict[str, bool]] = Field(
+        default_factory=dict,
+        description="Sections to be limited (True if limited)"
+    )
     reason: str = Field(default_factory=str, description="Reason for limiting")
 
+    def model_post_init(self, __context):
+        if not self.sections:
+            self.sections = {
+                platform: {category: False for category in categories}
+                for platform, categories in CATEGORY_DETAILS.items()
+            }
 
 class ChatDataPersistent(BaseModel):
     # ======== Both Admins & Users ========
     bot_message_id: Optional[int] = Field(
-        default_factory=int,
+        default=None,
         description="Memory space for saving bot message IDs in the case an input from the user is expected."
     )
     # ======== Admins ========
     limiting_user_requests: Optional[AdminLimitingUserRequests] = Field(
-        default_factory=None,
+        default=None,
         description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
     )
     # ======== Users ========
     new_request: Optional[Request] = Field(
-        default_factory=None,
+        default=None,
         description="Memory space to keep request data before adding it into bot data"
     )
 
 
-class ChatDataEphimeral(BaseModel):
+class ChatDataEphemeral(BaseModel):
     # ======== Both Admins & Users ========
     action: Optional[str] = Field(
         default_factory=str,
@@ -73,15 +83,15 @@ class ChatDataEphimeral(BaseModel):
     )
     # ======== Admins ========
     rejecting: Optional[Request] = Field(
-        default_factory=None,
+        default=None,
         description="Request that has been selected for rejection from admin (allows to write personalized reason)."
     )
-    resolved_members: Optional[Dict[int, Union[PTBChatMember, PyroChatMember]]] = Field(
-        default_factory=None,
+    resolved_members: Optional[Dict[str, Optional[Union[PTBChatMember, PyroChatMember]]]] = Field(
+        default_factory=dict,
         description="Members cache to avoid flood limit while resolving. Must be not in persistence."
     )
-    resolved_users: Optional[Dict[int, Union[PTBUser, PyroUser]]] = Field(
-        default_factory=None,
+    resolved_users: Optional[Dict[str, Union[PTBUser, PyroUser]]] = Field(
+        default_factory=dict,
         description="Users cache to avoid flood limit while resolving. Must be not in persistence."
     )
     # ======== Users ========
@@ -89,7 +99,7 @@ class ChatDataEphimeral(BaseModel):
 
 class ChatData(BaseModel):
     persistent: ChatDataPersistent = Field(default_factory=ChatDataPersistent)
-    ephimeral: ChatDataEphimeral = Field(default_factory=ChatDataEphimeral)
+    ephemeral: ChatDataEphemeral = Field(default_factory=ChatDataEphemeral)
 
 
 class BotData(BaseModel):
@@ -121,7 +131,7 @@ class BotData(BaseModel):
     )
 
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyTypeChecker
 class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     user_id: Optional[int]
     chat_id: Optional[int]

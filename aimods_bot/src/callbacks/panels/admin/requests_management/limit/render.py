@@ -98,7 +98,7 @@ async def render_admin_limit_user_panel(
         user_id: Union[int, str],
         back_button_callback_key: Optional[str] = None
 ):
-    member_responses = context.chat_data.setdefault("resolved_members", {})
+    member_responses = context.pydc.ephemeral.resolved_members
     member_response = member_responses.get(str(user_id), None)
 
     if not member_response:
@@ -106,16 +106,16 @@ async def render_admin_limit_user_panel(
             context=context,
             user_identifier=user_id
         )
-        member_responses[str(user_id)] = member_response
+        member_responses[str(user_id)] = member_response["member"]
 
-    if limiting_user := get_request_limiting_detail(context=context, what="user_id"):
+    if limiting_user := context.pydc.persistent.limiting_user_requests.user_id:
         user_id = limiting_user
     else:
         if not is_user_id(str(user_id)):
             if member_response["status"] == "success":
                 user_id = member_response["member"].user.id
         set_user_requests_limiting_item(context=context)
-        set_request_limiting_detail(context=context, what="user_id", value=int(user_id))
+        context.pydc.persistent.limiting_user_requests.user_id = int(user_id)
 
     text = await _get_admin_limit_user_text(member=member_response["member"], user_id=user_id, context=context)
 
@@ -145,7 +145,9 @@ async def render_admin_limit_user_panel(
         )
     )
 
-    message_id = context.chat_data.pop("update_message", None)
+    message_id = context.pydc.persistent.bot_message_id
+    if message_id:
+        context.pydc.persistent.bot_message_id = None
 
     await admin_limit_user_request_panel.render(update=update, context=context, message_id=message_id)
 
@@ -157,17 +159,18 @@ async def _get_header(context: CustomContext, member: PyroChatMember | PTBChatMe
 
     text += await get_member_details_text(user=member, user_identifier=user_id)
 
-    if "limit_user_requests" not in context.chat_data:
+    item = context.pydc.persistent.limiting_user_requests
+    if not item:
         set_user_requests_limiting_item(context=context)
-        context.chat_data["limit_user_requests"]["user_id"] = user_id
+        item.user_id = user_id
 
-    total_sec = int(context.chat_data["limit_user_requests"]["duration"])
+    total_sec = int(item.duration)
     if total_sec is not None and total_sec == 0:
         duration_text = "♾ A Tempo Indeterminato"
     else:
         duration_text = get_duration_text(seconds=total_sec)
 
-    sections = context.chat_data["limit_user_requests"]["sections"]
+    sections = item.sections
     section_text = ""
     for platform, categories in sections.items():
         pl_item = PLATFORM_DETAILS[platform]
@@ -206,16 +209,16 @@ async def render_admin_limit_user_request_duration_panel(
         context: CustomContext,
         user_id: int
 ):
-    context.chat_data["update_message"] = update.effective_message.id
+    context.pydc.persistent.bot_message_id = update.effective_message.id
 
-    member_responses = context.chat_data.setdefault("resolved_members", {})
-    member_response = member_responses.get(str(user_id), None)
-    if not member_response:
+    member_responses = context.pydc.ephemeral.resolved_members
+    member_response = member_responses.get(str(user_id), False)
+    if member_response is None:  # Member has not been resolved yet
         member_response = await resolve_chat_member(
             context=context,
             user_identifier=user_id
         )
-        member_responses[str(user_id)] = member_response
+        member_responses[str(user_id)] = member_response["member"]
 
     text = await _get_admin_limit_user_request_duration_text(context=context, member=member_response["member"], user_id=user_id)
 
@@ -266,14 +269,14 @@ async def render_admin_limit_user_request_sections_panel(
         context: CustomContext,
         user_id: int
 ):
-    member_responses = context.chat_data.setdefault("resolved_members", {})
-    member_response = member_responses.get(str(user_id), None)
-    if not member_response:
+    member_responses = context.pydc.ephemeral.resolved_members
+    member_response = member_responses.get(str(user_id), False)
+    if member_response is None:  # Member has not been resolved yet
         member_response = await resolve_chat_member(
             context=context,
             user_identifier=user_id
         )
-        member_responses[str(user_id)] = member_response
+        member_responses[str(user_id)] = member_response["member"]
 
     text = await _get_admin_limit_user_request_sections_text(
         context=context,
@@ -339,16 +342,16 @@ async def render_admin_user_limitation_reason_panel(
 ) -> bool:
     """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
 
-    context.chat_data["update_message"] = update.effective_message.id
+    context.pydc.persistent.bot_message_id = update.effective_message.id
 
-    member_responses = context.chat_data.setdefault("resolved_mambers", {})
-    member_response = member_responses.get(str(user_id), None)
-    if not member_response:
+    member_responses = context.pydc.ephemeral.resolved_members
+    member_response = member_responses.get(str(user_id), False)
+    if member_response is None:  # Member has not been resolved yet
         member_response = await resolve_chat_member(
             context=context,
             user_identifier=user_id
         )
-        member_responses[str(user_id)] = member_response
+        member_responses[str(user_id)] = member_response["member"]
 
     all_sections_false = all_sections_are(context=context, what=False)
 
@@ -393,7 +396,7 @@ async def _get_admin_user_limitation_reason_text(
 async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
-    message_id = context.chat_data["update_message"]
+    message_id = context.pydc.persistent.bot_message_id
     await handle_limitation_confirmation(update=update, context=context)
 
     user_id = get_request_limiting_detail(context=context, what="user_id")
@@ -422,7 +425,7 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
         )
     )
 
-    context.chat_data.pop("limit_user_requests", None)
+    context.pydc.persistent.limiting_user_requests = None
     await admin_user_limitation_confirmed_panel.render(update=update, context=context, message_id=message_id)
 
 
@@ -544,7 +547,9 @@ async def render_admin_view_user_limitations_panel(
         )
     )
 
-    message_id = context.chat_data.pop("update_message", None)
+    message_id = context.pydc.persistent.bot_message_id
+    if message_id:
+        context.pydc.persistent.bot_message_id = None
 
     await admin_view_user_limitations_panel.render(update=update, context=context, message_id=message_id)
 
@@ -585,7 +590,9 @@ async def render_admin_remove_user_limitation_panel(
         )
     )
 
-    message_id = context.chat_data.pop("update_message", None)
+    message_id = context.pydc.persistent.bot_message_id
+    if message_id:
+        context.pydc.persistent.bot_message_id = None
 
     await admin_remove_user_limitation_panel.render(update=update, context=context, message_id=message_id)
 
@@ -709,7 +716,7 @@ async def _get_admin_remove_user_limitation_confirmation(
 async def handle_limitation_identifier(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
-    action = context.chat_data["action"]
+    action = context.pydc.ephemeral.action
     identifier = update.message.text
 
     if not identifier.isnumeric():

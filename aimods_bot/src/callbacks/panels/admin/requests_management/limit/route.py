@@ -31,14 +31,14 @@ async def route_admin_manage_limitations(
             case "limit_user_request":
                 return await route_admin_limit_user_request(update=update, context=context, path=path[1:], user_id=None)
             case "view_limitations":
-                context.chat_data["action"] = "view"
-                context.chat_data["update_message"] = update.effective_message.id
+                context.pydc.ephemeral.action = "view"
+                context.pydc.persistent.bot_message_id = update.effective_message.id
                 await render_admin_view_limitations_panel(update=update, context=context)
                 return PCS.SET_VIEW_REQUEST_LIMITATION_USER
             case "remove_limitations":
                 if len(path) == 1:
-                    context.chat_data["action"] = "remove"
-                    context.chat_data["update_message"] = update.effective_message.id
+                    context.pydc.ephemeral.action = "remove"
+                    context.pydc.persistent.bot_message_id = update.effective_message.id
                     await render_admin_remove_limitations_panel(update=update, context=context)
                     return PCS.SET_VIEW_REQUEST_LIMITATION_USER
                 if len(path) == 2:
@@ -99,7 +99,7 @@ async def route_admin_limit_user_request(
 
     if user_id is None:
         if not update.message:
-            context.chat_data["update_message"] = update.effective_message.id
+            context.pydc.persistent.bot_message_id = update.effective_message.id
             await render_admin_limit_user_request_panel(update=update, context=context)
             return PCS.SET_REQUEST_LIMITATION_USER
         else:
@@ -114,7 +114,7 @@ async def route_admin_limit_user_request(
                 return PCS.SET_REQUEST_LIMITATION_USER
 
     if user_id is not None and isinstance(user_id, str) and not user_id.isdigit():
-        user_responses = context.chat_data.setdefault("resolved_users", {})
+        user_responses = context.pydc.ephemeral.resolved_users
         member_response = user_responses.get(str(user_id), None)
         if not member_response:
             member_response = await resolve_user(identifier=user_id)
@@ -130,8 +130,6 @@ async def route_admin_limit_user_request(
         limiting_item["user_id"] = user_id
 
     if not path or len(path) == 0:
-        context.chat_data.setdefault("resolved_users", {})
-        context.chat_data.setdefault("resolved_members", {})
         await render_admin_limit_user_panel(
             update=update,
             context=context,
@@ -169,8 +167,8 @@ async def route_admin_limit_user_request(
                         context=context,
                         user_id=user_id
                 ):
-                    context.chat_data.pop("resolved_users", None)
-                    context.chat_data.pop("resolved_members", None)
+                    context.pydc.ephemeral.resolved_users = None
+                    context.pydc.ephemeral.resolved_members = None
                     return PCS.SET_REQUEST_LIMITATION_REASON
                 else:
                     return PCS.ADMIN_CONVERSATION

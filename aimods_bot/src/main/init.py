@@ -2,7 +2,7 @@ import logging
 import os
 import locale
 import sys
-from telegram.ext import ApplicationBuilder, ContextTypes, PersistenceInput
+from telegram.ext import ApplicationBuilder, ContextTypes, PersistenceInput, Application
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData
 from aimods_bot.src.core.setup import set_application_data, get_handlers

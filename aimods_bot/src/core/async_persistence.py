@@ -1,13 +1,13 @@
 import asyncio
 import json
 from logging import getLogger
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import asyncpg
 from pydantic import ValidationError
 from telegram.ext import DictPersistence
 
-from aimods_bot.src.core.customcontext import BotData
+from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
@@ -136,7 +136,9 @@ class AsyncPostgresPersistence(DictPersistence):
         await self._ensure_pool()
 
     @staticmethod
-    def _dump_pydantic(obj: BotData) -> Dict[str, Any]:
+    def _dump_pydantic(obj: Union[BotData, ChatData, UserData]) -> Dict[str, Any]:
+        if isinstance(obj, (ChatData, UserData)):
+            return obj.model_dump(mode="json", exclude={'ephemeral'})
         return obj.model_dump(mode="json")
 
     @staticmethod
@@ -148,6 +150,28 @@ class AsyncPostgresPersistence(DictPersistence):
         except ValidationError:
             log.warning("Something was wrong with persistence pydantic validation. Parsing what I can.")
             return migrate_bot_data(raw)
+
+    @staticmethod
+    def _load_user_data(raw: Optional[Dict[str, Any]]) -> UserData:
+        if raw is None:
+            return UserData()
+        try:
+            return UserData.model_validate(raw)
+        except ValidationError:
+            log.warning("UserData validation failed, building empty object.")
+            # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
+            return UserData()
+
+    @staticmethod
+    def _load_chat_data(raw: Optional[Dict[str, Any]]) -> ChatData:
+        if raw is None:
+            return ChatData()
+        try:
+            return ChatData.model_validate(raw)
+        except ValidationError:
+            log.warning("ChatData validation failed, building empty object.")
+            # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
+            return ChatData()
 
     def _dump_into_json(self) -> Dict[str, Any]:
         return {
@@ -217,18 +241,30 @@ class AsyncPostgresPersistence(DictPersistence):
         base_dict: Dict[str, Any] = await super().get_bot_data()
         return self._load_bot_data(base_dict)
 
+    async def get_chat_data(self) -> ChatData:
+        await self._ensure_pool()
+        base_dict: Dict[str, Any] = await super().get_chat_data()
+        return self._load_chat_data(base_dict)
+
+    async def get_user_data(self) -> UserData:
+        await self._ensure_pool()
+        base_dict: Dict[str, Any] = await super().get_user_data()
+        return self._load_user_data(base_dict)
+
     async def update_conversation(self, name: str, key: Tuple[int, ...], new_state: Optional[object]) -> None:
         await super().update_conversation(name, key, new_state)
         if not self.on_flush:
             await self._schedule_flush()
 
-    async def update_user_data(self, user_id: int, data: Dict) -> None:
-        await super().update_user_data(user_id, data)
+    async def update_user_data(self, user_id: int, data: Any) -> None:
+        payload = self._dump_pydantic(data)
+        await super().update_user_data(user_id, payload)
         if not self.on_flush:
             await self._schedule_flush()
 
-    async def update_chat_data(self, chat_id: int, data: Dict) -> None:
-        await super().update_chat_data(chat_id, data)
+    async def update_chat_data(self, chat_id: int, data: Any) -> None:
+        payload = self._dump_pydantic(data)
+        await super().update_chat_data(chat_id, payload)
         if not self.on_flush:
             await self._schedule_flush()
 
