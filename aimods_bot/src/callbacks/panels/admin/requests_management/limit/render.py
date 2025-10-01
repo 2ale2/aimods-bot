@@ -11,10 +11,13 @@ from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, safe_delete, is_user_id, \
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, is_user_id, \
     add_fucking_at, wrong_input_message, username_to_id, resolve_user
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 BASE_LIMIT_PATH = "admin/manage_requests/manage_limitations/limit_user_request/limit_{}"  # .format(user id da limitare)
 
@@ -102,14 +105,16 @@ async def render_admin_limit_user_panel(
 
     if not user_response:
         user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response["user"]
+        user_responses[str(user_id)] = user_response
 
     if limiting_user := context.pydc.persistent.limiting_user_requests.user_id:
         user_id = limiting_user
     else:
         if not is_user_id(str(user_id)):
             if user_response["status"] == "success":
-                user_id = user_response["user"].id
+                user = user_response["user"]
+                assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
+                user_id = user.id
         set_user_requests_limiting_item(context=context)
         context.pydc.persistent.limiting_user_requests.user_id = int(user_id)
 
@@ -218,11 +223,15 @@ async def render_admin_limit_user_request_duration_panel(
     user_response = user_responses.get(str(user_id), False)
     if user_response is False:  # User has not been resolved yet
         user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response["user"]
+        user_responses[str(user_id)] = user_response
+
+    user = user_response["user"]
+
+    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
 
     text = await _get_admin_limit_user_request_duration_text(
         context=context,
-        member=user_response,
+        member=user,
         user_id=user_id
     )
 
@@ -242,7 +251,7 @@ async def render_admin_limit_user_request_duration_panel(
 
 async def _get_admin_limit_user_request_duration_text(
         context: CustomContext,
-        member: PyroChatMember | PTBChatMember,
+        member: Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser],
         user_id: int
 ):
     text = await _get_header(context=context, user=member, user_id=user_id)
@@ -277,11 +286,14 @@ async def render_admin_limit_user_request_sections_panel(
     user_response = user_responses.get(str(user_id), False)
     if user_response is False:  # User has not been resolved yet
         user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response["user"]
+        user_responses[str(user_id)] = user_response
+
+    user = user_response["user"]
+    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
 
     text = await _get_admin_limit_user_request_sections_text(
         context=context,
-        user=user_response,
+        user=user,
         user_id=user_id
     )
     keyboard = _get_admin_limit_user_request_sections_keyboard(context=context)
@@ -349,13 +361,16 @@ async def render_admin_user_limitation_reason_panel(
     user_response = user_responses.get(str(user_id), False)
     if user_response is False:  # Member has not been resolved yet
         user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response["user"]
+        user_responses[str(user_id)] = user_response
 
     all_sections_false = all_sections_are(context=context, what=False)
 
+    user = user_response["user"]
+    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
+
     text = await _get_admin_user_limitation_reason_text(
         context=context,
-        member=user_response,
+        member=user,
         user_id=user_id,
         all_sections_false=all_sections_false
     )
@@ -377,7 +392,7 @@ async def render_admin_user_limitation_reason_panel(
 
 async def _get_admin_user_limitation_reason_text(
         context: CustomContext,
-        member: PyroChatMember | PTBChatMember,
+        member: Union[PyroChatMember, PTBChatMember, PTBUser, PyroUser],
         user_id: int,
         all_sections_false: Optional[bool] = False
 ):
@@ -578,7 +593,10 @@ async def render_admin_remove_user_limitation_panel(
         context: CustomContext,
         user_id: int
 ):
-    limits = context.get_user_request_limitations(user_id=user_id)
+    if not is_user_id(user_id):
+        log.warning("User ID should be an integer")
+
+    limits = context.get_user_request_limitations(user_id=int(user_id))
     text, keyboard = await _get_admin_remove_user_limitation_text_and_keyboard(
         context=context,
         limits=limits,
@@ -627,7 +645,10 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
                 keyboard.append([])
             keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=f"{pl}:{ca}"))
 
-        keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+        keyboard.extend([
+            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key="remove_all")],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ])
 
         text += "🔹 Scegli la limitazione da rimuovere."
     else:
@@ -645,17 +666,21 @@ async def render_admin_remove_user_limitation_confirmation_panel(
         update: Update,
         context: CustomContext,
         user_id: int,
-        l: RequestSectionLimitation
+        l: Optional[RequestSectionLimitation],
+        remove_all: bool = False
 ):
     text = await _get_admin_remove_user_limitation_confirmation(
         context=context,
         user_id=user_id,
-        l=l
+        l=l,
+        remove_all=remove_all
     )
+
+    end_data = l.section if l else "remove_all"
 
     admin_remove_user_limitation_confirmation_panel = Panel(
         PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}/{l.section}",
+            base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}/{end_data}",
             text=text,
             keyboard=[[
                 ButtonItem(text="✅ Confermo", callback_key="yes"),
@@ -670,12 +695,19 @@ async def render_admin_remove_user_limitation_confirmation_panel(
 async def _get_admin_remove_user_limitation_confirmation(
         context: CustomContext,
         user_id: int,
-        l: RequestSectionLimitation
+        l: RequestSectionLimitation,
+        remove_all: bool = False
 ):
     text = ("➖ <b>Rimuovi Limitazioni</b>\n\n"
             "▪ Da qui puoi rimuovere le limitazioni sulle richieste agli utenti.\n\n")
 
     text += await get_member_details_text(context=context, user_identifier=user_id) + "\n"
+
+    if remove_all:
+        text += ("<blockquote>⚠️ <b>Attenzione</b> – Stai rimuovendo tutte le limitazioni dell'utente; tornerà a "
+                 "poter fare richieste come un utente normale.</blockquote>\n\n"
+                 "🔹 Confermi?")
+        return text
 
     pl, ca = l.section.split(":")
     pl_icon = PLATFORM_DETAILS[pl]["icon"]
@@ -731,10 +763,19 @@ async def handle_limitation_identifier(update: Update, context: CustomContext):
                 correct_format="un ID o uno @username valido"
             )
             return PCS.SET_VIEW_REQUEST_LIMITATION_USER
+
+    if int(identifier) in context.pydb.admins.keys():
+        await wrong_input_message(
+            update=update,
+            context=context,
+            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
+        )
+        return PCS.SET_VIEW_REQUEST_LIMITATION_USER
+
     if action == "view":
         await render_admin_view_user_limitations_panel(update=update, context=context, user_id=identifier)
     elif action == "remove":
-        await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=identifier)
+        await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=int(identifier))
     return PCS.ADMIN_CONVERSATION
 
 
@@ -742,9 +783,10 @@ async def render_admin_user_limitation_removed_panel(
         update: Update,
         context: CustomContext,
         user_id: int,
-        section: str
+        section: Optional[str],
+        remove_all: bool = False
 ):
-    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section)
+    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section, remove_all=remove_all)
 
     admin_user_limitation_removed_panel = Panel(
         PanelConfig(
@@ -762,7 +804,13 @@ async def render_admin_user_limitation_removed_panel(
     await admin_user_limitation_removed_panel.render(update=update, context=context)
 
 
-def _get_admin_user_limitation_removed_text(user_id: int, section: str):
+def _get_admin_user_limitation_removed_text(user_id: int, section: str, remove_all: bool = False) -> str:
+    if remove_all:
+        text = ("✅ <b>Tutte le Limitazioni Rimosse</b>\n\n"
+                f"<blockquote>Ora l'utente <code>{user_id}</code> non ha più limitazioni.</blockquote>\n\n"
+                f"🔹 Scegli un'opzione.")
+        return text
+
     pl, ca = section.split(":")
     pl_label = PLATFORM_DETAILS[pl]["label"]
     ca_label = CATEGORY_DETAILS[pl][ca]["label"]

@@ -14,7 +14,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user, is_user_id
 
 
 async def route_admin_manage_limitations(
@@ -47,38 +47,53 @@ async def route_admin_manage_limitations(
                     await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=user_id)
                     return PCS.ADMIN_CONVERSATION
                 if len(path) == 3:
-                    # expected: ../remove_limitations/<user_id>/platform:category
+                    # expected: ../remove_limitations/<user_id>/<platform:category-remove_all>
                     user_id = int(path[-2])
-                    pl, ca = path[-1].split(":")
-                    for limitation in context.get_user_request_limitations(user_id=user_id):
-                        if [pl, ca] == limitation.section.split(":"):
-                            await render_admin_remove_user_limitation_confirmation_panel(
-                                update=update,
-                                context=context,
-                                user_id=int(path[-2]),
-                                l=limitation
-                            )
-                            return PCS.ADMIN_CONVERSATION
-                    await update.effective_message.edit_text(
-                        text="⚠️ Limitazione non trovata.",
-                        reply_markup=InlineKeyboardMarkup([[
-                            InlineKeyboardButton(
-                                text="🔙 Indietro",
-                                callback_data=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}"
-                            )
-                        ]])
-                    )
-                    return PCS.ADMIN_CONVERSATION
+                    if path[-1] == "remove_all":
+                        await render_admin_remove_user_limitation_confirmation_panel(
+                            update=update,
+                            context=context,
+                            user_id=user_id,
+                            l=None,
+                            remove_all=True
+                        )
+                    else:
+                        pl, ca = path[-1].split(":")
+                        for limitation in context.get_user_request_limitations(user_id=user_id):
+                            if [pl, ca] == limitation.section.split(":"):
+                                await render_admin_remove_user_limitation_confirmation_panel(
+                                    update=update,
+                                    context=context,
+                                    user_id=int(path[-2]),
+                                    l=limitation
+                                )
+                                return PCS.ADMIN_CONVERSATION
+                        await update.effective_message.edit_text(
+                            text="⚠️ Limitazione non trovata.",
+                            reply_markup=InlineKeyboardMarkup([[
+                                InlineKeyboardButton(
+                                    text="🔙 Indietro",
+                                    callback_data=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}"
+                                )
+                            ]])
+                        )
+                        return PCS.ADMIN_CONVERSATION
                 if len(path) == 4:
-                    # expected: ../remove_limitations/<user_id>/platform:category/yes
+                    # expected: ../remove_limitations/<user_id>/<platform:category o remove_all>/yes
                     user_id = int(path[-3])
                     section = path[-2]
-                    await handle_remove_user_request_limitation(context=context, user_id=user_id, section=section)
+                    await handle_remove_user_request_limitation(
+                        context=context,
+                        user_id=user_id,
+                        section=section if section != "remove_all" else None,
+                        remove_all=section == "remove_all"
+                    )
                     await render_admin_user_limitation_removed_panel(
                         update=update,
                         context=context,
                         user_id=user_id,
-                        section=section
+                        section=section if section != "remove_all" else None,
+                        remove_all=section == "remove_all"
                     )
                     return PCS.ADMIN_CONVERSATION
 
@@ -115,12 +130,27 @@ async def route_admin_limit_user_request(
 
     if user_id is not None and isinstance(user_id, str) and not user_id.isdigit():
         user_responses = context.pydc.ephemeral.resolved_users
-        member_response = user_responses.get(str(user_id), None)
-        if not member_response:
-            member_response = await resolve_user(identifier=user_id)
-            user_responses[str(user_id)] = member_response
-        if member_response["status"] == "success":
-            user_id = member_response["user"].id
+        user_response = user_responses.get(str(user_id), None)
+        if not user_response:
+            user_response = await resolve_user(identifier=user_id)
+            user_responses[str(user_id)] = user_response
+        if user_response["status"] == "success":
+            user_id = user_response["user"].id
+        elif not is_user_id(user_id):
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_format="uno <b>username esistente</b> o un <b>ID numerico</b>"
+            )
+            return PCS.SET_REQUEST_LIMITATION_USER
+
+    if int(user_id) in context.pydb.admins.keys():
+        await wrong_input_message(
+            update=update,
+            context=context,
+            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
+        )
+        return PCS.SET_REQUEST_LIMITATION_USER
 
     user_id = int(user_id)
 

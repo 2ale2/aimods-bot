@@ -135,6 +135,11 @@ async def handle_limitation_confirmation(update: Update, context: CustomContext)
     else:
         total_limitations = new_limitations
 
+    jobs = context.job_queue.get_jobs_by_name(rf"^request_limit:{user_id}:[^:\s]+$")
+
+    for job in jobs:
+        job.schedule_removal()
+
     for limitation in total_limitations:
         if limitation.until is not None:
             await schedule_request_limitation_deletion(

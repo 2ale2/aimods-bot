@@ -3,20 +3,19 @@ from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandle
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
-    render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel, \
-    handle_limitation_identifier
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import \
-    handle_request_rejection_reason
-from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import \
     handle_user_input as handler_user_input_links
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle import \
     handle_user_input_antispam_whitelist
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
-from aimods_bot.src.handlers.commands.admin.moderation_handler import commands_list
+from aimods_bot.src.callbacks.panels.admin.requests_management.handle import \
+    handle_request_rejection_reason
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
+    render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel, \
+    handle_limitation_identifier
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
+from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.handlers.request_handlers import android_request_handler, windows_request_handler, \
     ios_request_handler, macos_request_handler
 from aimods_bot.src.helpers.constants.conversation_states import \
@@ -132,14 +131,16 @@ private_conversation_handler = ConversationHandler(
                 filters=filters.TEXT,
                 callback=handle_request_rejection_reason
             ),
-            CallbackQueryHandler(callback=admin_main_router)
+            close_button_handler,
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
         ],
         PCS.SET_VIEW_REQUEST_LIMITATION_USER: [
             MessageHandler(
                 filters=filters.TEXT,
                 callback=handle_limitation_identifier
             ),
-            CallbackQueryHandler(callback=admin_main_router)
+            close_button_handler,
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
         ]
     },
     fallbacks=[CallbackQueryHandler(callback=user_main_router)],

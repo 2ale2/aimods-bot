@@ -2,12 +2,12 @@ settings:
   request:
     android:
       app:
-        toggle: true
-        limit: null
+        toggle: false
+        limit: 8
     windows:
       software:
         toggle: true
-        limit: null
+        limit: 20
       game:
         toggle: true
         limit: 5
@@ -15,8 +15,8 @@ settings:
         toggle: true
         limit: 3
       daw:
-        toggle: true
-        limit: 3
+        toggle: false
+        limit: 20
     ios:
       app:
         toggle: false
@@ -24,7 +24,7 @@ settings:
     macos:
       software:
         toggle: false
-        limit: 3
+        limit: 2
       daw:
         toggle: false
         limit: 15
