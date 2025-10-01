@@ -107,6 +107,9 @@ class RequestDataManager:
         if detail == RequestField.STEAMTOOLS:
             link_steamtools = "https://t.me/c/1523566735/13066"
             text += f"\n🔹 Accetteresti anche i file <a href=\"{link_steamtools}\">Steam Tools</a>?"
+        elif detail == RequestField.ARCH:
+            link_arm_info = "https://justpaste.it/windowsarm"
+            text += f"\n🔹 Possiedi una <a href=\"{link_arm_info}\">CPU di tipo ARM</a>?"
         else:
             field_enum = RequestField(detail)
             message_template = FIELD_MESSAGES[field_enum]
@@ -123,7 +126,7 @@ class RequestDataManager:
         keyboard = KeyboardBuilder.get_back_keyboard(
             request_data=request_data,
             detail=detail,
-            steamtools_keyboard=(detail == RequestField.STEAMTOOLS)
+            bool_keyboard=(detail in (RequestField.STEAMTOOLS, RequestField.ARCH))
         )
 
         context.pydc.persistent.bot_message_id = await edit_message_safely(
@@ -213,7 +216,7 @@ class RequestDataManager:
     async def recheck_request(update: Update, context: CustomContext):
         if update.callback_query:
             data = update.callback_query.data
-            if data in ("steamtools_yes", "steamtools_no"):
+            if data in ("bool_yes", "bool_no"):
                 await InputHandler.handle_input(update=update, context=context)
 
         request_data = RequestDataManager.get_request_data(context)
@@ -285,16 +288,19 @@ class RequestDataManager:
         request_for_db.pop("editing", None)
         request_for_db.pop("id", None)
         request_for_db.pop("user_id", None)
+        request_for_db.pop("issued_at", None)
         request_for_db_str = json.dumps(request_for_db)
 
+        rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
+
         query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category)
-                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4)
+                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category, rejection_reason)
+                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
                 RETURNING id, issued_at"""
 
         result = await fetch_query(
             query=query,
-            params=[platform.value, request_for_db_str, uid, category.value]
+            params=[platform.value, request_for_db_str, uid, category.value, rejection_reason]
         )
 
         if not result:
@@ -304,6 +310,7 @@ class RequestDataManager:
 
         ix = int(inserted["id"])
         issued_at = inserted["issued_at"]
+        rejection_reason = inserted.get("rejection_reason", None)
 
         context.pydb.active_requests[ix] = Request(
             id=ix,
@@ -317,7 +324,8 @@ class RequestDataManager:
             version=request_for_db.get("version", ""),
             link=request_for_db.get("link", ""),
             functionalities=request_for_db.get("functionalities", ""),
-            steamtools=request_for_db.get("steamtools", False)
+            steamtools=request_for_db.get("steamtools", False),
+            rejection_reason=rejection_reason
         )
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
@@ -336,7 +344,7 @@ class KeyboardBuilder:
     def get_back_keyboard(
             request_data: Request,
             detail: Optional[RequestField],
-            steamtools_keyboard: bool = False,
+            bool_keyboard: bool = False,
             callback_data: str = None
     ) -> InlineKeyboardMarkup:
         """Keyboard semplice con solo tasto indietro, oppure la tastiera completa nel caso dei giochi"""
@@ -352,10 +360,10 @@ class KeyboardBuilder:
             InlineKeyboardButton(text="🔙 Indietro", callback_data=callback_data)
         ]]
 
-        if steamtools_keyboard:
+        if bool_keyboard:
             keyboard.insert(0, [
-                InlineKeyboardButton(text="🟢 Sì", callback_data="steamtools_yes"),
-                InlineKeyboardButton(text="🔴 No", callback_data="steamtools_no"),
+                InlineKeyboardButton(text="🟢 Sì", callback_data="bool_yes"),
+                InlineKeyboardButton(text="🔴 No", callback_data="bool_no"),
             ])
 
         return InlineKeyboardMarkup(keyboard)
@@ -375,7 +383,7 @@ class KeyboardBuilder:
         order_by_category = {
             "app": ["name", "link", "version", "functionalities"],
             "software": ["name", "link", "version", "functionalities"],
-            "adobe": ["name", "version", "functionalities"],
+            "adobe": ["name", "version", "functionalities", "arch"],
             "daw": ["name", "link", "version"],
             "game": ["name", "link", "version", "functionalities", "steamtools"],
         }
@@ -386,13 +394,15 @@ class KeyboardBuilder:
             "version": "Versione",
             "functionalities": "Funzionalità",
             "steamtools": "SteamTools",
+            "arch": "CPU ARM"
         }
 
         edit_callbacks = {
             "name": "edit_name",
             "link": "edit_link",
             "version": "edit_version",
-            "functionalities": "edit_functionalities"
+            "functionalities": "edit_functionalities",
+            "arch": "edit_arch"
         }
 
         def num_emoji(i: int) -> str:
@@ -409,7 +419,13 @@ class KeyboardBuilder:
         for field in fields:
             if field == "steamtools":
                 steamtools = bool(request_data.steamtools)
-                cb = "steamtools_no" if steamtools else "steamtools_yes"
+                cb = "bool_no" if steamtools else "bool_yes"
+                buttons.append(
+                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
+                )
+            elif field == "arch":
+                arch = bool(request_data.arch)
+                cb = "bool_no" if arch else "bool_yes"
                 buttons.append(
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
                 )
@@ -433,7 +449,7 @@ class KeyboardBuilder:
         """Keyboard per la conferma finale"""
         return InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="users/manage_requests"),
+                InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="users/view_requests"),
                 InlineKeyboardButton(text="🏠 Torna alla Home", callback_data="users")
             ]
         ])
@@ -512,7 +528,7 @@ class MessageBuilder:
     @staticmethod
     def _should_display_field(field_name: str, value: Any) -> bool:
         """Determina se un campo deve essere visualizzato"""
-        if field_name == 'steamtools':
+        if field_name in ('steamtools', 'arch'):
             return value is not None
         return value is not None and len(str(value)) > 0
 
@@ -536,7 +552,7 @@ class MessageBuilder:
         elif format_type == 'link':
             return f"🔗 <i><a href='{value}'>Link</a></i>"
         elif format_type == 'bool':
-            return f"<i>{'Sì' if value else 'No'}</i>"
+            return f"<i>{'✔️' if value else '✖'}</i>"
 
         return str(value)
 
@@ -575,9 +591,9 @@ class InputHandler:
             # entity è necessariamente definita a causa del filtro dell'handler
             # noinspection PyUnboundLocalVariable
             return update.effective_message.text[entity.offset:entity.offset + entity.length]
-        elif detail == RequestField.STEAMTOOLS:
+        elif detail in (RequestField.STEAMTOOLS, RequestField.ARCH):
             if not update.callback_query:
-                raise MissingParameterException("Per il valore SteamTools ci deve essere una callback query.")
-            return update.callback_query.data == "steamtools_yes"
+                raise MissingParameterException("Per il valore SteamTools e ARCH ci deve essere una callback query.")
+            return update.callback_query.data == "bool_yes"
         else:
             return update.effective_message.text

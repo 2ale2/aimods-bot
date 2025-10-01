@@ -184,7 +184,8 @@ REQUEST_DETAILS_CONFIG = {
                 "adobe": {
                     'name': {'label': 'Nome', 'format': 'text'},
                     'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
+                    'arch': {'label': 'CPU ARM', 'format': 'bool'}
                 },
                 "daw": {
                     'name': {'label': 'Nome', 'format': 'text'},
@@ -268,6 +269,7 @@ class RequestField(Enum):
     VERSION = "version"
     FUNCTIONALITIES = "functionalities"
     STEAMTOOLS = "steamtools"
+    ARCH = "arch"
 
 
 class RejectRequestReason(Enum):

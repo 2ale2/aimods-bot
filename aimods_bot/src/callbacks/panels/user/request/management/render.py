@@ -104,7 +104,6 @@ async def render_user_request_action_panel(
         requests = context.user_cancellable_requests
 
     text = await _get_user_request_action_panel_text(
-        context=context,
         action=action,
         requests=requests
     )
@@ -120,7 +119,6 @@ async def render_user_request_action_panel(
 
 
 async def _get_user_request_action_panel_text(
-        context: CustomContext,
         action: Literal["details", "cancel"],
         requests: dict[int, Request]
 ) -> str:

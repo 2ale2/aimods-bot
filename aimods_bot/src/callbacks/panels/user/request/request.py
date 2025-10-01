@@ -19,7 +19,8 @@ RETURN_CONVERSATION_STATES = {
     "link": RCS.REQUEST_LINK,
     "version": RCS.REQUEST_VERSION,
     "functionalities": RCS.REQUEST_FUNCTIONALITIES,
-    "steamtools": RCS.REQUEST_STEAMTOOLS
+    "steamtools": RCS.REQUEST_STEAMTOOLS,
+    "arch": RCS.REQUEST_ARCH
 }
 
 REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
@@ -84,8 +85,9 @@ async def edit_request_detail(update: Update, context: CustomContext):
     if update.callback_query:
         await update.callback_query.answer()
         data = update.callback_query.data
-        if data in ("steamtools_yes", "steamtools_no"):
-            RequestDataManager.update_field(context=context, field="editing", value=RequestField.STEAMTOOLS)
+        if data in ("bool_yes", "bool_no"):
+            value = "steamtools" if data.endswith("steamtools") else "arch"
+            RequestDataManager.update_field(context=context, field="editing", value=RequestField(value))
             return await RequestDataManager.recheck_request(update=update, context=context)
 
     return await RequestDataManager.request_detail_to_edit(update=update, context=context)

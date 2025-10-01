@@ -64,14 +64,14 @@ async def request_from_record(request: dict) -> Request:
     user_id = request.get("user_id", None)
     raw_status = request.get("status", None)
     issued_at = request.get("issued_at", None)
+    raw_rejection_reason = request.get("rejection_reason", None)
     raw_content = request.get("content", None)
 
     assert isinstance(issued_at, datetime)
 
     platform = Platform(raw_platform) if raw_platform else None
     if raw_platform and raw_category:
-        # noinspection PyTypeChecker
-        category = categories[raw_platform](raw_category)
+        category = get_platform_categories(Platform(platform))(raw_category)
     else:
         category = None
 
@@ -103,7 +103,8 @@ async def request_from_record(request: dict) -> Request:
         link=link,
         version=version,
         functionalities=functionalities,
-        steamtools=steamtools
+        steamtools=steamtools,
+        rejection_reason=raw_rejection_reason
     )
 
 
@@ -229,6 +230,12 @@ def render_request_latex_item(r: Request) -> str:
         label = REQUEST_STATUS_DETAILS[r.status.value]['label']
         color = STATUS_COLORS[r.status.value]
         lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
+
+    if r.rejection_reason:
+        rejection_text = rf"\textbf{{Motivo}} – \textit{{{r.rejection_reason}}}"
+    else:
+        rejection_text = rf"\textbf{{Motivo}} – \texttt{{None}}"
+    lines.append(rf"{rejection_text} \\")
 
     lines.append(rf"\end{{minipage}}")
     return """ """.join(lines)

@@ -16,6 +16,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle 
     handle_user_input_antispam_whitelist
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
+from aimods_bot.src.handlers.commands.admin.moderation_handler import commands_list
 from aimods_bot.src.handlers.request_handlers import android_request_handler, windows_request_handler, \
     ios_request_handler, macos_request_handler
 from aimods_bot.src.helpers.constants.conversation_states import \
@@ -51,7 +52,12 @@ close_button_handler = CallbackQueryHandler(
 
 private_conversation_handler = ConversationHandler(
     entry_points=[
-        PrefixHandler([".", "/", "!"], "start", start)
+        PrefixHandler(
+            prefix=[".", "/", "!"],
+            command="start",
+            callback=start,
+            filters=filters.ChatType.PRIVATE
+        )
     ],
     states={
         # User main router

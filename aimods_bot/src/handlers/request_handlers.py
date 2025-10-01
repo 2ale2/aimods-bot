@@ -57,14 +57,14 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
                     RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
-                    RCS.REQUEST_STEAMTOOLS: [CallbackQueryHandler(pattern="^steamtools_.+", callback=recheck_request)],
+                    RCS.REQUEST_STEAMTOOLS: [CallbackQueryHandler(pattern="^bool_.+", callback=recheck_request)],
                     RCS.CHECK_REQUEST: [
                         CallbackQueryHandler(
                             pattern="confirm_request",
                             callback=confirm_request
                         ),
                         CallbackQueryHandler(
-                            pattern="^(?:edit_|steamtools_).+",
+                            pattern="^(?:edit_|bool_).+",
                             callback=edit_request_detail
                         ),
                     ],
@@ -87,21 +87,22 @@ windows_request_handler = ConversationHandler(
                 states={
                     RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
                     RCS.REQUEST_VERSION: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
-                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=recheck_request)],
+                    RCS.REQUEST_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
+                    RCS.REQUEST_ARCH: [CallbackQueryHandler(pattern="^bool_.+", callback=recheck_request)],
                     RCS.CHECK_REQUEST: [
                         CallbackQueryHandler(
                             pattern="confirm_request",
                             callback=confirm_request
                         ),
                         CallbackQueryHandler(
-                            pattern="^edit_.+$",
+                            pattern="^(?:edit_|bool_).+",
                             callback=edit_request_detail
                         )
                     ],
                     RCS.EDIT_NAME: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                     RCS.EDIT_LINK: [MessageHandler(filters=filters.Entity("url"), callback=edited_detail)],
                     RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
-                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
+                    RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
                 },
                 fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
                 map_to_parent={

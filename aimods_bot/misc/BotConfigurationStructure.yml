@@ -3,10 +3,10 @@ settings:
     android:
       app:
         toggle: true
-        limit: 3
+        limit: 2
     windows:
       software:
-        toggle: false
+        toggle: true
         limit: null
       game:
         toggle: true
@@ -27,7 +27,7 @@ settings:
         limit: 3
       daw:
         toggle: false
-        limit: 3
+        limit: 15
     cancel_timer: 86400
     cooldown: 30
 moderation:

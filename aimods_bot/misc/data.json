@@ -220,8 +220,8 @@
                 "back_data": ["back_category", "back_name", "back_link", "back_version"]
             },
             "adobe": {
-                "flow": ["name", "version", "functionalities"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+                "flow": ["name", "version", "functionalities", "arch"],
+                "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_arch"]
             }
         },
         "ios": {
