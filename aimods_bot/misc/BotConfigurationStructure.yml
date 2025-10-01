@@ -2,7 +2,7 @@ settings:
   request:
     android:
       app:
-        toggle: false
+        toggle: true
         limit: 8
     windows:
       software:

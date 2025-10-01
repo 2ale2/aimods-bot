@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Optional, List, Union, Literal, NamedTuple, cast, Type, Tuple
 
 import telegram
+from pyrogram.errors import BadRequest
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
 from telegram.constants import ParseMode
 
@@ -134,21 +135,24 @@ class Panel:
         else:
             if html.unescape(update.effective_message.text_html_urled) != text:
                 if message_id:
-                    await context.bot.edit_message_text(
-                        chat_id=update.effective_chat.id,
-                        message_id=message_id,
-                        text=text,
-                        reply_markup=reply_markup,
-                        parse_mode=ParseMode.HTML,
-                        link_preview_options=preview_options
-                    )
-                else:
-                    await update.effective_message.edit_text(
-                        text=text,
-                        reply_markup=reply_markup,
-                        parse_mode=ParseMode.HTML,
-                        link_preview_options=preview_options
-                    )
+                    try:
+                        await context.bot.edit_message_text(
+                            chat_id=update.effective_chat.id,
+                            message_id=message_id,
+                            text=text,
+                            reply_markup=reply_markup,
+                            parse_mode=ParseMode.HTML,
+                            link_preview_options=preview_options
+                        )
+                        return
+                    except BadRequest:
+                        pass
+                await update.effective_message.edit_text(
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=preview_options
+                )
             try:
                 await context.bot.edit_message_reply_markup(
                     message_id=message_id or update.effective_message.message_id,

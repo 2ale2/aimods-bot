@@ -273,7 +273,12 @@ async def render_handled_request_limitation_duration_panel(
     if not await handle_request_limitation_duration(update=update, context=context):
         return PCS.SET_REQUEST_LIMITATION_DURATION
 
-    await render_admin_limit_user_panel(update=update, context=context, user_id=user_id)
+    await render_admin_limit_user_panel(
+        update=update,
+        context=context,
+        user_id=user_id,
+        back_button_callback_key=context.pydc.persistent.base_path
+    )
     return PCS.ADMIN_CONVERSATION
 
 

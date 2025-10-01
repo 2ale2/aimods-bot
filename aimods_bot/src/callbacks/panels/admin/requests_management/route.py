@@ -35,8 +35,8 @@ async def admin_requests_management_route(update: Update, context: CustomContext
         case "manage_sections":
             return await admin_request_section_configure_route(update=update, context=context, path=path[1:])
         case "manage_limitations":
-            context.free_base_path()
             if len(path) == 1:
+                context.free_base_path()
                 context.pydc.persistent.limiting_user_requests = None
             return await route_admin_manage_limitations(update=update, context=context, path=path[1:])
 
