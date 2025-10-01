@@ -1,13 +1,13 @@
 import asyncio
 import os
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, cast, TypedDict
 from uuid import uuid4
 
 import telegram.error
 from telegram import Update
 from telegram.constants import ChatAction
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.helpers.constants.models import ScheduledJobData, JobData, MediaItem
 from aimods_bot.src.helpers.loggers import logger
@@ -31,7 +31,7 @@ def mark_job_done(context, job_id: str, message_id: int):
 
 # ========== JOB: DELETE ==========
 
-async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_delete_message(context: CustomContext):
     data = context.job.data
 
     if not isinstance(data, ScheduledJobData):
@@ -55,7 +55,7 @@ async def scheduled_delete_message(context: ContextTypes.DEFAULT_TYPE):
 
 # ========== JOB: SEND ==========
 
-async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_send_message(context: CustomContext):
     job = context.job
     data_model = job.data
 
@@ -98,7 +98,7 @@ async def scheduled_send_message(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def send_action_message_after(update: Update,
-                                    context: ContextTypes.DEFAULT_TYPE,
+                                    context: CustomContext,
                                     text: str,
                                     recipient_id: Optional[int] = None,
                                     time: int = 1,
@@ -137,7 +137,7 @@ async def send_action_message_after(update: Update,
     }
 
 
-async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
+async def _send_media_message(context: CustomContext, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
     d_media = data_model.additional_data
     d = d_media.files
     as_doc = d_media.send_as_document
@@ -166,6 +166,7 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
                     pass
             return message
         else:
+            file = file.media
             match ftype:
                 case "photo":
                     await context.bot.send_photo(
@@ -194,8 +195,9 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
     else:
         if "reply_markup" in kwargs:
             del kwargs["reply_markup"]
+        # noinspection PyTypeChecker
         message = await context.bot.send_media_group(
-            media=[el[1] for el in normalized_l],
+            media=[el[1].media for el in normalized_l],
             caption=data_model.text,
             **kwargs
         )
@@ -206,8 +208,8 @@ async def _send_media_message(context: ContextTypes.DEFAULT_TYPE, data_model: Sc
 
 # ========== JOB: EDIT ==========
 
-async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
-    data = context.job.data
+async def scheduled_edit_message(context: CustomContext):
+    data = cast(ScheduledJobData, context.job.data)
     text = data.text
     chat_id = data.chat_id
     message_id = data.additional_data.message_id
@@ -234,7 +236,7 @@ async def scheduled_edit_message(context: ContextTypes.DEFAULT_TYPE):
 
 async def send_temporary_message(
     update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
+    context: CustomContext,
     text: str,
     recipient_id: Optional[int],
     additional_job_data: Optional[JobData] = None,
@@ -288,6 +290,40 @@ async def send_temporary_message(
     )
 
 
-async def _wait_for_job_completion(context, job_id: str):
-    while not context.bot_data["jobs"][job_id]["done"]:
+async def _wait_for_job_completion(context: CustomContext, job_id: str):
+    while not context.pydb.jobs[job_id].executed:
         await asyncio.sleep(0.1)
+        
+# ========== JOB: REQUESTS ==========
+
+async def scheduled_remove_completed_requests(context: CustomContext):
+    data = cast(dict, context.job.data)
+    if "ix" not in data:
+        raise JobDataMissingException("Dato mancante: 'ix'")
+
+    context.remove_from_active_requests(ix=int(data["ix"]))
+
+
+async def scheduled_remove_request_cooldown(context: CustomContext):
+    data = context.job.data
+
+    if "user_id" not in data:
+        raise JobDataMissingException("Cannot remove request cooldown without a user_id.")
+
+    context.remove_user_request_cooldown(user_id=int(data["user_id"]))
+
+# ========== JOB: LIMITATIONS ==========
+
+class RemoveLimitJobData(TypedDict):
+    user_id: int
+    section: str  # es. "windows:game"
+
+async def scheduled_remove_user_request_section_limitation(context: CustomContext):
+    """Esegue la rimozione programmata di una limitazione sulle richieste (utente e sezione indicati)"""
+    data: RemoveLimitJobData = context.job.data
+    user_id = data["user_id"]
+    section = data["section"]
+
+    current = context.get_user_request_limitations(user_id=user_id)
+    remaining = [x for x in current if x.section != section]
+    context.set_user_request_limitations(user_id=user_id, limitations=remaining)

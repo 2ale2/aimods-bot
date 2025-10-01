@@ -2,8 +2,9 @@ import logging
 import os
 import locale
 import sys
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
+from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
 from aimods_bot.src.core.setup import set_application_data, get_handlers
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.helpers.loggers import logger
@@ -30,8 +31,10 @@ def main():
     persistence = AsyncPostgresPersistence(
         url=os.getenv("POSTGRES_CONNECTION_URL"),
         on_flush=False,
-        coalesce_delay=0.1,
+        coalesce_delay=0.1
     )
+
+    context_types = ContextTypes(context=CustomContext, bot_data=BotData, chat_data=ChatData, user_data=UserData)
 
     async def post_init_hook(app):
         await persistence.initialize()  # crea pool + carica dati nel loop PTB
@@ -46,6 +49,7 @@ def main():
         .token(bot_token)
         .persistence(persistence)
         .arbitrary_callback_data(True)
+        .context_types(context_types=context_types)
         .post_init(post_init_hook)
         .post_shutdown(post_shutdown_hook)
         .build()
@@ -60,10 +64,10 @@ def main():
             listen="0.0.0.0",
             port=8080,
             url_path="bot",
-            webhook_url=f"https://bot.aimodsitalia.store/bot"
+            webhook_url="https://bot.aimodsitalia.store/bot"
         )
-        r = application.bot_data.get("restart", False)
-        if r and r.get("toggle", False):
+        r = application.bot_data.restart
+        if r and r.toggle:
             application.bot_data["restart"]["toggle"] = False
             os.execl(sys.executable, sys.executable, *sys.argv)
     except ConfigError as e:

@@ -1,12 +1,11 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import ConversationHandler
 
-from aimods_bot.src.helpers.constants.models import JobData
-from aimods_bot.src.helpers.job_queue import send_action_message_after
+from aimods_bot.src.core.customcontext import CustomContext
 
 
-async def new_member_accepted_the_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def new_member_accepted_the_rules(update: Update, context: CustomContext):
     if job := context.job_queue.get_jobs_by_name(f'captcha_failed_{update.effective_user.id}'):
         job[0].schedule_removal()
 
@@ -27,15 +26,15 @@ def _check_user_identity(update: Update) -> bool:
     return str(update.effective_user.id) == update.callback_query.data.split(" ")[1]
 
 
-async def _approve_join_request(context: ContextTypes.DEFAULT_TYPE, user_id: int):
+async def _approve_join_request(context: CustomContext, user_id: int):
     await context.bot.approve_chat_join_request(
-        chat_id=context.bot_data["group_chat_id"],
+        chat_id=context.pydb.group_chat_id,
         user_id=user_id
     )
 
 
-async def _send_welcome_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    clean_id = str(context.bot_data["group_chat_id"]).removeprefix("-100")
+async def _send_welcome_message(update: Update, context: CustomContext):
+    clean_id = str(context.pydb.group_chat_id).removeprefix("-100")
     clean_url = f"https://t.me/c/{clean_id}/0"
 
     keyboard = InlineKeyboardMarkup([[

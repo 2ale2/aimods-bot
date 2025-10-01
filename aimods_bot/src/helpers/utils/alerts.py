@@ -1,14 +1,14 @@
 from uuid import uuid4
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import get_valid_thread_id, send_action_message_after
 from aimods_bot.src.helpers.utils.telegram_utils import validate_callback_structure, safe_delete
 
 
 async def send_private_alert(update: Update,
-                             context: ContextTypes.DEFAULT_TYPE,
+                             context: CustomContext,
                              text: str,
                              button_text="Open It Privately 💬",
                              delay=2):
@@ -54,7 +54,7 @@ async def send_private_alert(update: Update,
         )
 
 
-async def open_private_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def open_private_alert(update: Update, context: CustomContext):
     """
     Mostra il contenuto salvato di un alert privato all'utente che ha premuto il pulsante inline.
     """

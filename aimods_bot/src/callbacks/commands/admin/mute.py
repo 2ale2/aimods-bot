@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional
 from telegram import Update
-from telegram.ext import ContextTypes
 
 from aimods_bot.src.callbacks.commands.admin.limit import limit_user
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import ERROR_MESSAGES
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, format_user
 from aimods_bot.src.helpers.utils.time_utils import timedelta_to_seconds, format_time_as_rome, get_until_date
 
 
-async def mute_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def mute_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -60,7 +60,7 @@ async def mute_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_com
         )
 
 
-async def unmute_user(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str, delete_flag=False):
+async def unmute_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
     message = update.effective_message
 
     if delete_flag and message.reply_to_message:
@@ -118,7 +118,14 @@ def _build_confirmation_message(
 
     if not unmute:
         if until_date:
-            confirmation_text += f" {format_time_as_rome(until_date)}"
+            duration_text = format_time_as_rome(until_date)
+
+            if duration_text:
+                duration_text = "fino al " + duration_text
+            else:
+                duration_text = "a <b>tempo indeterminato</b>"
+
+            confirmation_text += f" {duration_text}."
 
         if reason:
             confirmation_text += f"\n\n<b>Motivo</b>: {reason}"

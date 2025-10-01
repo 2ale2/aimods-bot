@@ -1,63 +1,53 @@
 from typing import Optional, Union
-from pyrogram.enums import ChatMemberStatus as ChatMemberStatusPyro
-from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions
-from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
-from telegram.constants import ChatMemberStatus as ChatMemberStatusPTB
-from telegram.ext import ContextTypes
 
+from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
+from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser
+
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user
 
 log = logger.getChild("user_utils")
 
 
-async def is_admin(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def is_admin(user_id: int, context: CustomContext) -> bool:
     """
     Verifica se l'utente è un admin del gruppo.
     """
-    return str(user_id) in context.bot_data["admins"].keys()
+    return user_id in list(context.pydb.admins.keys())
 
 
-async def user_in_chat(user_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> Optional[bool]:
     """
     Verifica se l'utente è attualmente nella chat.
     """
-    member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
-    return member.status not in ("left", "kicked")
-
-
-async def user_is_banned(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> Optional[bool]:
-    """Verifica se l'utente è bannato (o presente in una lista ban)."""
-
-    ban_list = context.bot_data.get("ban_list", {})
-    if str(user_id) in ban_list:
-        return True
-
-    response = await resolve_chat_member(context, user_id)
+    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
     if response["status"] == "failed":
         log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
         return None
     member = response["member"]
 
-    return member.status == ChatMemberStatusPTB.BANNED or member.status == ChatMemberStatusPyro.BANNED
+    return member.status not in ("left", "kicked")
 
 
-async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
-    warnings = await get_user_warnings(user_id=user_id)
-    if not warnings:
+async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = None) -> Optional[bool]:
+    """Verifica se l'utente è bannato (o presente in una lista ban)."""
+
+    ban_list = context.pydb.ban_list
+    if str(user_id) in ban_list:
+        return True
+
+    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
+    if response["status"] == "failed":
+        log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
         return None
+    member = response["member"]
 
-    errors = []
-    for el in warnings:
-        record = warnings[el]
-        response = await revoke_action_by_id(table="warnings", record_id=record["id"])
-        if not response:
-            errors.append(str(record["id"]))
-
-    return errors
+    return member.status.value == "banned"
 
 
 async def get_user_warnings(user_id: int) -> Optional[dict]:
@@ -76,7 +66,7 @@ async def get_user_warnings(user_id: int) -> Optional[dict]:
         return {}
 
     if result is None:
-        log.error(f"❌ Impossibile ottenere i warnings per user_id={user_id}")
+        log.error(f"Impossibile ottenere le ammonizioni per user_id={user_id}")
         return None
 
     return {i: result[i] for i in range(0, len(result))}
@@ -90,8 +80,23 @@ async def get_user_warnings_count(user_id: int) -> Optional[int]:
     return len(response) if response is not None else None
 
 
+async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
+    warnings = await get_user_warnings(user_id=user_id)
+    if not warnings:
+        return None
+
+    errors = []
+    for el in warnings:
+        record = warnings[el]
+        response = await revoke_action_by_id(table="warnings", record_id=record["id"])
+        if not response:
+            errors.append(str(record["id"]))
+
+    return errors
+
+
 async def get_member_permissions(
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         chat_member: Union[PyroChatMember, PTBChatMember],
 ) -> Union[PTBChatPermissions, PyroChatPermissions]:
 
@@ -100,7 +105,7 @@ async def get_member_permissions(
     if pyro and chat_member.status.value == "restricted":
         return chat_member.permissions
 
-    chat_id = context.bot_data["group_chat_id"]
+    chat_id = context.pydb.group_chat_id
 
     if chat_member.status.value in ("restricted", "administrator"):
         included_fields = default_permissions.keys()
@@ -130,3 +135,35 @@ async def get_member_permissions(
             actual_permissions = get_ptb_permissions(True)
 
     return actual_permissions
+
+
+async def get_member_details_text(
+        context: Optional[CustomContext] = None,
+        user_identifier: Optional[Union[int, str]] = None,
+        user: Optional[Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser]] = None
+) -> str:
+    if not user_identifier and not user:
+        raise MissingParameterException("You must provide at least 'user' or 'user_identifier'.")
+
+    if not user and context:
+        resolved = context.pydc.ephemeral.resolved_users
+        resolving_attempt = resolved.get(str(user_identifier), False)
+        if resolving_attempt is None:  # User has not been resolved yet
+            resolving_attempt = await resolve_user(identifier=user_identifier)
+            resolved[str(user_identifier)] = resolving_attempt["user"]
+
+    if user:
+        if isinstance(user, Union[PTBChatMember, PyroChatMember]):
+            user = user.user
+        text = (f"     🆔 <b>User ID</b> – <code>{user.id}</code>\n"
+                f"     🪪 <b>Nome</b> – {user.first_name}\n")
+        if user.username:
+            text += f"     🔖 <b>Username</b> – {add_fucking_at(user.username)}\n"
+    else:
+        if is_user_id(user_identifier):
+            text = f"     🆔 <b>User ID</b> – <code>{user_identifier}</code>\n"
+        else:  # is_username
+            text = f"     🔖 <b>Username</b> – {add_fucking_at(user_identifier)}\n"
+
+    return text
+

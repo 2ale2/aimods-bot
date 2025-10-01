@@ -5,11 +5,10 @@ from typing import Union, Optional, TypedDict, Literal, cast, List
 
 from telegram import Update, Message, TextQuote, ReplyParameters
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes
 from telegram.helpers import effective_message_type
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
-from aimods_bot.src.helpers.constants.constants import echo_pattern
 from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
@@ -28,7 +27,7 @@ class MsgDict(TypedDict):
     thread_id: int
 
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE, full_command: str):
+async def echo(update: Update, context: CustomContext, full_command: str):
     """Scrive un messaggio facendo le veci del bot. Gestisce i comandi 'annuncio' e 'echo'."""
     message = update.effective_message
 
@@ -107,11 +106,11 @@ def _get_single_attachment(message: Message) -> Optional[List]:
     return [MEDIA_GROUP_TYPES[str(media_type)](media=media_id)]
 
 
-async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def multimedia_echo(update: Update, context: CustomContext):
     job_data = cast(List[MsgDict], context.job.data)
     media_group_sender_id = update.effective_user.id
 
-    echo_element = _check_echo_command_in_group_media(job_data)
+    echo_element = _check_echo_command_in_group_media(context=context, message_data=job_data)
 
     if not echo_element:
         log.info("Nessun comando tipo 'echo' presente nel media group.")
@@ -156,11 +155,12 @@ async def multimedia_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-def _check_echo_command_in_group_media(message_data: List[MsgDict]) -> Optional[MsgDict]:
+def _check_echo_command_in_group_media(context: CustomContext, message_data: List[MsgDict]) -> Optional[MsgDict]:
     """
         Controlla la lista di media, verificando la presenza di una descrizione che comincia col comando
         'echo' o 'annuncio'. Se lo trova, ritorna l'elemento della lista che contiene tale descrizione.
     """
+    echo_pattern = context.pydb.commands["echo"].pattern
     for el in message_data:
         caption = el["caption"]
         if not caption:
@@ -171,7 +171,7 @@ def _check_echo_command_in_group_media(message_data: List[MsgDict]) -> Optional[
     return None
 
 
-async def handle_media_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_media_group(update: Update, context: CustomContext):
     message = update.effective_message
     media_type = effective_message_type(message)
     media_id = (
@@ -188,7 +188,7 @@ async def handle_media_group(update: Update, context: ContextTypes.DEFAULT_TYPE)
     }
     jobs = context.job_queue.get_jobs_by_name(str(message.media_group_id))
     if jobs:
-        jobs[0].data.append(msg_dict)
+        cast(list, jobs[0].data).append(msg_dict)
     else:
         context.job_queue.run_once(
             callback=partial(multimedia_echo, update),

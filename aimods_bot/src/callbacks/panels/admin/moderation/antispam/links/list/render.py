@@ -1,11 +1,11 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
 
 
-async def render_antispam_links_list_panel(update: Update, context: CallbackContext, l: str):
+async def render_antispam_links_list_panel(update: Update, context: CustomContext, l: str):
     text = _build_text(l)
 
     antispam_links_list_panel = Panel(

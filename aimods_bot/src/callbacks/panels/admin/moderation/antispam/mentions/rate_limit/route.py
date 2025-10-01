@@ -1,16 +1,16 @@
 from typing import Literal
 
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_limit.handle import \
     set_antispam_mention_rate_limit
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_limit.render import \
     render_antispam_mentions_rate_limit_panel, render_antispam_mentions_rate_limit_setting_panel
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 
-async def antispam_mentions_rate_limit_route(update: Update, context: CallbackContext, path: list[str]):
+async def antispam_mentions_rate_limit_route(update: Update, context: CustomContext, path: list[str]):
     if len(path) == 0:
         await render_antispam_mentions_rate_limit_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
@@ -40,7 +40,7 @@ async def antispam_mentions_rate_limit_route(update: Update, context: CallbackCo
 
 async def antispam_mentions_rate_limit_setting_route(
         update: Update,
-        context: CallbackContext,
+        context: CustomContext,
         setting: Literal['time', 'mention'],
         path: list[str]
 ):

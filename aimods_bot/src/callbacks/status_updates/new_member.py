@@ -1,8 +1,9 @@
 import pytz
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
-from telegram.ext import ConversationHandler, ContextTypes
+from telegram.ext import ConversationHandler
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.logger import log_join, log_ban
 from aimods_bot.src.helpers.constants.models import JobData, ScheduledJobData
 from aimods_bot.src.helpers.database import add_to_table
@@ -16,7 +17,7 @@ TIMEOUT_SECONDS = 300
 
 
 # main function (callback)
-async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def new_member_joined_forum(update: Update, context: CustomContext):
     await log_join(update, context)
     uid = update.effective_user.id
 
@@ -29,16 +30,16 @@ async def new_member_joined_forum(update: Update, context: ContextTypes.DEFAULT_
     return NewUserState.WAITING_RULES_ACCEPTANCE
 
 
-async def _handle_if_blacklisted(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int) -> bool:
-    if uid not in context.bot_data.get("ban_list", {}):
+async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: int) -> bool:
+    if uid not in context.pydb.ban_list:
         return False
 
-    ban_data = context.bot_data["ban_list"].pop(uid)
+    ban_data = context.pydb.ban_list.pop(uid)
     until_date = ban_data["expires_at"]
     rome_until = until_date.astimezone(pytz.timezone('Europe/Rome')) if until_date else None
 
     await constants.pyro_instance.ban_chat_member(
-        chat_id=context.bot_data["group_chat_id"],
+        chat_id=context.pydb.group_chat_id,
         user_id=uid,
         until_date=until_date
     )
@@ -72,14 +73,14 @@ async def _handle_if_blacklisted(update: Update, context: ContextTypes.DEFAULT_T
         update=update,
         context=context,
         text=text,
-        recipient_id=context.bot_data["group_chat_id"],
+        recipient_id=context.pydb.group_chat_id,
         delay_delete=300
     )
 
     return True
 
 
-async def _handle_if_banned(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int) -> bool:
+async def _handle_if_banned(update: Update, context: CustomContext, uid: int) -> bool:
     is_banned = await user_is_banned(
         user_id=uid,
         context=context
@@ -96,11 +97,11 @@ async def _handle_if_banned(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     return False
 
 
-async def _send_rules_and_schedule_expiry(update: Update, context: ContextTypes.DEFAULT_TYPE, uid: int):
+async def _send_rules_and_schedule_expiry(update: Update, context: CustomContext, uid: int):
     if update.callback_query:
         await safe_delete(update, context)
 
-    rules_text = context.bot_data["user_joined_message_text"].format(update.effective_user.full_name)
+    rules_text = context.pydb.user_joined_message_text.format(update.effective_user.full_name)
     confirm_keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Ho letto e accetto le regole 🖋", callback_data=f"accept_rules {uid}")]
     ])

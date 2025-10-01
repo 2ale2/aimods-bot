@@ -1,13 +1,13 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
-from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_time_text
+from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
 
 
-async def render_punishment_panel(update: Update, context: CallbackContext, setting: str):
+async def render_punishment_panel(update: Update, context: CustomContext, setting: str):
     text = await _build_punishment_text(context=context, setting=setting)
 
     if update.callback_query:
@@ -57,7 +57,7 @@ async def render_punishment_panel(update: Update, context: CallbackContext, sett
     await punishment_panel.render(update=update, context=context, message_id=message_id)
 
 
-async def render_punishment_duration_panel(update: Update, context: CallbackContext, setting: str):
+async def render_punishment_duration_panel(update: Update, context: CustomContext, setting: str):
     text = _build_punishment_duration_text(setting=setting)
 
     punishment_duration_panel = Panel(
@@ -76,14 +76,14 @@ async def render_punishment_duration_panel(update: Update, context: CallbackCont
     await punishment_duration_panel.render(update=update, context=context)
 
 
-async def _build_punishment_text(context: CallbackContext, setting: str):
+async def _build_punishment_text(context: CustomContext, setting: str):
     config = get_value(context, f"moderation.{setting.replace('/', '.')}")
     time_total_seconds = config["punishment"]["time"]
     punishment = config["punishment"]["type"]
 
     punishment_limited = sec_value_limited(time_total_seconds)
     time_text = (
-        await get_time_text(time_total_seconds) if punishment_limited
+        get_duration_text(time_total_seconds) if punishment_limited
         else "♾️ A Tempo Indeterminato"
     )
 

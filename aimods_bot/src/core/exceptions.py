@@ -36,6 +36,7 @@ class WrongTypeException(BotException):
         message = f"La variabile '{variabile_name}' è di tipo {type(variable)}, ma dovrebbe essere di tipo {should_be}."
         super().__init__(message)
 
+
 # ========== CONFIGURAZIONE ==========
 class ConfigValidationException(BotException):
     """Errore nella validazione della configurazione."""
@@ -84,14 +85,11 @@ class MissingParameterException(BotException):
         super().__init__(explanation)
 
 
-def handle_validation_errors(errors: list[str]):
-    """
-    Logga e solleva eccezione se presenti errori nella validazione della configurazione.
-    """
-    if errors:
-        for err in errors:
-            log.error(f"[ConfigValidation] {err}")
-        raise ConfigValidationException(errors)
+class WrongFlowException(BotException):
+    """Flow della conversazione errato."""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
 
 
 # ========== TELEGRAM / CALLBACK ==========

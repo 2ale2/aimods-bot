@@ -1,18 +1,50 @@
----
+settings:
+  request:
+    android:
+      app:
+        toggle: false
+        limit: 8
+    windows:
+      software:
+        toggle: true
+        limit: 20
+      game:
+        toggle: true
+        limit: 5
+      adobe:
+        toggle: true
+        limit: 3
+      daw:
+        toggle: false
+        limit: 20
+    ios:
+      app:
+        toggle: false
+        limit: 3
+    macos:
+      software:
+        toggle: false
+        limit: 2
+      daw:
+        toggle: false
+        limit: 15
+    cancel_timer: 86400
+    cooldown: 30
 moderation:
   antispam:
-    toggle: True
+    toggle: true
     punishment:
-      type: "kick"
+      type: kick
       time: 100
     whitelist:
-      user: [123456789]
+      user:
+      - 123456789
       group: []
       channel: []
       bot: []
     link:
       punishment:
-        type: "kick"
+        type: kick
         time: 100
       allow_after: 3600
       whitelist: []
@@ -22,68 +54,75 @@ moderation:
       allow_after: 3600
       per_message: 3
       rate_limit:
-        toggle: True
-        time: 600
+        toggle: true
+        timespan: 600
         mention: 3
-      user_if_not_member: True
       user:
-        toggle: True
+        toggle: true
+        if_not_member: true
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       group:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       channel:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       bot:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       whitelist:
-        user: [12345678]
+        user:
+        - 12345678
         group: []
         channel: []
         bot: []
     forward:
+      allow_after: 100
       rate_limit:
         timespan: 100
-        same_message: 2
+        same_content: 2
         same_source: 2
         same_user: 2
       user:
-        toggle: True
+        toggle: true
+        if_not_member: true
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       group:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       channel:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
       bot:
-        toggle: True
+        toggle: true
+        if_not_member: null
         punishment:
-          type: "kick"
+          type: kick
           time: 100
   antiflood:
-    toggle: True
-    settings: {
-      number_messages: 10,
+    toggle: true
+    settings:
       time_messages: 5
-    }
-    punishment: {
-      type: "kick",
+      number_messages: 10
+    punishment:
+      type: kick
       time: 100
-    }

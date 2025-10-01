@@ -3,8 +3,8 @@ from datetime import datetime
 
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.telegram_utils import format_user_mention, resolve_chat_member, normalize_user
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, format_time_as_rome
@@ -16,13 +16,14 @@ CHANNEL_LOGGER_ID = int(os.getenv("CHANNEL_LOGGER_ID"))
 
 async def log_ban(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         admin_id: int,
         user_id: int,
         until: datetime,
         reason: str = None):
-    log.info(f"→ User {user_id} banned by admin {admin_id}. {f'Reason: {reason}' if reason else 'No reason specified.'}")
-    text = _log_ban_text(
+    log.info(f"→ User {user_id} banned by admin {admin_id}. "
+             f"{f'Reason: {reason}' if reason else 'No reason specified.'}")
+    text = await _log_ban_text(
         update=update,
         context=context,
         admin_id=admin_id,
@@ -39,7 +40,7 @@ async def log_ban(
 
 async def _log_ban_text(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         admin_id: int,
         user_id: int,
         until: datetime = zero_datetime(),
@@ -68,16 +69,22 @@ async def _log_ban_text(
         first_name=admin.get("first_name", None)
     )
 
+    duration_text = format_time_as_rome(until)
+    if duration_text:
+        duration_text = "fino al " + duration_text
+    else:
+        duration_text = "a <b>tempo indeterminato</b>"
+
     text = ("⛔ #BAN"
             f"👤 <b>Utente</b> – {mention}\n"
             f"🫳 <b>Admin</b> – {admin_mention}\n"
-            f"⏳ <b>Scadenza</b> – {format_time_as_rome(until).replace('.', '')}\n"
+            f"⏳ <b>Scadenza</b> – {duration_text}\n"
             f"❓ <b>Motivo</b> – {reason or '<code>no reason specified</code>'}")
 
     return text
 
 
-async def log_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def log_join(update: Update, context: CustomContext):
     log.info(f"→ User {update.effective_user.id} joined.")
     text = _log_join_text(update)
 

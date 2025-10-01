@@ -52,19 +52,19 @@
         },
         "recap": {
             "1": {
-                "id": 184504,
+                "id": 14,
                 "name": "Android"
             },
             "2": {
-                "id": 184507,
+                "id": 16,
                 "name": "Windows"
             },
             "3": {
-                "id": 184519,
+                "id": 15,
                 "name": "iOS"
             },
             "4": {
-                "id": 184535,
+                "id": 17,
                 "name": "MacOS"
             }
         }
@@ -199,7 +199,70 @@
             "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner"
         }
     },
+    "request_conversation_flows": {
+        "android": {
+            "app": {
+                "flow": ["name", "link", "version", "functionalities"],
+                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+            }
+        },
+        "windows": {
+            "software": {
+                "flow": ["name", "link", "version", "functionalities"],
+                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+            },
+            "game": {
+                "flow": ["name", "link", "version", "functionalities", "steamtools"],
+                "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_steamtools"]
+            },
+            "daw": {
+                "flow": ["name", "link", "version"],
+                "back_data": ["back_category", "back_name", "back_link", "back_version"]
+            },
+            "adobe": {
+                "flow": ["name", "version", "functionalities", "arch"],
+                "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_arch"]
+            }
+        },
+        "ios": {
+            "app": {
+                "flow": ["name", "link", "version", "functionalities"],
+                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+            }
+        },
+        "macos": {
+            "software": {
+                "flow": ["name", "link", "version", "functionalities"],
+                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+            },
+            "daw": {
+                "flow": ["name", "link", "version"],
+                "back_data": ["back_category", "back_name", "back_link", "back_version"]
+            }
+        }
+},
     "configuration_structure": {
+        "settings": {
+            "request": {
+                "android": {
+                    "app": {"type": "bool"}
+                },
+                "windows": {
+                    "software": {"type": "bool"},
+                    "game": {"type": "bool"},
+                    "adobe": {"type": "bool"},
+                    "daw": {"type": "bool"}
+                },
+                "ios": {
+                    "app": {"type": "bool"}
+                },
+                "macos": {
+                    "software": {"type": "bool"},
+                    "daw": {"type": "bool"}
+                },
+                "cancel_timer": {"type": "int"}
+            }
+        },
         "moderation": {
             "antispam": {
                 "toggle": {
@@ -272,18 +335,18 @@
                         "toggle": {
                             "type": "bool"
                         },
-                        "time": {
+                        "timespan": {
                             "type": "int"
                         },
                         "mention": {
                             "type": "int"
                         }
                     },
-                    "user_if_not_member": {
-                        "type": "bool"
-                    },
                     "user": {
                         "toggle": {
+                            "type": "bool"
+                        },
+                        "if_not_member": {
                             "type": "bool"
                         },
                         "punishment": {
@@ -374,11 +437,12 @@
                     }
                 },
                 "forward": {
+                    "allow_after": {"type": "int"},
                     "rate_limit": {
                         "timespan": {
                             "type": "int"
                         },
-                        "same_message": {
+                        "same_content": {
                             "type": "int"
                         },
                         "same_source": {
@@ -389,6 +453,7 @@
                         }
                     },
                     "user": {
+                        "if_not_member": {"type": "bool"},
                         "toggle": {
                             "type": "bool"
                         },
@@ -499,5 +564,5 @@
         "toggle": false,
         "user_id": 0
     },
-    "test_mode": true
+    "test_mode": false
 }

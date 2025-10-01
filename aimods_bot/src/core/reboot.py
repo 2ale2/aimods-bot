@@ -1,14 +1,12 @@
-import subprocess
 from telegram import Update
-from telegram.ext import ContextTypes
+
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import RestartData
 
 
-async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def reboot(update: Update, context: CustomContext):
     try:
-        context.bot_data["restart"] = {
-            "toggle": True,
-            "user_id": update.effective_user.id
-        }
+        context.bot_data.restart = RestartData(toggle=True, user_id=update.effective_user.id)
         await context.application.stop_running()
     except Exception as e:
         print(e)

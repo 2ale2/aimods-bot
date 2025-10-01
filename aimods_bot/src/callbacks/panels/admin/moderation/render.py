@@ -1,6 +1,6 @@
 from telegram import Update
-from telegram.ext import CallbackContext
 
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 
 moderation_panel = Panel(
@@ -36,10 +36,10 @@ security_filters_panel = Panel(
 )
 
 
-async def render_moderation_panel(update: Update, context: CallbackContext):
+async def render_moderation_panel(update: Update, context: CustomContext):
     await moderation_panel.render(update, context)
 
 
-async def render_security_filters_panel(update: Update, context: CallbackContext):
+async def render_security_filters_panel(update: Update, context: CustomContext):
     await security_filters_panel.render(update, context)
 

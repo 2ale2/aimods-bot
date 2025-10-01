@@ -1,14 +1,17 @@
 import os
+import re
 from typing import Optional, Any, Union, Dict
 
 import telegram
 from telegram.constants import ParseMode
-from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
+from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied, RPCError
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ContextTypes, CallbackContext
+from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
+                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser)
 
 import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
@@ -23,13 +26,13 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     return None
 
 
-async def safe_delete_wrapper(update: Update, context: CallbackContext):
+async def safe_delete_wrapper(update: Update, context: CustomContext):
     await safe_delete(update, context, update.effective_message)
 
 
 async def safe_delete(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         message: telegram.Message = None,
         message_id: int = None
 ):
@@ -57,7 +60,9 @@ async def safe_delete(
             message_id=message_id_to_delete
         )
     except telegram.error.BadRequest as e:
-        log.warning(f"Impossibile eliminare il messaggio (ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'}): {e}")
+        log.warning(f"Impossibile eliminare il messaggio "
+                    f"(ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'})"
+                    f": {e}")
     except AttributeError:
         log.error(f"L'oggetto fornito non è un telegram.Message valido e non ha il metodo delete.")
     except Exception as e:
@@ -65,10 +70,10 @@ async def safe_delete(
 
 
 def validate_callback_structure(
-    callback_data: str,
-    expected_fields: list[dict],
-    separator: str = "_",
-    should_be: str = None
+        callback_data: str,
+        expected_fields: list[dict],
+        separator: str = "_",
+        should_be: str = None
 ) -> list[Any]:
     """
         Valida la struttura del callback_data e ne converte i valori secondo specifiche.
@@ -135,7 +140,11 @@ def validate_callback_structure(
     return result
 
 
-async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifier: Union[int, str]) -> Dict[str, Any]:
+async def resolve_chat_member(
+        context: CustomContext,
+        user_identifier: Union[int, str],
+        chat_id: int = None
+) -> Union[Dict[str, Any], PyroUser, PTBUser]:
     """Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback."""
 
     if not user_identifier:
@@ -146,7 +155,7 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
     if user_identifier == me.id:
         return me
 
-    chat_id = context.bot_data["group_chat_id"]
+    chat_id = chat_id or context.pydb.group_chat_id
     user_id_str = str(user_identifier)
 
     pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)
@@ -169,7 +178,34 @@ async def resolve_chat_member(context: ContextTypes.DEFAULT_TYPE, user_identifie
     return pyro_result
 
 
-async def _try_pyrogram_chat_member_resolve(chat_id: Union[int, str], user_identifier: Union[int, str]) -> Dict[str, Any]:
+async def username_to_id(username: Union[int, str]):
+    if isinstance(username, int) or username.isnumeric():
+        return username
+    try:
+        user_response = await resolve_user(identifier=username)
+        user = user_response["user"]
+    except Exception as e:
+        log.warning(f"Unable to resolve username {username}: {e}")
+        return None
+
+    if user is None:
+        log.warning(f"Cannot resolve username {username}: make sure it exists")
+        return None
+
+    return user.id
+
+
+async def resolve_user(identifier: Union[int, str]):
+    user = await _try_pyrogram_user_resolve(user_identifier=identifier)
+    if user:
+        return _create_success_response(member=user)
+    return _create_error_response("unable_to_identify")
+
+
+async def _try_pyrogram_chat_member_resolve(
+        chat_id: Union[int, str],
+        user_identifier: Union[int, str]
+) -> Dict[str, Any]:
     """Tenta di risolvere un ChatMember usando pyrogram."""
 
     try:
@@ -199,7 +235,7 @@ async def _try_pyrogram_user_resolve(user_identifier: Union[int, str]) -> Option
         return None
 
 
-async def _try_ptb_resolve(context: ContextTypes.DEFAULT_TYPE, chat_id: Union[int, str],
+async def _try_ptb_resolve(context: CustomContext, chat_id: Union[int, str],
                            user_identifier: Union[int, str]) -> Dict[str, Any]:
     """Tenta di risolvere un ChatMember usando PTB."""
     try:
@@ -215,25 +251,42 @@ async def _try_ptb_resolve(context: ContextTypes.DEFAULT_TYPE, chat_id: Union[in
         return _create_error_response("cannot_resolve")
 
 
-def _create_success_response(member) -> Dict[str, Any]:
-    return {
-        "status": "success",
-        "error": "",
-        "member": member
-    }
+def _create_success_response(member: Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]) -> Dict[str, Any]:
+    if isinstance(member, Union[PTBChatMember, PyroChatMember]):
+        return {
+            "status": "success",
+            "error": "",
+            "user": member.user,
+            "member": member
+        }
+    else:
+        return {
+            "status": "success",
+            "error": "",
+            "user": member,
+            "member": None
+        }
 
 
 def _create_error_response(error_code: str) -> Dict[str, Any]:
     return {
         "status": "failed",
         "error": error_code,
+        "user": None,
         "member": None
     }
 
 
-def is_username(string) -> bool:
-    """Se string è una stringa alfanumerica, ritorna True."""
-    return not (not string or string.isdigit())
+async def is_username(string: str) -> bool:
+    """
+    Restituisce True se la stringa è un possibile username Telegram.
+    Regole:
+    - Solo lettere (a-z), numeri (0-9), underscore (_)
+    - Lunghezza: 5-32 caratteri
+    NOTA - In casi limite (es.: first_name "mario1") non posso sapere se la stringa è uno username se non ha la @
+    """
+
+    return string.startswith("@") or bool(re.fullmatch(r"[a-z0-9_]{5,32}", string, flags=re.IGNORECASE))
 
 
 def is_user_id(string) -> bool:
@@ -259,8 +312,8 @@ def normalize_user(user) -> dict:
 def format_user_mention(user_id: str | int = None, username: str = None, first_name: str = None) -> str:
     if username:
         if user_id:
-            return f"{'@' + username.removeprefix('@')} (<code>{user_id}</code>)"
-        return f"{'@' + username.removeprefix('@')}"
+            return f"{add_fucking_at(username)} (<code>{user_id}</code>)"
+        return f"{add_fucking_at(username)}"
     if user_id:
         if first_name:
             f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
@@ -269,25 +322,29 @@ def format_user_mention(user_id: str | int = None, username: str = None, first_n
 
 
 def add_fucking_at(s: str) -> str:
+    """Aggiunge la c*zzo di chiocciola."""
     return '@' + s.removeprefix("@")
 
 
-def permission_instance_to_dict(permissions: Union[PyroChatPermissions, PyroChatPermissions]):
-    if isinstance(permissions, PyroChatPermissions):
+def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]):
+    if type(permissions) is PyroChatPermissions:
         return {
             attr: getattr(permissions, attr)
             for attr in permissions.__dict__
             if isinstance(getattr(permissions, attr), bool)
         }
-    return permissions.to_dict()
+    elif type(permissions) is PTBChatPermissions:
+        return permissions.to_dict()
+    else:
+        raise TypeError(f"Unsupported type: {type(permissions)}")
 
 
-async def not_implemented_yet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def not_implemented_yet(update: Update, context: CustomContext):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="⚠ Funzionalità non ancora implementata.",
+        text="⚠️ Funzionalità non ancora implementata.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiude", callback_data="close")]]
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
         )
     )
 
@@ -298,7 +355,7 @@ def get_toggle_text(b: bool) -> str:
 
 async def handle_if_not_file(
         update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
+        context: CustomContext,
         filename: Optional[str],
         callback_data: str
 ) -> bool:
@@ -320,7 +377,66 @@ async def handle_if_not_file(
     return False
 
 
-async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def test(update: Update, context: CustomContext):
     if update.effective_user.id != int(os.getenv("MYID")):
         return
     await create_and_send_recaps(context=context.application)
+
+
+async def set_moderation_bool_setting(
+        update: Update,
+        context: CustomContext,
+        setting: str,
+        sub_setting: str,
+        value: bool,
+        category: str = None
+):
+    log_name = "_".join(setting.split("/")) + ("_category" if category else "")
+    log_c = logger.getChild(log_name)
+
+    path = f"moderation.{'.'.join(setting.split('/'))}{f'.{category}' if category else ''}.{sub_setting}"
+    set_value(context=context, path=path, value=value)
+
+    log_c.info(f"Modifica: settaggio {path} modificato in '{value}' da {update.effective_user.id}")
+
+
+async def edit_message_safely(
+        context: CustomContext,
+        message_id: int,
+        chat_id: int,
+        text: str,
+        keyboard: InlineKeyboardMarkup
+) -> Optional[int]:
+    """Wrapper per edit_message_text con gestione errori"""
+    try:
+        await context.bot.edit_message_text(
+            message_id=message_id,
+            chat_id=chat_id,
+            text=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
+        )
+        return message_id
+    except Exception:
+        try:
+            message = await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
+            return message.id
+        except Exception as e:
+            log.error(f"Impossibile modificare o inviare un nuovo messaggio: {e}")
+
+
+async def wrong_input_message(update: Update, context: CustomContext, correct_format=str):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"⚠️ Manda {correct_format}.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
+        ),
+        parse_mode=ParseMode.HTML
+    )

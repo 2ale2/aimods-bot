@@ -2,15 +2,17 @@ import re
 from typing import Union
 
 from telegram import Update
-from telegram.ext import Application, ContextTypes
-from aimods_bot.src.helpers.database import fetch_query, execute_query, add_to_table
+from telegram.ext import Application
+
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.database import fetch_query, add_to_table
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 log = logger.getChild("channel-recap")
 
 
-async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def catch_post_from_channel(update: Update, context: CustomContext):
     if not update.effective_message.text and not update.effective_message.caption:
         return
 
@@ -63,7 +65,12 @@ async def catch_post_from_channel(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Application]):
+async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
+    if isinstance(context, CustomContext):
+        bot_data = context.pydb
+    else:
+        bot_data = context.bot_data
+
     query = "SELECT * FROM recap_posts"
     res = await fetch_query(query=query)
     if res is None:
@@ -127,7 +134,7 @@ async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Appli
 
         if text:
             await context.bot.send_message(
-                chat_id=context.bot_data["group_chat_id"],
+                chat_id=bot_data.group_chat_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 text=text,
                 disable_web_page_preview=True,
@@ -135,7 +142,7 @@ async def create_and_send_recaps(context: Union[ContextTypes.DEFAULT_TYPE, Appli
             )
 
             await context.bot.send_sticker(
-                chat_id=context.bot_data["group_chat_id"],
+                chat_id=bot_data.group_chat_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
             )

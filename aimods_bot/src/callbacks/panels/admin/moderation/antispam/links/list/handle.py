@@ -3,9 +3,9 @@ from urllib.parse import urlparse
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Message
 from telegram.constants import ParseMode
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import LIST_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import JobData
@@ -22,7 +22,7 @@ domain_types = {
 }
 
 
-async def view_list(update: Update, context: CallbackContext, l: str):
+async def view_list(update: Update, context: CustomContext, l: str):
     l_item = LIST_DETAILS[l]
     domain_type = domain_types.get(l, domain_types["default"])
 
@@ -47,14 +47,14 @@ async def view_list(update: Update, context: CallbackContext, l: str):
             files=filename,
             send_as_document=True,
             delete_after_sending=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
         )
     )
 
     return PCS.ADMIN_CONVERSATION
 
 
-async def edit_list(update: Update, context: CallbackContext, l: str, action: Literal["add", "remove"]):
+async def edit_list(update: Update, context: CustomContext, l: str, action: Literal["add", "remove"]):
     l_item = LIST_DETAILS[l]
     domain_type = domain_types.get(l, domain_types["default"])
     message = update.effective_message
@@ -95,7 +95,7 @@ async def edit_list(update: Update, context: CallbackContext, l: str, action: Li
     return PCS.EDIT_ANTISPAM_LINK_LIST
 
 
-async def handle_user_input(update: Update, context: CallbackContext):
+async def handle_user_input(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
     d = context.chat_data["list_info"]
@@ -218,10 +218,10 @@ def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_
     return keyboard
 
 
-async def _send_validation_error(update: Update, context: CallbackContext, domain_type: dict):
+async def _send_validation_error(update: Update, context: CustomContext, domain_type: dict):
     """Invia messaggio di errore per validazione fallita"""
     text = f"⚠ Il messaggio non contiene link. Invia uno o più {domain_type['plural']}."
-    keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close")]]
+    keyboard = [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
 
     await send_action_message_after(
         update=update,
@@ -235,16 +235,16 @@ async def _validate_input(uin: Message) -> bool:
     return any(x.type in MessageEntity.URL for x in uin.entities)
 
 
-def _get_list(context: CallbackContext, l: str) -> list:
+def _get_list(context: CustomContext, l: str) -> list:
     return get_value(context=context, path=f"moderation.antispam.link.{l}")
 
 
-def _check_list_empty(context: CallbackContext, l: str) -> bool:
+def _check_list_empty(context: CustomContext, l: str) -> bool:
     l_conf = _get_list(context=context, l=l)
     return len(l_conf) == 0
 
 
-async def _handle_if_list_empty(update: Update, context: CallbackContext, l: str) -> bool:
+async def _handle_if_list_empty(update: Update, context: CustomContext, l: str) -> bool:
     l_item = LIST_DETAILS[l]
 
     if _check_list_empty(context=context, l=l):

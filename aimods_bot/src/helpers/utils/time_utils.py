@@ -1,7 +1,8 @@
 import re
-from zoneinfo import ZoneInfo
+from typing import Optional
 
 import pytz
+from zoneinfo import ZoneInfo
 from datetime import timedelta, datetime, timezone, time
 
 
@@ -9,7 +10,10 @@ def pluralize(value: int, singular: str, plural: str) -> str:
     return f"{value} {singular if value == 1 else plural}"
 
 
-async def get_time_text(seconds: int) -> str:
+def get_duration_text(seconds: Optional[int], with_emoji: bool = True) -> str:
+    if not seconds:
+        return ""
+
     time_timedelta = timedelta(seconds=seconds)
     days = time_timedelta.days
     hours = time_timedelta.seconds // 3600
@@ -19,16 +23,18 @@ async def get_time_text(seconds: int) -> str:
     parts = []
     if days > 0:
         parts.append(pluralize(days, "giorno", "giorni"))
-    if hours > 0 or days > 0:
+    if hours > 0:
         parts.append(pluralize(hours, "ora", "ore"))
-    if minutes > 0 or hours > 0 or days > 0:
+    if minutes > 0:
         parts.append(pluralize(minutes, "minuto", "minuti"))
     parts.append(pluralize(seconds, "secondo", "secondi"))
 
-    return "🕔 " + ", ".join(parts)
+    parts = [el for el in parts if not el.startswith("0")]
+
+    return f"{'🕔 ' if with_emoji else ''}" + ", ".join(parts)
 
 
-async def parse_duration(duration_string: str) -> timedelta | None:
+def parse_duration(duration_string: str) -> timedelta | None:
     mapping = {
         "giorno": "days", "giorni": "days",
         "ora": "hours", "ore": "hours",
@@ -76,15 +82,15 @@ def get_until_date(duration) -> datetime:
     return now_utc + duration
 
 
-def format_time_as_rome(until: datetime) -> str:
+def format_time_as_rome(until: datetime) -> Optional[str]:
     """Formatta il testo nel fuso orario italiano se diverso da zero_datetime(), altrimenti a tempo indeterminato."""
     if until is None:
-        return ""
+        raise Exception("Devi fornire il parametro 'until'")
     if until == zero_datetime():
-        return "a <b>tempo indeterminato</b>."
+        return None
     rome_time = until.astimezone(pytz.timezone('Europe/Rome'))
-    return (f"fino al <b>{rome_time.strftime('%d %B %Y')}</b> "
-            f"alle {rome_time.strftime('%H:%M')}.")
+    return (f"<b>{rome_time.strftime('%d %B %Y')}</b> "
+            f"alle {rome_time.strftime('%H:%M')}")
 
 
 def sec_value_limited(sec: int):

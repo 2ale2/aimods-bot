@@ -1,14 +1,14 @@
 from typing import Literal
 
 from telegram import Update
-from telegram.ext import CallbackContext
 from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_rate_limit_text, pluralize
 from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
 
 
-async def render_antispam_mentions_rate_limit_panel(update: Update, context: CallbackContext):
+async def render_antispam_mentions_rate_limit_panel(update: Update, context: CustomContext):
     text = _build_rate_limit_text(context)
 
     antispam_mentions_rate_limit_panel = Panel(
@@ -32,7 +32,7 @@ async def render_antispam_mentions_rate_limit_panel(update: Update, context: Cal
     await antispam_mentions_rate_limit_panel.render(update=update, context=context)
 
 
-def _build_rate_limit_text(context: CallbackContext) -> str:
+def _build_rate_limit_text(context: CustomContext) -> str:
     antispam_mention_rate_limit_config = get_value(context, "moderation.antispam.mention.rate_limit")
     toggle = antispam_mention_rate_limit_config["toggle"]
     time = antispam_mention_rate_limit_config["time"]
@@ -54,7 +54,7 @@ def _build_rate_limit_text(context: CallbackContext) -> str:
 
 async def render_antispam_mentions_rate_limit_setting_panel(
         update: Update,
-        context: CallbackContext,
+        context: CustomContext,
         setting: Literal['time', 'mention']
 ):
     text = _build_rate_limit_setting_text(context, setting)
@@ -112,7 +112,7 @@ async def render_antispam_mentions_rate_limit_setting_panel(
     await antispam_mentions_rate_limit_setting_panel.render(update=update, context=context)
 
 
-def _build_rate_limit_setting_text(context: CallbackContext, setting: Literal['time', 'mention']):
+def _build_rate_limit_setting_text(context: CustomContext, setting: Literal['time', 'mention']):
     antispam_mention_rate_limit_config = get_value(context, "moderation.antispam.mention.rate_limit")
     value = antispam_mention_rate_limit_config[setting]
     if setting == "mention":

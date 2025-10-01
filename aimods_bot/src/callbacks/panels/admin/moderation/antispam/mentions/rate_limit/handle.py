@@ -1,8 +1,8 @@
 from typing import Literal, Union
 from telegram import Update
-from telegram.ext import CallbackContext
 
 from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("antispam_mention_rate_limit")
@@ -10,7 +10,7 @@ log = logger.getChild("antispam_mention_rate_limit")
 
 async def set_antispam_mention_rate_limit(
         update: Update,
-        context: CallbackContext,
+        context: CustomContext,
         setting: Literal['time', 'mention', 'toggle'],
         value: Union[int, bool]
 ):
