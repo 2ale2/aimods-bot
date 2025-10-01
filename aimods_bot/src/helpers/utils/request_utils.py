@@ -152,6 +152,8 @@ async def get_request_details(request: Request, admin: bool = False):
         text += f"     🔸 <u>SteamTools</u> - <i>{'✔️' if request.steamtools else '✖️'}</i>\n"
     if request.issued_at:
         text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n"
+    if request.arch:
+        text += f"     🔸 <u>CPU ARM</u> – <i>{'✔️' if request.arch.arm_bool else '✖️'}</i>\n"
 
     if request.status:
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']

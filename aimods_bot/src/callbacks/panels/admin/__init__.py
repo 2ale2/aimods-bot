@@ -1,4 +1,5 @@
 from telegram import Update
+from telegram.ext import InvalidCallbackData
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_router
@@ -8,7 +9,11 @@ from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
 async def admin_main_router(update: Update, context: CustomContext):
-    s = update.callback_query.data.split("/")
+    c_data = update.callback_query.data
+    if isinstance(c_data, InvalidCallbackData):
+        return await start(update=update, context=context)
+
+    s = c_data.split("/")
 
     # Expected "admin/<path>"
     if len(s) == 1:

@@ -225,7 +225,7 @@ async def render_confirm_cancel_panel(
     else:
         text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
                 "→ 🗑 <b>Cancellazione</b>\n\n"
-                "⚠️ Non puoi più cancellare questa richiesta.\n\n"
+                "<blockquote>⚠️ Non puoi più cancellare questa richiesta.</blockquote>\n\n"
                 "🔹 Torna indietro per continuare.")
         keyboard = [[ButtonItem(text="🔙 Annulla", callback_key=None)]]
 

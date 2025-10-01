@@ -7,9 +7,9 @@ from telegram.ext import ConversationHandler
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.core.pydantic import Request, Architecture
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG, Platform, Category, \
-    RequestField
+    RequestField, Arch
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
 from aimods_bot.src.helpers.constants.models import MessageTemplate
 from aimods_bot.src.helpers.database import fetch_query
@@ -203,6 +203,8 @@ class RequestDataManager:
     def update_field(context: CustomContext, field: str, value: Any) -> None:
         """Aggiorna un campo specifico della richiesta"""
         request_data = RequestDataManager.get_request_data(context)
+        if field == "arch":
+            value = Architecture(arch=Arch(value))
         setattr(request_data, field, value)
         RequestDataManager.update_request_data(context, request_data)
 
@@ -280,7 +282,7 @@ class RequestDataManager:
         category = request_data.category
         uid = update.effective_user.id
 
-        request_for_db = request_data.model_dump()
+        request_for_db = request_data.model_dump(mode="json")
         request_for_db.pop("platform", None)
         request_for_db.pop("category", None)
         request_for_db.pop("status", None)
@@ -424,7 +426,7 @@ class KeyboardBuilder:
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
                 )
             elif field == "arch":
-                arch = bool(request_data.arch)
+                arch = bool(request_data.arch.arm_bool)
                 cb = "bool_no" if arch else "bool_yes"
                 buttons.append(
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
@@ -514,6 +516,8 @@ class MessageBuilder:
 
         for field_name, field_info in field_config.items():
             value = getattr(request_data, field_name, None)
+            if isinstance(value, Architecture):
+                value = value.arm_bool
             if MessageBuilder._should_display_field(field_name, value):
                 display_value = MessageBuilder._format_field_value(field_name, value, editing_field, field_info)
                 fields.append(f"      🔸 <u>{field_info['label']}</u> – {display_value}")
@@ -577,6 +581,9 @@ class InputHandler:
             detail = RequestField(detail)
 
         data = InputHandler._extract_data(update, detail)
+
+        if detail == RequestField.ARCH:
+            data = "arm" if data is True else "x86"
 
         RequestDataManager.update_field(context=context, field=detail.value, value=data)
         log.info(f"Handled input for {detail}: {data}")

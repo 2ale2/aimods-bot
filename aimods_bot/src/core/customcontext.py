@@ -57,6 +57,7 @@ class AdminLimitingUserRequests(BaseModel):
                 for platform, categories in CATEGORY_DETAILS.items()
             }
 
+
 class ChatDataPersistent(BaseModel):
     # ======== Both Admins & Users ========
     bot_message_id: Optional[int] = Field(
@@ -72,6 +73,10 @@ class ChatDataPersistent(BaseModel):
     new_request: Optional[Request] = Field(
         default=None,
         description="Memory space to keep request data before adding it into bot data"
+    )
+    base_path: Optional[str] = Field(
+        default_factory=str,
+        description="Base path for saving ring strategy path management"
     )
 
 
@@ -120,7 +125,6 @@ class BotData(BaseModel):
     user_joined_message_text: str = ""
 
     request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
-    base_path: Optional[str] = None
     active_requests: Dict[int, Request] = Field(default_factory=dict)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     restart: RestartData = Field(default_factory=RestartData)
@@ -172,10 +176,10 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def set_base_path(self, base_path: str):
         """Strategia del path ad anello mononodo: salvo il path base per costruire il secondario."""
-        self.pydb.base_path = base_path
+        self.pydc.persistent.base_path = base_path
 
     def free_base_path(self):
-        self.pydb.base_path = None
+        self.pydc.persistent.base_path = None
 
     @property
     def user_active_requests(self) -> dict[int, Request]:

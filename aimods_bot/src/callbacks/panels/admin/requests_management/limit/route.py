@@ -89,7 +89,7 @@ async def route_admin_limit_user_request(
         path: Optional[list[str]] = None,
         user_id: Optional[int] = None
 ):
-    if not context.pydb.base_path and update.callback_query:
+    if not context.pydc.persistent.base_path and update.callback_query:
         context.set_base_path(base_path="/".join(update.callback_query.data.split("/")[:-1]))
 
     if path and len(path) > 0 and path[0].startswith("limit_"):
@@ -134,7 +134,7 @@ async def route_admin_limit_user_request(
             update=update,
             context=context,
             user_id=user_id,
-            back_button_callback_key=context.pydb.base_path  # se torno indietro, torno al percorso principale
+            back_button_callback_key=context.pydc.persistent.base_path  # se torno indietro, torno al percorso principale
         )
         return PCS.ADMIN_CONVERSATION
 
@@ -167,8 +167,8 @@ async def route_admin_limit_user_request(
                         context=context,
                         user_id=user_id
                 ):
-                    context.pydc.ephemeral.resolved_users = None
-                    context.pydc.ephemeral.resolved_members = None
+                    context.pydc.ephemeral.resolved_users = {}
+                    context.pydc.ephemeral.resolved_members = {}
                     return PCS.SET_REQUEST_LIMITATION_REASON
                 else:
                     return PCS.ADMIN_CONVERSATION

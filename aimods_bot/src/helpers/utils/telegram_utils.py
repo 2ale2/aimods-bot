@@ -178,16 +178,20 @@ async def resolve_chat_member(
     return pyro_result
 
 
-async def id_to_username(username: Union[int, str]):
+async def username_to_id(username: Union[int, str]):
     if isinstance(username, int) or username.isnumeric():
         return username
     try:
-        user = await _try_pyrogram_user_resolve(user_identifier=username)
-        if isinstance(user, list):
-            user = user[0]
-    except RPCError as e:
-        log.warning(f"Unable to resolve username {username}; make sure it exists: {e}")
+        user_response = await resolve_user(identifier=username)
+        user = user_response["user"]
+    except Exception as e:
+        log.warning(f"Unable to resolve username {username}: {e}")
         return None
+
+    if user is None:
+        log.warning(f"Cannot resolve username {username}: make sure it exists")
+        return None
+
     return user.id
 
 

@@ -558,7 +558,10 @@ async def render_admin_manage_request_change_status_panel(
         status = REQUEST_STATUS_DETAILS[sk]
         if len(keyboard[-1]) >= 2:
             keyboard.append([])
-        if request.status.value != sk:
+        if sk == "rejected":
+            ckey = "reject"
+            override = False
+        elif request.status.value != sk:
             ckey = sk
             override = False
         else:
@@ -590,7 +593,7 @@ async def _get_admin_manage_request_change_status_text(request: Request):
 
     text += await get_request_details(request=request, admin=True)
 
-    text += "\n\n🔹 Scegli il nuovo stato da impostare."
+    text += "\n🔹 Scegli il nuovo stato da impostare."
 
     return text
 

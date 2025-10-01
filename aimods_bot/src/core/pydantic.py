@@ -239,7 +239,10 @@ class CommandConfig(BaseModel):
 
 class Architecture(BaseModel):
     arch: Arch = None
-    arm_bool: bool = arch in (Arch.ARM, Arch.ARM_64)
+
+    @property
+    def arm_bool(self) -> bool:
+        return self.arch in (Arch.ARM, Arch.ARM_64)
 
 
 class RequestConversationFlow(BaseModel):

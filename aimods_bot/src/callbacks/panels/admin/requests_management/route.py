@@ -35,11 +35,12 @@ async def admin_requests_management_route(update: Update, context: CustomContext
         case "manage_sections":
             return await admin_request_section_configure_route(update=update, context=context, path=path[1:])
         case "manage_limitations":
+            context.free_base_path()
             return await route_admin_manage_limitations(update=update, context=context, path=path[1:])
 
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
-    if update.callback_query and update.callback_query.data == context.pydb.base_path:
+    if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:
         #  Se la path è uguale a quella salvata, significa che sono tornato da una funzionalità secondaria
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
@@ -157,7 +158,6 @@ async def admin_manage_request_route(
                 request=request
             )
             return PCS.SET_REQUEST_REJECTION_REASON
-
 
     elif len(path) == 2:
         if path[-2] in RequestStatus and path[-1] == "yes":

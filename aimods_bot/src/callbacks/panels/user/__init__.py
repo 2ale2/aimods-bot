@@ -1,4 +1,6 @@
 from telegram import Update
+from telegram.ext import InvalidCallbackData
+
 from aimods_bot.src.callbacks.panels.user.request.route import requests_management_route
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.core.customcontext import CustomContext
@@ -6,6 +8,10 @@ from aimods_bot.src.core.customcontext import CustomContext
 
 async def user_main_router(update: Update, context: CustomContext):
     c_data = update.callback_query.data
+
+    if isinstance(c_data, InvalidCallbackData):
+        return await start(update=update, context=context)
+
     path = c_data.split("/")
 
     if len(path) == 1:
