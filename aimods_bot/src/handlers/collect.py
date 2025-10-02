@@ -9,14 +9,14 @@ from aimods_bot.src.handlers.commands.check_command_handler import check_command
 from aimods_bot.src.helpers.utils.telegram_utils import test
 
 active_handlers = [
-    # TestHandler(callback=test).get(),
+    TestHandler(callback=test).get(),
     test_command_handler,
     channel_posts_capture_handler,
     new_member_handler
 ]
 
 all_handlers = [
-    # TestHandler(callback=test).get(),
+    TestHandler(callback=test).get(),
     check_command_handler,
     channel_posts_capture_handler,
     new_member_handler,
