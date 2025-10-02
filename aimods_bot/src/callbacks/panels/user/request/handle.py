@@ -426,7 +426,7 @@ class KeyboardBuilder:
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
                 )
             elif field == "arch":
-                arch = bool(request_data.arch.arm_bool)
+                arch = request_data.arch.arm_bool
                 cb = "bool_no" if arch else "bool_yes"
                 buttons.append(
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)

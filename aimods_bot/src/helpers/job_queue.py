@@ -9,24 +9,29 @@ from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
+from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.constants.models import ScheduledJobData, JobData, MediaItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
-log = logger.getChild("job_queue")
+log = logger.getChild(__name__)
 
 
 # ========== UTILITÀ ==========
 
 def register_job(context, job_id: str):
-    context.bot_data.setdefault("jobs", {})
-    context.bot_data["jobs"][job_id] = {"returned_value": None, "done": False}
+    context.pydb.jobs[job_id] = JobInfo()
 
 
 def mark_job_done(context, job_id: str, message_id: int):
-    context.bot_data["jobs"][job_id]["returned_value"] = message_id
-    context.bot_data["jobs"][job_id]["done"] = True
+    j = context.pydb.jobs.get(job_id, None)
+    if not j:
+        log.error(f"Job {job_id} not found")
+        return
+    j.returned_value = message_id
+    j.executed = True
+    context.pydb.jobs[job_id] = j
 
 
 # ========== JOB: DELETE ==========
@@ -69,7 +74,7 @@ async def scheduled_send_message(context: CustomContext):
     if (not data_model.text and not send_media) or not data_model.chat_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'text'")
 
-    job_to_edit = next((j for j in context.bot_data["jobs"] if j == job.name), None)
+    job_to_edit = next((j for j in context.pydb.jobs if j == job.name), None)
 
     common_kwargs = {
         "chat_id": data_model.chat_id,
@@ -93,7 +98,7 @@ async def scheduled_send_message(context: CustomContext):
             mark_job_done(context, job_to_edit, message.message_id)
     except telegram.error.TelegramError as e:
         if job_to_edit:
-            context.bot_data["jobs"].pop(job_to_edit, None)
+            context.pydb.jobs.pop(job_to_edit, None)
         log.error(f"❌ Errore nell'invio programmato: {e}")
 
 
@@ -130,11 +135,7 @@ async def send_action_message_after(update: Update,
         name=job_id
     )
 
-    context.bot_data.setdefault("jobs", {})
-    context.bot_data["jobs"][job_id] = {
-        "returned_value": None,
-        "done": False
-    }
+    context.pydb.jobs[job_id] = JobInfo()
 
 
 async def _send_media_message(context: CustomContext, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
@@ -274,8 +275,12 @@ async def send_temporary_message(
     register_job(context, job_id)
     await _wait_for_job_completion(context, job_id)
 
-    message_id = context.bot_data["jobs"][job_id]["returned_value"]
-    context.bot_data["jobs"].pop(job_id, None)
+    j = context.pydb.jobs.get(job_id, None)
+    if not j:
+        log.error(f"Job {job_id} not found")
+        return
+    message_id = j.returned_value
+    context.pydb.jobs.pop(job_id, None)
 
     context.job_queue.run_once(
         callback=scheduled_delete_message,

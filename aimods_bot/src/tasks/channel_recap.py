@@ -18,7 +18,7 @@ async def catch_post_from_channel(update: Update, context: CustomContext):
 
     text = update.effective_message.caption or update.effective_message.text
     platforms = []
-    hashtags = context.bot_data["hashtags"]
+    hashtags = context.pydb.hashtags
 
     if any(x in text for x in hashtags["platforms"]["Android"]):
         platforms.append("Android")

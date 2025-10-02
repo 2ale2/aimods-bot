@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import AsyncIterator, Iterable, Text
 
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
-from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.core.pydantic import Request, Architecture
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
     Platform, WindowsCategory, AndroidCategory, IOSCategory, \
     MacOSCategory, Arch, RequestStatus
@@ -88,7 +88,12 @@ async def request_from_record(request: dict) -> Request:
         steamtools = content.get("steamtools", None)
         arch = content.get("arch", None)
         if arch:
-            arch = Arch(arch)
+            a = arch.get("arch", None)
+            if not a:
+                log.error("Dumped Arch instance should be a dict containing an 'arch' key")
+                arch = None
+            else:
+                arch = Architecture(arch=Arch(arch.get("arch", None)))
 
     # noinspection PyTypeChecker
     return Request(
