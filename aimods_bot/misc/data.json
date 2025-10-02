@@ -2,31 +2,31 @@
     "forum_topics": {
         "all": {
             "1": {
-                "id": 14,
+                "id": 184504,
                 "name": "Android"
             },
             "2": {
-                "id": 16,
+                "id": 184507,
                 "name": "Windows"
             },
             "3": {
-                "id": 15,
+                "id": 184519,
                 "name": "iOS"
             },
             "4": {
-                "id": 17,
+                "id": 184535,
                 "name": "MacOS"
             },
             "5": {
-                "id": 13,
+                "id": 80041,
                 "name": "OffTopic"
             },
             "6": {
-                "id": 12,
+                "id": 1,
                 "name": "Assistenza App/Software"
             },
             "7": {
-                "id": 8,
+                "id": 7229,
                 "name": "Assistenza Tecnica PC/Smartphone"
             },
             "8": {
@@ -36,35 +36,35 @@
         },
         "assistenza": {
             "1": {
-                "id": 12,
+                "id": 1,
                 "name": "Assistenza App/Software"
             },
             "2": {
-                "id": 8,
+                "id": 7229,
                 "name": "Assistenza Tecnica PC/Smartphone"
             }
         },
         "off_topic": {
             "1": {
-                "id": 13,
+                "id": 80041,
                 "name": "OffTopic"
             }
         },
         "recap": {
             "1": {
-                "id": 14,
+                "id": 184504,
                 "name": "Android"
             },
             "2": {
-                "id": 16,
+                "id": 184507,
                 "name": "Windows"
             },
             "3": {
-                "id": 15,
+                "id": 184519,
                 "name": "iOS"
             },
             "4": {
-                "id": 17,
+                "id": 184535,
                 "name": "MacOS"
             }
         }
