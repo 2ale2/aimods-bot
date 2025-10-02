@@ -11,7 +11,7 @@ from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
-from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK
 from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
@@ -81,8 +81,6 @@ async def set_application_data(application: Application):
                     **json_request_conversation_flows[pl][ct]
                 )
 
-        current_bot_data.channel_join_link = constants.CHANNEL_JOIN_LINK
-
         application.bot_data.base_path = None
 
         autorecap_job_name = "auto_recap"
@@ -149,7 +147,7 @@ async def set_application_data(application: Application):
             set_data_in_json(key=["restarting", "user_id"], value=0)
 
         application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
-
+        application.bot_data.channel_join_link = CHANNEL_JOIN_LINK
 
 # noinspection PyUnresolvedReferences
 async def get_admins(app: Application, chat_id: int):
