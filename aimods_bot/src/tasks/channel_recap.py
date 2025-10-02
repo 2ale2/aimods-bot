@@ -150,4 +150,4 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
     # noinspection SqlWithoutWhere
     query = "DELETE FROM recap_posts"
 
-    # await execute_query(query=query)
+    await execute_query(query=query)
