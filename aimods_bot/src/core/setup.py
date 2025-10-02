@@ -81,6 +81,8 @@ async def set_application_data(application: Application):
                     **json_request_conversation_flows[pl][ct]
                 )
 
+        current_bot_data.channel_join_link = constants.CHANNEL_JOIN_LINK
+
         application.bot_data.base_path = None
 
         autorecap_job_name = "auto_recap"
@@ -173,4 +175,4 @@ async def get_admins(app: Application, chat_id: int):
 
 def get_handlers() -> List[BaseHandler]:
     t = get_data_from_json("test_mode")
-    return all_handlers if not t else active_handlers
+    return all_handlers if t else active_handlers

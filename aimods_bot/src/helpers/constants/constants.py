@@ -8,6 +8,8 @@ from typing import Union
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 
+CHANNEL_JOIN_LINK = "https://t.me/+YmSMpGvSrlphYjJk"
+
 LOCAL_TZ = pytz.timezone('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400

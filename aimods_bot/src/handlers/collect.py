@@ -12,7 +12,9 @@ active_handlers = [
     # TestHandler(callback=test).get(),
     test_command_handler,
     channel_posts_capture_handler,
-    new_member_handler
+    new_member_handler,
+    private_conversation_handler,
+    close_button_handler
 ]
 
 all_handlers = [
