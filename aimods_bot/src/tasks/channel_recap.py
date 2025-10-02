@@ -5,11 +5,11 @@ from telegram import Update
 from telegram.ext import Application
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.database import fetch_query, add_to_table
+from aimods_bot.src.helpers.database import fetch_query, add_to_table, execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
-log = logger.getChild("channel-recap")
+log = logger.getChild(__name__)
 
 
 async def catch_post_from_channel(update: Update, context: CustomContext):
