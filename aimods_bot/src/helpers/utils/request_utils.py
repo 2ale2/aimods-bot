@@ -1,5 +1,4 @@
 import json
-import platform as platf
 from datetime import datetime
 from pathlib import Path
 from typing import AsyncIterator, Iterable, Text
@@ -50,13 +49,6 @@ async def request_from_record(request: dict) -> Request:
     if any(k not in request for k in response):
         raise MissingParameterException("La struttura del dizionario non corrisponde alla struttura del DB nella "
                                         "tabella delle richieste.")
-
-    categories = {
-        "android": AndroidCategory,
-        "windows": WindowsCategory,
-        "ios": IOSCategory,
-        "macos": MacOSCategory
-    }
 
     raw_id = request.get("id", None)
     raw_platform = request.get("platform", None)
@@ -249,15 +241,8 @@ def render_request_latex_item(r: Request) -> str:
 
 
 def render_requests_latex_header() -> str:
-    s = platf.system()
-    if s == "Windows":
-        font = "Segoe UI Emoji"
-    else:
-        font = "Noto Color Emoji"
     return fr"""\documentclass[a4paper,12pt]{{article}}
-    \usepackage{{fontspec}}
     \usepackage{{emoji}}
-    \setemojifont{{{font}}}
     \usepackage{{multicol}}
     \usepackage{{enumitem}}
     \usepackage{{xcolor}}
