@@ -17,7 +17,7 @@ async def test(update: Update, context: CustomContext):
 
 
 active_handlers = [
-    TestHandler(callback=test).get(),
+    # TestHandler(callback=test).get(),
     test_command_handler,
     channel_posts_capture_handler,
     new_member_handler,
