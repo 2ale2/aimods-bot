@@ -1,7 +1,9 @@
+import copy
 import os
 from typing import List
 
 from pydantic import ValidationError
+from telegram.error import TelegramError
 
 import aimods_bot.src.helpers.constants.constants as constants
 from datetime import timedelta, datetime, timezone
@@ -109,8 +111,8 @@ async def set_application_data(application: Application):
             executed=False
         )
 
-        urcs = current_bot_data.user_request_cooldowns
-        for uid in urcs:
+        urcs = copy.deepcopy(current_bot_data.user_request_cooldowns)
+        for uid in current_bot_data.user_request_cooldowns:
             rc = urcs[uid]
             if rc.until <= datetime.now(timezone.utc):
                 urcs.pop(uid, None)
@@ -120,6 +122,7 @@ async def set_application_data(application: Application):
                     when=rc.until,
                     data={"user_id": uid}
                 )
+        current_bot_data.user_request_cooldowns = urcs
 
         try:
             pyro_inst = Client(
@@ -148,6 +151,29 @@ async def set_application_data(application: Application):
 
         application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
         application.bot_data.channel_join_link = CHANNEL_JOIN_LINK
+
+        if link := application.bot_data.group_join_link:
+            try:
+                await application.bot.revoke_chat_invite_link(
+                    chat_id=application.bot_data.group_chat_id,
+                    invite_link=application.bot_data.group_join_link
+                )
+            except Exception as e:
+                log.warning(f"Unable to revoke group join link '{link}': {e}")
+            application.bot_data.group_join_link = "https://example.com"
+
+        try:
+            group_join_link = await application.bot.create_chat_invite_link(
+                chat_id=application.bot_data.group_chat_id,
+                name="AIMODS_BOT_LINK",
+                creates_join_request=False,
+                expire_date=None,
+                member_limit=None
+            )
+            application.bot_data.group_join_link = group_join_link.invite_link
+        except TelegramError as e:
+            log.error(f"Failed to create group join_link: {e}")
+
 
 # noinspection PyUnresolvedReferences
 async def get_admins(app: Application, chat_id: int):

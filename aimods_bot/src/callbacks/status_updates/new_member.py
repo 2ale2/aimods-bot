@@ -20,8 +20,6 @@ TIMEOUT_SECONDS = 300
 async def new_member_joined_forum(update: Update, context: CustomContext):
     await log_join(update, context)
 
-    context.pydc.persistent.joining_link = update.chat_join_request.invite_link.invite_link
-
     uid = update.effective_user.id
 
     await _handle_if_blacklisted(update, context, uid)

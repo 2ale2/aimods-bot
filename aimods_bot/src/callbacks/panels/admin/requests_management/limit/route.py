@@ -13,6 +13,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user, is_user_id
 
@@ -154,7 +155,14 @@ async def route_admin_limit_user_request(
 
     user_id = int(user_id)
 
-    limiting_item = set_user_requests_limiting_item(context=context)
+    set_true_section = None
+    for pl in CATEGORY_DETAILS:
+        for ca in CATEGORY_DETAILS[pl]:
+            if all(x in context.pydc.persistent.base_path for x in (pl, ca)):
+                set_true_section = f"{pl}:{ca}"
+                break
+
+    limiting_item = set_user_requests_limiting_item(context=context, set_true_section=set_true_section)
 
     if not limiting_item.user_id:
         limiting_item.user_id = user_id

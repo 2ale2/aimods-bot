@@ -20,6 +20,7 @@ new_member_handler = ConversationHandler(
         fallbacks=[
             CallbackQueryHandler(callback=new_member_joined_forum, pattern="^recreate_captcha$")
         ],
+        allow_reentry=True,
         per_chat=False,
         name="join_handler",
         persistent=True

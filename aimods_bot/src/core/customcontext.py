@@ -70,7 +70,6 @@ class ChatDataPersistent(BaseModel):
         description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
     )
     # ======== Users ========
-    joining_link: Optional[str] = Field(default_factory=str, description="Link used to join chat")
     new_request: Optional[Request] = Field(
         default=None,
         description="Memory space to keep request data before adding it into bot data"
@@ -125,6 +124,7 @@ class BotData(BaseModel):
     rules_text: str = ""
     user_joined_message_text: str = ""
     channel_join_link: str = ""
+    group_join_link: str = "https://example.com"
 
     request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
     active_requests: Dict[int, Request] = Field(default_factory=dict)
