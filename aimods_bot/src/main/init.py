@@ -59,13 +59,13 @@ def main():
     application.add_handlers(handlers)
 
     try:
-        application.run_polling()
-        # application.run_webhook(
-        #     listen="0.0.0.0",
-        #     port=8080,
-        #     url_path="bot",
-        #     webhook_url="https://bot.aimodsitalia.store/bot"
-        # )
+        # application.run_polling()
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=8080,
+            url_path="bot",
+            webhook_url="https://bot.aimodsitalia.store/bot"
+        )
         r = application.bot_data.restart
         if r and r.toggle:
             application.bot_data.restart.toggle = False
