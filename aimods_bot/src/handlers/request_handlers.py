@@ -80,6 +80,7 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 },
                 name="windows_request_game_conversation",
+                allow_reentry=True,
                 persistent=True
             ),
             ConversationHandler(
@@ -111,6 +112,7 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 },
                 name="windows_adobe_request_conversation",
+                allow_reentry=True,
                 persistent=True
             ),
             ConversationHandler(
@@ -141,6 +143,7 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 },
                 name="windows_daw_request_conversation",
+                allow_reentry=True,
                 persistent=True
             ),
             ConversationHandler(
@@ -172,6 +175,7 @@ windows_request_handler = ConversationHandler(
                     RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
                 },
                 name="windows_software_request_conversation",
+                allow_reentry=True,
                 persistent=True
             )
         ],
@@ -258,6 +262,7 @@ macos_request_handler = ConversationHandler(
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER
                 },
                 name="macos_request_daw_conversation",
+                allow_reentry=True,
                 persistent=True
             ),
             ConversationHandler(
@@ -288,6 +293,7 @@ macos_request_handler = ConversationHandler(
                     RCS.MAIN_BACKER: RCS.MAIN_BACKER
                 },
                 name="macos_request_software_conversation",
+                allow_reentry=True,
                 persistent=True
             )
         ],
