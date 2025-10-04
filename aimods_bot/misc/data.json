@@ -205,17 +205,17 @@
         "android": {
             "app": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_main", "back_name", "back_link", "back_version", "back_functionalities"]
             }
         },
         "windows": {
             "software": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities"]
             },
             "game": {
                 "flow": ["name", "link", "version", "functionalities", "steamtools"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_steamtools"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities", "back_steamtools"]
             },
             "daw": {
                 "flow": ["name", "link", "version"],
@@ -229,13 +229,13 @@
         "ios": {
             "app": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_main", "back_name", "back_link", "back_version", "back_functionalities"]
             }
         },
         "macos": {
             "software": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities"]
             },
             "daw": {
                 "flow": ["name", "link", "version"],

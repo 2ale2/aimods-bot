@@ -218,7 +218,7 @@ class RequestDataManager:
     async def recheck_request(update: Update, context: CustomContext):
         if update.callback_query:
             data = update.callback_query.data
-            if data in ("bool_yes", "bool_no"):
+            if data.startswith(("bool_yes", "bool_no")):
                 await InputHandler.handle_input(update=update, context=context)
 
         request_data = RequestDataManager.get_request_data(context)
@@ -421,13 +421,13 @@ class KeyboardBuilder:
         for field in fields:
             if field == "steamtools":
                 steamtools = bool(request_data.steamtools)
-                cb = "bool_no" if steamtools else "bool_yes"
+                cb = "bool_no:steamtools" if steamtools else "bool_yes:steamtools"
                 buttons.append(
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
                 )
             elif field == "arch":
                 arch = request_data.arch.arm_bool
-                cb = "bool_no" if arch else "bool_yes"
+                cb = "bool_no:arch" if arch else "bool_yes:arch"
                 buttons.append(
                     InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
                 )
@@ -601,6 +601,6 @@ class InputHandler:
         elif detail in (RequestField.STEAMTOOLS, RequestField.ARCH):
             if not update.callback_query:
                 raise MissingParameterException("Per il valore SteamTools e ARCH ci deve essere una callback query.")
-            return update.callback_query.data == "bool_yes"
+            return update.callback_query.data.startswith("bool_yes")
         else:
             return update.effective_message.text
