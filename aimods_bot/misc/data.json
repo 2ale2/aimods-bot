@@ -172,7 +172,8 @@
                 "#fixlicenza",
                 "#riproduttore",
                 "#phoenix",
-                "#minicleaner"
+                "#minicleaner",
+                "#patchadobe"
             ],
             "iOS": [
                 "#ios"
@@ -196,7 +197,8 @@
             "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
             "AIMods Store MacOS": "#storemac",
             "Phoenix Play by <i>AIMods</i>™": "#phoenix",
-            "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner"
+            "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner",
+            "Path Suite Adobe by <i>AIMods</i>™": "#patchadobe"
         }
     },
     "request_conversation_flows": {
