@@ -63,6 +63,14 @@ async def get_time_until_next_recap():
     return target_utc - now_utc
 
 
+def get_last_monday_midnight() -> datetime:
+    now_utc = datetime.now(timezone.utc)
+    days_since_monday = now_utc.weekday()
+    last_monday = now_utc - timedelta(days=days_since_monday)
+    last_monday_midnight = last_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    return last_monday_midnight
+
+
 def zero_datetime() -> datetime:
     """
     Restituisce un datetime "zero" (1 gennaio 1970 UTC), usato come valore predefinito per "tempo indeterminato".

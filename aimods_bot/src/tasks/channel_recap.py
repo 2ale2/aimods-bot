@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Union, Optional
 
 from telegram import Update
 from telegram.ext import Application
@@ -8,12 +8,17 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.database import fetch_query, add_to_table, execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
+from aimods_bot.src.helpers.utils.time_utils import get_last_monday_midnight
 
 log = logger.getChild(__name__)
 
 
 async def catch_post_from_channel(update: Update, context: CustomContext):
     if not update.effective_message.text and not update.effective_message.caption:
+        return
+
+    if not check_post_timestamp(update=update):
+        log.info(f"Skipping post {update.effective_message.id} (was published before this week)")
         return
 
     text = update.effective_message.caption or update.effective_message.text
@@ -36,7 +41,7 @@ async def catch_post_from_channel(update: Update, context: CustomContext):
         return
 
     lines = text.splitlines()
-    if "#richiesta" in lines[0]:
+    if "#richiesta" in lines[0] or "#Richiesta" in lines[0]:
         lines.pop(0)
 
     first_line = re.sub(r"^\W+", "", lines[0])
@@ -63,6 +68,12 @@ async def catch_post_from_channel(update: Update, context: CustomContext):
             "link": update.effective_message.link
         }
     )
+
+
+def check_post_timestamp(update: Update) -> Optional[bool]:
+    """Verifica se il post è stato pubblicato prima dell'ultimo lunedì"""
+    monday_midnight = get_last_monday_midnight()
+    return monday_midnight <= update.effective_message.date
 
 
 async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
