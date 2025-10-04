@@ -85,8 +85,8 @@ async def edit_request_detail(update: Update, context: CustomContext):
     if update.callback_query:
         await update.callback_query.answer()
         data = update.callback_query.data
-        if data in ("bool_yes", "bool_no"):
-            value = "steamtools" if data.endswith("steamtools") else "arch"
+        if data.endswith(("steamtools", "arch")):
+            value = data.split(":", 1)[1]
             RequestDataManager.update_field(context=context, field="editing", value=RequestField(value))
             return await RequestDataManager.recheck_request(update=update, context=context)
 
@@ -132,6 +132,7 @@ async def confirm_request(update: Update, context: CustomContext):
 
 async def backer(update: Update, context: CustomContext):
     """Gestisce la pressione del tasto indietro o annulla."""
+    await update.callback_query.answer()
     request_data = RequestDataManager.get_request_data(context=context)
 
     data = update.callback_query.data
