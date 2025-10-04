@@ -150,8 +150,7 @@ async def render_admin_limit_user_panel(
     )
 
     message_id = context.pydc.persistent.bot_message_id
-    if message_id:
-        context.pydc.persistent.bot_message_id = None
+    context.pydc.persistent.bot_message_id = None
 
     await admin_limit_user_request_panel.render(update=update, context=context, message_id=message_id)
 
@@ -415,6 +414,7 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await safe_delete(update=update, context=context)
 
     message_id = context.pydc.persistent.bot_message_id
+    context.pydc.persistent.bot_message_id = None
     await handle_limitation_confirmation(update=update, context=context)
 
     user_id = get_request_limiting_detail(context=context, what="user_id")
@@ -571,8 +571,7 @@ async def render_admin_view_user_limitations_panel(
     )
 
     message_id = context.pydc.persistent.bot_message_id
-    if message_id:
-        context.pydc.persistent.bot_message_id = None
+    context.pydc.persistent.bot_message_id = None
 
     await admin_view_user_limitations_panel.render(update=update, context=context, message_id=message_id)
 
@@ -617,8 +616,7 @@ async def render_admin_remove_user_limitation_panel(
     )
 
     message_id = context.pydc.persistent.bot_message_id
-    if message_id:
-        context.pydc.persistent.bot_message_id = None
+    context.pydc.persistent.bot_message_id = None
 
     await admin_remove_user_limitation_panel.render(update=update, context=context, message_id=message_id)
 

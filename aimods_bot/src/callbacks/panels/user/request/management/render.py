@@ -1,10 +1,11 @@
 import os.path
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from pyrogram.types import InlineKeyboardButton
 from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ChatAction, ParseMode
+from telegram.error import BadRequest
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
@@ -250,37 +251,62 @@ async def _get_confirm_cancel_text(request: Request) -> str:
     return text
 
 
-async def render_user_request_archive_panel(update: Update, context: CustomContext):
-    user_id = update.effective_user.id
+async def render_user_request_archive_panel(
+        update: Update,
+        context: CustomContext,
+        user_id: Optional[int] = None,
+        requested_by_admin: bool = False
+):
+    user_id = user_id or update.effective_user.id
     requests = await get_user_requests_archive(user_id=user_id)
 
-    text = await _get_user_request_archive_text(requests=requests)
+    text = await _get_user_request_archive_text(requests=requests, requested_from_admin=requested_by_admin)
 
     p = None
     if not len(requests) == 0:
-        await update.effective_message.edit_text(
-            text="📕 <b>Archivio Richieste</b>\n\n"
-                 "⏳ Un secondo...",
-            reply_markup=None,
-            parse_mode=ParseMode.HTML
-        )
+        archive_text = (f"📕 <b>Archivio Richieste {'Utente' if requested_by_admin else ''}</b>\n\n"
+                "⏳ Un secondo...")
+        try:
+            await update.effective_message.edit_text(
+                text=archive_text,
+                reply_markup=None,
+                parse_mode=ParseMode.HTML
+            )
+        except BadRequest:
+            if not context.pydc.persistent.bot_message_id:
+                raise
+            await context.bot.edit_message_text(
+                chat_id=update.effective_user.id,
+                message_id=context.pydc.persistent.bot_message_id,
+                text=archive_text,
+                parse_mode=ParseMode.HTML
+            )
         await context.bot.send_chat_action(chat_id=user_id, action=ChatAction.UPLOAD_DOCUMENT)
         p = await _get_archive_pdf_file(requests=requests, user_id=user_id)
 
+    if requested_by_admin:
+        base_path = f"admin/manage_requests/user_requests_archive/{user_id}"
+    else:
+        base_path = "user/view_requests/requests_archive"
+
     user_request_archive_panel = Panel(
         PanelConfig(
-            base_path="user/view_requests/requests_archive",
+            base_path=base_path,
             text=text,
             keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )
-
-    await user_request_archive_panel.render(update=update, context=context)
+    await user_request_archive_panel.render(
+        update=update,
+        context=context,
+        message_id=context.pydc.persistent.bot_message_id
+    )
+    context.pydc.persistent.bot_message_id = None
     if p:
         await context.bot.send_document(
-            chat_id=user_id,
+            chat_id=update.effective_user.id,
             document=p,
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton(
@@ -305,13 +331,19 @@ async def render_user_request_archive_panel(update: Update, context: CustomConte
         context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 
-async def _get_user_request_archive_text(requests: list[Request]):
+async def _get_user_request_archive_text(requests: list[Request], requested_from_admin: bool = False):
     text = "📕 <b>Archivio Richieste</b>\n\n"
 
-    if len(requests) == 0:
-        text += "ℹ️ Non hai formulato alcuna richiesta in passato."
+    if requested_from_admin:
+        if len(requests) == 0:
+            text += "<blockquote>ℹ️ L'utente non ha ancora formulato alcuna richiesta.</blockquote>"
+        else:
+            text += "▪️ Ecco le richieste che l'utente ha formulato in passato in ordine cronologico."
     else:
-        text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico."
+        if len(requests) == 0:
+            text += "<blockquote>ℹ️ Non hai formulato alcuna richiesta in passato.</blockquote>"
+        else:
+            text += "▪️ Ecco le richieste che hai formulato in passato in ordine cronologico."
 
     return text
 

@@ -1,6 +1,6 @@
 import os
 import asyncpg
-from asyncpg import Connection
+from asyncpg import Connection, UniqueViolationError
 from typing import Optional, Union
 
 from aimods_bot.src.core.exceptions import DatabaseBotException
@@ -106,10 +106,10 @@ async def add_to_table(table_name: str, content: dict) -> bool:
     success = await execute_query(query, list(filtered.values()))
 
     if success:
-        log.info(f"✅ Inserito in {table_name}: {filtered}")
+        log.info(f"Inserito in {table_name}: {filtered}")
         return True
 
-    log.error(f"❌ Fallito l'inserimento in {table_name}")
+    log.warning(f"Fallito l'inserimento in {table_name}")
     return False
 
 
@@ -120,10 +120,14 @@ async def execute_query(query: str, params: Optional[list] = None) -> bool:
     conn = await connect_to_database()
     try:
         await conn.execute(query, *(params or []))
-        log.debug(f"✅ Eseguita: {query} | Params: {params}")
+        log.debug(f"Eseguita: {query} | Params: {params}")
         return True
+    except UniqueViolationError as e:
+        log.warning(f"Constraint violated: unique constraint. "
+                    f"NOTE – If the query was inserting into 'recap_posts' this shouldn't be a problem.")
+        return False
     except Exception as e:
-        log.exception(f"❌ Errore durante l'esecuzione di {query}: {e}")
+        log.exception(f"Errore durante l'esecuzione di {query}: {e}")
         return False
     finally:
         await conn.close()
@@ -136,10 +140,10 @@ async def fetch_query(query: str, params: Optional[list] = None) -> Optional[lis
     conn = await connect_to_database()
     try:
         result = await conn.fetch(query, *(params or []))
-        log.debug(f"📥 Fetched: {len(result)} record(s)")
+        log.debug(f"Fetched: {len(result)} record(s)")
         return result
     except Exception as e:
-        log.exception(f"❌ Errore durante il fetch della query: {e}")
+        log.exception(f"Errore durante il fetch della query: {e}")
         return None
     finally:
         await conn.close()

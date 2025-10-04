@@ -15,11 +15,13 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
-    render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel
+    render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
+    render_admin_user_requests_archive_panel
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 log = logger.getChild(__name__)
 
@@ -39,7 +41,11 @@ async def admin_requests_management_route(update: Update, context: CustomContext
                 context.free_base_path()
                 context.pydc.persistent.limiting_user_requests = None
             return await route_admin_manage_limitations(update=update, context=context, path=path[1:])
-
+        case "user_requests_archive":
+            await render_admin_user_requests_archive_panel(update=update, context=context)
+            return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+            # await not_implemented_yet(update=update, context=context)
+            # return PCS.ADMIN_CONVERSATION
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:

@@ -3,7 +3,6 @@ import os
 from typing import List
 
 from pydantic import ValidationError
-from telegram.error import TelegramError
 
 import aimods_bot.src.helpers.constants.constants as constants
 from datetime import timedelta, datetime, timezone
@@ -13,7 +12,9 @@ from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
-from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK
+from aimods_bot.src.helpers.constants.constants import (
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK
+)
 from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
@@ -151,28 +152,7 @@ async def set_application_data(application: Application):
 
         application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
         application.bot_data.channel_join_link = CHANNEL_JOIN_LINK
-
-        if link := application.bot_data.group_join_link:
-            try:
-                await application.bot.revoke_chat_invite_link(
-                    chat_id=application.bot_data.group_chat_id,
-                    invite_link=application.bot_data.group_join_link
-                )
-            except Exception as e:
-                log.warning(f"Unable to revoke group join link '{link}': {e}")
-            application.bot_data.group_join_link = "https://example.com"
-
-        try:
-            group_join_link = await application.bot.create_chat_invite_link(
-                chat_id=application.bot_data.group_chat_id,
-                name="AIMODS_BOT_LINK",
-                creates_join_request=False,
-                expire_date=None,
-                member_limit=None
-            )
-            application.bot_data.group_join_link = group_join_link.invite_link
-        except TelegramError as e:
-            log.error(f"Failed to create group join_link: {e}")
+        application.bot_data.group_join_link = GROUP_JOIN_LINK
 
 
 # noinspection PyUnresolvedReferences
