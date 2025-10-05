@@ -10,10 +10,10 @@ settings:
         limit: 20
       game:
         toggle: true
-        limit: 5
+        limit: 1
       adobe:
         toggle: true
-        limit: 3
+        limit: 2
       daw:
         toggle: false
         limit: 20
@@ -29,7 +29,7 @@ settings:
         toggle: false
         limit: 15
     cancel_timer: 86400
-    cooldown: 30
+    cooldown: 604800
 moderation:
   antispam:
     toggle: true
