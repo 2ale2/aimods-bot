@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import List, Optional, Literal, Dict, Union
+from typing import List, Optional, Literal, Dict, Union, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
@@ -21,8 +21,9 @@ class PunishmentType(str, Enum):
 
 
 class JobInfo(BaseModel):
-    next_date: str = ""
-    executed: bool = False
+    next_date: str = Field(default_factory=str)
+    executed: bool = Field(default=False)
+    returned_value: Optional[Any] = Field(default=None)
 
 
 class PunishmentConfig(BaseModel):

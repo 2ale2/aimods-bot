@@ -18,7 +18,12 @@ async def user_request_management_route(update: Update, context: CustomContext, 
         case "active_requests":
             return await user_request_action_route(update=update, context=context, path=path[1:])
         case "requests_archive":
-            await render_user_request_archive_panel(update=update, context=context)
+            await render_user_request_archive_panel(
+                update=update,
+                context=context,
+                user_id=None,
+                requested_by_admin=False
+            )
             return PCS.USER_CONVERSATION
 
 

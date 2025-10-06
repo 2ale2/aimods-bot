@@ -34,18 +34,22 @@ async def _approve_join_request(context: CustomContext, user_id: int):
 
 
 async def _send_welcome_message(update: Update, context: CustomContext):
-    clean_id = str(context.pydb.group_chat_id).removeprefix("-100")
-    clean_url = f"https://t.me/c/{clean_id}/0"
-
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Vai al Gruppo ↗️", url=clean_url)
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(text="Vai al Canale 🎫", url=context.pydb.channel_join_link),
+            InlineKeyboardButton(text="Vai al Gruppo ↗️", url=context.pydb.group_join_link)
+        ],
+        [
+            InlineKeyboardButton(text="🆘 Canale Backup", url="https://t.me/aimodsabout")
+        ]
+    ])
 
     await update.effective_message.edit_text(
         text=(
             "✅ <b>La tua richiesta è stata approvata</b>\n\n"
-            "Lo staff di <i>AiMods</i> ti dà il benvenuto. "
-            "Grazie per averci scelto 😃"
+            "<blockquote>‼ <b>Attenzione</b> – Nel canale pubblichiamo <b>tutti i contenuti e "
+            "le comunicazioni ufficiali</b>. <u>Usa il tasto sotto per unirti</u>.</blockquote>\n\n"
+            "🔹 Lo staff di <i>AiMods</i> ti dà il benvenuto. <b>Grazie per averci scelto</b> 😃"
         ),
         reply_markup=keyboard,
         parse_mode=ParseMode.HTML

@@ -123,6 +123,8 @@ class BotData(BaseModel):
     hashtags: Dict[str, Any] = Field(default_factory=dict)
     rules_text: str = ""
     user_joined_message_text: str = ""
+    channel_join_link: str = ""
+    group_join_link: str = "https://example.com"
 
     request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
     active_requests: Dict[int, Request] = Field(default_factory=dict)

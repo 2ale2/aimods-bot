@@ -2,31 +2,31 @@
     "forum_topics": {
         "all": {
             "1": {
-                "id": 14,
+                "id": 184504,
                 "name": "Android"
             },
             "2": {
-                "id": 16,
+                "id": 184507,
                 "name": "Windows"
             },
             "3": {
-                "id": 15,
+                "id": 184519,
                 "name": "iOS"
             },
             "4": {
-                "id": 17,
+                "id": 184535,
                 "name": "MacOS"
             },
             "5": {
-                "id": 13,
+                "id": 80041,
                 "name": "OffTopic"
             },
             "6": {
-                "id": 12,
+                "id": 1,
                 "name": "Assistenza App/Software"
             },
             "7": {
-                "id": 8,
+                "id": 7229,
                 "name": "Assistenza Tecnica PC/Smartphone"
             },
             "8": {
@@ -36,35 +36,35 @@
         },
         "assistenza": {
             "1": {
-                "id": 12,
+                "id": 1,
                 "name": "Assistenza App/Software"
             },
             "2": {
-                "id": 8,
+                "id": 7229,
                 "name": "Assistenza Tecnica PC/Smartphone"
             }
         },
         "off_topic": {
             "1": {
-                "id": 13,
+                "id": 80041,
                 "name": "OffTopic"
             }
         },
         "recap": {
             "1": {
-                "id": 14,
+                "id": 184504,
                 "name": "Android"
             },
             "2": {
-                "id": 16,
+                "id": 184507,
                 "name": "Windows"
             },
             "3": {
-                "id": 15,
+                "id": 184519,
                 "name": "iOS"
             },
             "4": {
-                "id": 17,
+                "id": 184535,
                 "name": "MacOS"
             }
         }
@@ -172,7 +172,8 @@
                 "#fixlicenza",
                 "#riproduttore",
                 "#phoenix",
-                "#minicleaner"
+                "#minicleaner",
+                "#patchadobe"
             ],
             "iOS": [
                 "#ios"
@@ -196,24 +197,25 @@
             "Riproduttore Video by <i>AIMods</i>™": "#riproduttore",
             "AIMods Store MacOS": "#storemac",
             "Phoenix Play by <i>AIMods</i>™": "#phoenix",
-            "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner"
+            "Mini-Cleaner Tool by <i>AIMods</i>™": "#minicleaner",
+            "Path Suite Adobe by <i>AIMods</i>™": "#patchadobe"
         }
     },
     "request_conversation_flows": {
         "android": {
             "app": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_main", "back_name", "back_link", "back_version", "back_functionalities"]
             }
         },
         "windows": {
             "software": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities"]
             },
             "game": {
                 "flow": ["name", "link", "version", "functionalities", "steamtools"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities", "back_steamtools"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities", "back_steamtools"]
             },
             "daw": {
                 "flow": ["name", "link", "version"],
@@ -227,13 +229,13 @@
         "ios": {
             "app": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_main", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_main", "back_name", "back_link", "back_version", "back_functionalities"]
             }
         },
         "macos": {
             "software": {
                 "flow": ["name", "link", "version", "functionalities"],
-                "back_data": ["back_category", "back_name", "back_version", "back_functionalities"]
+                "back_data": ["back_category", "back_name", "back_link", "back_version", "back_functionalities"]
             },
             "daw": {
                 "flow": ["name", "link", "version"],

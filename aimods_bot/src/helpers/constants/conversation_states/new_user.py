@@ -1,4 +1,4 @@
-from enum import IntEnum, auto
+from enum import IntEnum
 
 class NewUserState(IntEnum):
-    WAITING_RULES_ACCEPTANCE = auto()
+    WAITING_RULES_ACCEPTANCE = 1

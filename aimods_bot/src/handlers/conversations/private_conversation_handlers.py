@@ -10,7 +10,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_backer
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_duration
 from aimods_bot.src.callbacks.panels.admin.requests_management.handle import \
-    handle_request_rejection_reason
+    handle_request_rejection_reason, handle_user_archive_identifier
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
     render_handled_request_limitation_duration_panel, render_admin_user_limitation_confirmed_panel, \
     handle_limitation_identifier
@@ -138,6 +138,14 @@ private_conversation_handler = ConversationHandler(
             MessageHandler(
                 filters=filters.TEXT,
                 callback=handle_limitation_identifier
+            ),
+            close_button_handler,
+            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
+        ],
+        PCS.SET_USER_FOR_REQUEST_ARCHIVE: [
+            MessageHandler(
+                filters=filters.TEXT,
+                callback=handle_user_archive_identifier
             ),
             close_button_handler,
             CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)

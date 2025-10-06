@@ -11,6 +11,7 @@ class PrivateConversationState:
     SET_REQUEST_LIMITATION_USER = 9
     SET_REQUEST_REJECTION_REASON = 10
     SET_VIEW_REQUEST_LIMITATION_USER = 11
+    SET_USER_FOR_REQUEST_ARCHIVE = 12
 
 
 class RequestConversationState:

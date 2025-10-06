@@ -1,3 +1,4 @@
+import copy
 import os
 from typing import List
 
@@ -11,7 +12,9 @@ from pyrogram.errors import RPCError
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
 from aimods_bot.src.core.customcontext import BotData
-from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.constants.constants import (
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK
+)
 from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
@@ -81,17 +84,6 @@ async def set_application_data(application: Application):
                     **json_request_conversation_flows[pl][ct]
                 )
 
-        # La pulizia su application.user_data/chat_data è ora inutile dacché tali dizionari non vengono salvati.
-        # for uid in application.user_data:
-        #     if "settings_main_message" in application.user_data[uid]:
-        #         del application.user_data[uid]["settings_main_message"]
-        #
-        # for el in application.chat_data:
-        #     if "setting_duration" in application.chat_data[el]:
-        #         del application.chat_data[el]["setting_duration"]
-        #     if "update_message" in application.chat_data[el]:
-        #         del application.chat_data[el]["update_message"]
-
         application.bot_data.base_path = None
 
         autorecap_job_name = "auto_recap"
@@ -120,8 +112,8 @@ async def set_application_data(application: Application):
             executed=False
         )
 
-        urcs = current_bot_data.user_request_cooldowns
-        for uid in urcs:
+        urcs = copy.deepcopy(current_bot_data.user_request_cooldowns)
+        for uid in current_bot_data.user_request_cooldowns:
             rc = urcs[uid]
             if rc.until <= datetime.now(timezone.utc):
                 urcs.pop(uid, None)
@@ -131,6 +123,7 @@ async def set_application_data(application: Application):
                     when=rc.until,
                     data={"user_id": uid}
                 )
+        current_bot_data.user_request_cooldowns = urcs
 
         try:
             pyro_inst = Client(
@@ -158,6 +151,8 @@ async def set_application_data(application: Application):
             set_data_in_json(key=["restarting", "user_id"], value=0)
 
         application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+        application.bot_data.channel_join_link = CHANNEL_JOIN_LINK
+        application.bot_data.group_join_link = GROUP_JOIN_LINK
 
 
 # noinspection PyUnresolvedReferences
@@ -184,4 +179,4 @@ async def get_admins(app: Application, chat_id: int):
 
 def get_handlers() -> List[BaseHandler]:
     t = get_data_from_json("test_mode")
-    return all_handlers if not t else active_handlers
+    return all_handlers if t else active_handlers

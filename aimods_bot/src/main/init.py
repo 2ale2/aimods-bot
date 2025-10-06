@@ -12,14 +12,7 @@ from aimods_bot.src.core.exceptions import ConfigError
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
-log = logger.getChild("init")
-
-logging.getLogger('httpx').setLevel(logging.WARNING)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+log = logger.getChild(__name__)
 
 
 def main():
@@ -64,11 +57,11 @@ def main():
         #     listen="0.0.0.0",
         #     port=8080,
         #     url_path="bot",
-        #     webhook_url=f"https://bot.aimodsitalia.store/bot"
+        #     webhook_url="https://bot.aimodsitalia.store/bot"
         # )
         r = application.bot_data.restart
         if r and r.toggle:
-            application.bot_data["restart"]["toggle"] = False
+            application.bot_data.restart.toggle = False
             os.execl(sys.executable, sys.executable, *sys.argv)
     except ConfigError as e:
         log.error(f"Config validation failed: {e}")

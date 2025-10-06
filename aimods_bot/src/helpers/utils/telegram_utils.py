@@ -1,10 +1,9 @@
-import os
 import re
 from typing import Optional, Any, Union, Dict
 
 import telegram
 from telegram.constants import ParseMode
-from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied, RPCError
+from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
                       LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser)
@@ -14,7 +13,6 @@ from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
 
 log = logger.getChild("telegram_utils")
 
@@ -375,12 +373,6 @@ async def handle_if_not_file(
         )
         return True
     return False
-
-
-async def test(update: Update, context: CustomContext):
-    if update.effective_user.id != int(os.getenv("MYID")):
-        return
-    await create_and_send_recaps(context=context.application)
 
 
 async def set_moderation_bool_setting(

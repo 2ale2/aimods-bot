@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime, timezone
-from typing import Literal, Union
+from typing import Literal, Union, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
@@ -13,10 +13,17 @@ from aimods_bot.src.helpers.loggers import logger
 log = logger.getChild("handle_request_limitation")
 
 
-def set_user_requests_limiting_item(context: CustomContext):
+def set_user_requests_limiting_item(context: CustomContext, set_true_section: Optional[str] = None):
     """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
     if context.pydc.persistent.limiting_user_requests is None:
         context.pydc.persistent.limiting_user_requests = AdminLimitingUserRequests()
+        if set_true_section:
+            pl, ca = set_true_section.split(":")
+            platform = context.pydc.persistent.limiting_user_requests.sections.get(pl, None)
+            if ca in platform:
+                context.pydc.persistent.limiting_user_requests.sections[pl][ca] = True
+            else:
+                log.warning(f"Section {set_true_section} not found")
 
     return context.pydc.persistent.limiting_user_requests
 

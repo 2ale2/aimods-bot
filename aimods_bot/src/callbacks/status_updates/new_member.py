@@ -19,6 +19,7 @@ TIMEOUT_SECONDS = 300
 # main function (callback)
 async def new_member_joined_forum(update: Update, context: CustomContext):
     await log_join(update, context)
+
     uid = update.effective_user.id
 
     await _handle_if_blacklisted(update, context, uid)

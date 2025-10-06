@@ -24,13 +24,14 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
             text=text,
             keyboard=[
                 [
-                    ButtonItem(text="📕 Richieste Attive", callback_key="active_requests"),
-                    ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections")
+                    ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
+                    ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
                 ],
                 [
-                    ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations"),
-                    ButtonItem(text="🔙 Indietro", callback_key=None)
-                ]
+                    ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections"),
+                    ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations")
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )
@@ -735,4 +736,27 @@ def _get_admin_rejection_confirmed_text(ix: int, reason: str):
             f"      🔸 <u>Motivazione</u> – <i>{reason}</i>\n\n"
             "🔹 Scegli un'opzione.")
 
+    return text
+
+
+async def render_admin_user_requests_archive_panel(update: Update, context: CustomContext):
+    context.pydc.persistent.bot_message_id = update.effective_message.message_id
+
+    text = _get_admin_user_requests_archive_()
+
+    admin_user_requests_archive_panel = Panel(
+        PanelConfig(
+            base_path="admin/manage_requests/user_requests_archive",
+            text=text,
+            keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+        )
+    )
+
+    await admin_user_requests_archive_panel.render(update=update, context=context)
+
+
+def _get_admin_user_requests_archive_():
+    text = ("📕 <b>Archivio Richieste Utente</b>\n\n"
+            "▫ Da qui puoi visionare l'archivio delle richieste di un utente.\n\n"
+            "🔹 Fornisci un ID o uno username.")
     return text
