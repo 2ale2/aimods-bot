@@ -328,7 +328,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             log.warning(f"Request {ix} not found.")
 
         status_value = status.value
-        query = """UPDATE requests SET status = $1, rejection_reason = $2 WHERE id = $3"""
+        query = """UPDATE requests_test SET status = $1, rejection_reason = $2 WHERE id = $3"""
 
         res = await execute_query(query=query, params=[status_value, rejection_reason, int(ix)])
         if not res:

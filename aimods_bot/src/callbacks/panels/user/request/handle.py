@@ -296,7 +296,7 @@ class RequestDataManager:
         rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
 
         query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category, rejection_reason)
+                INSERT INTO requests_test (id, platform, content, user_id, status, issued_at, category, rejection_reason)
                 VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
                 RETURNING id, issued_at"""
 
