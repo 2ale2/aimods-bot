@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import List, Optional, Literal, Dict, Union, Any
+from typing import List, Optional, Literal, Dict, Union, Any, Set
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CATEGORY_DETAILS
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("pydantic")
@@ -310,6 +310,7 @@ class Request(BaseModel):
     requesting: Optional[RequestField] = None
     editing: Optional[RequestField] = None
     rejection_reason: Optional[str] = Field(default_factory=str)
+    status_change_notifications: bool = True
 
     @property
     def is_active(self):
@@ -330,3 +331,23 @@ class Request(BaseModel):
             else:
                 self.rejection_reason = rejection_reason
         self.status = status
+
+
+class AdminNotifications(BaseModel):
+    """Classe per le impostazioni sulle notifiche degli admin."""
+    new_requests_notifications: Dict[str, bool] = Field(
+        default_factory=dict,
+        description="Notifiche per le nuove richieste"
+    )
+
+    def model_post_init(self, __context):
+        if not self.new_requests_notifications:
+            self.new_requests_notifications = {
+                platform: {category: False for category in categories}
+                for platform, categories in CATEGORY_DETAILS.items()
+            }
+
+
+class UserNotifications(BaseModel):
+    """Classe per le impostazioni sulle notifiche degli utenti."""
+    pass
