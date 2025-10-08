@@ -3,7 +3,6 @@ from typing import Dict, Any, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import MessageEntityType
-from telegram.ext import ConversationHandler
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
@@ -73,7 +72,6 @@ class RequestDataManager:
         - Resetta flag/ID di messaggi e campo in editing.
         - Salva un timestamp di avvio richiesta.
         """
-        chat = context.pydc
 
         if context.pydc.persistent.new_request is not None:
             try:
@@ -296,7 +294,7 @@ class RequestDataManager:
         rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
 
         query = """
-                INSERT INTO requests_test (id, platform, content, user_id, status, issued_at, category, rejection_reason)
+                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category, rejection_reason)
                 VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
                 RETURNING id, issued_at"""
 
