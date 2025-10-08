@@ -18,7 +18,8 @@ from telegram import User as PTBUser, ChatMember as PTBChatMember
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
-    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown
+    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, \
+    UserNotifications
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
     CATEGORY_DETAILS
 from aimods_bot.src.helpers.database import execute_query
@@ -65,11 +66,13 @@ class ChatDataPersistent(BaseModel):
         description="Memory space for saving bot message IDs in the case an input from the user is expected."
     )
     # ======== Admins ========
+    admin_notifications: AdminNotifications = Field(default_factory=AdminNotifications)
     limiting_user_requests: Optional[AdminLimitingUserRequests] = Field(
         default=None,
         description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
     )
     # ======== Users ========
+    user_notifications: UserNotifications = Field(default_factory=UserNotifications)
     new_request: Optional[Request] = Field(
         default=None,
         description="Memory space to keep request data before adding it into bot data"
@@ -110,7 +113,7 @@ class ChatData(BaseModel):
 
 class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
-    bot_version: str = "1.0.0"
+    bot_version: str = "1.0.1"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     group_chat_id: Optional[int] = None

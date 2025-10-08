@@ -335,7 +335,7 @@ class Request(BaseModel):
 
 class AdminNotifications(BaseModel):
     """Classe per le impostazioni sulle notifiche degli admin."""
-    new_requests_notifications: Dict[str, bool] = Field(
+    new_requests_notifications: Dict[str, Dict[str, bool]] = Field(
         default_factory=dict,
         description="Notifiche per le nuove richieste"
     )

@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.management.handle import cancel_request
+from aimods_bot.src.callbacks.panels.user.request.management.handle import cancel_request, toggle_status_notifications
 from aimods_bot.src.callbacks.panels.user.request.management.render import \
     render_active_request_panel, render_user_request_management_panel, render_user_request_action_panel, \
     render_confirm_cancel_panel, render_request_details_panel, render_request_cancelled_panel, \
@@ -33,23 +33,25 @@ async def user_request_action_route(
         path: list[str]):
     if len(path) == 0:
         await render_active_request_panel(update=update, context=context)
-        return PCS.USER_CONVERSATION
 
-    if len(path) == 1:
+    elif len(path) == 1:
         await render_user_request_action_panel(update=update, context=context, action=path[0])
-        return PCS.USER_CONVERSATION
 
-    if len(path) == 2:
+    elif len(path) == 2:
         match path[0]:
             case "details":
-                await render_request_details_panel(update=update, context=context, ix=int(path[-1]))
+                await render_request_details_panel(update=update, context=context, ix=int(path[1]))
             case "cancel":
-                await render_confirm_cancel_panel(update=update, context=context, ix=int(path[-1]))
+                await render_confirm_cancel_panel(update=update, context=context, ix=int(path[1]))
 
-        return PCS.USER_CONVERSATION
+    elif len(path) >= 3:
+        if path[-3] == "cancel" and path[-1] == "yes":
+            # path."endswith" [cancel, <ix>, yes]
+            await cancel_request(context=context, ix=int(path[-2]))
+            await render_request_cancelled_panel(update=update, context=context)
 
-    # len(path) == 3: path."endswith" [cancel, <ix>, yes]
-    if path[-3] == "cancel" and path[-1] == "yes":
-        await cancel_request(context=context, ix=int(path[-2]))
-        await render_request_cancelled_panel(update=update, context=context)
-        return PCS.USER_CONVERSATION
+        elif path[2] in ("enable_notifications", "disable_notifications"):
+            await toggle_status_notifications(context=context, ix=int(path[-2]))
+            await render_request_details_panel(update=update, context=context, ix=int(path[1]))
+
+    return PCS.USER_CONVERSATION

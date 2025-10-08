@@ -16,7 +16,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
     render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
-    render_admin_user_requests_archive_panel
+    render_admin_user_requests_archive_panel, send_user_request_status_changed_notification
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
@@ -185,6 +185,15 @@ async def admin_manage_request_route(
                 request=request
             )
 
+            if request.status_change_notifications and status == RequestStatus.COMPLETED:
+                # Notifico l'utente
+                await send_user_request_status_changed_notification(
+                    update=update,
+                    context=context,
+                    user_id=request.user_id,
+                    request=request
+                )
+
         elif path[-2] == "remove" and path[-1] == "yes":
             # expected: (<platform>/<category>/<id>)/remove/yes
             context.remove_from_active_requests(ix=ix)
@@ -221,5 +230,14 @@ async def admin_manage_request_route(
                 request=request,
                 reason=path[-2]
             )
+
+            if request.status_change_notifications:
+                # Notifico l'utente
+                await send_user_request_status_changed_notification(
+                    update=update,
+                    context=context,
+                    user_id=request.user_id,
+                    request=request
+                )
 
     return PCS.ADMIN_CONVERSATION

@@ -249,7 +249,7 @@ class RequestDataManager:
         """Conferma e salva la richiesta nel database"""
         request_data = RequestDataManager.get_request_data(context)
 
-        await RequestDataManager.insert_request(
+        ix = await RequestDataManager.insert_request(
             update=update,
             context=context,
             request_data=request_data
@@ -267,7 +267,7 @@ class RequestDataManager:
         )
 
         RequestDataManager.cleanup_request(context=context)
-        return ConversationHandler.END
+        return ix
 
     # noinspection PyTypedDict
     @staticmethod
@@ -331,6 +331,7 @@ class RequestDataManager:
         )
 
         log.info(f"Request inserted with ID {ix} for user {uid}")
+        return ix
 
     @staticmethod
     def cleanup_request(context: CustomContext) -> None:

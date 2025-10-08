@@ -760,3 +760,46 @@ def _get_admin_user_requests_archive_():
             "▫ Da qui puoi visionare l'archivio delle richieste di un utente.\n\n"
             "🔹 Fornisci un ID o uno username.")
     return text
+
+
+async def send_user_request_status_changed_notification(
+        update: Update,
+        context: CustomContext,
+        user_id: int,
+        request: Request
+):
+    text = _get_user_request_status_changed_notification_text(request=request)
+    ix = request.id
+
+    # disable_notifications_callback_data
+    dncbd = f"user/view_requests/active_requests/details/{ix}/disable_notifications/from_notification"
+
+    user_request_status_changed_notification = Panel(
+        PanelConfig(
+            base_path="user",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(text="🚮 Chiudi", callback_key="close_menu"),
+                    ButtonItem(
+                        text="👁 Visiona Richiesta",
+                        callback_key=f"user/view_requests/active_requests/details/{ix}",
+                        override_path_generation=True
+                    )
+                ]
+            ]
+        )
+    )
+
+    await user_request_status_changed_notification.render(update=update, context=context, user_id=user_id)
+
+
+def _get_user_request_status_changed_notification_text(request: Request):
+    pl, ca = request.platform.value, request.category.value
+    pl_label = PLATFORM_DETAILS[pl]["label"]
+    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+
+    text = (f"🆙 <b>Aggiornamento Richiesta <code>{request.id}</code></b>\n\n"
+            f"▫ La tua richiesta (<b>{ca_label} {pl_label}</b>) ha appena ricevuto il suo <b>esito</b>!")
+
+    return text

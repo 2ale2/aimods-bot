@@ -9,6 +9,7 @@ import telegram
 from pyrogram.errors import BadRequest
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
 from telegram.constants import ParseMode
+from telegram.error import Forbidden
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, WindowsCategory, AndroidCategory, IOSCategory, \
@@ -119,20 +120,32 @@ class Panel:
             return subpath
         return f"{self.base_path}/{subpath}"
 
-    async def render(self, update: Update, context: CustomContext, message_id: int = None, send: bool = False):
+    async def render(
+            self,
+            update: Update,
+            context: CustomContext,
+            user_id: int = None,
+            message_id: int = None,
+            send: bool = False
+    ):
         """Renderizza il pannello nel chat."""
         text = self.build_text()
         reply_markup = InlineKeyboardMarkup(self.build_keyboard())
         preview_options = LinkPreviewOptions(is_disabled=True)
-        if self.send or send:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=text,
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML,
-                link_preview_options=preview_options
-            )
+        if self.send or send or user_id:
+            try:
+                await context.bot.send_message(
+                    chat_id=user_id or update.effective_chat.id,
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=preview_options
+                )
+            except Forbidden:
+                log.warning("Cannot perform send massage action: "
+                            f"user {user_id or update.effective_chat.id} blocked the bot")
         else:
+            # Se modifico un messaggio esistente, non ho bisogno dello user ID
             if html.unescape(update.effective_message.text_html_urled) != text:
                 if message_id:
                     try:

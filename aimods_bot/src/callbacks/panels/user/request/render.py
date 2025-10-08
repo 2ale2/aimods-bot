@@ -1,8 +1,8 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import RequestCooldown
-from aimods_bot.src.helpers.constants.constants import LOCAL_TZ
+from aimods_bot.src.core.pydantic import RequestCooldown, Request
+from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 
@@ -108,3 +108,57 @@ async def render_cant_request_panel(update: Update, context: CustomContext, mess
 
     await cant_request_panel.render(update=update, context=context)
 
+
+async def send_new_request_admin_notification(
+        update: Update,
+        context: CustomContext,
+        admin_id: int,
+        request: Request
+):
+    pl, ca = request.platform.value, request.category.value
+    text = _get_new_request_admin_notification_text(pl=pl, ca=ca)
+    request_id = request.id
+
+    new_request_notification = Panel(
+        PanelConfig(
+            base_path="admin",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(
+                        text="👁 Visiona",
+                        callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}/{request_id}",
+                        override_path_generation=True
+                    ),
+                    ButtonItem(
+                        text="🗃 Richieste Attive",
+                        callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}",
+                        override_path_generation=True
+                    )
+                ],
+                [
+                    ButtonItem(
+                        text="🔕 Disattiva Notifiche",
+                        callback_key=f"admin/manage_settings/notifications/new_requests/{pl}:{ca}/from_notification",
+                        override_path_generation=True
+                    )
+                ],
+                [ButtonItem(text="🚮 Guarda Dopo", callback_key="close_menu")]
+            ]
+        )
+    )
+
+    await new_request_notification.render(update=update, context=context, user_id=admin_id)
+
+
+def _get_new_request_admin_notification_text(pl: str, ca: str) -> str:
+    pl_label = PLATFORM_DETAILS[pl]["label"]
+    ca_icon = CATEGORY_DETAILS[pl][ca]["icon"]
+    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+
+    text = ("🔔 <b>Nuova Richiesta Ricevuta</b>\n\n"
+            "▫ È stata appena aggiunta una <b>nuova richiesta</b> per la sezione\n\n"
+            f"            {ca_icon} <b>{ca_label}</b> ({pl_label})\n\n"
+            "🔹 Scegli un'opzione.")
+
+    return text
