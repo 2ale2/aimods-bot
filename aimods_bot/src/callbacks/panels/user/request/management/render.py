@@ -176,18 +176,24 @@ async def render_request_details_panel(
     request = context.get_active_request_by_id(ix=ix)
     text = await _get_request_details_panel_text(request=request)
 
+    keyboard = [
+        [ButtonItem(text="📋 Visiona Altra Richiesta", callback_key=None)],
+        [ButtonItem(text="🔙 Indietro", callback_key="user/view_requests", override_path_generation=True)]
+    ]
+    if request.is_active:
+        notifications = request.status_change_notifications
+        keyboard.insert(1, [
+            ButtonItem(
+                text=f"{'🔔 Attiva' if not notifications else '🔕 Disattiva'} Notifiche Esito",
+                callback_key=f"{'enable_' if not notifications else 'disable_'}notifications"
+            )
+        ])
+
     request_details_panel = Panel(
         PanelConfig(
             base_path=f"user/view_requests/active_requests/details/{ix}",
             text=text,
-            keyboard=[
-                [ButtonItem(
-                    text="📋 Visiona Altra Richiesta",
-                    callback_key="user/view_requests/active_requests/details",
-                    override_path_generation=True
-                )],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            keyboard=keyboard
         )
     )
 

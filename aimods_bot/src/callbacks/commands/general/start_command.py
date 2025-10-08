@@ -22,7 +22,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool):
                 keyboard=[
                     [
                         ButtonItem(text="♟ Moderazione", callback_key="moderation"),
-                        ButtonItem(text="⚙ Impostazioni", callback_key="settings")
+                        ButtonItem(text="⚙ Impostazioni", callback_key="manage_settings")
                     ],
                     [
                         ButtonItem(text="❔ Gestione Richieste", callback_key="manage_requests"),

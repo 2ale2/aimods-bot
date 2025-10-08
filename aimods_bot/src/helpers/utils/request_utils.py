@@ -131,7 +131,7 @@ async def get_request_details(request: Request, admin: bool = False):
         if request.id:
             text += f"      #️⃣ <u>ID</u> – <code>{request.id}</code>\n"
         if request.user_id:
-            text += f"      👤 <u>User ID</u> – <code>#{request.user_id}</code>\n"
+            text += f"      👤 <u>User ID</u> – <code>{request.user_id}</code>\n"
         text += "\n"
 
     text += f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
@@ -159,6 +159,10 @@ async def get_request_details(request: Request, admin: bool = False):
         text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
         if request.status == RequestStatus.REJECTED:
             text += f"      <b><u>Motivazione</u></b> – {request.rejection_reason}\n"
+
+    if request.status_change_notifications is not None and not admin and request.is_active:
+        text += (f"\n<blockquote>{'🔔 Riceverai' if request.status_change_notifications else '🔕 Non riceverai'} "
+                 "una notifica quando questa richiesta verrà chiusa.</blockquote>")
 
     return text
 

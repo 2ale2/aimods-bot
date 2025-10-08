@@ -1,6 +1,7 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_confirm_rejection_panel
+from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_confirm_rejection_panel, \
+    send_user_request_status_changed_notification
 from aimods_bot.src.callbacks.panels.user.request.management.render import render_user_request_archive_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException

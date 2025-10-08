@@ -1,9 +1,12 @@
+import asyncio
+
 from telegram import Update
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
+    send_new_request_admin_notification
+from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.exceptions import WrongFlowException
 from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestField
@@ -105,16 +108,31 @@ async def edited_detail(update: Update, context: CustomContext):
 
 async def confirm_request(update: Update, context: CustomContext):
     """Elabora la richiesta, setta e programma il cooldown."""
-    request = RequestDataManager.get_request_data(context=context)
+    ix = await RequestDataManager.confirm_request(update=update, context=context)
+    request = context.get_active_request_by_id(ix=ix)
+
     platform = request.platform
     category = request.category
-
-    await RequestDataManager.confirm_request(update=update, context=context)
 
     # Setta il cooldown richieste
     rc = context.set_user_request_cooldown(user_id=update.effective_user.id)
     # Programma la rimozione del cooldown
     await schedule_request_cooldown_removal(context=context, user_id=rc.user_id, until=rc.until)
+
+    # Invia le notifiche
+    for admin_id in context.pydb.admins:
+        admin_data = context.application.chat_data.get(admin_id, None)
+        if admin_data:
+            assert isinstance(admin_data, ChatData)
+            admin_settings = admin_data.persistent.admin_notifications.new_requests_notifications
+            if admin_settings[platform.value][category.value]:
+                await send_new_request_admin_notification(
+                    update=update,
+                    context=context,
+                    admin_id=admin_id,
+                    request=request
+                )
+                await asyncio.sleep(0.5)
 
     config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
     assert isinstance(config, CategorySetting)
