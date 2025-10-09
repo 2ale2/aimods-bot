@@ -47,7 +47,7 @@ async def _send_welcome_message(update: Update, context: CustomContext):
     await update.effective_message.edit_text(
         text=(
             "✅ <b>La tua richiesta è stata approvata</b>\n\n"
-            "<blockquote>‼ <b>Attenzione</b> – Nel canale pubblichiamo <b>tutti i contenuti e "
+            "<blockquote>❗ <b>Attenzione</b> – Nel canale pubblichiamo <b>tutti i contenuti e "
             "le comunicazioni ufficiali</b>. <u>Usa il tasto sotto per unirti</u>.</blockquote>\n\n"
             "🔹 Lo staff di <i>AiMods</i> ti dà il benvenuto. <b>Grazie per averci scelto</b> 😃"
         ),

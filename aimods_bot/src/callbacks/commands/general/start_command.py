@@ -1,16 +1,20 @@
 from telegram import Update
+from telegram.ext import ConversationHandler
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, get_banned_panel
+from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
 log = logger.getChild("start_command")
 
 
-async def get_panel(update: Update, context: CustomContext, admin: bool):
+async def get_panel(update: Update, context: CustomContext, admin: bool, banned: bool):
     fn = update.effective_user.first_name
+    if banned:
+        return get_banned_panel()
     if admin:
         return Panel(
             PanelConfig(
@@ -58,9 +62,14 @@ async def get_panel(update: Update, context: CustomContext, admin: bool):
 async def start(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
+    user = update.effective_user
     admin = context.is_user_admin
+    banned = False
 
-    panel = await get_panel(update=update, context=context, admin=admin)
-    await panel.render(update=update, context=context)
+    if not admin and await user_is_banned(context=context, user_id=user.username or user.id):
+        banned = True
 
-    return PCS.ADMIN_CONVERSATION if admin else PCS.USER_CONVERSATION
+    panel = await get_panel(update=update, context=context, admin=admin, banned=banned)
+    await panel.render(update=update, context=context, message_id=update.effective_message.id)
+
+    return PCS.ADMIN_CONVERSATION if admin else (PCS.USER_CONVERSATION if not banned else ConversationHandler.END)

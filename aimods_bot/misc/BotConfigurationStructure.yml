@@ -3,13 +3,13 @@ settings:
     android:
       app:
         toggle: true
-        limit: 8
+        limit: 5
     windows:
       software:
-        toggle: true
-        limit: 20
+        toggle: false
+        limit: 7
       game:
-        toggle: true
+        toggle: false
         limit: 1
       adobe:
         toggle: true

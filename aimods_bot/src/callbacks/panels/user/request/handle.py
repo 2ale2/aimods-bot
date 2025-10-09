@@ -15,6 +15,7 @@ from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
+from aimods_bot.src.helpers.utils.user_utils import check_auth
 
 log = logger.getChild("request_handler")
 
@@ -65,14 +66,6 @@ class RequestDataManager:
             platform: Optional[Platform] = None,
             category: Optional[Category] = None
     ):
-        """
-        (Re)inizializza una nuova richiesta nello stato della chat.
-        - È sicura da richiamare più volte (idempotente).
-        - Esegue il cleanup dello stato precedente, se presente.
-        - Resetta flag/ID di messaggi e campo in editing.
-        - Salva un timestamp di avvio richiesta.
-        """
-
         if context.pydc.persistent.new_request is not None:
             try:
                 RequestDataManager.cleanup_request(context=context)
@@ -240,6 +233,7 @@ class RequestDataManager:
         return RCS.CHECK_REQUEST
 
     @staticmethod
+    @check_auth(bypass_count=True)
     async def confirm_request(
             update: Update,
             context: CustomContext
@@ -294,7 +288,7 @@ class RequestDataManager:
         rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
 
         query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category, rejection_reason)
+                INSERT INTO requests_test (id, platform, content, user_id, status, issued_at, category, rejection_reason)
                 VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
                 RETURNING id, issued_at"""
 

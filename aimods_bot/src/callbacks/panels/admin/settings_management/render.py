@@ -92,9 +92,8 @@ def _get_admin_new_requests_notification_settings_text_keyboard(settings: AdminN
             if len(keyboard[-1]) >= 4:
                 keyboard.append([])
             keyboard[-1].append(ButtonItem(text=f"{pl_icon} {ca_label}", callback_key=f"{pl}:{ca}"))
-        text += "\n"
 
-    text += ("🔹 Riceverai <b>una notifica</b> ogni volta che un utente formulerà una <b>nuova richiesta</b> "
+    text += ("\n🔹 Riceverai <b>una notifica</b> ogni volta che un utente formulerà una <b>nuova richiesta</b> "
              "per le sezioni contrassegnate con la campanella.")
 
     keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=None)])

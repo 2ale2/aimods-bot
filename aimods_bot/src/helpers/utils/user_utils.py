@@ -1,7 +1,9 @@
-from typing import Optional, Union
+from functools import wraps
+from typing import Optional, Union, Callable, Awaitable, Any
 
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser
+from telegram.ext import ConversationHandler
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
@@ -9,7 +11,8 @@ from aimods_bot.src.helpers.constants.permissions import default_permissions, ge
 from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user, \
+    get_banned_panel, safe_delete
 
 log = logger.getChild("user_utils")
 
@@ -34,7 +37,7 @@ async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None
     return member.status not in ("left", "kicked")
 
 
-async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = None) -> Optional[bool]:
+async def user_is_banned(context: CustomContext, user_id: Union[int, str], chat_id: int = None) -> Optional[bool]:
     """Verifica se l'utente è bannato (o presente in una lista ban)."""
 
     ban_list = context.pydb.ban_list
@@ -47,7 +50,7 @@ async def user_is_banned(context: CustomContext, user_id: int, chat_id: int = No
         return None
     member = response["member"]
 
-    return member.status.value == "banned"
+    return member.status.value in ("banned", "kicked")
 
 
 async def get_user_warnings(user_id: int) -> Optional[dict]:
@@ -167,3 +170,39 @@ async def get_member_details_text(
 
     return text
 
+
+def check_auth(n: int = 5, bypass_count: bool = False):
+    """
+    Decoratore.
+    - Ogni N interazioni esegue il controllo ban.
+    - Se bannato: mostra pannello e return ConversationHandler.END
+    - Altrimenti: resetta il contatore a 0 e continua.
+    - Negli altri casi: incrementa il contatore e continua.
+
+    Parametri:
+      n: ogni quante interazioni effettuare il controllo (default 5)
+    """
+
+    def decorator(handler: Callable[..., Awaitable[Any]]):
+        @wraps(handler)
+        async def wrapper(update, context, *args, **kwargs):
+            mc = context.pydu.persistent.member_check
+            if bypass_count or mc == (n - 1):
+                user = update.effective_user
+                user_id = user.username or user.id
+
+                if await user_is_banned(context=context, user_id=user_id):
+                    await safe_delete(update=update, context=context)
+                    panel = get_banned_panel()
+                    await panel.render(
+                        update=update,
+                        context=context
+                    )
+                    return ConversationHandler.END
+                context.pydu.persistent.member_check = 0
+            else:
+                context.pydu.persistent.member_check = mc + 1
+            return await handler(update, context, *args, **kwargs)
+
+        return wrapper
+    return decorator

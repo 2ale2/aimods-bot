@@ -12,6 +12,7 @@ import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
+from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("telegram_utils")
@@ -431,4 +432,15 @@ async def wrong_input_message(update: Update, context: CustomContext, correct_fo
             [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
         ),
         parse_mode=ParseMode.HTML
+    )
+
+
+def get_banned_panel():
+    return Panel(
+        PanelConfig(
+            base_path="banned",
+            text="❌ Sei stato bannato/a. Non potrai usare il bot.",
+            keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]]
+        ),
+        send=True
     )
