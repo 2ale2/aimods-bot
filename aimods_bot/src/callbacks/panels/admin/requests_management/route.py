@@ -3,10 +3,6 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.admin.requests_management.handle import confirm_rejection
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
-    admin_request_section_configure_route
-from aimods_bot.src.core.customcontext import CustomContext
-
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request, \
     route_admin_manage_limitations
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
@@ -17,11 +13,14 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
     render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
     render_admin_user_requests_archive_panel, send_user_request_status_changed_notification
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
+    admin_request_section_configure_route
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
 log = logger.getChild(__name__)
 
@@ -185,7 +184,9 @@ async def admin_manage_request_route(
                 request=request
             )
 
-            if request.status_change_notifications and status == RequestStatus.COMPLETED:
+            user = update.effective_user
+            if (not await user_is_banned(context=context, user_id=user.username or user.id) and
+                    request.status_change_notifications and status == RequestStatus.COMPLETED):
                 # Notifico l'utente
                 await send_user_request_status_changed_notification(
                     update=update,
@@ -231,7 +232,11 @@ async def admin_manage_request_route(
                 reason=path[-2]
             )
 
-            if request.status_change_notifications:
+            user = update.effective_user
+            if not await user_is_banned(
+                    context=context,
+                    user_id=user.username or user.id
+            ) and request.status_change_notifications:
                 # Notifico l'utente
                 await send_user_request_status_changed_notification(
                     update=update,
