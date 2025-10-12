@@ -24,6 +24,9 @@ async def requests_management_route(update: Update, context: CustomContext, path
         case "view_requests":
             return await user_request_management_route(update=update, context=context, path=path[1:])
         case "add_request":
+            if path[-1] == "from_notification":
+                return await request_from_notification(update=update, context=context)
+
             rc = context.user_request_cooldown()
             if rc:
                 # L'utente ha un cooldown
@@ -92,6 +95,24 @@ async def request_category(update: Update, context: CustomContext) -> int:
     )
 
     return RCS.REQUEST_CATEGORY
+
+
+async def request_from_notification(update: Update, context: CustomContext):
+    rc = context.user_request_cooldown()
+    if rc:
+        # L'utente ha un cooldown
+        await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
+        return ConversationHandler.END
+
+    path = update.callback_query.data.split("/")
+    pl, ca = path[-3], path[-2]
+    platform = Platform(pl)
+
+    RequestDataManager.initialize_request(context=context)
+    RequestDataManager.update_field(context=context, field="platform", value=platform)
+    RequestDataManager.update_field(context=context, field="category", value=get_platform_categories(platform)(ca))
+
+    return await request_router(update=update, context=context)
 
 
 async def request_router(update: Update, context: CustomContext):

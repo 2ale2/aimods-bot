@@ -9,7 +9,7 @@ settings:
         toggle: false
         limit: 7
       game:
-        toggle: false
+        toggle: true
         limit: 1
       adobe:
         toggle: true

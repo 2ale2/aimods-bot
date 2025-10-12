@@ -350,4 +350,14 @@ class AdminNotifications(BaseModel):
 
 class UserNotifications(BaseModel):
     """Classe per le impostazioni sulle notifiche degli utenti."""
-    pass
+    section_opening_notifications: Dict[str, Dict[str, bool]] = Field(
+        default_factory=dict,
+        description="Notifiche per le nuove richieste"
+    )
+
+    def model_post_init(self, __context):
+        if not self.section_opening_notifications:
+            self.section_opening_notifications = {
+                platform: {category: False for category in categories}
+                for platform, categories in CATEGORY_DETAILS.items()
+            }

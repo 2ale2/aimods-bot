@@ -52,6 +52,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                             callback_key="add_request"
                         )
                     ],
+                    [ButtonItem(text="⚙ Impostazioni", callback_key="manage_settings")],
                     [ButtonItem(text="🔐 Chiudi", callback_key="close_menu")]
                 ]
             ),

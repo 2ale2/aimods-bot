@@ -43,8 +43,7 @@ async def admin_requests_management_route(update: Update, context: CustomContext
         case "user_requests_archive":
             await render_admin_user_requests_archive_panel(update=update, context=context)
             return PCS.SET_USER_FOR_REQUEST_ARCHIVE
-            # await not_implemented_yet(update=update, context=context)
-            # return PCS.ADMIN_CONVERSATION
+
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:
