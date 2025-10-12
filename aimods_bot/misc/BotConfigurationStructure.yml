@@ -6,7 +6,7 @@ settings:
         limit: 5
     windows:
       software:
-        toggle: false
+        toggle: true
         limit: 7
       game:
         toggle: true

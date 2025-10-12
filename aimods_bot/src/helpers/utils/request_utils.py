@@ -159,6 +159,10 @@ async def get_request_details(request: Request, admin: bool = False):
         text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
         if request.status == RequestStatus.REJECTED:
             text += f"      <b><u>Motivazione</u></b> – {request.rejection_reason}\n"
+        if request.status == RequestStatus.COMPLETED and not admin:
+            text += ("\n<blockquote>ℹ <b>Cosa Significa?</b> – Se una richiesta è <i>✅ Completata</i> "
+                     "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
+                     "e MacOS, <b>il rilascio sulle piattaforme avverà assieme al post, oppure prima</b>.</blockquote>")
 
     if request.status_change_notifications is not None and not admin and request.is_active:
         text += (f"\n<blockquote>{'🔔 Riceverai' if request.status_change_notifications else '🔕 Non riceverai'} "
