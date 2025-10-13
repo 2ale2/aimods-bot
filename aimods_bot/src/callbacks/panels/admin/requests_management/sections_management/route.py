@@ -8,9 +8,10 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel, \
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 
@@ -66,19 +67,25 @@ async def admin_request_section_configure_route(update: Update, context: CustomC
     if len(path) == 4:
         platform = Platform(path[0])
         category = get_platform_categories(platform)(path[1])
-        if path[2] in ("open", "close") and path[3] == "yes":
+        action = path[2]
+        if action in ("open", "close") and path[3] == "yes":
             await handle_request_section_toggle(
                 context=context,
                 platform=platform,
                 category=category,
-                action=path[2]
+                action=action
             )
+            if action == "open":
+                await schedule_section_opening_check_for_user_notification(
+                    context=context,
+                    section=f"{path[0]}:{path[1]}"
+                )
             await render_admin_request_section_toggled_panel(
                 update=update,
                 context=context,
                 platform=platform,
                 category=category,
-                action=path[2]
+                action=action
             )
             return PCS.ADMIN_CONVERSATION
 

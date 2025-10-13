@@ -17,7 +17,9 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.handlers.request_handlers import android_request_handler, windows_request_handler, \
-    ios_request_handler, macos_request_handler
+    ios_request_handler, macos_request_handler, windows_game_request_handler, windows_adobe_request_handler, \
+    windows_software_request_handler, windows_daw_request_handler, macos_daw_request_handler, \
+    macos_software_request_handler
 from aimods_bot.src.helpers.constants.conversation_states import \
     PrivateConversationState as PCS
 from aimods_bot.src.helpers.filters import ChatSharedFilter
@@ -61,7 +63,18 @@ private_conversation_handler = ConversationHandler(
     states={
         # User main router
         PCS.USER_CONVERSATION: [
-            CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=user_main_router),
+            android_request_handler,
+            windows_game_request_handler,
+            windows_adobe_request_handler,
+            windows_software_request_handler,
+            windows_daw_request_handler,
+            ios_request_handler,
+            macos_daw_request_handler,
+            macos_software_request_handler,
+            CallbackQueryHandler(
+                pattern=r"^(?!.*close_menu)(?!(?=.*add_request)(?=.*from_notification)).*$",
+                callback=user_main_router
+            ),
             close_button_handler
         ],
         # Admin main router

@@ -19,9 +19,9 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
     RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, \
-    UserNotifications
+    UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    CATEGORY_DETAILS
+    CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 
@@ -321,10 +321,16 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             self.remove_from_active_requests(ix=ix)
         elif status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
             from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
-            self.job_queue.run_once(
+            job_name = f"remove_inactive_request:{ix}"
+            job = self.job_queue.run_once(
                 callback=scheduled_remove_completed_requests,
                 when=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
-                data={"ix": ix}
+                data={"ix": ix},
+                name=job_name
+            )
+            self.pydb.jobs[job_name] = JobInfo(
+                next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+                executed=False
             )
 
         request = self.pydb.active_requests.get(ix, None)
@@ -334,10 +340,30 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             log.warning(f"Request {ix} not found.")
 
         status_value = status.value
-        query = """UPDATE requests SET status = $1, rejection_reason = $2 WHERE id = $3"""
+        query = """UPDATE requests_test SET status = $1, rejection_reason = $2 WHERE id = $3"""
 
         res = await execute_query(query=query, params=[status_value, rejection_reason, int(ix)])
         if not res:
             log.error(f"Failed to update request {ix} status to '{status}'")
         else:
             log.info(f"Updated request {ix} status to '{status}'")
+
+    # ======== SEZIONI RICHIESTE ========
+
+    def is_request_section_open(self, platform: Union[str, Platform], category: [str, Category]) -> bool:
+        if isinstance(platform, Platform):
+            platform = platform.value
+        if isinstance(category, Category):
+            category = category.value
+
+        pl_settings = getattr(self.pydb.configuration.settings.request, platform, None)
+        if pl_settings is None:
+            log.error(f"Platform {platform} not found.")
+            return None
+        ca_settings = getattr(pl_settings, category, None)
+        if ca_settings is None:
+            log.error(f"Category {category} not found inside {platform}.")
+            return None
+
+        assert isinstance(ca_settings, CategorySetting)
+        return ca_settings.toggle

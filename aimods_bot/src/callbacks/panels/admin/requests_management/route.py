@@ -12,7 +12,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
     render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
-    render_admin_user_requests_archive_panel, send_user_request_status_changed_notification
+    render_admin_user_requests_archive_panel, send_user_request_status_changed_notification, \
+    render_last_ten_requests_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
@@ -43,8 +44,10 @@ async def admin_requests_management_route(update: Update, context: CustomContext
         case "user_requests_archive":
             await render_admin_user_requests_archive_panel(update=update, context=context)
             return PCS.SET_USER_FOR_REQUEST_ARCHIVE
-            # await not_implemented_yet(update=update, context=context)
-            # return PCS.ADMIN_CONVERSATION
+        case "last_10":
+            await render_last_ten_requests_panel(update=update, context=context)
+            return PCS.ADMIN_CONVERSATION
+
 
 async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
     if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:

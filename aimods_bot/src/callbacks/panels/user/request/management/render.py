@@ -287,7 +287,7 @@ async def render_user_request_archive_panel(
                 text=archive_text,
                 parse_mode=ParseMode.HTML
             )
-        await context.bot.send_chat_action(chat_id=user_id, action=ChatAction.UPLOAD_DOCUMENT)
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT)
         p = await _get_archive_pdf_file(requests=requests, user_id=user_id)
 
     if requested_by_admin:

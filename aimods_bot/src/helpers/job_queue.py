@@ -7,6 +7,7 @@ import telegram.error
 from telegram import Update
 from telegram.constants import ChatAction
 
+from aimods_bot.src.core.bulk_sender import send_opening_notifications
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.core.pydantic import JobInfo
@@ -306,7 +307,12 @@ async def scheduled_remove_completed_requests(context: CustomContext):
     if "ix" not in data:
         raise JobDataMissingException("Dato mancante: 'ix'")
 
-    context.remove_from_active_requests(ix=int(data["ix"]))
+    ix = int(data["ix"])
+    context.remove_from_active_requests(ix=ix)
+    try:
+        del context.pydb.jobs[f"remove_inactive_request:{ix}"]
+    except KeyError:
+        pass
 
 
 async def scheduled_remove_request_cooldown(context: CustomContext):
@@ -332,3 +338,13 @@ async def scheduled_remove_user_request_section_limitation(context: CustomContex
     current = context.get_user_request_limitations(user_id=user_id)
     remaining = [x for x in current if x.section != section]
     context.set_user_request_limitations(user_id=user_id, limitations=remaining)
+
+
+# ========== JOB: SECTIONS MANAGEMENT ==========
+
+async def scheduled_section_opening_check_for_user_notification(context: CustomContext):
+    section = context.job.data["section"]
+    pl, ca = section.split(":")
+    if context.is_request_section_open(platform=pl, category=ca):
+        await send_opening_notifications(context=context, section=section)
+    return
