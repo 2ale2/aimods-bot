@@ -2,7 +2,7 @@ import json
 import platform as platf
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncIterator, Iterable, Text
+from typing import AsyncIterator, Iterable, Text, Optional
 
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request, Architecture
@@ -106,7 +106,7 @@ async def request_from_record(request: dict) -> Request:
     )
 
 
-def get_requests_summary(requests: dict[int, Request]) -> str:
+def get_requests_summary(requests: dict[int, Request], with_authors: bool = False) -> str:
     text = ""
 
     for n, ix in enumerate(requests):
@@ -119,10 +119,14 @@ def get_requests_summary(requests: dict[int, Request]) -> str:
         platform_icon = PLATFORM_DETAILS[platform]['icon']
 
         text += (f"    {n+1}. <i>{request.name}</i>\n"
-                 f"         🖲️ <u>Piattaforma</u> – {platform_icon} <i>{platform_label}</i>\n"
-                 f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n")
+                 f"         #️⃣ <u>ID</u> – <code>{request.id}</code>\n")
+        if with_authors:
+            text += f"         👤 <u>Formulata Da</u> – <code>{request.user_id}</code>\n"
 
-    return text
+        text += (f"         🖲️ <u>Piattaforma</u> – {platform_icon} {platform_label}\n"
+                 f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n\n")
+
+    return text.removesuffix("\n")
 
 
 async def get_request_details(request: Request, admin: bool = False):
@@ -282,3 +286,13 @@ def render_requests_latex_footer() -> str:
 \end{multicols}
 \end{document}
 """
+
+
+async def get_last_n_requests(n: int) -> Optional[list[Request]]:
+    if not isinstance(n, int) or n < 0:
+        log.error("Invalid number of requests")
+        return None
+    query = f"SELECT * FROM requests ORDER BY issued_at DESC LIMIT {n}"
+
+    res = await fetch_query(query)
+    return [await request_from_record(dict(record)) for record in res] if res else None

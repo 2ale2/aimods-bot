@@ -307,7 +307,12 @@ async def scheduled_remove_completed_requests(context: CustomContext):
     if "ix" not in data:
         raise JobDataMissingException("Dato mancante: 'ix'")
 
-    context.remove_from_active_requests(ix=int(data["ix"]))
+    ix = int(data["ix"])
+    context.remove_from_active_requests(ix=ix)
+    try:
+        del context.pydb.jobs[f"remove_inactive_request:{ix}"]
+    except KeyError:
+        pass
 
 
 async def scheduled_remove_request_cooldown(context: CustomContext):

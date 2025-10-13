@@ -1,6 +1,7 @@
 from typing import Union
 
 from telegram import Update
+from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request
@@ -10,7 +11,8 @@ from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonIt
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
-                                                        get_platform_categories)
+                                                        get_platform_categories, get_last_n_requests)
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 log = logger.getChild("admin_requests_management_render")
 
@@ -27,6 +29,7 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
                     ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
                     ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
                 ],
+                [ButtonItem(text="🔟 Ultime 10 Richieste", callback_key="last_10")],
                 [
                     ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections"),
                     ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations")
@@ -801,5 +804,46 @@ def _get_user_request_status_changed_notification_text(request: Request):
 
     text = (f"🆙 <b>Aggiornamento Richiesta <code>{request.id}</code></b>\n\n"
             f"▫ La tua richiesta (<b>{ca_label} {pl_label}</b>) ha appena ricevuto il suo <b>esito</b>!")
+
+    return text
+
+
+
+async def render_last_ten_requests_panel(update: Update, context: CustomContext):
+    await context.bot.send_chat_action(
+        chat_id=update.effective_message.chat_id,
+        action=ChatAction.TYPING
+    )
+    requests = await get_last_n_requests(n=10)
+    text = await _get_last_ten_requests_text(requests=requests)
+
+    last_ten_requests_panel = Panel(
+        PanelConfig(
+            base_path="admin/manage_requests/last_10",
+            text=text,
+            keyboard=[
+                [
+                    ButtonItem(
+                        text="📕 Archivio Richieste",
+                        callback_key="admin/manage_requests/user_requests_archive",
+                        override_path_generation=True
+                    )
+                ],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)],
+            ]
+        ),
+        send=True
+    )
+
+    await safe_delete(update=update, context=context)
+    await last_ten_requests_panel.render(update=update, context=context)
+
+
+async def _get_last_ten_requests_text(requests: list[Request]) -> str:
+    text = _get_header() + "\n\n      → 🔟 <i>Ultime 10 Richieste</i>\n\n"
+    text += get_requests_summary(requests={request.id: request for request in requests}, with_authors=True)
+    text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori informazioni"
+             " su un richiesta, o contatta Layton.</blockquote>\n\n"
+             "🔹 Scegli un'opzione.")
 
     return text

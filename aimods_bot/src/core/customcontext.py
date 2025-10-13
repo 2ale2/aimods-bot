@@ -321,10 +321,16 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             self.remove_from_active_requests(ix=ix)
         elif status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
             from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
-            self.job_queue.run_once(
+            job_name = f"remove_inactive_request:{ix}"
+            job = self.job_queue.run_once(
                 callback=scheduled_remove_completed_requests,
                 when=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
-                data={"ix": ix}
+                data={"ix": ix},
+                name=job_name
+            )
+            self.pydb.jobs[job_name] = JobInfo(
+                next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+                executed=False
             )
 
         request = self.pydb.active_requests.get(ix, None)
