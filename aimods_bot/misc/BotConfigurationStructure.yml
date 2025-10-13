@@ -6,11 +6,11 @@ settings:
         limit: 5
     windows:
       software:
-        toggle: true
+        toggle: false
         limit: 7
       game:
         toggle: true
-        limit: 1
+        limit: 4
       adobe:
         toggle: true
         limit: 2
