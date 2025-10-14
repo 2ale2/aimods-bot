@@ -339,10 +339,19 @@ class AdminNotifications(BaseModel):
         default_factory=dict,
         description="Notifiche per le nuove richieste"
     )
+    section_closing_notifications: Dict[str, Dict[str, bool]] = Field(
+        default_factory=dict,
+        description="Notifiche per la chiusura automatica delle sezioni"
+    )
 
     def model_post_init(self, __context):
         if not self.new_requests_notifications:
             self.new_requests_notifications = {
+                platform: {category: False for category in categories}
+                for platform, categories in CATEGORY_DETAILS.items()
+            }
+        if not self.section_closing_notifications:
+            self.section_closing_notifications = {
                 platform: {category: False for category in categories}
                 for platform, categories in CATEGORY_DETAILS.items()
             }

@@ -2,13 +2,13 @@ import json
 import platform as platf
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncIterator, Iterable, Text, Optional
+from typing import AsyncIterator, Iterable, Text, Optional, Union
 
 from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
 from aimods_bot.src.core.pydantic import Request, Architecture
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
     Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Arch, RequestStatus
+    MacOSCategory, Arch, RequestStatus, Category, CATEGORY_DETAILS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
@@ -115,7 +115,8 @@ def get_requests_summary(requests: dict[int, Request], with_authors: bool = Fals
         status_icon = REQUEST_STATUS_DETAILS[status]['icon']
         status_label = REQUEST_STATUS_DETAILS[status]['label']
         platform = request.platform.value
-        platform_label = PLATFORM_DETAILS[platform]['label']
+        category = request.category.value
+        category_label = CATEGORY_DETAILS[platform][category]['label']
         platform_icon = PLATFORM_DETAILS[platform]['icon']
 
         text += (f"    {n+1}. <i>{request.name}</i>\n"
@@ -123,7 +124,7 @@ def get_requests_summary(requests: dict[int, Request], with_authors: bool = Fals
         if with_authors:
             text += f"         👤 <u>Formulata Da</u> – <code>{request.user_id}</code>\n"
 
-        text += (f"         🖲️ <u>Piattaforma</u> – {platform_icon} {platform_label}\n"
+        text += (f"         🖲️ <u>Piattaforma</u> – {platform_icon} {category_label}\n"
                  f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n\n")
 
     return text.removesuffix("\n")
@@ -288,11 +289,37 @@ def render_requests_latex_footer() -> str:
 """
 
 
-async def get_last_n_requests(n: int) -> Optional[list[Request]]:
+async def get_last_n_requests(
+        n: int,
+        pl: Optional[Union[Platform, str]],
+        ca: Optional[Union[Category, str]]
+) -> Optional[list[Request]]:
     if not isinstance(n, int) or n < 0:
         log.error("Invalid number of requests")
         return None
-    query = f"SELECT * FROM requests ORDER BY issued_at DESC LIMIT {n}"
+    if pl and isinstance(pl, Platform):
+        pl = pl.value
+    if ca and isinstance(ca, Category):
+        ca = ca.value
+
+    if pl not in PLATFORM_DETAILS:
+        log.error(f"Invalid platform: {pl}")
+        return None
+    if ca not in CATEGORY_DETAILS[pl]:
+        log.error(f"Invalid category: {ca}")
+        return None
+
+    query = f"SELECT * FROM requests"
+
+    if pl:
+        if ca:
+            query += f" WHERE platform = '{pl}' and category = '{ca}'"
+        else:
+            query += f" WHERE platform = '{pl}'"
+    elif ca:
+        query += f" WHERE category = '{ca}'"
+
+    query += f" ORDER BY issued_at DESC LIMIT {n}"
 
     res = await fetch_query(query)
-    return [await request_from_record(dict(record)) for record in res] if res else None
+    return [await request_from_record(dict(record)) for record in res] if res is not None else None

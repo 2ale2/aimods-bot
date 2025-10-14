@@ -6,14 +6,14 @@ settings:
         limit: 5
     windows:
       software:
-        toggle: false
+        toggle: true
         limit: 7
       game:
         toggle: true
-        limit: 4
+        limit: 8
       adobe:
         toggle: true
-        limit: 2
+        limit: 3
       daw:
         toggle: false
         limit: 20

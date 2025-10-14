@@ -7,7 +7,7 @@ import telegram.error
 from telegram import Update
 from telegram.constants import ChatAction
 
-from aimods_bot.src.core.bulk_sender import send_opening_notifications
+from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.core.pydantic import JobInfo

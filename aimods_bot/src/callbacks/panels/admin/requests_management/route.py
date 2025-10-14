@@ -13,7 +13,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
     render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
     render_admin_user_requests_archive_panel, send_user_request_status_changed_notification, \
-    render_last_ten_requests_panel
+    render_last_ten_requests_platform_panel, render_last_ten_requests_category_panel, \
+    render_last_ten_requests_section_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
@@ -45,7 +46,14 @@ async def admin_requests_management_route(update: Update, context: CustomContext
             await render_admin_user_requests_archive_panel(update=update, context=context)
             return PCS.SET_USER_FOR_REQUEST_ARCHIVE
         case "last_10":
-            await render_last_ten_requests_panel(update=update, context=context)
+            if len(path) == 1:
+                await render_last_ten_requests_platform_panel(update=update, context=context)
+            elif len(path) == 2:
+                await render_last_ten_requests_category_panel(update=update, context=context, pl=Platform(path[-1]))
+            else:  # len(path) == 3
+                pl = Platform(path[-2])
+                cats = get_platform_categories(platform=pl)
+                await render_last_ten_requests_section_panel(update=update, context=context, pl=pl, ca=cats(path[-1]))
             return PCS.ADMIN_CONVERSATION
 
 

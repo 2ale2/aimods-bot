@@ -4,8 +4,9 @@ from telegram import Update
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel, \
-    send_new_request_admin_notification
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
+from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
+    send_section_closing_admin_notification
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.exceptions import WrongFlowException
 from aimods_bot.src.core.pydantic import Request, CategorySetting
@@ -144,6 +145,22 @@ async def confirm_request(update: Update, context: CustomContext):
                      f"closing it...")
             config.toggle = False
             await save_yaml_configuration(context=context)
+
+            # Invio notifiche
+            for admin_id in context.pydb.admins:
+                admin_data = context.application.chat_data.get(admin_id, None)
+                if admin_data:
+                    assert isinstance(admin_data, ChatData)
+                    admin_settings = admin_data.persistent.admin_notifications.section_closing_notifications
+                    if admin_settings[platform.value][category.value]:
+                        await send_section_closing_admin_notification(
+                            update=update,
+                            context=context,
+                            section=f"{platform.value}:{category.value}",
+                            admin_id=admin_id
+                        )
+                        await asyncio.sleep(0.5)
+
 
     return ConversationHandler.END
 

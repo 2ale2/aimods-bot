@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import Request
+from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
     Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
@@ -13,6 +13,7 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
                                                         get_platform_categories, get_last_n_requests)
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 log = logger.getChild("admin_requests_management_render")
 
@@ -26,15 +27,17 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
             text=text,
             keyboard=[
                 [
-                    ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
-                    ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
-                ],
-                [ButtonItem(text="🔟 Ultime 10 Richieste", callback_key="last_10")],
-                [
                     ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections"),
                     ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations")
                 ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
+                [
+                    ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
+                    ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
+                ],
+                [
+                    ButtonItem(text="🔟 Ultime 10 Richieste", callback_key="last_10"),
+                    ButtonItem(text="🔙 Indietro", callback_key=None)
+                ]
             ]
         )
     )
@@ -162,9 +165,15 @@ async def render_admin_active_requests_category_panel(
             back_button_callback_key=back_button_callback_key
         )
 
-    text = _get_active_requests_category_text(platform=platform, category=category, requests=requests)
+    text = _get_active_requests_category_text(context=context, platform=platform, category=category, requests=requests)
 
-    keyboard = [[]]
+    section_management_button = ButtonItem(
+        text="⏯ Gestisci Sezione",
+        callback_key=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
+        override_path_generation=True
+    )
+
+    keyboard = [[section_management_button]]
     for n, ix in enumerate(requests):
         request = requests[ix]
         if len(keyboard[-1]) == 2:
@@ -191,18 +200,29 @@ async def render_admin_active_requests_category_panel(
 
 
 def _get_active_requests_category_text(
+        context: CustomContext,
         platform: Platform,
         category: Category,
         requests: dict[int, Request]
 ):
+    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
+    assert isinstance(config, CategorySetting)
+
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
+    lenr = len(requests)
+
     text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n")
+            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
+            f"👁‍🗨 Sezione – {f'🟢 Aperta (<i>{f'ancora {pluralize(
+                config.limit - lenr,
+                'richiesta', 
+                'richieste')
+            }' if config.limit else '🆓 Nessun Limite'}</i>)' if config.toggle else '🔴 Chiusa'}\n\n")
 
     text += get_requests_summary(requests=requests)
 
-    if len(requests) == 0:
+    if lenr == 0:
         text += "ℹ️ Non ci sono richieste attive per questa categoria."
     else:
         text += "\n🔹 Scegli la richiesta da gestire."
@@ -322,10 +342,6 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
         ))
 
     return keyboard
-
-
-async def render_admin_manage_request_limit_user():
-    pass
 
 
 async def render_change_request_status_confirmation_panel(
@@ -774,9 +790,6 @@ async def send_user_request_status_changed_notification(
     text = _get_user_request_status_changed_notification_text(request=request)
     ix = request.id
 
-    # disable_notifications_callback_data
-    dncbd = f"user/view_requests/active_requests/details/{ix}/disable_notifications/from_notification"
-
     user_request_status_changed_notification = Panel(
         PanelConfig(
             base_path="user",
@@ -808,18 +821,84 @@ def _get_user_request_status_changed_notification_text(request: Request):
     return text
 
 
+async def render_last_ten_requests_platform_panel(update: Update, context: CustomContext):
+    text = _get_last_ten_requests_platform_text()
 
-async def render_last_ten_requests_panel(update: Update, context: CustomContext):
+    keyboard = [[]]
+    for pl in PLATFORM_DETAILS:
+        item = PLATFORM_DETAILS[pl]
+        if len(keyboard[-1]) >= 2:
+            keyboard.append([])
+        keyboard[-1].append(ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=pl))
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+
+    last_ten_request_panel = Panel(
+        PanelConfig(
+            base_path="admin/manage_requests/last_10",
+            text=text,
+            keyboard=keyboard
+        )
+    )
+
+    await last_ten_request_panel.render(update=update, context=context)
+
+
+def _get_last_ten_requests_platform_text():
+    text = _get_header() + "\n\n      → 🔟 <i>Ultime 10 Richieste</i>\n\n"
+
+    text += ("▫ Da qui puoi visionare le ultima 10 richieste per categoria.\n\n"
+             "🔹 Scegli una piattaforma.")
+
+    return text
+
+
+async def render_last_ten_requests_category_panel(update: Update, context: CustomContext, pl: Platform):
+    cats = get_platform_categories(pl)
+    if len(cats) == 1:
+        return await render_last_ten_requests_section_panel(update=update, context=context, pl=pl, ca=list(cats)[0])
+
+    text = _get_last_ten_requests_category_text(pl=pl)
+
+    keyboard = [[]]
+    for ca in CATEGORY_DETAILS[pl.value]:
+        item = CATEGORY_DETAILS[pl.value][ca]
+        if len(keyboard[-1]) >= 2:
+            keyboard.append([])
+        keyboard[-1].append(ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=ca))
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+
+    last_ten_request_platform_panel = Panel(
+        PanelConfig(
+            base_path=f"admin/manage_requests/last_10/{pl.value}",
+            text=text,
+            keyboard=keyboard
+        )
+    )
+
+    await last_ten_request_platform_panel.render(update=update, context=context)
+
+
+def _get_last_ten_requests_category_text(pl: Platform):
+    item = PLATFORM_DETAILS[pl.value]
+    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {item['icon']} {item['label']}\n\n"
+
+    text += ("▫ Da qui puoi visionare le ultima 10 richieste per categoria.\n\n"
+             "🔹 Scegli una categoria.")
+
+    return text
+
+
+async def render_last_ten_requests_section_panel(update: Update, context: CustomContext, pl: Platform, ca: Category):
     await context.bot.send_chat_action(
         chat_id=update.effective_message.chat_id,
         action=ChatAction.TYPING
     )
-    requests = await get_last_n_requests(n=10)
-    text = await _get_last_ten_requests_text(requests=requests)
+    requests = await get_last_n_requests(n=10, pl=pl, ca=ca)
+    text = await _get_last_ten_requests_section_text(requests=requests, pl=pl, ca=ca)
 
-    last_ten_requests_panel = Panel(
+    last_ten_requests_section_panel = Panel(
         PanelConfig(
-            base_path="admin/manage_requests/last_10",
+            base_path=f"admin/manage_requests/last_10/{pl.value}/{ca.value}",
             text=text,
             keyboard=[
                 [
@@ -836,14 +915,20 @@ async def render_last_ten_requests_panel(update: Update, context: CustomContext)
     )
 
     await safe_delete(update=update, context=context)
-    await last_ten_requests_panel.render(update=update, context=context)
+    await last_ten_requests_section_panel.render(update=update, context=context)
 
 
-async def _get_last_ten_requests_text(requests: list[Request]) -> str:
-    text = _get_header() + "\n\n      → 🔟 <i>Ultime 10 Richieste</i>\n\n"
-    text += get_requests_summary(requests={request.id: request for request in requests}, with_authors=True)
-    text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori informazioni"
-             " su un richiesta, o contatta Layton.</blockquote>\n\n"
-             "🔹 Scegli un'opzione.")
+async def _get_last_ten_requests_section_text(requests: list[Request], pl: Platform, ca: Category) -> str:
+    pl_icon = PLATFORM_DETAILS[pl.value]["icon"]
+    ca_label = CATEGORY_DETAILS[pl.value][ca.value]["label"]
+    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {pl_icon} {ca_label}\n\n"
+    if len(requests) == 0:
+        text += ("<blockquote>ℹ Nessun richiesta ancora formulata per questa sezione.</blockquote>\n\n"
+                 "🔹 Scegli un'opzione.")
+    else:
+        text += get_requests_summary(requests={request.id: request for request in requests}, with_authors=True)
+        text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori informazioni"
+                " su un richiesta, o contatta Layton.</blockquote>\n\n"
+                "🔹 Scegli un'opzione.")
 
     return text
