@@ -35,7 +35,7 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
                     ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
                 ],
                 [
-                    ButtonItem(text="🔟 Ultime 10 Richieste", callback_key="last_10"),
+                    ButtonItem(text="🔟 Ultime 10", callback_key="last_10"),
                     ButtonItem(text="🔙 Indietro", callback_key=None)
                 ]
             ]
@@ -173,7 +173,7 @@ async def render_admin_active_requests_category_panel(
         override_path_generation=True
     )
 
-    keyboard = [[section_management_button]]
+    keyboard = [[section_management_button], []]
     for n, ix in enumerate(requests):
         request = requests[ix]
         if len(keyboard[-1]) == 2:
