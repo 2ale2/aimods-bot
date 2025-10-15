@@ -33,8 +33,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                         ButtonItem(text="🔐 Chiudi", callback_key="close_menu")
                     ]
                 ],
-            ),
-            send=True
+            )
         )
     else:
         return Panel(
@@ -55,13 +54,13 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                     [ButtonItem(text="⚙ Impostazioni", callback_key="manage_settings")],
                     [ButtonItem(text="🔐 Chiudi", callback_key="close_menu")]
                 ]
-            ),
-            send=True
+            )
         )
 
 
 async def start(update: Update, context: CustomContext):
-    await safe_delete(update=update, context=context)
+    if not update.callback_query:
+        await safe_delete(update=update, context=context)
 
     user = update.effective_user
     admin = context.is_user_admin

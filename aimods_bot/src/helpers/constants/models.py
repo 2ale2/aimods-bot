@@ -6,10 +6,9 @@ from enum import Enum
 from typing import Optional, List, Union, Literal, NamedTuple, cast, Type, Tuple
 
 import telegram
-from pyrogram.errors import BadRequest
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
 from telegram.constants import ParseMode
-from telegram.error import Forbidden
+from telegram.error import Forbidden, BadRequest, TelegramError
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, WindowsCategory, AndroidCategory, IOSCategory, \
@@ -160,7 +159,20 @@ class Panel:
                         return
                     except BadRequest:
                         pass
-                await update.effective_message.edit_text(
+
+                try:
+                    await update.effective_message.edit_text(
+                        text=text,
+                        reply_markup=reply_markup,
+                        parse_mode=ParseMode.HTML,
+                        link_preview_options=preview_options
+                    )
+                    return
+                except BadRequest:
+                    pass
+
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
                     text=text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML,
@@ -172,7 +184,7 @@ class Panel:
                     chat_id=update.effective_chat.id,
                     reply_markup=reply_markup
                 )
-            except telegram.error:
+            except TelegramError:
                 pass
 
 
