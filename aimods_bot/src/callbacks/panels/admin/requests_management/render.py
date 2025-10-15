@@ -911,7 +911,7 @@ async def render_last_ten_requests_section_panel(update: Update, context: Custom
                         override_path_generation=True
                     )
                 ],
-                [ButtonItem(text="🔙 Indietro", callback_key=back_button_callback_data)],
+                [ButtonItem(text="🔙 Indietro", callback_key=back_button_callback_data, override_path_generation=True)]
             ]
         ),
         send=True
