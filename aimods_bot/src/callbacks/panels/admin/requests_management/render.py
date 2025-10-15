@@ -34,10 +34,8 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
                     ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
                     ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
                 ],
-                [
-                    ButtonItem(text="🔟 Ultime 10", callback_key="last_10"),
-                    ButtonItem(text="🔙 Indietro", callback_key=None)
-                ]
+                [ButtonItem(text="🔟 Ultime 10", callback_key="last_10")],
+                [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
         )
     )
@@ -896,6 +894,11 @@ async def render_last_ten_requests_section_panel(update: Update, context: Custom
     requests = await get_last_n_requests(n=10, pl=pl, ca=ca)
     text = await _get_last_ten_requests_section_text(requests=requests, pl=pl, ca=ca)
 
+    if len(get_platform_categories(pl)) == 1:
+        back_button_callback_data = "admin/manage_requests/last_10"
+    else:
+        back_button_callback_data = f"admin/manage_requests/last_10/{pl.value}"
+
     last_ten_requests_section_panel = Panel(
         PanelConfig(
             base_path=f"admin/manage_requests/last_10/{pl.value}/{ca.value}",
@@ -908,7 +911,7 @@ async def render_last_ten_requests_section_panel(update: Update, context: Custom
                         override_path_generation=True
                     )
                 ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)],
+                [ButtonItem(text="🔙 Indietro", callback_key=back_button_callback_data)],
             ]
         ),
         send=True
