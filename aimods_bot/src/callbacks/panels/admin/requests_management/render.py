@@ -926,12 +926,12 @@ async def _get_last_ten_requests_section_text(requests: list[Request], pl: Platf
     ca_label = CATEGORY_DETAILS[pl.value][ca.value]["label"]
     text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {pl_icon} {ca_label}\n\n"
     if len(requests) == 0:
-        text += ("<blockquote>ℹ Nessun richiesta ancora formulata per questa sezione.</blockquote>\n\n"
+        text += ("<blockquote>ℹ Nessuna richiesta ancora formulata per questa sezione.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")
     else:
         text += get_requests_summary(requests={request.id: request for request in requests}, with_authors=True)
-        text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori informazioni"
-                " su un richiesta, o contatta Layton.</blockquote>\n\n"
+        text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori "
+                "informazioni su una richiesta, o contatta Layton.</blockquote>\n\n"
                 "🔹 Scegli un'opzione.")
 
     return text
