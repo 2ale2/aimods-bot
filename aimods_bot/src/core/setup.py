@@ -91,7 +91,7 @@ async def set_application_data(application: Application):
             j = current_bot_data.jobs.get(autorecap_job_name, None)
             if j and not j.executed:
                 execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
-                if execution_time <= datetime.now():
+                if execution_time <= datetime.now(timezone.utc):
                     await create_and_send_recaps(context=application)
             del current_bot_data.jobs[autorecap_job_name]
 
@@ -112,6 +112,29 @@ async def set_application_data(application: Application):
             executed=False
         )
 
+        new_jobs = copy.deepcopy(current_bot_data.jobs)
+        for job_item in current_bot_data.jobs:
+            if job_item.startswith("remove_inactive_request"):
+                del new_jobs[job_item]
+                j = current_bot_data.jobs.get(job_item, None)
+                if j and not j.executed:
+                    execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
+                    ix = job_item.split(":")[1]
+                    if execution_time <= datetime.now(timezone.utc):
+                        current_bot_data.remove_from_active_requests(int(ix))
+                    else:
+                        application.job_queue.run_once(
+                            callback=scheduled_remove_completed_requests,
+                            when=execution_time,
+                            data={"ix": ix},
+                            name=job_item
+                        )
+                        new_jobs[job_item] = JobInfo(
+                            next_date=j.next_date,
+                            executed=False
+                        )
+        current_bot_data.jobs = new_jobs
+
         urcs = copy.deepcopy(current_bot_data.user_request_cooldowns)
         for uid in current_bot_data.user_request_cooldowns:
             rc = urcs[uid]
@@ -124,6 +147,9 @@ async def set_application_data(application: Application):
                     data={"user_id": uid}
                 )
         current_bot_data.user_request_cooldowns = urcs
+
+        for user_id in current_bot_data.user_limitations:
+            current_bot_data.check_user_request_limitations(user_id=user_id)
 
         try:
             pyro_inst = Client(

@@ -303,7 +303,6 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def check_user_request_limitations(self, user_id: Optional[int] = None):
         """Fa un double check per togliere le limitazioni che non sono state rimosse automaticamente."""
-
         ul = self.get_user_request_limitations(user_id=user_id or self.user_id)
         if ul:
             n_ul = []
