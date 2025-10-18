@@ -91,6 +91,7 @@ async def set_application_data(application: Application):
             j = current_bot_data.jobs.get(autorecap_job_name, None)
             if j and not j.executed:
                 execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
+                execution_time = execution_time.replace(tzinfo=timezone.utc)
                 if execution_time <= datetime.now(timezone.utc):
                     await create_and_send_recaps(context=application)
             del current_bot_data.jobs[autorecap_job_name]
@@ -119,6 +120,7 @@ async def set_application_data(application: Application):
                 j = current_bot_data.jobs.get(job_item, None)
                 if j and not j.executed:
                     execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
+                    execution_time = execution_time.replace(tzinfo=timezone.utc)
                     ix = job_item.split(":")[1]
                     if execution_time <= datetime.now(timezone.utc):
                         current_bot_data.remove_from_active_requests(int(ix))
