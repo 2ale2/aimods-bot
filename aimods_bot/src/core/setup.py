@@ -95,6 +95,7 @@ async def set_application_data(application: Application):
                 execution_time = execution_time.replace(tzinfo=timezone.utc)
                 if execution_time <= datetime.now(timezone.utc):
                     await create_and_send_recaps(context=application)
+                    j.executed = True
             del current_bot_data.jobs[autorecap_job_name]
 
         time_until_next_recap = await get_time_until_next_recap()
