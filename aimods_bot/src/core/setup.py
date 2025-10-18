@@ -123,7 +123,7 @@ async def set_application_data(application: Application):
                     execution_time = execution_time.replace(tzinfo=timezone.utc)
                     ix = job_item.split(":")[1]
                     if execution_time <= datetime.now(timezone.utc):
-                        current_bot_data.remove_from_active_requests(int(ix))
+                        current_bot_data.active_requests.pop(int(ix), None)
                     else:
                         application.job_queue.run_once(
                             callback=scheduled_remove_completed_requests,
