@@ -15,13 +15,14 @@ from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.helpers.constants.constants import (
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK
 )
-from aimods_bot.src.helpers.job_queue import scheduled_remove_request_cooldown
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
 from aimods_bot.src.core.config_loader import load_configuration
 from aimods_bot.src.handlers.collect import all_handlers, active_handlers
+from aimods_bot.src.helpers.job_queue import (scheduled_remove_user_request_section_limitation,
+                                              scheduled_remove_completed_requests)
 
 log = logger.getChild("application_setup")
 
@@ -137,21 +138,37 @@ async def set_application_data(application: Application):
                         )
         current_bot_data.jobs = new_jobs
 
-        urcs = copy.deepcopy(current_bot_data.user_request_cooldowns)
-        for uid in current_bot_data.user_request_cooldowns:
-            rc = urcs[uid]
-            if rc.until <= datetime.now(timezone.utc):
-                urcs.pop(uid, None)
-            else:
-                application.job_queue.run_once(
-                    callback=scheduled_remove_request_cooldown,
-                    when=rc.until,
-                    data={"user_id": uid}
-                )
-        current_bot_data.user_request_cooldowns = urcs
-
-        for user_id in current_bot_data.user_limitations:
-            current_bot_data.check_user_request_limitations(user_id=user_id)
+        new_jobs = copy.deepcopy(current_bot_data.jobs)
+        for job_item in current_bot_data.jobs:
+            if job_item.startswith("request_limit"):
+                del new_jobs[job_item]
+                j = current_bot_data.jobs.get(job_item, None)
+                if j and not j.executed:
+                    details = job_item.split(":")[1:]
+                    user_id, section = details[0], details[1]
+                    user_data = current_bot_data.user_limitations.get(int(user_id), None)
+                    if not user_data or not user_data.requests:
+                        continue
+                    n_ul = []
+                    for limitation in user_data.requests:
+                        if limitation.until is not None and limitation.until < datetime.now(timezone.utc):
+                            continue
+                        log.debug(f"Rescheduling limitation {job_item} "
+                                  f"({limitation.until.strftime("%d_%m_%Y_%H_%M_%S")}")
+                        application.job_queue.run_once(
+                            callback=scheduled_remove_user_request_section_limitation,
+                            when=limitation.until,
+                            data={"user_id": user_id, "section": section},
+                            name=job_item
+                        )
+                        new_jobs[job_item] = JobInfo(
+                            next_date=limitation.until.strftime("%d_%m_%Y_%H_%M_%S"),
+                            executed=False
+                        )
+                        n_ul.append(limitation)
+                    user_data.requests = n_ul
+                    current_bot_data.user_limitations[int(user_id)] = user_data
+        current_bot_data.jobs = new_jobs
 
         try:
             pyro_inst = Client(

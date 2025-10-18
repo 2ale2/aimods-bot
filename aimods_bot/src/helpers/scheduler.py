@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import JobInfo
+from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_request_cooldown, scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.loggers import logger
@@ -18,6 +20,8 @@ async def schedule_request_limitation_deletion(
     if until is None:
         return
 
+    until.replace(tzinfo=timezone.utc)
+
     job_name = f"request_limit:{user_id}:{section}"
     for j in context.job_queue.get_jobs_by_name(job_name):
         log.info(f"Removed {job_name} for {user_id} section {section}")
@@ -28,6 +32,10 @@ async def schedule_request_limitation_deletion(
         when=until,
         data={"user_id": user_id, "section": section},
         name=job_name
+    )
+    context.pydb.jobs[job_name] = JobInfo(
+        next_date=until.strftime("%d_%m_%Y_%H_%M_%S"),
+        executed=False
     )
 
     log.info(f"Scheduled {job_name} for {user_id} section {section}")
