@@ -3,10 +3,10 @@ settings:
     android:
       app:
         toggle: false
-        limit: 5
+        limit: 7
     windows:
       software:
-        toggle: false
+        toggle: true
         limit: 7
       game:
         toggle: true

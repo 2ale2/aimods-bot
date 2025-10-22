@@ -51,7 +51,7 @@ async def send_opening_notifications(context: CustomContext, section: str):
                             ],
                             [
                                 InlineKeyboardButton(
-                                    text="🔕 Disattiva Richieste",
+                                    text="🔕 Disattiva Notifiche Sezione",
                                     callback_data=deactivate_callback
                                 )
                             ],
