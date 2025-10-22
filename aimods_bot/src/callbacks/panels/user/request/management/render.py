@@ -16,26 +16,25 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
                                                         get_user_requests_archive,
                                                         generate_user_archive_requests_pdf_file)
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 
 
 async def render_user_request_management_panel(update: Update, context: CustomContext):
     text = _get_user_request_management_panel_text()
 
-    user_request_management_panel = Panel(
-        PanelConfig(
-            base_path="user/view_requests",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
-                    ButtonItem(text="📕 Archivio Richieste", callback_key="requests_archive")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="user/view_requests",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
+                ButtonItem(text="📕 Archivio Richieste", callback_key="requests_archive")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await user_request_management_panel.render(update=update, context=context)
 
 
 def _get_user_request_management_panel_text() -> str:
@@ -64,15 +63,13 @@ async def render_active_request_panel(
 
     keyboard.insert(1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
 
-    user_request_panel = Panel(
-        PanelConfig(
-            base_path="user/view_requests/active_requests",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="user/view_requests/active_requests",
+        text=text,
+        keyboard=keyboard
     )
-
-    await user_request_panel.render(update=update, context=context)
 
 
 def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
@@ -110,13 +107,13 @@ async def render_user_request_action_panel(
     )
     keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action)
 
-    user_request_action_panel = Panel(PanelConfig(
+    await create_and_render_panel(
+        update=update,
+        context=context,
         base_path=f"user/view_requests/active_requests/{action}",
         text=text,
         keyboard=keyboard
-    ))
-
-    await user_request_action_panel.render(update=update, context=context)
+    )
 
 
 async def _get_user_request_action_panel_text(

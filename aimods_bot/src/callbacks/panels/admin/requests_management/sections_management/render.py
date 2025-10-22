@@ -6,6 +6,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 
@@ -23,15 +24,13 @@ async def render_admin_request_section_configure_panel(update: Update, context: 
 
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
-    admin_request_section_configure_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_requests/manage_sections",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_requests/manage_sections",
+        text=text,
+        keyboard=keyboard
     )
-
-    await admin_request_section_configure_panel.render(update=update, context=context)
 
 
 def _get_header(subheader: Optional[str] = None) -> str:
@@ -67,15 +66,13 @@ async def render_admin_request_section_configure_platform_panel(
         keyboard[-1].append(ButtonItem(text=f"{ca_item['icon']} {ca_item['label']}", callback_key=ca))
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
-    admin_request_section_configure_platform_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}",
+        text=text,
+        keyboard=keyboard
     )
-
-    await admin_request_section_configure_platform_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_configure_platform_text():
@@ -98,21 +95,19 @@ async def render_admin_request_section_configure_category_panel(
     toggle_text = f"{'📬 Apri' if not config.toggle else '📪 Chiudi'}"
     toggle_callback = "open" if not config.toggle else "close"
 
-    admin_request_section_configure_category_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text=toggle_text, callback_key=toggle_callback),
-                    ButtonItem(text="🗂 Limite", callback_key="limit")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text=toggle_text, callback_key=toggle_callback),
+                ButtonItem(text="🗂 Limite", callback_key="limit")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await admin_request_section_configure_category_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_configure_category_text(config: CategorySetting, platform: Platform, category: Category):
@@ -148,20 +143,18 @@ async def render_admin_request_section_toggle_panel(
         action=action
     )
 
-    admin_request_section_toggle_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="📬 Apri" if opening else "📪 Chiudi", callback_key='yes'),
-                    ButtonItem(text="🔙 Indietro", callback_key=None)
-                ]
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="📬 Apri" if opening else "📪 Chiudi", callback_key='yes'),
+                ButtonItem(text="🔙 Indietro", callback_key=None)
             ]
-        )
+        ]
     )
-
-    await admin_request_section_toggle_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_toggle_panel_text(
@@ -200,18 +193,16 @@ async def render_admin_request_section_toggled_panel(
 ):
     text = _get_admin_request_section_toggled_text(platform=platform, category=category, action=action)
 
-    admin_request_section_toggled_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
-            text=text,
-            keyboard=[[
-                ButtonItem(text="🔙 Indietro", callback_key=None),
-                ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
-            ]]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
+        text=text,
+        keyboard=[[
+            ButtonItem(text="🔙 Indietro", callback_key=None),
+            ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
+        ]]
     )
-
-    await admin_request_section_toggled_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_toggled_text(
@@ -236,38 +227,38 @@ async def render_admin_request_section_limit_panel(
 ):
     text = _get_admin_request_section_limit_text(context=context, platform=platform, category=category)
 
-    admin_request_section_limit_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
-            text=text,
-            keyboard=[
-                [ButtonItem(text="🆓 Nessun Limite", callback_key="0")],
-                [
-                    ButtonItem(text="1 Richiesta", callback_key="1"),
-                    ButtonItem(text="2 Richieste", callback_key="2"),
-                    ButtonItem(text="3 Richieste", callback_key="3")
-                ],
-                [
-                    ButtonItem(text="4 Richieste", callback_key="4"),
-                    ButtonItem(text="5 Richieste", callback_key="5"),
-                    ButtonItem(text="6 Richieste", callback_key="6")
-                ],
-                [
-                    ButtonItem(text="7 Richieste", callback_key="7"),
-                    ButtonItem(text="8 Richieste", callback_key="8"),
-                    ButtonItem(text="9 Richieste", callback_key="9")
-                ],
-                [
-                    ButtonItem(text="10 Richieste", callback_key="10"),
-                    ButtonItem(text="15 Richieste", callback_key="15"),
-                    ButtonItem(text="20 Richieste", callback_key="20")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
-    )
+    keyboard = [
+        [ButtonItem(text="🆓 Nessun Limite", callback_key="0")],
+        [
+            ButtonItem(text="1 Richiesta", callback_key="1"),
+            ButtonItem(text="2 Richieste", callback_key="2"),
+            ButtonItem(text="3 Richieste", callback_key="3")
+        ],
+        [
+            ButtonItem(text="4 Richieste", callback_key="4"),
+            ButtonItem(text="5 Richieste", callback_key="5"),
+            ButtonItem(text="6 Richieste", callback_key="6")
+        ],
+        [
+            ButtonItem(text="7 Richieste", callback_key="7"),
+            ButtonItem(text="8 Richieste", callback_key="8"),
+            ButtonItem(text="9 Richieste", callback_key="9")
+        ],
+        [
+            ButtonItem(text="10 Richieste", callback_key="10"),
+            ButtonItem(text="15 Richieste", callback_key="15"),
+            ButtonItem(text="20 Richieste", callback_key="20")
+        ],
+        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+    ]
 
-    await admin_request_section_limit_panel.render(update=update, context=context)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
+        text=text,
+        keyboard=keyboard
+    )
 
 
 def _get_admin_request_section_limit_text(context: CustomContext, platform: Platform, category: Category):
@@ -306,20 +297,18 @@ async def render_admin_request_section_limit_confirm_panel(
         limit=limit
     )
 
-    admin_request_section_limit_confirm_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit/{limit}",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="✅ Conferma", callback_key="yes"),
-                    ButtonItem(text="🔙 Annulla", callback_key=None)
-                ]
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit/{limit}",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="✅ Conferma", callback_key="yes"),
+                ButtonItem(text="🔙 Annulla", callback_key=None)
             ]
-        )
+        ]
     )
-
-    await admin_request_section_limit_confirm_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_limit_confirm_text(
@@ -367,20 +356,18 @@ async def render_admin_request_section_limit_confirmed_panel(
 ):
     text = _get_admin_request_section_limit_confirmed_text(platform=platform, category=category, limit=limit)
 
-    admin_request_section_limit_confirmed_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="🔙 Indietro", callback_key=None),
-                    ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
-                ]
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="🔙 Indietro", callback_key=None),
+                ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
             ]
-        )
+        ]
     )
-
-    await admin_request_section_limit_confirmed_panel.render(update=update, context=context)
 
 
 def _get_admin_request_section_limit_confirmed_text(

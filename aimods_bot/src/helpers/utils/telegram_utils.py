@@ -424,6 +424,23 @@ async def edit_message_safely(
             log.error(f"Impossibile modificare o inviare un nuovo messaggio: {e}")
 
 
+async def create_and_render_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: str,
+        text: str,
+        keyboard: list[list[ButtonItem]],
+        message_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        send: bool = False
+):
+    panel = Panel(
+        PanelConfig(base_path=base_path, text=text, keyboard=keyboard)
+    )
+
+    await panel.render(update=update, context=context, message_id=message_id, user_id=user_id, send=send)
+
+
 async def wrong_input_message(update: Update, context: CustomContext, correct_format=str):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

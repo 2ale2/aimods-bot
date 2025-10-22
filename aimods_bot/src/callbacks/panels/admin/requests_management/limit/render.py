@@ -10,9 +10,9 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, is_user_id, \
-    add_fucking_at, wrong_input_message, username_to_id, resolve_user
+    add_fucking_at, username_to_id, resolve_user, create_and_render_panel, wrong_input_message
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
 from aimods_bot.src.helpers.loggers import logger
@@ -25,11 +25,12 @@ BASE_LIMIT_PATH = "admin/manage_requests/manage_limitations/limit_user_request/l
 async def render_admin_manage_limitations_panel(update: Update, context: CustomContext):
     text = _get_admin_manage_limitations_panel()
 
-    admin_manage_limitations_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_requests/manage_limitations",
-            text=text,
-            keyboard=[
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_requests/manage_limitations",
+        text=text,
+        keyboard=[
                 [ButtonItem(text="👁️‍🗨️ Visiona Limitazioni", callback_key="view_limitations")],
                 [
                     ButtonItem(text="➕ Aggiungi Limitazione", callback_key="limit_user_request"),
@@ -37,10 +38,7 @@ async def render_admin_manage_limitations_panel(update: Update, context: CustomC
                 ],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
-        )
     )
-
-    await admin_manage_limitations_panel.render(update=update, context=context)
 
 
 def _get_admin_manage_limitations_panel():
@@ -54,15 +52,13 @@ def _get_admin_manage_limitations_panel():
 async def render_admin_view_limitations_panel(update: Update, context: CustomContext):
     text = _get_admin_action_limitations_text(action="view")
 
-    admin_view_limitations_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_requests/manage_limitations/view_limitations",
-            text=text,
-            keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_requests/manage_limitations/view_limitations",
+        text=text,
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
     )
-
-    await admin_view_limitations_panel.render(update=update, context=context)
 
 
 def _get_admin_action_limitations_text(action: Literal["view", "remove", "add"]):
@@ -83,15 +79,13 @@ def _get_admin_action_limitations_text(action: Literal["view", "remove", "add"])
 async def render_admin_limit_user_request_panel(update: Update, context: CustomContext):
     text = _get_admin_action_limitations_text(action="add")
 
-    admin_limit_user_request_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_requests/manage_limitations/limit_user_request",
-            text=text,
-            keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_requests/manage_limitations/limit_user_request",
+        text=text,
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
     )
-
-    await admin_limit_user_request_panel.render(update=update, context=context)
 
 
 async def render_admin_limit_user_panel(
@@ -141,18 +135,17 @@ async def render_admin_limit_user_panel(
     if context.get_user_request_limitations(user_id=user_id):
         keyboard.insert(0, [ButtonItem(text="👁‍🗨 Visiona Limitazioni", callback_key="info")])
 
-    admin_limit_user_request_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.format(user_id),
-            text=text,
-            keyboard=keyboard
-        )
-    )
-
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
-    await admin_limit_user_request_panel.render(update=update, context=context, message_id=message_id)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.format(user_id),
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )
 
 
 async def _get_header(
@@ -234,18 +227,16 @@ async def render_admin_limit_user_request_duration_panel(
         user_id=user_id
     )
 
-    admin_limit_user_request_duration_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.format(user_id) + "/duration",
-            text=text,
-            keyboard=[
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.format(user_id) + "/duration",
+        text=text,
+        keyboard=[
                 [ButtonItem(text="♾ A tempo indeterminato", callback_key="endless")],
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
-        )
     )
-
-    await admin_limit_user_request_duration_panel.render(update=update, context=context)
 
 
 async def _get_admin_limit_user_request_duration_text(
@@ -302,15 +293,13 @@ async def render_admin_limit_user_request_sections_panel(
     )
     keyboard = _get_admin_limit_user_request_sections_keyboard(context=context)
 
-    admin_limit_user_request_sections_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.format(user_id) + "/sections",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.format(user_id) + "/sections",
+        text=text,
+        keyboard=keyboard
     )
-
-    await admin_limit_user_request_sections_panel.render(update=update, context=context)
 
 
 async def _get_admin_limit_user_request_sections_text(
@@ -379,17 +368,15 @@ async def render_admin_user_limitation_reason_panel(
         all_sections_false=all_sections_false
     )
 
-    admin_confirm_user_limitation_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.format(user_id) + "/reason",
-            text=text,
-            keyboard=[
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.format(user_id) + "/reason",
+        text=text,
+        keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
-        )
     )
-
-    await admin_confirm_user_limitation_panel.render(update=update, context=context)
 
     return all_sections_false
 
@@ -422,11 +409,14 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     sections = get_request_limiting_detail(context=context, what="sections")
     text = _get_admin_user_limitation_confirmed_text(user_id=user_id, duration=duration, sections=sections)
 
-    admin_user_limitation_confirmed_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.removesuffix("/limit_{}/"),  # "admin/manage_requests/manage_limitations/limit_user_request",
-            text=text,
-            keyboard=[
+    context.pydc.persistent.limiting_user_requests = None
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.removesuffix("/limit_{}/"),
+        text=text,
+        keyboard=[
                 [
                     ButtonItem(
                         text="❔ Gestione Richieste",
@@ -439,12 +429,9 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
                         override_path_generation=True
                     )
                 ]
-            ]
-        )
+            ],
+        message_id=message_id
     )
-
-    context.pydc.persistent.limiting_user_requests = None
-    await admin_user_limitation_confirmed_panel.render(update=update, context=context, message_id=message_id)
 
 
 def _get_admin_user_limitation_confirmed_text(user_id: int, duration: Optional[int], sections: dict):
@@ -470,15 +457,13 @@ async def render_user_requests_limitations_info_panel(
 
     text = await _get_user_request_limitations_text(context=context, user_id=user_id)
 
-    user_requests_limitations_info_panel = Panel(
-        PanelConfig(
-            base_path=BASE_LIMIT_PATH.format(user_id) + "/info",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=BASE_LIMIT_PATH.format(user_id) + "/info",
+        text=text,
+        keyboard=keyboard
     )
-
-    await user_requests_limitations_info_panel.render(update=update, context=context)
 
 
 async def _get_user_request_limitations_text(context: CustomContext, user_id: int):
@@ -562,34 +547,31 @@ async def render_admin_view_user_limitations_panel(
 
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
-    admin_view_user_limitations_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/view_limitations/{user_id}",
-            text=text,
-            keyboard=keyboard
-        )
-    )
-
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
-    await admin_view_user_limitations_panel.render(update=update, context=context, message_id=message_id)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_limitations/view_limitations/{user_id}",
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )
 
 
 async def render_admin_remove_limitations_panel(update: Update, context: CustomContext):
     text = _get_admin_action_limitations_text(action="remove")
 
-    admin_remove_limitations_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/remove_limitations",
-            text=text,
-            keyboard=[
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_limitations/remove_limitations",
+        text=text,
+        keyboard=[
                 [ButtonItem(text="🔙 Indietro", callback_key=None)]
             ]
-        )
     )
-
-    await admin_remove_limitations_panel.render(update=update, context=context)
 
 
 async def render_admin_remove_user_limitation_panel(
@@ -607,18 +589,17 @@ async def render_admin_remove_user_limitation_panel(
         user_id=user_id
     )
 
-    admin_remove_user_limitation_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
-            text=text,
-            keyboard=keyboard
-        )
-    )
-
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
-    await admin_remove_user_limitation_panel.render(update=update, context=context, message_id=message_id)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )
 
 
 async def _get_admin_remove_user_limitation_text_and_keyboard(
@@ -681,18 +662,16 @@ async def render_admin_remove_user_limitation_confirmation_panel(
 
     end_data = l.section if l else "remove_all"
 
-    admin_remove_user_limitation_confirmation_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}/{end_data}",
-            text=text,
-            keyboard=[[
-                ButtonItem(text="✅ Confermo", callback_key="yes"),
-                ButtonItem(text="🔙 Annulla", callback_key=None)
-            ]]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}/{end_data}",
+        text=text,
+        keyboard=[[
+            ButtonItem(text="✅ Confermo", callback_key="yes"),
+            ButtonItem(text="🔙 Annulla", callback_key=None)
+        ]]
     )
-
-    await admin_remove_user_limitation_confirmation_panel.render(update=update, context=context)
 
 
 async def _get_admin_remove_user_limitation_confirmation(
@@ -751,6 +730,90 @@ async def _get_admin_remove_user_limitation_confirmation(
     return text
 
 
+async def render_admin_user_limitation_removed_panel(
+        update: Update,
+        context: CustomContext,
+        user_id: int,
+        section: Optional[str],
+        remove_all: bool = False
+):
+    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section, remove_all=remove_all)
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
+        text=text,
+        keyboard=[
+                [
+                    ButtonItem(text="🔙 Indietro", callback_key=None),
+                    ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
+                ]
+            ]
+    )
+
+
+def _get_admin_user_limitation_removed_text(user_id: int, section: str, remove_all: bool = False) -> str:
+    if remove_all:
+        text = ("✅ <b>Tutte le Limitazioni Rimosse</b>\n\n"
+                f"<blockquote>Ora l'utente <code>{user_id}</code> non ha più limitazioni.</blockquote>\n\n"
+                f"🔹 Scegli un'opzione.")
+        return text
+
+    pl, ca = section.split(":")
+    pl_label = PLATFORM_DETAILS[pl]["label"]
+    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+
+    text = (f"✅ <b>Limitazione per <code>{user_id}</code> Rimossa</b>\n\n"
+            "<blockquote>L'utente potrà nuovamente <b>formulare richieste</b> nella sezione "
+            f"<b>{ca_label} ({pl_label})</b>.</blockquote>\n\n"
+            "🔹 Scegli un'opzione.")
+
+    return text
+
+
+async def render_request_deleted_panel(update: Update, context: CustomContext):
+    text = _get_request_deleted_text()
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        base_path="admin",
+        keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
+    )
+
+
+def _get_request_deleted_text():
+    text = ("⚠️ <b>Problema con la Richiesta</b>\n\n"
+            "▫ Questa richiesta non è più tra le richieste attive.\n\n"
+            "<blockquote>ℹ <b>Info</b> – È possibile che la richiesta sia stata rimossa da un admin mentre un altro "
+            "admin la gestiva, oppure che nello stesso momento l'utente l'abbia cancellata. Prova a verificare se è "
+            "ancora presente tra le richieste attive.</blockquote>")
+    return text
+
+
+async def render_request_inactive_panel(update: Update, context: CustomContext):
+    text = _get_request_inactive_text()
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        base_path="admin",
+        keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
+    )
+
+
+def _get_request_inactive_text():
+    text = ("⚠️ <b>Richiesta Non Più Attiva</b>\n\n"
+            "▫ La richiesta non è più attiva.\n\n"
+            "<blockquote>ℹ <b>Info</b> – Un altro admin potrebbe aver completato o rifiutato la richiesta "
+            "mentre tu la gestivi. Verifica lo stato attuale nelle richieste attive.</blockquote>")
+
+    return text
+
+
 async def handle_limitation_identifier(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
@@ -780,93 +843,3 @@ async def handle_limitation_identifier(update: Update, context: CustomContext):
     elif action == "remove":
         await render_admin_remove_user_limitation_panel(update=update, context=context, user_id=int(identifier))
     return PCS.ADMIN_CONVERSATION
-
-
-async def render_admin_user_limitation_removed_panel(
-        update: Update,
-        context: CustomContext,
-        user_id: int,
-        section: Optional[str],
-        remove_all: bool = False
-):
-    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section, remove_all=remove_all)
-
-    admin_user_limitation_removed_panel = Panel(
-        PanelConfig(
-            base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="🔙 Indietro", callback_key=None),
-                    ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
-                ]
-            ]
-        )
-    )
-
-    await admin_user_limitation_removed_panel.render(update=update, context=context)
-
-
-def _get_admin_user_limitation_removed_text(user_id: int, section: str, remove_all: bool = False) -> str:
-    if remove_all:
-        text = ("✅ <b>Tutte le Limitazioni Rimosse</b>\n\n"
-                f"<blockquote>Ora l'utente <code>{user_id}</code> non ha più limitazioni.</blockquote>\n\n"
-                f"🔹 Scegli un'opzione.")
-        return text
-
-    pl, ca = section.split(":")
-    pl_label = PLATFORM_DETAILS[pl]["label"]
-    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-
-    text = (f"✅ <b>Limitazione per <code>{user_id}</code> Rimossa</b>\n\n"
-            "<blockquote>L'utente potrà nuovamente <b>formulare richieste</b> nella sezione "
-            f"<b>{ca_label} ({pl_label})</b>.</blockquote>\n\n"
-            "🔹 Scegli un'opzione.")
-
-    return text
-
-
-async def render_request_deleted_panel(update: Update, context: CustomContext):
-    text = _get_request_deleted_text()
-
-    request_deleted_panel = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
-        )
-    )
-
-    await request_deleted_panel.render(update=update, context=context)
-
-
-def _get_request_deleted_text():
-    text = ("⚠️ <b>Problema con la Richiesta</b>\n\n"
-            "▫ Questa richiesta non è più tra le richieste attive.\n\n"
-            "<blockquote>ℹ <b>Info</b> – È possibile che la richiesta sia stata rimossa da un admin mentre un altro "
-            "admin la gestiva, oppure che nello stesso momento l'utente l'abbia cancellata. Prova a verificare se è "
-            "ancora presente tra le richieste attive.</blockquote>")
-    return text
-
-
-async def render_request_inactive_panel(update: Update, context: CustomContext):
-    text = _get_request_inactive_text()
-
-    request_inactive_panel = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[[ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)]]
-        )
-    )
-
-    await request_inactive_panel.render(update=update, context=context)
-
-
-def _get_request_inactive_text():
-    text = ("⚠️ <b>Richiesta Non Più Attiva</b>\n\n"
-            "▫ La richiesta non è più attiva.\n\n"
-            "<blockquote>ℹ <b>Info</b> – Un altro admin potrebbe aver completato o rifiutato la richiesta "
-            "mentre tu la gestivi. Verifica lo stato attuale nelle richieste attive.</blockquote>")
-
-    return text

@@ -4,23 +4,22 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import AdminNotifications
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
 from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 
 
 async def render_admin_settings_management_panel(update: Update, context: CustomContext):
     text = _get_admin_settings_management_text()
 
-    admin_settings_management_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_settings",
-            text=text,
-            keyboard=[
-                [ButtonItem(text="🔔 Notifiche", callback_key="notifications")],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_settings",
+        text=text,
+        keyboard=[
+            [ButtonItem(text="🔔 Notifiche", callback_key="notifications")],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await admin_settings_management_panel.render(update=update, context=context)
 
 
 def _get_header():
@@ -36,21 +35,19 @@ def _get_admin_settings_management_text():
 async def render_admin_notification_settings_management_panel(update: Update, context: CustomContext):
     text = _get_admin_notification_settings_management_text()
 
-    admin_notification_settings_management_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_settings/notifications",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="📥 Nuove Richieste", callback_key="new_requests"),
-                    ButtonItem(text="📪 Chiusura Sezioni", callback_key="section_closing")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_settings/notifications",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="📥 Nuove Richieste", callback_key="new_requests"),
+                ButtonItem(text="📪 Chiusura Sezioni", callback_key="section_closing")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await admin_notification_settings_management_panel.render(update=update, context=context)
 
 
 def _get_admin_notification_settings_management_text():
@@ -64,15 +61,13 @@ async def render_admin_new_requests_notification_settings_panel(update: Update, 
     settings = context.pydc.persistent.admin_notifications
     text, keyboard = _get_admin_new_requests_notification_settings_text_keyboard(settings=settings)
 
-    admin_new_requests_notification_settings_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_settings/notifications/new_requests",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_settings/notifications/new_requests",
+        text=text,
+        keyboard=keyboard
     )
-
-    await admin_new_requests_notification_settings_panel.render(update=update, context=context)
 
 
 def _get_admin_new_requests_notification_settings_text_keyboard(settings: AdminNotifications):
@@ -107,17 +102,15 @@ def _get_admin_new_requests_notification_settings_text_keyboard(settings: AdminN
 async def render_new_requests_notification_disabled_panel(update: Update, context: CustomContext, data: str):
     text = _get_new_requests_notification_disabled_text(data=data)
 
-    new_requests_notification_disabled_panel = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[
-                [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin",
+        text=text,
+        keyboard=[
+            [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
+        ]
     )
-
-    await new_requests_notification_disabled_panel.render(update=update, context=context)
 
 
 def _get_new_requests_notification_disabled_text(data: str):
@@ -137,15 +130,13 @@ async def render_admin_section_closing_notification_settings_panel(update: Updat
     settings = context.pydc.persistent.admin_notifications
     text, keyboard = _get_admin_section_closing_notification_settings_text_keyboard(settings=settings)
 
-    admin_new_requests_notification_settings_panel = Panel(
-        PanelConfig(
-            base_path="admin/manage_settings/notifications/section_closing",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin/manage_settings/notifications/section_closing",
+        text=text,
+        keyboard=keyboard
     )
-
-    await admin_new_requests_notification_settings_panel.render(update=update, context=context)
 
 
 def _get_admin_section_closing_notification_settings_text_keyboard(settings: AdminNotifications):
@@ -181,17 +172,15 @@ def _get_admin_section_closing_notification_settings_text_keyboard(settings: Adm
 async def render_section_closure_notification_disabled_panel(update: Update, context: CustomContext, data: str):
     text = _get_section_closure_notification_disabled_text(data=data)
 
-    new_requests_notification_disabled_panel = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[
-                [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin",
+        text=text,
+        keyboard=[
+            [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
+        ]
     )
-
-    await new_requests_notification_disabled_panel.render(update=update, context=context)
 
 
 def _get_section_closure_notification_disabled_text(data: str):

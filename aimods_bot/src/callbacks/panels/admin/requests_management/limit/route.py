@@ -13,7 +13,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
+from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user, is_user_id
 
