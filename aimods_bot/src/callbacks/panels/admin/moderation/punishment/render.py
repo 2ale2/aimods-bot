@@ -2,8 +2,9 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
 
 
@@ -40,40 +41,37 @@ async def render_punishment_panel(update: Update, context: CustomContext, settin
         name_item = MODERATION_DISPLAY_ITEMS[main_settings].display_name
         keyboard.insert(0, [ButtonItem(text=f"🧞 Stessa Punizione {name_item}", callback_key=main_settings)])
 
-    punishment_panel = Panel(
-        PanelConfig(
-            base_path=data,
-            text=text,
-            keyboard=keyboard
-        )
-    )
-
     temp_data = context.chat_data.get('setting_duration')
     message_id = None
     if temp_data:
         message_id = temp_data.get('message_id')
         context.chat_data.pop('setting_duration')
 
-    await punishment_panel.render(update=update, context=context, message_id=message_id)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=data,
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )
 
 
 async def render_punishment_duration_panel(update: Update, context: CustomContext, setting: str):
     text = _build_punishment_duration_text(setting=setting)
 
-    punishment_duration_panel = Panel(
-        PanelConfig(
-            base_path=update.callback_query.data,
-            text=text,
-            keyboard=[
-                [ButtonItem(text="♾️ Tempo Indeterminato", callback_key="endless")],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
-    )
-
     context.chat_data['setting_duration'] = {'setting': setting, 'message_id': update.effective_message.message_id}
 
-    await punishment_duration_panel.render(update=update, context=context)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=update.callback_query.data,
+        text=text,
+        keyboard=[
+            [ButtonItem(text="♾️ Tempo Indeterminato", callback_key="endless")],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
+    )
 
 
 async def _build_punishment_text(context: CustomContext, setting: str):

@@ -7,7 +7,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
     Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,

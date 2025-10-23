@@ -2,35 +2,33 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
+from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text, create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text, get_rate_limit_text, pluralize
 
 
 async def render_antispam_mention_panel(update: Update, context: CustomContext):
     text = await _build_text(context)
 
-    antispam_mention_panel = Panel(
-        PanelConfig(
-            base_path="moderation/security_filters/antispam/mention",
-            text=text,
-            keyboard=[
-                [ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")],
-                [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key="per_message")],
-                [
-                    ButtonItem(text="👤 Utenti", callback_key="user"),
-                    ButtonItem(text="👥 Gruppi", callback_key="group"),
-                ],
-                [
-                    ButtonItem(text="📢 Canali", callback_key="channel"),
-                    ButtonItem(text="🤖 Bot", callback_key="bot")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="moderation/security_filters/antispam/mention",
+        text=text,
+        keyboard=[
+            [ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")],
+            [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key="per_message")],
+            [
+                ButtonItem(text="👤 Utenti", callback_key="user"),
+                ButtonItem(text="👥 Gruppi", callback_key="group"),
+            ],
+            [
+                ButtonItem(text="📢 Canali", callback_key="channel"),
+                ButtonItem(text="🤖 Bot", callback_key="bot")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await antispam_mention_panel.render(update=update, context=context)
 
 
 async def _build_text(context: CustomContext) -> str:
@@ -70,27 +68,25 @@ async def _build_text(context: CustomContext) -> str:
 async def render_antispam_mention_per_message_panel(update: Update, context: CustomContext):
     text = _build_per_message_text(context)
 
-    antispam_mention_per_message_panel = Panel(
-        PanelConfig(
-            base_path="moderation/security_filters/antispam/mention/per_message",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="1 Menzione", callback_key="1"),
-                    ButtonItem(text="2 Menzioni", callback_key="2"),
-                    ButtonItem(text="3 Menzioni", callback_key="3")
-                ],
-                [
-                    ButtonItem(text="4 Menzioni", callback_key="4"),
-                    ButtonItem(text="5 Menzioni", callback_key="5"),
-                    ButtonItem(text="10 Menzioni", callback_key="10")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="moderation/security_filters/antispam/mention/per_message",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="1 Menzione", callback_key="1"),
+                ButtonItem(text="2 Menzioni", callback_key="2"),
+                ButtonItem(text="3 Menzioni", callback_key="3")
+            ],
+            [
+                ButtonItem(text="4 Menzioni", callback_key="4"),
+                ButtonItem(text="5 Menzioni", callback_key="5"),
+                ButtonItem(text="10 Menzioni", callback_key="10")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await antispam_mention_per_message_panel.render(update=update, context=context)
 
 
 def _build_per_message_text(context: CustomContext) -> str:
@@ -135,15 +131,13 @@ async def render_antispam_mention_category_panel(update: Update, context: Custom
                 callback_key='if_not_member')
         ])
 
-    antispam_mention_category_panel = Panel(
-        PanelConfig(
-            base_path=f"moderation/security_filters/antispam/mention/{category}",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"moderation/security_filters/antispam/mention/{category}",
+        text=text,
+        keyboard=keyboard
     )
-
-    await antispam_mention_category_panel.render(update=update, context=context)
 
 
 def _build_mention_category_text(context: CustomContext, category: str) -> str:

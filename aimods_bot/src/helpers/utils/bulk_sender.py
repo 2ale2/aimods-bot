@@ -7,8 +7,9 @@ from telegram.constants import ParseMode
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 log = logger.getChild(__name__)
@@ -82,36 +83,35 @@ async def send_new_request_admin_notification(
     text = _get_new_request_admin_notification_text(pl=pl, ca=ca)
     request_id = request.id
 
-    new_request_notification = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(
-                        text="👁 Visiona",
-                        callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}/{request_id}",
-                        override_path_generation=True
-                    ),
-                    ButtonItem(
-                        text="🗃 Richieste Attive",
-                        callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}",
-                        override_path_generation=True
-                    )
-                ],
-                [
-                    ButtonItem(
-                        text="🔕 Disattiva Notifiche",
-                        callback_key=f"admin/manage_settings/notifications/new_requests/{pl}:{ca}/from_notification",
-                        override_path_generation=True
-                    )
-                ],
-                [ButtonItem(text="🚮 Guarda Dopo", callback_key="close_menu")]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(
+                    text="👁 Visiona",
+                    callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}/{request_id}",
+                    override_path_generation=True
+                ),
+                ButtonItem(
+                    text="🗃 Richieste Attive",
+                    callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}",
+                    override_path_generation=True
+                )
+            ],
+            [
+                ButtonItem(
+                    text="🔕 Disattiva Notifiche",
+                    callback_key=f"admin/manage_settings/notifications/new_requests/{pl}:{ca}/from_notification",
+                    override_path_generation=True
+                )
+            ],
+            [ButtonItem(text="🚮 Guarda Dopo", callback_key="close_menu")]
+        ],
+        user_id=admin_id
     )
-
-    await new_request_notification.render(update=update, context=context, user_id=admin_id)
 
 
 def _get_new_request_admin_notification_text(pl: str, ca: str) -> str:
@@ -131,29 +131,28 @@ async def send_section_closing_admin_notification(update: Update, context: Custo
     pl, ca = section.split(":")
     text = _get_section_closing_admin_notification_text(context=context, pl=pl, ca=ca)
 
-    section_closing_admin_notification = Panel(
-        PanelConfig(
-            base_path="admin",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(
-                        text="🗃 Richieste Attive",
-                        callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}",
-                        override_path_generation=True
-                    ),
-                    ButtonItem(
-                        text="🔕 Disattiva Notifiche",
-                        callback_key=f"admin/manage_settings/notifications/section_closing/{pl}:{ca}/from_notification",
-                        override_path_generation=True
-                    )
-                ],
-                [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="admin",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(
+                    text="🗃 Richieste Attive",
+                    callback_key=f"admin/manage_requests/active_requests/{pl}/{ca}",
+                    override_path_generation=True
+                ),
+                ButtonItem(
+                    text="🔕 Disattiva Notifiche",
+                    callback_key=f"admin/manage_settings/notifications/section_closing/{pl}:{ca}/from_notification",
+                    override_path_generation=True
+                )
+            ],
+            [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
+        ],
+        user_id=admin_id
     )
-
-    await section_closing_admin_notification.render(update=update, context=context, user_id=admin_id)
 
 
 def _get_section_closing_admin_notification_text(context: CustomContext, pl: str, ca: str) -> str:
