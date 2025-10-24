@@ -251,7 +251,18 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
 
     def user_request_cooldown(self, user_id: Optional[int] = None) -> Optional[RequestCooldown]:
-        return self.pydb.user_request_cooldowns.get(user_id or self.user_id, None)
+        user_id = user_id or self.user_id
+        cooldown = self.pydb.user_request_cooldowns.get(user_id, None)
+        if cooldown:
+            end_utc = datetime.fromisoformat(cooldown["until"])
+            end_utc.replace(tzinfo=timezone.utc)
+            if end_utc > datetime.now(timezone.utc):
+                return cooldown
+            try:
+                del self.pydb.user_request_cooldowns[user_id]
+            except KeyError:
+                pass
+            return None
 
     def set_user_request_cooldown(self, user_id: int) -> RequestCooldown:
         rc = RequestCooldown(
