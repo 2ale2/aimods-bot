@@ -5,7 +5,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
-from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 

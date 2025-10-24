@@ -2,32 +2,31 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, sec_value_limited
 
 
 async def render_antiflood_panel(update: Update, context: CustomContext):
     text = await _build_text(context=context)
 
-    antiflood_panel = Panel(
-        PanelConfig(
-            base_path="moderation/security_filters/antiflood",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="On ☂️", callback_key="toggle_on"),
-                    ButtonItem(text="Off 🌂", callback_key="toggle_off")
-                ],
-                [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
-                [ButtonItem(text="💬 Numero Messaggi", callback_key="message_number")],
-                [ButtonItem(text="🕔 Tempo Messaggi", callback_key="message_time")],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="moderation/security_filters/antiflood",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="On ☂️", callback_key="toggle_on"),
+                ButtonItem(text="Off 🌂", callback_key="toggle_off")
+            ],
+            [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
+            [ButtonItem(text="💬 Numero Messaggi", callback_key="message_number")],
+            [ButtonItem(text="🕔 Tempo Messaggi", callback_key="message_time")],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await antiflood_panel.render(update=update, context=context)
 
 
 async def _build_text(context: CustomContext):

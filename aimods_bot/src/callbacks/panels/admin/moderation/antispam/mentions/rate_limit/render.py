@@ -3,33 +3,31 @@ from typing import Literal
 from telegram import Update
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.utils.time_utils import get_rate_limit_text, pluralize
-from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text
+from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text, create_and_render_panel
 
 
 async def render_antispam_mentions_rate_limit_panel(update: Update, context: CustomContext):
     text = _build_rate_limit_text(context)
 
-    antispam_mentions_rate_limit_panel = Panel(
-        PanelConfig(
-            base_path="moderation/security_filters/antispam/mention/rate_limit",
-            text=text,
-            keyboard=[
-                [
-                    ButtonItem(text="☂️ On", callback_key="on"),
-                    ButtonItem(text="🌂️ Off", callback_key="off")
-                ],
-                [
-                    ButtonItem(text="⏲️ Tempo", callback_key="time"),
-                    ButtonItem(text="️📝 Numero Menzioni", callback_key="mention")
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="moderation/security_filters/antispam/mention/rate_limit",
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(text="☂️ On", callback_key="on"),
+                ButtonItem(text="🌂️ Off", callback_key="off")
+            ],
+            [
+                ButtonItem(text="⏲️ Tempo", callback_key="time"),
+                ButtonItem(text="️📝 Numero Menzioni", callback_key="mention")
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
-
-    await antispam_mentions_rate_limit_panel.render(update=update, context=context)
 
 
 def _build_rate_limit_text(context: CustomContext) -> str:
@@ -101,15 +99,14 @@ async def render_antispam_mentions_rate_limit_setting_panel(
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=None)]
         ]
-    antispam_mentions_rate_limit_setting_panel = Panel(
-        PanelConfig(
-            base_path=f"moderation/security_filters/antispam/mention/rate_limit/{setting}",
-            text=text,
-            keyboard=keyboard
-        )
-    )
 
-    await antispam_mentions_rate_limit_setting_panel.render(update=update, context=context)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"moderation/security_filters/antispam/mention/rate_limit/{setting}",
+        text=text,
+        keyboard=keyboard
+    )
 
 
 def _build_rate_limit_setting_text(context: CustomContext, setting: Literal['time', 'mention']):

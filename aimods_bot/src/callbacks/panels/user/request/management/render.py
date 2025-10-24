@@ -10,7 +10,7 @@ from telegram.error import BadRequest
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.models import Panel, PanelConfig, ButtonItem
+from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
@@ -186,15 +186,13 @@ async def render_request_details_panel(
             )
         ])
 
-    request_details_panel = Panel(
-        PanelConfig(
-            base_path=f"user/view_requests/active_requests/details/{ix}",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"user/view_requests/active_requests/details/{ix}",
+        text=text,
+        keyboard=keyboard
     )
-
-    await request_details_panel.render(update=update, context=context)
 
 
 async def _get_request_details_panel_text(request: Request) -> str:
@@ -233,15 +231,13 @@ async def render_confirm_cancel_panel(
                 "🔹 Torna indietro per continuare.")
         keyboard = [[ButtonItem(text="🔙 Annulla", callback_key=None)]]
 
-    confirm_cancel_panel = Panel(
-        PanelConfig(
-            base_path=f"user/view_requests/active_requests/cancel/{ix}",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=f"user/view_requests/active_requests/cancel/{ix}",
+        text=text,
+        keyboard=keyboard
     )
-
-    await confirm_cancel_panel.render(update=update, context=context)
 
 
 async def _get_confirm_cancel_text(request: Request) -> str:
@@ -292,20 +288,17 @@ async def render_user_request_archive_panel(
     else:
         base_path = "user/view_requests/requests_archive"
 
-    user_request_archive_panel = Panel(
-        PanelConfig(
-            base_path=base_path,
-            text=text,
-            keyboard=[
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
-        )
-    )
-    await user_request_archive_panel.render(
+    await create_and_render_panel(
         update=update,
         context=context,
+        base_path=base_path,
+        text=text,
+        keyboard=[
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ],
         message_id=context.pydc.persistent.bot_message_id
     )
+
     context.pydc.persistent.bot_message_id = None
     if p:
         await context.bot.send_document(
@@ -380,15 +373,13 @@ async def render_request_cancelled_panel(
             )
         ])
 
-    request_cancelled_panel = Panel(
-        PanelConfig(
-            base_path="user/view_requests/active_requests/cancel",
-            text=text,
-            keyboard=keyboard
-        )
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path="user/view_requests/active_requests/cancel",
+        text=text,
+        keyboard=keyboard
     )
-
-    await request_cancelled_panel.render(update=update, context=context)
 
 
 def _get_request_cancelled_panel_text():
