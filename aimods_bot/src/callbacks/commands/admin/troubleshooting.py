@@ -38,3 +38,25 @@ async def reset_user_conversation(update: Update, context: CustomContext):
         )
     except Exception as e:
         log.warning(f"Error while contacting the user: {e}")
+
+
+async def reset_chat_data(update: Update, context: CustomContext):
+    await safe_delete(update, context)
+    if not await is_admin(user_id=update.effective_user.id, context=context):
+        return
+
+    if not len(context.args) or not context.args[0].isdigit():
+        await update.effective_message.reply_text(text="⚠ Indica uno user ID", allow_sending_without_reply=True)
+        return
+
+    user_id = int(context.args[0])
+
+    context.application.drop_chat_data(chat_id=user_id)
+    log.info(f"Chat data for user {user_id} has been reset.")
+
+    await update.effective_message.reply_text(
+        text=f"ℹ Chat Data per <code>{user_id}</code> resettata.",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]),
+        parse_mode=ParseMode.HTML,
+        allow_sending_without_reply=True
+    )
