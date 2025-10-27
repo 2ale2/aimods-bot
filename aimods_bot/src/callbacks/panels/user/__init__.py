@@ -15,6 +15,7 @@ log = logger.getChild(__name__)
 @check_auth()
 async def user_main_router(update: Update, context: CustomContext):
     c_data = update.callback_query.data
+    log.info(f"{c_data} (user: {update.effective_user.id})")
 
     if c_data == "reset_conversation":
         await update.effective_message.edit_text(
