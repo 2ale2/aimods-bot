@@ -9,7 +9,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.user_utils import check_auth
 from aimods_bot.src.helpers.loggers import logger
 
-log = logger.getLogger(__name__)
+log = logger.getChild(__name__)
 
 
 @check_auth()
