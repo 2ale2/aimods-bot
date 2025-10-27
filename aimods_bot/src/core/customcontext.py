@@ -254,7 +254,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         user_id = user_id or self.user_id
         cooldown = self.pydb.user_request_cooldowns.get(user_id, None)
         if cooldown:
-            end_utc = datetime.fromisoformat(cooldown["until"])
+            end_utc = cooldown.until
             end_utc.replace(tzinfo=timezone.utc)
             if end_utc > datetime.now(timezone.utc):
                 return cooldown
@@ -350,7 +350,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             log.warning(f"Request {ix} not found.")
 
         status_value = status.value
-        query = """UPDATE requests_test SET status = $1, rejection_reason = $2 WHERE id = $3"""
+        query = """UPDATE requests SET status = $1, rejection_reason = $2 WHERE id = $3"""
 
         res = await execute_query(query=query, params=[status_value, rejection_reason, int(ix)])
         if not res:
