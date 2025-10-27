@@ -32,7 +32,9 @@ windows_game_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
