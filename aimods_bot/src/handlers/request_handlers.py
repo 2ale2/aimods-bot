@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.constants.conversation_states import RequestConversa
 windows_game_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(pattern="^user/add_request/windows/game/from_notification$", callback=user_main_router),
-        CallbackQueryHandler(pattern="game", callback=request_router)],
+        CallbackQueryHandler(pattern="^game$", callback=request_router)],
     states={
         RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
         RCS.REQUEST_LINK: [MessageHandler(filters=filters.Entity("url"), callback=request_detail)],
@@ -49,7 +49,7 @@ windows_game_request_handler = ConversationHandler(
 windows_adobe_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(pattern="^user/add_request/windows/adobe/from_notification$", callback=user_main_router),
-        CallbackQueryHandler(pattern="adobe", callback=request_router)
+        CallbackQueryHandler(pattern="^adobe$", callback=request_router)
     ]
     ,
     states={
@@ -89,7 +89,7 @@ windows_adobe_request_handler = ConversationHandler(
 windows_daw_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(pattern="^user/add_request/windows/daw/from_notification$", callback=user_main_router),
-        CallbackQueryHandler(pattern="daw", callback=request_router)
+        CallbackQueryHandler(pattern="^daw$", callback=request_router)
     ],
     states={
         RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
@@ -127,7 +127,7 @@ windows_daw_request_handler = ConversationHandler(
 windows_software_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(pattern="^user/add_request/windows/software/from_notification$", callback=user_main_router),
-        CallbackQueryHandler(pattern="software", callback=request_router)
+        CallbackQueryHandler(pattern="^software$", callback=request_router)
     ],
     states={
         RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
