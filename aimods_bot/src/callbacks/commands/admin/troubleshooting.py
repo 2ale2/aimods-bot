@@ -4,13 +4,14 @@ from telegram.constants import ParseMode
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.user_utils import is_admin
 
 log = logger.getChild(__name__)
 
 
 async def reset_user_conversation(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
-    if update.effective_chat.type != "private":
+    if update.effective_chat.type != "private" or not await is_admin(user_id=update.effective_user.id, context=context):
         return
 
     if not len(context.args) or not context.args[0].isdigit():
