@@ -34,7 +34,8 @@ windows_game_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -71,7 +72,10 @@ windows_adobe_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -106,7 +110,10 @@ windows_daw_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -142,7 +149,10 @@ windows_software_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
@@ -177,7 +187,10 @@ macos_daw_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER
@@ -212,7 +225,10 @@ macos_software_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)]
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)
+    ],
     map_to_parent={
         ConversationHandler.END: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER
@@ -250,7 +266,10 @@ android_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+    ],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -276,6 +295,7 @@ windows_request_handler = ConversationHandler(
         ],
     },
     fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
         CallbackQueryHandler(pattern=r"^back_category$", callback=request_category),
         CallbackQueryHandler(pattern="^back_.+$", callback=backer)
     ],
@@ -315,7 +335,10 @@ ios_request_handler = ConversationHandler(
         RCS.EDIT_VERSION: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
         RCS.EDIT_FUNCTIONALITIES: [MessageHandler(filters=filters.TEXT, callback=edited_detail)],
     },
-    fallbacks=[CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)],
+    fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
+        CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)
+    ],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
         ConversationHandler.END: PCS.USER_CONVERSATION
@@ -336,6 +359,7 @@ macos_request_handler = ConversationHandler(
         RCS.REQUEST_CATEGORY: [macos_daw_request_handler, macos_software_request_handler],
     },
     fallbacks=[
+        CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
         CallbackQueryHandler(pattern=r"^back_category$", callback=request_category),
         CallbackQueryHandler(pattern="^back_.+$", callback=backer)
     ],
