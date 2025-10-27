@@ -93,7 +93,7 @@ async def set_application_data(application: Application):
             if j and not j.executed:
                 execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
                 execution_time = execution_time.replace(tzinfo=timezone.utc)
-                if execution_time >= datetime.now(timezone.utc):
+                if execution_time <= datetime.now(timezone.utc):
                     await create_and_send_recaps(context=application)
                     j.executed = True
             del current_bot_data.jobs[autorecap_job_name]
