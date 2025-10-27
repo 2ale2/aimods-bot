@@ -5,7 +5,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.handlers.commands.admin.moderation_handler import moderation_handler
 from aimods_bot.src.handlers.commands.admin.service_handler import multi_media_echo_handler, service_handler, \
     test_command_handler
-from aimods_bot.src.handlers.commands.admin.troubleshooting_handlers import reset_user_data
+from aimods_bot.src.handlers.commands.admin.troubleshooting_handlers import reset_user_conversation
 from aimods_bot.src.handlers.conversations.private_conversation_handlers import alert_handler, private_conversation_handler, \
     close_button_handler, TestHandler
 from aimods_bot.src.handlers.conversations.join_handler import new_member_handler
@@ -24,7 +24,7 @@ active_handlers = [
     new_member_handler,
     private_conversation_handler,
     close_button_handler,
-    reset_user_data
+    reset_user_conversation
 ]
 
 all_handlers = [

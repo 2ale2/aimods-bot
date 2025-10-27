@@ -1,10 +1,14 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 
-async def reset_user_data(update: Update, context: CustomContext):
+async def reset_user_conversation(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
     if update.effective_chat.type != "private":
         return
@@ -15,7 +19,21 @@ async def reset_user_data(update: Update, context: CustomContext):
 
     user_id = int(context.args[0])
 
-    context.application.drop_user_data(user_id=user_id)
-    context.application.drop_chat_data(chat_id=user_id)
-
-    await update.effective_message.reply_text(text="✔ Utente Resettato", allow_sending_without_reply=True)
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text="⚠️ <b>Richiesta di Reset Conversazionale</b>\n\n"
+                 "<blockquote>ℹ <b>Informazioni</b> – Un admin ti ha inoltrato una richiesta per <b>resettare lo stato "
+                 "della conversazione</b>. Questo tipicamente è necessario quando un utente riscontra dei problemi "
+                 "nel flusso delle conversazioni. Se hai contattato un admin perché riscontri malfunzionamenti di "
+                 "questa natura, accetta la richiesta, altrimenti ignorala.</blockquote>",
+            reply_markup=InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton(text="🔄 Accetta e Resetta", callback_data="reset_conversation"),
+                    InlineKeyboardButton(text="🚮 Ignora", callback_data="close_menu")
+                ]]
+            ),
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        log.warning(f"Error while contacting the user: {e}")
