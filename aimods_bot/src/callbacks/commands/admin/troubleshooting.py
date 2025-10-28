@@ -60,3 +60,18 @@ async def reset_chat_data(update: Update, context: CustomContext):
         parse_mode=ParseMode.HTML,
         allow_sending_without_reply=True
     )
+
+
+async def erase_callback_queries(update: Update, context: CustomContext):
+    await safe_delete(update, context)
+    if not await is_admin(user_id=update.effective_user.id, context=context):
+        return
+
+    context.bot.callback_data_cache.clear_callback_queries()
+
+    await update.effective_message.reply_text(
+        text="ℹ Callback Queries Erased",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
+    )
+
+    log.info(f"Callback Queries Erased by {update.effective_user.id}")
