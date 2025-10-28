@@ -94,8 +94,7 @@ class AsyncPostgresPersistence(DictPersistence):
                     "chat_data_json": raw.get("chat_data", "{}"),
                     "bot_data_json": raw.get("bot_data", "{}"),
                     "conversations_json": raw.get("conversations", "{}"),
-                    "callback_data_json": ""
-                    # "callback_data_json": raw.get("callback_data_json", ""),
+                    "callback_data_json": raw.get("callback_data_json", ""),
                 }
             finally:
                 await pool.close()
