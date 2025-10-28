@@ -44,5 +44,6 @@ async def user_main_router(update: Update, context: CustomContext):
     finally:
         try:
             await update.callback_query.answer()
+            context.drop_callback_data(update.callback_query)
         except Exception:
             pass
