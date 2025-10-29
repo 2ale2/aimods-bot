@@ -85,5 +85,6 @@ async def get_chat_data(update: Update, context: CustomContext):
         text=f"<code>{json.dumps(context.pydc.persistent.model_dump(), indent=4)}</code>\n\n"
              "🔹 Invia questo messaggio all'admin che te lo ha richiesto.",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]),
+        parse_mode=ParseMode.HTML,
         allow_sending_without_reply=True
     )
