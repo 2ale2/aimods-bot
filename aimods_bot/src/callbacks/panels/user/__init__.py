@@ -28,6 +28,8 @@ async def user_main_router(update: Update, context: CustomContext):
         return ConversationHandler.END
 
     if isinstance(c_data, InvalidCallbackData):
+        log.warning(f"Data from user {update.effective_user.id} was invalid! Data: {c_data}. "
+                    f"I'll restart the conversation.")
         return await start(update=update, context=context)
 
     path = c_data.split("/")
