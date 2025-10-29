@@ -1,3 +1,4 @@
+import json
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 
@@ -75,3 +76,14 @@ async def erase_callback_queries(update: Update, context: CustomContext):
     )
 
     log.info(f"Callback Queries Erased by {update.effective_user.id}")
+
+
+async def get_chat_data(update: Update, context: CustomContext):
+    await safe_delete(update, context)
+
+    await update.effective_message.reply_text(
+        text=f"<code>{json.dumps(context.pydc.persistent, indent=4)}</code>\n\n"
+             "🔹 Invia questo messaggio all'admin che te lo ha richiesto.",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]),
+        allow_sending_without_reply=True
+    )

@@ -1,7 +1,7 @@
 from telegram.ext import PrefixHandler
 
 from aimods_bot.src.callbacks.commands.admin.troubleshooting import reset_user_conversation, reset_chat_data, \
-    erase_callback_queries
+    erase_callback_queries, get_chat_data
 
 reset_user_conversation = PrefixHandler(
     prefix=[".", "/", "!"],
@@ -19,4 +19,10 @@ erase_callback_queries = PrefixHandler(
     prefix=[".", "/", "!"],
     command="erase_cqueries",
     callback=erase_callback_queries
+)
+
+get_chat_data = PrefixHandler(
+    prefix=[".", "/", "!"],
+    command="get_chat_data",
+    callback=get_chat_data
 )
