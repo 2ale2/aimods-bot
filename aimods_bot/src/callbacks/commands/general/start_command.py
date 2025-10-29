@@ -61,6 +61,8 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
 async def start(update: Update, context: CustomContext):
     if not update.callback_query:
         await safe_delete(update=update, context=context)
+    else:
+        log.info(f"Callback data from {update.effective_user.id}: {update.callback_query.data}")
 
     user = update.effective_user
     admin = context.is_user_admin
