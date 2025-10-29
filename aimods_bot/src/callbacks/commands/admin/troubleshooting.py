@@ -82,7 +82,7 @@ async def get_chat_data(update: Update, context: CustomContext):
     await safe_delete(update, context)
 
     await update.effective_message.reply_text(
-        text=f"<code>{json.dumps(context.pydc.persistent, indent=4)}</code>\n\n"
+        text=f"<code>{json.dumps(context.pydc.persistent.model_dump(), indent=4)}</code>\n\n"
              "🔹 Invia questo messaggio all'admin che te lo ha richiesto.",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]),
         allow_sending_without_reply=True
