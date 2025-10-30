@@ -97,7 +97,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
         parse_mode=ParseMode.HTML
     )
 
-    return RCS.REQUEST_CATEGORY
+    return RCS.REQUEST_CATEGORY if update.callback_query.data != "back_category" else ConversationHandler.END
 
 
 async def request_from_notification(update: Update, context: CustomContext):

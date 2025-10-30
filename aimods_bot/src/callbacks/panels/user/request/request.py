@@ -162,7 +162,7 @@ async def confirm_request(update: Update, context: CustomContext):
                         await asyncio.sleep(0.5)
 
 
-    return ConversationHandler.END
+    return RCS.REQUEST_SUBMITTED
 
 
 async def backer(update: Update, context: CustomContext):

@@ -29,6 +29,7 @@ class RequestConversationState:
     EDIT_VERSION = 11
     EDIT_FUNCTIONALITIES = 12
     MAIN_BACKER = 13
+    REQUEST_SUBMITTED = 14
 
 
 class WindowsCategoryState:

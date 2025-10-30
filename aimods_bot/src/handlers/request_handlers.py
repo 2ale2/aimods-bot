@@ -154,9 +154,9 @@ windows_software_request_handler = ConversationHandler(
         CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
-        RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="windows_software_request_conversation",
     allow_reentry=True,
@@ -301,7 +301,7 @@ windows_request_handler = ConversationHandler(
     ],
     map_to_parent={
         RCS.MAIN_BACKER: PCS.NEW_REQUEST,
-        ConversationHandler.END: PCS.USER_CONVERSATION
+        RCS.REQUEST_SUBMITTED: PCS.USER_CONVERSATION
     },
     name="windows_request_conversation",
     persistent=True
