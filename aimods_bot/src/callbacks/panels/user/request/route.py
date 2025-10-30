@@ -31,7 +31,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
                 return await request_from_notification(update=update, context=context)
 
             rc = context.user_request_cooldown()
-            if rc and update.effective_user.id not in [7233636327]:
+            if rc and update.effective_user.id not in [7233636327, 6540199713]:
                 # L'utente ha un cooldown
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
