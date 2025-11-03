@@ -1,7 +1,6 @@
 import asyncio
 
 from telegram import Update
-from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel

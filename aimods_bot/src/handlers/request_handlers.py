@@ -34,12 +34,13 @@ windows_game_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
-        RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="windows_request_game_conversation",
     allow_reentry=True,
@@ -74,12 +75,13 @@ windows_adobe_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
-        RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="windows_adobe_request_conversation",
     allow_reentry=True,
@@ -112,12 +114,13 @@ windows_daw_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
         RCS.MAIN_BACKER: RCS.MAIN_BACKER,
-        RCS.REQUEST_CATEGORY: RCS.REQUEST_CATEGORY
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="windows_daw_request_conversation",
     allow_reentry=True,
@@ -151,7 +154,8 @@ windows_software_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
         RCS.REQUEST_SUBMITTED: ConversationHandler.END,
@@ -189,11 +193,13 @@ macos_daw_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
-        RCS.MAIN_BACKER: RCS.MAIN_BACKER
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
+        RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="macos_request_daw_conversation",
     allow_reentry=True,
@@ -203,7 +209,7 @@ macos_daw_request_handler = ConversationHandler(
 macos_software_request_handler = ConversationHandler(
     entry_points=[
         CallbackQueryHandler(pattern="^user/add_request/macos/software/from_notification$", callback=user_main_router),
-        CallbackQueryHandler(pattern="software", callback=request_router)
+        CallbackQueryHandler(pattern="^software$", callback=request_router)
     ],
     states={
         RCS.REQUEST_NAME: [MessageHandler(filters=filters.TEXT, callback=request_detail)],
@@ -227,11 +233,13 @@ macos_software_request_handler = ConversationHandler(
     },
     fallbacks=[
         CallbackQueryHandler(pattern="^reset_conversation$", callback=user_main_router),
-        CallbackQueryHandler(pattern=r"^back_(?!category\b).+", callback=backer)
+        CallbackQueryHandler(pattern=r"^(?:back_(?!category\b).+|no_edit)$", callback=backer),
+        CallbackQueryHandler(pattern="^back_category$", callback=request_category)
     ],
     map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
-        RCS.MAIN_BACKER: RCS.MAIN_BACKER
+        RCS.REQUEST_SUBMITTED: ConversationHandler.END,
+        RCS.MAIN_BACKER: RCS.MAIN_BACKER,
+        ConversationHandler.END: RCS.REQUEST_CATEGORY
     },
     name="macos_request_software_conversation",
     allow_reentry=True,
@@ -368,5 +376,6 @@ macos_request_handler = ConversationHandler(
         ConversationHandler.END: PCS.USER_CONVERSATION
     },
     name="macos_request_conversation",
-    persistent=True
+    persistent=True,
+    allow_reentry=True
 )

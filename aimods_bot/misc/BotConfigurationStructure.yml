@@ -12,7 +12,7 @@ settings:
         toggle: true
         limit: 8
       adobe:
-        toggle: true
+        toggle: false
         limit: 3
       daw:
         toggle: false
