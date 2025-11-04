@@ -75,3 +75,8 @@ async def start(update: Update, context: CustomContext):
     await panel.render(update=update, context=context, message_id=update.effective_message.id)
 
     return PCS.ADMIN_CONVERSATION if admin else (PCS.USER_CONVERSATION if not banned else ConversationHandler.END)
+
+
+async def exit_nested_conversations(update: Update, context: CustomContext):
+    await start(update=update, context=context)
+    return ConversationHandler.END

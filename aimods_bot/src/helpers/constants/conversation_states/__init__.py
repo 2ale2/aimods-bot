@@ -30,6 +30,7 @@ class RequestConversationState:
     EDIT_FUNCTIONALITIES = 12
     MAIN_BACKER = 13
     REQUEST_SUBMITTED = 14
+    CANCEL_PROCESS = 15
 
 
 class WindowsCategoryState:
