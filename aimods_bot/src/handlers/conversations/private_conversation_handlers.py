@@ -164,8 +164,15 @@ private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(pattern=r"^(?!.*close_menu).*$", callback=admin_main_router)
         ]
     },
-    fallbacks=[CallbackQueryHandler(callback=user_main_router)],
-    allow_reentry=True,
+    fallbacks=[
+        CallbackQueryHandler(callback=user_main_router),
+        PrefixHandler(
+            prefix=[".", "/", "!"],
+            command="start",
+            callback=start
+        )
+    ],
+    allow_reentry=False,
     name="private_conversation",
     persistent=True
 )

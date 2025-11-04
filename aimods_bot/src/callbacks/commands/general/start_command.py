@@ -78,5 +78,6 @@ async def start(update: Update, context: CustomContext):
 
 
 async def exit_nested_conversations(update: Update, context: CustomContext):
+    log.info(f"User {update.effective_user.id} exiting the conv...")
     await start(update=update, context=context)
     return ConversationHandler.END
