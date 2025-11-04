@@ -1,8 +1,3 @@
-"""
-Private conversation handlers ottimizzati.
-Semplifica la struttura usando helper functions e riducendo duplicazione.
-"""
-
 from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandler, MessageHandler, filters
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router

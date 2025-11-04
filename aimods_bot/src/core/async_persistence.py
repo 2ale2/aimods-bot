@@ -65,17 +65,17 @@ class AsyncPostgresPersistence(DictPersistence):
             try:
                 async with pool.acquire() as conn:
                     await conn.execute("""
-                                       CREATE TABLE IF NOT EXISTS persistence_test
+                                       CREATE TABLE IF NOT EXISTS persistence
                                        (
                                            id   SMALLINT PRIMARY KEY DEFAULT 1,
                                            data JSONB NOT NULL
                                        );
                                        """)
 
-                    row = await conn.fetchrow("SELECT data FROM persistence_test WHERE id = 1;")
+                    row = await conn.fetchrow("SELECT data FROM persistence WHERE id = 1;")
                     if row is None:
                         await conn.execute(
-                            "INSERT INTO persistence_test (id, data) VALUES (1, $1::jsonb);",
+                            "INSERT INTO persistence (id, data) VALUES (1, $1::jsonb);",
                             json.dumps({})
                         )
                         raw: Dict[str, Any] = {}
@@ -93,7 +93,7 @@ class AsyncPostgresPersistence(DictPersistence):
                     "user_data_json": raw.get("user_data", "{}"),
                     "chat_data_json": raw.get("chat_data", "{}"),
                     "bot_data_json": raw.get("bot_data", "{}"),
-                    "conversations_json": raw.get("conversations", "{}"),
+                    "conversations_json": "{}",
                     "callback_data_json": ""
                     # "callback_data_json": raw.get("callback_data_json", ""),
                 }
@@ -195,7 +195,7 @@ class AsyncPostgresPersistence(DictPersistence):
                 async with conn.transaction():
                     await conn.execute(
                         """
-                        INSERT INTO persistence_test (id, data)
+                        INSERT INTO persistence (id, data)
                         VALUES (1, $1::jsonb)
                         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;
                         """,
