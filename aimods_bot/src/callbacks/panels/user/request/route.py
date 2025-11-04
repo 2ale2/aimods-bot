@@ -31,7 +31,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
                 return await request_from_notification(update=update, context=context)
 
             rc = context.user_request_cooldown()
-            if rc and update.effective_user.id not in [7233636327]:
+            if rc and update.effective_user.id not in [7233636327, 6540199713]:
                 # L'utente ha un cooldown
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
@@ -121,6 +121,7 @@ async def request_from_notification(update: Update, context: CustomContext):
 async def request_router(update: Update, context: CustomContext):
     await update.callback_query.answer()
     request_data = RequestDataManager.get_request_data(context=context)
+    user_id = update.effective_user.id
 
     platform = request_data.platform
     category = request_data.category
@@ -152,7 +153,7 @@ async def request_router(update: Update, context: CustomContext):
         await render_cant_request_panel(update=update, context=context, message=text)
         return ConversationHandler.END
 
-    if not is_category_request_allowed(context=context, platform=platform, category=category):
+    if not is_category_request_allowed(context=context, platform=platform, category=category) and user_id not in [6540199713, 7233636327]:
         RequestDataManager.initialize_request(context=context)
         text = ("🔐 <b>Richieste Chiuse</b>\n\n"
                 "▪️ <b>Non è al momento possibile formulare nuove richieste</b> per questa categoria, perché ha "
