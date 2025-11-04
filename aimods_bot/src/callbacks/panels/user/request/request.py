@@ -1,7 +1,6 @@
 import asyncio
 
 from telegram import Update
-from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
 from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
@@ -162,7 +161,7 @@ async def confirm_request(update: Update, context: CustomContext):
                         await asyncio.sleep(0.5)
 
 
-    return ConversationHandler.END
+    return RCS.REQUEST_SUBMITTED
 
 
 async def backer(update: Update, context: CustomContext):

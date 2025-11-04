@@ -61,6 +61,8 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
 async def start(update: Update, context: CustomContext):
     if not update.callback_query:
         await safe_delete(update=update, context=context)
+    else:
+        log.info(f"Callback data from {update.effective_user.id}: {update.callback_query.data}")
 
     user = update.effective_user
     admin = context.is_user_admin
@@ -73,3 +75,8 @@ async def start(update: Update, context: CustomContext):
     await panel.render(update=update, context=context, message_id=update.effective_message.id)
 
     return PCS.ADMIN_CONVERSATION if admin else (PCS.USER_CONVERSATION if not banned else ConversationHandler.END)
+
+
+async def exit_nested_conversations(update: Update, context: CustomContext):
+    await start(update=update, context=context)
+    return ConversationHandler.END

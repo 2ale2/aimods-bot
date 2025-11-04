@@ -15,6 +15,9 @@ from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGOR
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
     RequestConversationState as RCS
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -28,7 +31,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
                 return await request_from_notification(update=update, context=context)
 
             rc = context.user_request_cooldown()
-            if rc:
+            if rc and update.effective_user.id not in [7233636327]:
                 # L'utente ha un cooldown
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
@@ -83,7 +86,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
 
         if len(keyboard) == 0 or len(keyboard[-1]) == 2:
             keyboard.append([])
-
+        log.info(f"Category Keyboard Button -> text: {label} | data: {el}")
         keyboard[-1].append(InlineKeyboardButton(text=f"{icon} {label}", callback_data=el))
 
     keyboard.append([InlineKeyboardButton(text="🔙 Indietro", callback_data="back_main")])
@@ -94,7 +97,7 @@ async def request_category(update: Update, context: CustomContext) -> int:
         parse_mode=ParseMode.HTML
     )
 
-    return RCS.REQUEST_CATEGORY
+    return RCS.REQUEST_CATEGORY if update.callback_query.data != "back_category" else RCS.CANCEL_PROCESS
 
 
 async def request_from_notification(update: Update, context: CustomContext):

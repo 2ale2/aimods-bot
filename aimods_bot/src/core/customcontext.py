@@ -254,7 +254,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         user_id = user_id or self.user_id
         cooldown = self.pydb.user_request_cooldowns.get(user_id, None)
         if cooldown:
-            end_utc = datetime.fromisoformat(cooldown["until"])
+            end_utc = cooldown.until
             end_utc.replace(tzinfo=timezone.utc)
             if end_utc > datetime.now(timezone.utc):
                 return cooldown
