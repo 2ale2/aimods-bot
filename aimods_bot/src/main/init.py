@@ -1,3 +1,4 @@
+import asyncio
 import os
 import locale
 import sys
@@ -47,7 +48,7 @@ def main():
         .build()
     )
 
-    handlers = get_handlers()
+    handlers = asyncio.run(get_handlers())
     application.add_handlers(handlers)
 
     try:

@@ -5,13 +5,13 @@ from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
 
 class ChannelMessageForRecapFilter(MessageFilter):
-    def filter(self, message: telegram.Message):
+    async def filter(self, message: telegram.Message):
         if message.chat.type is not ChatType.CHANNEL:
             return False
         if not message.text and not message.caption:
             return False
         text = message.caption or message.text
-        hashtags = get_data_from_json("hashtags")["platforms"]
+        hashtags = await get_data_from_json("hashtags")["platforms"]
         l = []
         for el in hashtags:
             l.extend(hashtags[el])

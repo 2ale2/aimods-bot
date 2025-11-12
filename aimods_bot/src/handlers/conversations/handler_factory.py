@@ -74,6 +74,7 @@ class FallbackBuilder:
                 CallbackQueryHandler(pattern=CallbackPatterns.BACK_CATEGORY, callback=request_category)
             )
 
+        # noinspection PyTypeChecker
         fallbacks.append(
             PrefixHandler(
                 prefix=PrefixCommands.PREFIXES,
@@ -235,6 +236,7 @@ class RequestHandlerFactory:
 
         # Map to parent - STANDALONE va direttamente agli stati del parent principale
         map_to_parent = {
+            RCS.REQUEST_SUBMITTED: ConversationHandler.END,
             RCS.MAIN_BACKER: PCS.NEW_REQUEST,
             ConversationHandler.END: PCS.USER_CONVERSATION
         }

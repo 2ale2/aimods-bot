@@ -53,7 +53,7 @@ async def set_application_data(application: Application):
         if not current_bot_data.admins or current_bot_data.admins != admins:
             current_bot_data.admins = admins
 
-        text = get_data_from_json("texts")
+        text = await get_data_from_json("texts")
         user_joined_message_text = text.get("user_joined_message_text")
         rules_text = text.get("rules_text")
         if (not current_bot_data.user_joined_message_text or
@@ -64,7 +64,7 @@ async def set_application_data(application: Application):
             current_bot_data.rules_text != rules_text):
             current_bot_data.rules_text = rules_text
 
-        json_commands = get_data_from_json("commands")
+        json_commands = await get_data_from_json("commands")
         commands = {}
         for el in json_commands:
             commands[el] = CommandConfig(**json_commands[el])
@@ -72,11 +72,11 @@ async def set_application_data(application: Application):
         if not current_bot_data.commands or current_bot_data.commands != commands:
             current_bot_data.commands = commands
 
-        hashtags = get_data_from_json("hashtags")
+        hashtags = await get_data_from_json("hashtags")
         if not current_bot_data.hashtags or current_bot_data.hashtags != hashtags:
             current_bot_data.hashtags = hashtags
 
-        json_request_conversation_flows = get_data_from_json("request_conversation_flows")
+        json_request_conversation_flows = await get_data_from_json("request_conversation_flows")
         request_conversation_flows = {}
         for pl in json_request_conversation_flows:
             request_conversation_flows[pl] = {}
@@ -186,15 +186,15 @@ async def set_application_data(application: Application):
         constants.pyro_instance = _pyro_instance
         await constants.pyro_instance.start()
 
-        r = get_data_from_json("restarting")
+        r = await get_data_from_json("restarting")
 
         if r.get("toggle", False):
             await application.bot.send_message(
                 chat_id=r["user_id"],
                 text="ℹ️ Bot Riavviato Correttamente"
             )
-            set_data_in_json(key=["restarting", "toggle"], value=False)
-            set_data_in_json(key=["restarting", "user_id"], value=0)
+            await set_data_in_json(key=["restarting", "toggle"], value=False)
+            await set_data_in_json(key=["restarting", "user_id"], value=0)
 
         application.bot_data.configuration.settings.request.cancel_timer = SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
         application.bot_data.channel_join_link = CHANNEL_JOIN_LINK
@@ -223,6 +223,6 @@ async def get_admins(app: Application, chat_id: int):
     return admins_dict
 
 
-def get_handlers() -> List[BaseHandler]:
-    t = get_data_from_json("test_mode")
+async def get_handlers() -> List[BaseHandler]:
+    t = await get_data_from_json("test_mode")
     return all_handlers if t else active_handlers

@@ -123,7 +123,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
     if not_sending:
         log.info(f"Not sending recap for {', '.join(not_sending)} since I have no posts this time.")
 
-    recap_topics = get_data_from_json("forum_topics")["recap"]
+    recap_topics = (await get_data_from_json("forum_topics"))["recap"]
 
     for el in recap_topics:
         if recap_topics[el]["name"] in not_sending:

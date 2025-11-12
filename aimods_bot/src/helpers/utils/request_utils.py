@@ -4,7 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import AsyncIterator, Iterable, Text, Optional, Union
 
-from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
+from pydantic import BaseModel, ValidationError, field_validator
+
 from aimods_bot.src.core.pydantic import Request, Architecture
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
     Platform, WindowsCategory, AndroidCategory, IOSCategory, \
@@ -15,6 +16,28 @@ from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_fil
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 log = logger.getChild("request_utils")
+
+
+class RequestContent(BaseModel):
+    name: Optional[str] = None
+    link: Optional[str] = None
+    version: Optional[str] = None
+    functionalities: Optional[str] = None
+    steamtools: Optional[bool] = None
+    arch: Optional[dict] = None
+
+    @field_validator('arch')
+    def validate_arch(cls, v):
+        if v is None:
+            return None
+        if not isinstance(v, dict) or 'arch' not in v:
+            log.error("Dumped Arch instance should be a dict containing an 'arch' key")
+            return None
+        try:
+            return Architecture(arch=Arch(v['arch']))
+        except (ValueError, KeyError) as e:
+            log.error(f"Invalid arch structure: {e}")
+            return None
 
 
 def get_platform_categories(platform: Platform):
@@ -29,28 +52,22 @@ def get_platform_categories(platform: Platform):
 
 async def get_user_requests_archive(user_id: int) -> list[Request]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
-    query = """SELECT * FROM requests WHERE user_id = $1 ORDER BY id"""
+    query = """SELECT * \
+               FROM requests \
+               WHERE user_id = $1 \
+               ORDER BY id"""
     response = await fetch_query(query=query, params=[user_id])
+
+    if not response:
+        return []
+
     return [await request_from_record(dict(el)) for el in response]
 
 
 async def request_from_record(request: dict) -> Request:
-    """Utility Function per trasformare un Record del database in un'istanza di Request."""
-
-    query = """SELECT column_name 
-               FROM information_schema.columns 
-               WHERE columns.table_schema = 'public' AND table_name = 'requests';"""
-    response = await fetch_query(query=query)
-
-    if not response:
-        raise DatabaseBotException("Errore nel fetch delle colonne dalla tabella 'requests'")
-
-    response = [dict(c)['column_name'] for c in response]
-
-    if any(k not in request for k in response):
-        raise MissingParameterException("La struttura del dizionario non corrisponde alla struttura del DB nella "
-                                        "tabella delle richieste.")
-
+    """
+    Utility Function per trasformare un Record del database in un'istanza di Request.
+    """
     raw_id = request.get("id", None)
     raw_platform = request.get("platform", None)
     raw_category = request.get("category", None)
@@ -60,7 +77,8 @@ async def request_from_record(request: dict) -> Request:
     raw_rejection_reason = request.get("rejection_reason", None)
     raw_content = request.get("content", None)
 
-    assert isinstance(issued_at, datetime)
+    if not isinstance(issued_at, datetime):
+        raise ValueError(f"Invalid issued_at type: {type(issued_at)}, expected datetime")
 
     platform = Platform(raw_platform) if raw_platform else None
     if raw_platform and raw_category:
@@ -68,27 +86,17 @@ async def request_from_record(request: dict) -> Request:
     else:
         category = None
 
-    # noinspection PyArgumentList
     status = RequestStatus(raw_status) if raw_status else None
-    # noinspection PyTypeChecker
-    content = json.loads(raw_content) if raw_content else None
-    name = link = version = functionalities = steamtools = arch = None
-    if content:
-        name = content.get("name", None)
-        link = content.get("link", None)
-        version = content.get("version", None)
-        functionalities = content.get("functionalities", None)
-        steamtools = content.get("steamtools", None)
-        arch = content.get("arch", None)
-        if arch:
-            a = arch.get("arch", None)
-            if not a:
-                log.error("Dumped Arch instance should be a dict containing an 'arch' key")
-                arch = None
-            else:
-                arch = Architecture(arch=Arch(arch.get("arch", None)))
 
-    # noinspection PyTypeChecker
+    content = RequestContent()
+    if raw_content:
+        try:
+            content_dict = json.loads(raw_content)
+            content = RequestContent(**content_dict)
+        except (json.JSONDecodeError, ValidationError) as e:
+            log.error(f"Failed to parse request content: {e}")
+            content = RequestContent()
+
     return Request(
         id=raw_id,
         user_id=user_id,
@@ -96,18 +104,21 @@ async def request_from_record(request: dict) -> Request:
         issued_at=issued_at.isoformat(),
         platform=platform,
         category=category,
-        name=name,
-        arch=arch,
-        link=link,
-        version=version,
-        functionalities=functionalities,
-        steamtools=steamtools,
+        name=content.name or "",
+        arch=content.arch,
+        link=content.link or "",
+        version=content.version or "",
+        functionalities=content.functionalities or "",
+        steamtools=content.steamtools,
         rejection_reason=raw_rejection_reason
     )
 
 
 def get_requests_summary(requests: dict[int, Request], with_authors: bool = False) -> str:
-    text = ""
+    """
+    Ritorna il sommario delle richieste nel dizionario.
+    """
+    parts = []
 
     for n, ix in enumerate(requests):
         request = requests[ix]
@@ -119,61 +130,86 @@ def get_requests_summary(requests: dict[int, Request], with_authors: bool = Fals
         category_label = CATEGORY_DETAILS[platform][category]['label']
         platform_icon = PLATFORM_DETAILS[platform]['icon']
 
-        text += (f"    {n+1}. <i>{request.name}</i>\n"
-                 f"         #️⃣ <u>ID</u> – <code>{request.id}</code>\n")
+        block = [
+            f"    {n + 1}. <i>{request.name}</i>\n",
+            f"         #️⃣ <u>ID</u> — <code>{request.id}</code>\n"
+        ]
+
         if with_authors:
-            text += f"         👤 <u>Formulata Da</u> – <code>{request.user_id}</code>\n"
+            block.append(f"         👤 <u>Formulata Da</u> — <code>{request.user_id}</code>\n")
 
-        text += (f"         🖲️ <u>Piattaforma</u> – {platform_icon} {category_label}\n"
-                 f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n\n")
+        block.extend([
+            f"         🖲️ <u>Piattaforma</u> — {platform_icon} {category_label}\n",
+            f"         🔧 <u>Stato</u> — {status_icon} <b><i>{status_label}</i></b>\n\n"
+        ])
 
-    return text.removesuffix("\n")
+        parts.append("".join(block))
+
+    return "".join(parts).rstrip("\n")
 
 
 async def get_request_details(request: Request, admin: bool = False):
-    text = ""
+    """
+    Ritorna i dettagli di una richiesta.
+    """
+    parts = []
+
     if admin:
         if request.id:
-            text += f"      #️⃣ <u>ID</u> – <code>{request.id}</code>\n"
+            parts.append(f"      #️⃣ <u>ID</u> — <code>{request.id}</code>\n")
         if request.user_id:
-            text += f"      👤 <u>User ID</u> – <code>{request.user_id}</code>\n"
-        text += "\n"
+            parts.append(f"      👤 <u>User ID</u> — <code>{request.user_id}</code>\n")
+        parts.append("\n")
 
-    text += f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
+    parts.append(f"     🔸 <u>Nome</u> — <i>{request.name}</i>\n")
+
     if request.platform:
         item = PLATFORM_DETAILS[request.platform.value]
         label = item['label']
         icon = item['icon']
-        text += f"     🔸️ <u>Piattaforma</u> – {icon} <i>{label}</i>\n"
+        parts.append(f"     🔸️ <u>Piattaforma</u> — {icon} <i>{label}</i>\n")
+
     if request.link:
-        text += f"     🔸 <u>Link</u> – <a href=\"{request.link}\">🔗 Link</a>\n"
+        parts.append(f"     🔸 <u>Link</u> — <a href=\"{request.link}\">🔗 Link</a>\n")
+
     if request.version:
-        text += f"     🔸 <u>Versione</u> – <code>{request.version}</code>\n"
+        parts.append(f"     🔸 <u>Versione</u> — <code>{request.version}</code>\n")
+
     if request.functionalities:
-        text += f"     🔸 <u>Funzionalità</u> – <i>{request.functionalities}</i>\n"
+        parts.append(f"     🔸 <u>Funzionalità</u> — <i>{request.functionalities}</i>\n")
+
     if request.steamtools is not None:
-        text += f"     🔸 <u>SteamTools</u> - <i>{'✔️' if request.steamtools else '✖️'}</i>\n"
+        parts.append(f"     🔸 <u>SteamTools</u> - <i>{'✔️' if request.steamtools else '✖️'}</i>\n")
+
     if request.issued_at:
-        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n"
+        parts.append(f"     🔸 <u>Data</u> — <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n")
+
     if request.arch:
-        text += f"     🔸 <u>CPU ARM</u> – <i>{'✔️' if request.arch.arm_bool else '✖️'}</i>\n"
+        parts.append(f"     🔸 <u>CPU ARM</u> — <i>{'✔️' if request.arch.arm_bool else '✖️'}</i>\n")
 
     if request.status:
         label = REQUEST_STATUS_DETAILS[request.status.value]['label']
         icon = REQUEST_STATUS_DETAILS[request.status.value]['icon']
-        text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
+        parts.append(f"\n      <b><u>Status</u></b> — {icon} <i>{label}</i>\n")
+
         if request.status == RequestStatus.REJECTED:
-            text += f"      <b><u>Motivazione</u></b> – {request.rejection_reason}\n"
+            parts.append(f"      <b><u>Motivazione</u></b> — {request.rejection_reason}\n")
+
         if request.status == RequestStatus.COMPLETED and not admin:
-            text += ("\n<blockquote>ℹ <b>Cosa Significa?</b> – Se una richiesta è <i>✅ Completata</i> "
-                     "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
-                     "e MacOS, <b>il rilascio sulle piattaforme avverà assieme al post, oppure prima</b>.</blockquote>")
+            parts.append(
+                "\n<blockquote>ℹ <b>Cosa Significa?</b> — Se una richiesta è <i>✅ Completata</i> "
+                "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
+                "e MacOS, <b>il rilascio sulle piattaforme avverrà assieme al post, oppure prima</b>.</blockquote>"
+            )
 
     if request.status_change_notifications is not None and not admin and request.is_active:
-        text += (f"\n<blockquote>{'🔔 Riceverai' if request.status_change_notifications else '🔕 Non riceverai'} "
-                 "una notifica quando questa richiesta verrà chiusa.</blockquote>")
+        notification_text = (
+            f"\n<blockquote>{'🔔 Riceverai' if request.status_change_notifications else '🔕 Non riceverai'} "
+            "una notifica quando questa richiesta verrà chiusa.</blockquote>"
+        )
+        parts.append(notification_text)
 
-    return text
+    return "".join(parts)
 
 
 async def generate_user_archive_requests_pdf_file(requests: list[Request], input_path: str) -> str:
@@ -224,34 +260,34 @@ def render_request_latex_item(r: Request) -> str:
     }
 
     if r.name:
-        lines.append(rf"\underline{{\textbf{{Nome}}}} – {tex_escape(r.name)} \\")
+        lines.append(rf"\underline{{\textbf{{Nome}}}} — {tex_escape(r.name)} \\")
     if r.platform:
         icon = PLATFORM_LATEX_EMOJIS[r.platform.value]
         label = PLATFORM_DETAILS[r.platform.value]['label']
-        lines.append(rf"\textbf{{Piattaforma}} – \emoji{{{icon}}} \textit{{{tex_escape(label)}}} \\")
+        lines.append(rf"\textbf{{Piattaforma}} — \emoji{{{icon}}} \textit{{{tex_escape(label)}}} \\")
     if r.link:
-        lines.append(rf"\textbf{{Link}} – \href{{{r.link}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}} \\")
+        lines.append(rf"\textbf{{Link}} — \href{{{r.link}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}} \\")
     if r.version:
-        lines.append(rf"\textbf{{Versione}} – \texttt{{{r.version}}} \\")
+        lines.append(rf"\textbf{{Versione}} — \texttt{{{r.version}}} \\")
     if r.functionalities:
-        lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
+        lines.append(rf"\textbf{{Funzionalità}} — \textit{{{r.functionalities}}} \\")
     if r.issued_at:
         s = format_time_as_rome(until=datetime.fromisoformat(r.issued_at)).replace("<b>", "").replace("</b>", "")
-        lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
+        lines.append(rf"\textbf{{Data}} — {tex_escape(s)} \\")
     if r.status:
         icon = STATUS_LATEX_EMOJIS[r.status.value]
         label = REQUEST_STATUS_DETAILS[r.status.value]['label']
         color = STATUS_COLORS[r.status.value]
-        lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
+        lines.append(rf"\textbf{{Status}} — \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
 
     if r.rejection_reason:
-        rejection_text = rf"\textbf{{Motivo}} – \textit{{{r.rejection_reason}}}"
+        rejection_text = rf"\textbf{{Motivo}} — \textit{{{r.rejection_reason}}}"
     else:
-        rejection_text = rf"\textbf{{Motivo}} – \texttt{{None}}"
+        rejection_text = rf"\textbf{{Motivo}} — \texttt{{None}}"
     lines.append(rf"{rejection_text} \\")
 
     lines.append(rf"\end{{minipage}}")
-    return """ """.join(lines)
+    return "".join(lines)
 
 
 def render_requests_latex_header() -> str:
@@ -279,7 +315,7 @@ def render_requests_latex_header() -> str:
 
     \begin{{multicols}}{{2}}
     \begin{{enumerate}}[leftmargin=0.5cm]
-    """  # noqa: E501
+    """
 
 
 def render_requests_latex_footer() -> str:
@@ -293,33 +329,48 @@ async def get_last_n_requests(
         n: int,
         pl: Optional[Union[Platform, str]],
         ca: Optional[Union[Category, str]]
-) -> Optional[list[Request]]:
+) -> list[Request]:
+    """
+    Ritorna le ultime n richieste fatte per una specifica sezione.
+
+    """
     if not isinstance(n, int) or n < 0:
-        log.error("Invalid number of requests")
-        return None
+        raise ValueError(f"Invalid number of requests: {n}")
+
     if pl and isinstance(pl, Platform):
         pl = pl.value
     if ca and isinstance(ca, Category):
         ca = ca.value
 
-    if pl not in PLATFORM_DETAILS:
-        log.error(f"Invalid platform: {pl}")
-        return None
-    if ca not in CATEGORY_DETAILS[pl]:
-        log.error(f"Invalid category: {ca}")
-        return None
+    if pl and pl not in PLATFORM_DETAILS:
+        raise ValueError(f"Invalid platform: {pl}")
+    if pl and ca and ca not in CATEGORY_DETAILS[pl]:
+        raise ValueError(f"Invalid category: {ca}")
 
-    query = f"SELECT * FROM requests"
+    query = "SELECT * FROM requests"
+    params = []
+    conditions = []
 
     if pl:
+        params.append(pl)
+        conditions.append(f"platform = ${len(params)}")
+
         if ca:
-            query += f" WHERE platform = '{pl}' and category = '{ca}'"
-        else:
-            query += f" WHERE platform = '{pl}'"
+            params.append(ca)
+            conditions.append(f"category = ${len(params)}")
     elif ca:
-        query += f" WHERE category = '{ca}'"
+        params.append(ca)
+        conditions.append(f"category = ${len(params)}")
 
-    query += f" ORDER BY issued_at DESC LIMIT {n}"
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
 
-    res = await fetch_query(query)
-    return [await request_from_record(dict(record)) for record in res] if res is not None else None
+    params.append(n)
+    query += f" ORDER BY issued_at DESC LIMIT ${len(params)}"
+
+    res = await fetch_query(query, params)
+
+    if res is None:
+        return []
+
+    return [await request_from_record(dict(record)) for record in res]

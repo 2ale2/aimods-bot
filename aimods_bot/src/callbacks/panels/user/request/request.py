@@ -26,7 +26,7 @@ RETURN_CONVERSATION_STATES = {
     "arch": RCS.REQUEST_ARCH
 }
 
-REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
+REQUEST_FLOWS = asyncio.run(get_data_from_json('request_conversation_flows'))
 
 
 async def request_detail(update: Update, context: CustomContext) -> int:

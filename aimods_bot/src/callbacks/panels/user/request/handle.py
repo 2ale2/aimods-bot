@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Dict, Any, Optional
 
@@ -54,7 +55,7 @@ CONVERSATION_STATES = {
     RequestField.FUNCTIONALITIES: RCS.EDIT_FUNCTIONALITIES
 }
 
-REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
+REQUEST_FLOWS = asyncio.run(get_data_from_json('request_conversation_flows'))
 
 
 class RequestDataManager:

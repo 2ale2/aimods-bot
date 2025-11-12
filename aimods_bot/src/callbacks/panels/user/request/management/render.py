@@ -312,14 +312,14 @@ async def render_user_request_archive_panel(
             ]])
         )
 
-        delete_os_file(str(Path(p).with_suffix(".aux")))
-        delete_os_file(str(Path(p).with_suffix(".log")))
-        delete_os_file(str(Path(p).with_suffix(".out")))
-        delete_os_file(str(Path(p).with_suffix(".tex")))
+        await delete_os_file(str(Path(p).with_suffix(".aux")))
+        await delete_os_file(str(Path(p).with_suffix(".log")))
+        await delete_os_file(str(Path(p).with_suffix(".out")))
+        await delete_os_file(str(Path(p).with_suffix(".tex")))
 
         # Rimuovo il file dopo 10 minuti per evitare sovraccarichi
         async def _delete_latex_file(context: CustomContext):
-            delete_os_file(path=p)
+            await delete_os_file(path=p)
 
         job = context.job_queue.get_jobs_by_name("_delete_latex_file")
         if job:
