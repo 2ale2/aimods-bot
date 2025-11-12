@@ -1,4 +1,5 @@
-from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandler, MessageHandler, filters
+from telegram import Update
+from telegram.ext import CallbackQueryHandler, ConversationHandler, PrefixHandler, MessageHandler, filters, TypeHandler
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import (
@@ -37,6 +38,18 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 from aimods_bot.src.helpers.filters import ChatSharedFilter
 from aimods_bot.src.helpers.utils.alerts import open_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper
+
+
+class TestHandler:
+    def __init__(self, callback):
+        self.callback = callback
+
+    def get(self):
+        return TypeHandler(
+            type=Update,
+            callback=self.callback
+        )
+
 
 # ===== FILTERS E HANDLER COMUNI =====
 
@@ -144,6 +157,10 @@ private_conversation_handler = ConversationHandler(
             command=PrefixCommands.START,
             callback=start,
             filters=filters.ChatType.PRIVATE
+        ),
+        CallbackQueryHandler(
+            pattern=r"^start",
+            callback=user_main_router
         )
     ],
     states={

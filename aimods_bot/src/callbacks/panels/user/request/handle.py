@@ -445,8 +445,8 @@ class KeyboardBuilder:
         """Keyboard per la conferma finale"""
         return InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="users/view_requests"),
-                InlineKeyboardButton(text="🏠 Torna alla Home", callback_data="users")
+                InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="start/view_requests"),
+                InlineKeyboardButton(text="🏠 Torna alla Home", callback_data="start")
             ]
         ])
 

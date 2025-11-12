@@ -342,7 +342,7 @@ async def _build_confirmation_message(member, until, reason=None, unban=False, p
             member["first_name"]
         )
     else:
-        if await is_username(member):
+        if is_username(member):
             user_mention = format_user_mention(user_id=None, username=member, first_name=None)
         else:
             user_mention = format_user_mention(user_id=member, username=None, first_name=None)

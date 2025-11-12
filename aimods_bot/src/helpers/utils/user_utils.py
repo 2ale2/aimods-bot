@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Optional, Union, Callable, Awaitable, Any
 
@@ -8,13 +9,34 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
-from aimods_bot.src.helpers.database import fetch_query, revoke_action_by_id
+from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user, \
     get_banned_panel, safe_delete
 
 log = logger.getChild("user_utils")
+
+_member_cache = {}
+_cache_ttl = timedelta(minutes=5)
+
+
+async def get_cached_member(context: CustomContext, user_id: int, chat_id: int = None):
+    """Cache i membri per ridurre chiamate API ripetute"""
+    cache_key = f"{chat_id}:{user_id}"
+    cached = _member_cache.get(cache_key)
+
+    if cached and datetime.now() - cached['timestamp'] < _cache_ttl:
+        return cached['data']
+
+    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
+
+    _member_cache[cache_key] = {
+        'data': response,
+        'timestamp': datetime.now()
+    }
+
+    return response
 
 
 async def is_admin(user_id: int, context: CustomContext) -> bool:
@@ -24,120 +46,149 @@ async def is_admin(user_id: int, context: CustomContext) -> bool:
     return user_id in list(context.pydb.admins.keys())
 
 
-async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> Optional[bool]:
+async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> bool:
     """
     Verifica se l'utente è attualmente nella chat.
+    Ritorna False in caso di errore.
     """
-    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
-    if response["status"] == "failed":
-        log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
-        return None
-    member = response["member"]
+    try:
+        response = await get_cached_member(context=context, user_id=user_id, chat_id=chat_id)
 
-    return member.status not in ("left", "kicked")
+        if response["status"] == "failed":
+            log.error(f"Failed to resolve user {user_id}: {response.get('error')}")
+            return False
+
+        member = response["member"]
+        return member.status not in ("left", "kicked")
+
+    except Exception as e:
+        log.exception(f"Unexpected error checking user {user_id} in chat: {e}")
+        return False
 
 
-async def user_is_banned(context: CustomContext, user_id: Union[int, str], chat_id: int = None) -> Optional[bool]:
-    """Verifica se l'utente è bannato (o presente in una lista ban)."""
-
-    ban_list = context.pydb.ban_list
-    if str(user_id) in ban_list:
+async def user_is_banned(context: CustomContext, user_id: Union[int, str], chat_id: int = None) -> bool:
+    """
+    Verifica se l'utente è bannato (o presente in una lista ban).
+    Ritorna False in caso di errore.
+    """
+    if str(user_id) in context.pydb.ban_list:
         return True
 
-    response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
-    if response["status"] == "failed":
-        log.warning(f"Errore nel parsing dell'utente {user_id}: {response['error']}. Vedi i log.")
-        return None
-    member = response["member"]
+    try:
+        response = await get_cached_member(context=context, user_id=user_id, chat_id=chat_id)
 
-    return member.status.value in ("banned", "kicked")
+        if response["status"] == "failed":
+            log.warning(f"Cannot resolve user {user_id}: {response.get('error')}")
+            return False
+
+        member = response["member"]
+        return member.status.value in ("banned", "kicked")
+
+    except Exception as e:
+        log.exception(f"Error checking ban status for {user_id}: {e}")
+        return False
 
 
-async def get_user_warnings(user_id: int) -> Optional[dict]:
-    """Restituisce gli warning attivi per un utente."""
-
-    query = """
-        SELECT *
-        FROM warnings
-        WHERE user_id = $1
-        AND (expires_at IS NULL OR expires_at > now())
-        AND revoked_at IS NULL
+async def get_user_warnings(user_id: int) -> dict[int, dict]:
     """
-    result = await fetch_query(query=query, params=[user_id])
+    Restituisce gli warning attivi per un utente.
+    Ritorna dict vuoto in caso di errore o nessun warning.
+    """
+    query = """
+            SELECT *
+            FROM warnings
+            WHERE user_id = $1
+              AND (expires_at IS NULL OR expires_at > now())
+              AND revoked_at IS NULL
+            ORDER BY issued_at DESC \
+            """
 
-    if len(result) == 0:
+    try:
+        result = await fetch_query(query=query, params=[user_id])
+        return {i: result[i] for i in range(len(result))} if result else {}
+
+    except Exception as e:
+        log.exception(f"Database error fetching warnings for user {user_id}: {e}")
         return {}
 
-    if result is None:
-        log.error(f"Impossibile ottenere le ammonizioni per user_id={user_id}")
-        return None
 
-    return {i: result[i] for i in range(0, len(result))}
+async def get_user_warnings_count(user_id: int) -> int:
+    """
+    Restituisce il numero di warning attivi per un utente.
+    """
+    query = """
+            SELECT COUNT(*) as count
+            FROM warnings
+            WHERE user_id = $1
+              AND (expires_at IS NULL OR expires_at > now())
+              AND revoked_at IS NULL \
+            """
 
+    try:
+        result = await fetch_query(query=query, params=[user_id])
+        return result[0]['count'] if result else 0
 
-async def get_user_warnings_count(user_id: int) -> Optional[int]:
-    """Restituisce il numero di warning attivi per un utente."""
-
-    response = await get_user_warnings(user_id=user_id)
-
-    return len(response) if response is not None else None
+    except Exception as e:
+        log.exception(f"Error counting warnings for user {user_id}: {e}")
+        return 0
 
 
 async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
+    """
+    Cancella tutti i warning attivi per un utente.
+    Usa una singola query batch invece di N query separate.
+    """
     warnings = await get_user_warnings(user_id=user_id)
     if not warnings:
         return None
 
-    errors = []
-    for el in warnings:
-        record = warnings[el]
-        response = await revoke_action_by_id(table="warnings", record_id=record["id"])
-        if not response:
-            errors.append(str(record["id"]))
+    warning_ids = [record["id"] for record in warnings.values()]
 
-    return errors
+    # Singola query batch
+    query = """
+            UPDATE warnings
+            SET revoked_at = now()
+            WHERE id = ANY ($1)
+            RETURNING id \
+            """
+
+    try:
+        result = await fetch_query(query=query, params=[warning_ids])
+        revoked_ids = {str(r['id']) for r in result} if result else set()
+        failed_ids = [str(wid) for wid in warning_ids if str(wid) not in revoked_ids]
+        return failed_ids if failed_ids else None
+
+    except Exception as e:
+        log.exception(f"Error revoking warnings for user {user_id}: {e}")
+        return [str(wid) for wid in warning_ids]
 
 
 async def get_member_permissions(
         context: CustomContext,
         chat_member: Union[PyroChatMember, PTBChatMember],
 ) -> Union[PTBChatPermissions, PyroChatPermissions]:
+    """
+    Ottiene i permessi effettivi di un membro.
+    """
+    is_pyro = isinstance(chat_member, PyroChatMember)
+    status = chat_member.status.value if is_pyro else chat_member.status
 
-    pyro = isinstance(chat_member, PyroChatMember)
-
-    if pyro and chat_member.status.value == "restricted":
+    if is_pyro and status == "restricted":
         return chat_member.permissions
 
-    chat_id = context.pydb.group_chat_id
+    if status == "owner":
+        return get_pyro_permissions(True) if is_pyro else get_ptb_permissions(True)
 
-    if chat_member.status.value in ("restricted", "administrator"):
-        included_fields = default_permissions.keys()
-        actual_permissions = {
+    if status in ("restricted", "administrator"):
+        permissions_dict = {
             attr: getattr(chat_member, attr)
-            for attr in dir(chat_member)
-            if (
-                    not attr.startswith("_") and
-                    attr in included_fields and
-                    isinstance(getattr(chat_member, attr), bool)
-            )
+            for attr in default_permissions.keys()
+            if hasattr(chat_member, attr) and isinstance(getattr(chat_member, attr), bool)
         }
-        if pyro:
-            actual_permissions = PyroChatPermissions(**actual_permissions)
-        else:
-            actual_permissions = PTBChatPermissions(**actual_permissions)
+        return (PyroChatPermissions if is_pyro else PTBChatPermissions)(**permissions_dict)
 
-    elif (chat_member.status if not pyro else chat_member.status.value) == "member":
-        actual_permissions = await get_chat_permissions(context=context, chat_id=chat_id)
-        if pyro:
-            actual_permissions = PyroChatPermissions(**actual_permissions.to_dict())
-
-    else:  # chat_member.status == "owner"
-        if pyro:
-            actual_permissions = get_pyro_permissions(True)
-        else:
-            actual_permissions = get_ptb_permissions(True)
-
-    return actual_permissions
+    chat_perms = await get_chat_permissions(context=context, chat_id=context.pydb.group_chat_id)
+    return PyroChatPermissions(**chat_perms.to_dict()) if is_pyro else chat_perms
 
 
 async def get_member_details_text(
@@ -171,9 +222,16 @@ async def get_member_details_text(
     return text
 
 
+async def _show_ban_panel(update, context: CustomContext):
+    """Helper interno per mostrare il pannello ban"""
+    await safe_delete(update=update, context=context)
+    panel = get_banned_panel()
+    await panel.render(update=update, context=context)
+
+
 def check_auth(n: int = 5, bypass_count: bool = False):
     """
-    Decoratore.
+    Decoratore per controllo auth e ban.
     - Ogni N interazioni esegue il controllo ban.
     - Se bannato: mostra pannello e return ConversationHandler.END
     - Altrimenti: resetta il contatore a 0 e continua.
@@ -181,28 +239,32 @@ def check_auth(n: int = 5, bypass_count: bool = False):
 
     Parametri:
       n: ogni quante interazioni effettuare il controllo (default 5)
+      bypass_count: se True, esegue sempre il controllo
     """
 
     def decorator(handler: Callable[..., Awaitable[Any]]):
         @wraps(handler)
         async def wrapper(update, context, *args, **kwargs):
             mc = context.pydu.persistent.member_check
-            if bypass_count or mc == (n - 1):
-                user = update.effective_user
-                user_id = user.username or user.id
 
-                if await user_is_banned(context=context, user_id=user_id):
-                    await safe_delete(update=update, context=context)
-                    panel = get_banned_panel()
-                    await panel.render(
-                        update=update,
-                        context=context
-                    )
-                    return ConversationHandler.END
-                context.pydu.persistent.member_check = 0
-            else:
+            if not bypass_count and mc < (n - 1):
                 context.pydu.persistent.member_check = mc + 1
+                return await handler(update, context, *args, **kwargs)
+
+            context.pydu.persistent.member_check = 0
+
+            user = update.effective_user
+            user_id = user.username or user.id
+
+            try:
+                if await user_is_banned(context=context, user_id=user_id):
+                    await _show_ban_panel(update, context)
+                    return ConversationHandler.END
+            except Exception as e:
+                log.warning(f"Ban check failed for {user_id}: {e}")
+
             return await handler(update, context, *args, **kwargs)
 
         return wrapper
+
     return decorator

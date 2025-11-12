@@ -160,7 +160,6 @@ async def confirm_request(update: Update, context: CustomContext):
                         )
                         await asyncio.sleep(0.5)
 
-
     return RCS.REQUEST_SUBMITTED
 
 

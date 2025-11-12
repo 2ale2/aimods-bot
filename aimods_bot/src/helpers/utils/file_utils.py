@@ -2,6 +2,7 @@ import asyncio
 import json
 import mimetypes
 import os
+import re
 from pathlib import Path
 from typing import Any, List, Literal, Union, Tuple, Optional, AsyncIterator
 
@@ -396,15 +397,7 @@ def _validate_path(path: str) -> str:
     if not path:
         raise ValueError("Path cannot be empty")
 
-    normalized = os.path.normpath(path)
-
-    if ".." in normalized or normalized.startswith("/"):
-        # Basic Check - Allow absolute paths only if they're within expected directories
-        allowed_prefixes = ("aimods_bot/", "./", ".")
-        if not any(normalized.startswith(prefix) for prefix in allowed_prefixes):
-            raise ValueError(f"Potential path traversal detected: {path}")
-
-    return normalized
+    return os.path.normpath(path)
 
 
 def _is_safe_filename(filename: str) -> bool:
@@ -417,5 +410,4 @@ def _is_safe_filename(filename: str) -> bool:
     Returns:
         True if safe, False otherwise.
     """
-    import re
     return bool(re.match(r'^[\w\-. ]+$', filename))

@@ -1,5 +1,7 @@
 import re
-from typing import Optional, Any, Union, Dict
+from typing import Optional, Any, Union, Dict, List, Literal
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 import telegram
 from telegram.constants import ParseMode
@@ -18,14 +20,88 @@ from aimods_bot.src.helpers.loggers import logger
 log = logger.getChild("telegram_utils")
 
 
+# ============================================================================
+# CONFIGURAZIONE E COSTANTI
+# ============================================================================
+
+class TelegramConfig:
+    """Configurazione centralizzata per il modulo telegram_utils"""
+    USERNAME_MIN_LENGTH = 5
+    USERNAME_MAX_LENGTH = 32
+    CACHE_TTL_MINUTES = 5
+
+
+# Regex compilate per performance
+USERNAME_PATTERN = re.compile(
+    rf"[a-z0-9_]{{{TelegramConfig.USERNAME_MIN_LENGTH},{TelegramConfig.USERNAME_MAX_LENGTH}}}",
+    re.IGNORECASE
+)
+
+
+# ============================================================================
+# TYPE DEFINITIONS
+# ============================================================================
+
+@dataclass
+class ResolveResult:
+    """Risultato strutturato della risoluzione di un utente/membro"""
+    status: Literal["success", "failed"]
+    error: str
+    user: Optional[Union[PyroUser, PTBUser]]
+    member: Optional[Union[PyroChatMember, PTBChatMember]]
+
+
+# ============================================================================
+# CACHING SYSTEM
+# ============================================================================
+
+_user_cache: Dict[str, tuple[Union[Dict[str, Any], PyroUser, PTBUser], datetime]] = {}
+CACHE_TTL = timedelta(minutes=TelegramConfig.CACHE_TTL_MINUTES)
+
+
+def _get_cache_key(chat_id: Optional[Union[int, str]], user_identifier: Union[int, str]) -> str:
+    """Genera una chiave di cache univoca"""
+    return f"{chat_id}:{user_identifier}"
+
+
+def _get_from_cache(cache_key: str) -> Optional[Union[Dict[str, Any], PyroUser, PTBUser]]:
+    """Recupera un valore dalla cache se valido"""
+    if cache_key in _user_cache:
+        result, timestamp = _user_cache[cache_key]
+        if datetime.now() - timestamp < CACHE_TTL:
+            log.debug(f"Cache hit per chiave: {cache_key}")
+            return result
+        else:
+            # Rimuove entry scaduta
+            del _user_cache[cache_key]
+    return None
+
+
+def _set_in_cache(cache_key: str, result: Union[Dict[str, Any], PyroUser, PTBUser]) -> None:
+    """Salva un valore nella cache"""
+    _user_cache[cache_key] = (result, datetime.now())
+
+
+def clear_user_cache() -> None:
+    """Pulisce la cache degli utenti (utile per testing o reset)"""
+    _user_cache.clear()
+    log.info("Cache utenti pulita")
+
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
 def get_valid_thread_id(update: Update) -> Optional[int]:
+    """Restituisce un thread_id valido se presente"""
     thread_id = update.effective_message.message_thread_id
     if thread_id is not None and thread_id < 20:
         return thread_id
     return None
 
 
-async def safe_delete_wrapper(update: Update, context: CustomContext):
+async def safe_delete_wrapper(update: Update, context: CustomContext) -> bool:
+    """Wrapper per safe_delete usando il messaggio corrente"""
     await safe_delete(update, context, update.effective_message)
 
 
@@ -34,118 +110,295 @@ async def safe_delete(
         context: CustomContext,
         message: telegram.Message = None,
         message_id: int = None
-):
+) -> bool:
     """
     Tenta di eliminare un messaggio Telegram in modo sicuro.
-    Se viene fornito 'message' o 'message_id' tenta di eliminare quello.
-    Altrimenti, tenta di eliminare update.effective_message.
-    Ignora errori di tipo BadRequest (es. messaggio già eliminato o non trovato).
+
+    Args:
+        update: Update object di Telegram
+        context: CustomContext
+        message: Messaggio da eliminare (opzionale)
+        message_id: ID del messaggio da eliminare (opzionale)
+
+    Returns:
+        bool: True se eliminato con successo, False altrimenti
     """
+    # Determina l'ID del messaggio da eliminare
+    msg_id = message.message_id if message else message_id or update.effective_message.message_id
 
-    if message:
-        message_id_to_delete = message.message_id
-    elif message_id:
-        message_id_to_delete = message_id
-    else:
-        message_id_to_delete = update.effective_message.message_id
-
-    if message_id_to_delete is None:
-        log.warning("Nessun messaggio valido da eliminare è stato fornito o trovato.")
-        return
+    if msg_id is None:
+        log.warning("Nessun messaggio valido da eliminare è stato fornito o trovato")
+        return False
 
     try:
         await context.bot.delete_message(
             chat_id=update.effective_chat.id,
-            message_id=message_id_to_delete
+            message_id=msg_id
         )
+        log.debug(f"Messaggio {msg_id} eliminato con successo")
+        return True
     except telegram.error.BadRequest as e:
-        log.warning(f"Impossibile eliminare il messaggio "
-                    f"(ID: {message_id_to_delete.message_id if hasattr(message_id_to_delete, 'message_id') else 'N/A'})"
-                    f": {e}")
-    except AttributeError:
-        log.error(f"L'oggetto fornito non è un telegram.Message valido e non ha il metodo delete.")
+        log.warning(f"Impossibile eliminare il messaggio (ID: {msg_id}): {e}")
+        return False
     except Exception as e:
-        log.error(f"Errore inatteso durante l'eliminazione del messaggio: {e}", exc_info=True)
+        log.error(f"Errore inatteso durante l'eliminazione del messaggio {msg_id}: {e}", exc_info=True)
+        return False
 
+
+def is_username(string: str) -> bool:
+    """
+    Restituisce True se la stringa è un possibile username Telegram.
+
+    Regole:
+    - Solo lettere (a-z), numeri (0-9), underscore (_)
+    - Lunghezza: 5-32 caratteri
+    - Può iniziare con @
+
+    NOTA: In casi limite (es.: first_name "mario1") non posso sapere
+    se la stringa è uno username se non ha la @
+    """
+    if not string:
+        return False
+    return string.startswith("@") or bool(USERNAME_PATTERN.fullmatch(string))
+
+
+def is_user_id(string: Union[str, int]) -> bool:
+    """Verifica se la stringa/int rappresenta un ID utente numerico"""
+    if not string:
+        return False
+    return isinstance(string, int) or (isinstance(string, str) and string.isdigit() and len(string) >= 6)
+
+
+def add_fucking_at(s: str) -> str:
+    """Aggiunge la c*zzo di chiocciola, se mancante"""
+    if not s:
+        return s
+    return '@' + s.removeprefix("@")
+
+
+def normalize_user(user: Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser]) -> Dict[str, Any]:
+    """
+    Funzione utility per normalizzare il tipo ritornato da classi diverse.
+
+    Args:
+        user: Oggetto utente o ChatMember da normalizzare
+
+    Returns:
+        Dict con campi standardizzati
+    """
+    chat_member = isinstance(user, (PTBChatMember, PyroChatMember))
+    chat_member_obj = user.user if chat_member else user
+
+    return {
+        "id": chat_member_obj.id,
+        "username": chat_member_obj.username,
+        "first_name": chat_member_obj.first_name,
+        "chat_member_instance": user if chat_member else None,
+        "user_instance": chat_member_obj,
+        "source": user.__class__.__name__
+    }
+
+
+def format_user_mention(
+        user_id: Optional[Union[str, int]] = None,
+        username: Optional[str] = None,
+        first_name: Optional[str] = None
+) -> str:
+    """
+    Formatta una menzione utente in HTML per Telegram.
+
+    Args:
+        user_id: ID dell'utente
+        username: Username dell'utente (con o senza @)
+        first_name: Nome dell'utente
+
+    Returns:
+        str: Stringa HTML formattata
+
+    Raises:
+        UserMentionException: Se nessun parametro è fornito
+    """
+    if not any([user_id, username, first_name]):
+        raise UserMentionException("Almeno uno tra user_id, username o first_name deve essere fornito")
+
+    parts = []
+
+    if username:
+        parts.append(add_fucking_at(username))
+    elif first_name and user_id:
+        parts.append(f'<a href="tg://user?id={user_id}">{first_name}</a>')
+
+    if user_id and (username or not first_name):
+        parts.append(f"(<code>{user_id}</code>)")
+
+    return " ".join(parts) if parts else f"<code>{user_id}</code>"
+
+
+def get_toggle_text(b: bool) -> str:
+    """Restituisce emoji/testo per stato on/off"""
+    return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
+
+
+def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]) -> Dict[str, bool]:
+    """
+    Converte un oggetto permissions in dizionario.
+
+    Args:
+        permissions: Oggetto permissions (PTB o Pyrogram)
+
+    Returns:
+        Dict con permessi booleani
+
+    Raises:
+        TypeError: Se il tipo non è supportato
+    """
+    if isinstance(permissions, PyroChatPermissions):
+        return {
+            attr: getattr(permissions, attr)
+            for attr in permissions.__dict__
+            if isinstance(getattr(permissions, attr), bool)
+        }
+    elif isinstance(permissions, PTBChatPermissions):
+        return permissions.to_dict()
+    else:
+        raise TypeError(f"Tipo non supportato: {type(permissions)}")
+
+
+# ============================================================================
+# CALLBACK DATA VALIDATION
+# ============================================================================
 
 def validate_callback_structure(
         callback_data: str,
-        expected_fields: list[dict],
+        expected_fields: List[Dict[str, Any]],
         separator: str = "_",
-        should_be: str = None
-) -> list[Any]:
+        should_be: Optional[str] = None
+) -> List[Any]:
     """
-        Valida la struttura del callback_data e ne converte i valori secondo specifiche.
+    Valida la struttura del callback_data e ne converte i valori secondo specifiche.
 
-        Args:
-            callback_data: la stringa di callback ricevuta.
-            expected_fields: lista di dict, ognuno con:
-                - "type": type o "literal"
-                - "value": se type == "literal"
-                Tutti gli elementi sono obbligatori: la loro assenza produce eccezioni.
-            separator: separatore tra i campi.
-            should_be: stringa per messaggio d’errore.
+    Args:
+        callback_data: la stringa di callback ricevuta
+        expected_fields: lista di dict, ognuno con:
+            - "type": type, "literal", o lista di type
+            - "value": se type == "literal"
+        separator: separatore tra i campi
+        should_be: stringa per messaggio d'errore
 
-        Returns:
-            Lista di valori convertiti (o None se opzionali mancanti).
+    Returns:
+        Lista di valori convertiti
 
-        Raises:
-            CallbackDataException
-        """
-
+    Raises:
+        CallbackDataException: Se la validazione fallisce
+    """
     parts = callback_data.split(separator)
 
     if len(parts) != len(expected_fields):
         raise CallbackDataException(callback_data, should_be=should_be)
 
-    result = []
+    return [
+        _parse_callback_field(raw, spec, callback_data, should_be)
+        for raw, spec in zip(parts, expected_fields)
+    ]
 
-    for i, spec in enumerate(expected_fields):
-        raw_value = parts[i]
-        field_type = spec["type"]  # Se non c'è, genero eccezione
 
-        # Caso 1: valore letterale (fisso)
-        if field_type == "literal":
-            expected_value = spec.get("value")
-            if raw_value != expected_value:
-                raise CallbackDataException(callback_data, should_be)
-            result.append(raw_value)
+def _parse_callback_field(
+        raw_value: str,
+        spec: Dict[str, Any],
+        callback_data: str,
+        should_be: Optional[str]
+) -> Any:
+    """
+    Parsa e converte un singolo campo del callback.
 
-        # Caso 2: tipo singolo (int, str)
-        elif isinstance(field_type, type):
+    Args:
+        raw_value: Valore grezzo da convertire
+        spec: Specifica del campo
+        callback_data: Callback completo (per errori)
+        should_be: Descrizione attesa (per errori)
+
+    Returns:
+        Valore convertito
+
+    Raises:
+        CallbackDataException: Se la conversione fallisce
+    """
+    field_type = spec.get("type")
+
+    if field_type is None:
+        raise ValueError("Campo 'type' mancante nella specifica")
+
+    # Caso 1: valore letterale (fisso)
+    if field_type == "literal":
+        expected_value = spec.get("value")
+        if raw_value != expected_value:
+            raise CallbackDataException(callback_data, should_be)
+        return raw_value
+
+    # Caso 2: tipo singolo (int, str)
+    if isinstance(field_type, type):
+        return _convert_to_type(raw_value, field_type, callback_data, should_be)
+
+    # Caso 3: lista di tipi alternativi [int, str]
+    if isinstance(field_type, list):
+        for t in field_type:
             try:
-                result.append(field_type(raw_value))
-            except Exception:
-                raise CallbackDataException(callback_data, should_be)
+                return t(raw_value)
+            except (ValueError, TypeError):
+                continue
+        raise CallbackDataException(callback_data, should_be)
 
-        # Caso 3: lista di tipi alternativi [int, str]
-        elif isinstance(field_type, list):
-            converted = None
-            # Ordine sequenziale
-            # Se il tipo è preferibile che sia int (str), int (str) dovrebbe essere il primo della lista
-            for t in field_type:
-                try:
-                    converted = t(raw_value)
-                    break
-                except Exception:
-                    continue
-            if converted is None:
-                raise CallbackDataException(callback_data, should_be)
-            result.append(converted)
+    raise ValueError(f"Tipo di campo non gestito: {field_type}")
 
-        else:
-            raise ValueError(f"Tipo di campo non gestito: {field_type}")
 
-    return result
+def _convert_to_type(
+        value: str,
+        target_type: type,
+        callback_data: str,
+        should_be: Optional[str]
+) -> Any:
+    """
+    Converte un valore a un tipo specifico.
 
+    Args:
+        value: Valore da convertire
+        target_type: Tipo target
+        callback_data: Callback completo (per errori)
+        should_be: Descrizione attesa (per errori)
+
+    Returns:
+        Valore convertito
+
+    Raises:
+        CallbackDataException: Se la conversione fallisce
+    """
+    try:
+        return target_type(value)
+    except (ValueError, TypeError):
+        raise CallbackDataException(callback_data, should_be)
+
+
+# ============================================================================
+# USER RESOLUTION
+# ============================================================================
 
 async def resolve_chat_member(
         context: CustomContext,
         user_identifier: Union[int, str],
-        chat_id: int = None
+        chat_id: Optional[int] = None
 ) -> Union[Dict[str, Any], PyroUser, PTBUser]:
-    """Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback."""
+    """
+    Risolve un ChatMember usando prima pyrogram, poi telegram bot come fallback.
+    Utilizza caching per migliorare le performance.
 
+    Args:
+        context: CustomContext
+        user_identifier: ID utente o username
+        chat_id: ID della chat (opzionale, usa pydb.group_chat_id se non specificato)
+
+    Returns:
+        Dict con status/error/user/member oppure oggetto User
+    """
     if not user_identifier:
         log.warning("user_identifier vuoto fornito a resolve_chat_member")
         return _create_error_response("invalid_identifier")
@@ -155,13 +408,19 @@ async def resolve_chat_member(
         return me
 
     chat_id = chat_id or context.pydb.group_chat_id
-    user_id_str = str(user_identifier)
+
+    cache_key = _get_cache_key(chat_id, user_identifier)
+    cached_result = _get_from_cache(cache_key)
+    if cached_result is not None:
+        return cached_result
 
     pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)
 
     if pyro_result["status"] == "success" or pyro_result["error"] == "username_404":
+        _set_in_cache(cache_key, pyro_result)
         return pyro_result
 
+    user_id_str = str(user_identifier)
     if is_user_id(user_id_str):
         resolved_id = user_id_str
     else:
@@ -171,30 +430,50 @@ async def resolve_chat_member(
     if resolved_id:
         ptb_result = await _try_ptb_resolve(context, chat_id, resolved_id)
         if ptb_result["status"] == "success":
+            _set_in_cache(cache_key, ptb_result)
             return ptb_result
 
     log.debug(f"Impossibile risolvere ChatMember per {user_identifier}")
     return pyro_result
 
 
-async def username_to_id(username: Union[int, str]):
-    if isinstance(username, int) or username.isnumeric():
-        return username
+async def username_to_id(username: Union[int, str]) -> Optional[int]:
+    """
+    Converte un username in user ID.
+
+    Args:
+        username: Username o ID da convertire
+
+    Returns:
+        User ID se trovato, None altrimenti
+    """
+    if isinstance(username, int) or (isinstance(username, str) and username.isnumeric()):
+        return int(username)
+
     try:
         user_response = await resolve_user(identifier=username)
-        user = user_response["user"]
+        user = user_response.get("user")
     except Exception as e:
-        log.warning(f"Unable to resolve username {username}: {e}")
+        log.warning(f"Impossibile risolvere username {username}: {e}")
         return None
 
     if user is None:
-        log.warning(f"Cannot resolve username {username}: make sure it exists")
+        log.warning(f"Username {username} non trovato: assicurati che esista")
         return None
 
     return user.id
 
 
-async def resolve_user(identifier: Union[int, str]):
+async def resolve_user(identifier: Union[int, str]) -> Dict[str, Any]:
+    """
+    Risolve un utente (senza riferimento a chat specifica).
+
+    Args:
+        identifier: ID o username dell'utente
+
+    Returns:
+        Dict con status/error/user/member
+    """
     user = await _try_pyrogram_user_resolve(user_identifier=identifier)
     if user:
         return _create_success_response(member=user)
@@ -205,8 +484,7 @@ async def _try_pyrogram_chat_member_resolve(
         chat_id: Union[int, str],
         user_identifier: Union[int, str]
 ) -> Dict[str, Any]:
-    """Tenta di risolvere un ChatMember usando pyrogram."""
-
+    """Tenta di risolvere un ChatMember usando pyrogram"""
     try:
         member = await constants.pyro_instance.get_chat_member(
             chat_id=chat_id,
@@ -219,7 +497,7 @@ async def _try_pyrogram_chat_member_resolve(
         log.debug(f"Utente {user_identifier} non è partecipante del gruppo: {e}")
         return _create_error_response("user_not_participant")
     except UsernameNotOccupied:
-        log.debug(f"Utente {user_identifier} non esiste.")
+        log.debug(f"Username {user_identifier} non esiste")
         return _create_error_response("username_404")
     except Exception as e:
         log.warning(f"Errore pyrogram durante risoluzione ChatMember per {user_identifier}: {e}")
@@ -227,16 +505,20 @@ async def _try_pyrogram_chat_member_resolve(
 
 
 async def _try_pyrogram_user_resolve(user_identifier: Union[int, str]) -> Optional[PyroUser]:
+    """Tenta di risolvere un User usando pyrogram"""
     try:
         return await constants.pyro_instance.get_users(user_ids=user_identifier)
     except Exception as e:
-        log.warning(f"Errore pyrogram durante risoluzione ChatMember per {user_identifier}: {e}")
+        log.warning(f"Errore pyrogram durante risoluzione User per {user_identifier}: {e}")
         return None
 
 
-async def _try_ptb_resolve(context: CustomContext, chat_id: Union[int, str],
-                           user_identifier: Union[int, str]) -> Dict[str, Any]:
-    """Tenta di risolvere un ChatMember usando PTB."""
+async def _try_ptb_resolve(
+        context: CustomContext,
+        chat_id: Union[int, str],
+        user_identifier: Union[int, str]
+) -> Dict[str, Any]:
+    """Tenta di risolvere un ChatMember usando PTB (fallback)"""
     try:
         member = await context.bot.get_chat_member(
             chat_id=chat_id,
@@ -251,7 +533,8 @@ async def _try_ptb_resolve(context: CustomContext, chat_id: Union[int, str],
 
 
 def _create_success_response(member: Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]) -> Dict[str, Any]:
-    if isinstance(member, Union[PTBChatMember, PyroChatMember]):
+    """Crea una risposta di successo standardizzata"""
+    if isinstance(member, (PTBChatMember, PyroChatMember)):
         return {
             "status": "success",
             "error": "",
@@ -268,6 +551,7 @@ def _create_success_response(member: Union[PyroChatMember, PTBChatMember, PyroUs
 
 
 def _create_error_response(error_code: str) -> Dict[str, Any]:
+    """Crea una risposta di errore standardizzata"""
     return {
         "status": "failed",
         "error": error_code,
@@ -276,80 +560,47 @@ def _create_error_response(error_code: str) -> Dict[str, Any]:
     }
 
 
-async def is_username(string: str) -> bool:
+# ============================================================================
+# MESSAGE HANDLING
+# ============================================================================
+
+async def edit_message_safely(
+        context: CustomContext,
+        message_id: int,
+        chat_id: int,
+        text: str,
+        keyboard: InlineKeyboardMarkup
+) -> Optional[int]:
     """
-    Restituisce True se la stringa è un possibile username Telegram.
-    Regole:
-    - Solo lettere (a-z), numeri (0-9), underscore (_)
-    - Lunghezza: 5-32 caratteri
-    NOTA - In casi limite (es.: first_name "mario1") non posso sapere se la stringa è uno username se non ha la @
+    Wrapper per edit_message_text con gestione errori.
+    Tenta prima di modificare, poi invia nuovo messaggio se fallisce.
+
+    Returns:
+        ID del messaggio (modificato o nuovo), None in caso di errore
     """
-
-    return string.startswith("@") or bool(re.fullmatch(r"[a-z0-9_]{5,32}", string, flags=re.IGNORECASE))
-
-
-def is_user_id(string) -> bool:
-    """Se è una stringa numerica o un intero, ritorna True."""
-    return string and (isinstance(string, int) or string.isdigit())
-
-
-def normalize_user(user) -> dict:
-    """Funzione utility per normalizzare il tipo ritornata da classi di ritorno diverse."""
-    chat_member = isinstance(user, (PTBChatMember, PyroChatMember))
-    chat_member_obj = user.user if chat_member else user
-
-    return {
-        "id": chat_member_obj.id,
-        "username": chat_member_obj.username,
-        "first_name": chat_member_obj.first_name,
-        "chat_member_instance": user if chat_member else None,
-        "user_instance": chat_member_obj,
-        "source": user.__class__.__name__
-    }
-
-
-def format_user_mention(user_id: str | int = None, username: str = None, first_name: str = None) -> str:
-    if username:
-        if user_id:
-            return f"{add_fucking_at(username)} (<code>{user_id}</code>)"
-        return f"{add_fucking_at(username)}"
-    if user_id:
-        if first_name:
-            f'<a href="tg://user?id={user_id}">{first_name}</a> (<code>{user_id}</code>)'
-        return f"<code>{user_id}</code>"
-    raise UserMentionException
-
-
-def add_fucking_at(s: str) -> str:
-    """Aggiunge la c*zzo di chiocciola."""
-    return '@' + s.removeprefix("@")
-
-
-def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]):
-    if type(permissions) is PyroChatPermissions:
-        return {
-            attr: getattr(permissions, attr)
-            for attr in permissions.__dict__
-            if isinstance(getattr(permissions, attr), bool)
-        }
-    elif type(permissions) is PTBChatPermissions:
-        return permissions.to_dict()
-    else:
-        raise TypeError(f"Unsupported type: {type(permissions)}")
-
-
-async def not_implemented_yet(update: Update, context: CustomContext):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="⚠️ Funzionalità non ancora implementata.",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
+    try:
+        await context.bot.edit_message_text(
+            message_id=message_id,
+            chat_id=chat_id,
+            text=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
         )
-    )
-
-
-def get_toggle_text(b: bool) -> str:
-    return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
+        return message_id
+    except Exception as edit_error:
+        log.debug(f"Impossibile modificare messaggio {message_id}, tento invio nuovo: {edit_error}")
+        try:
+            message = await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
+            return message.id
+        except Exception as send_error:
+            log.error(f"Impossibile modificare o inviare un nuovo messaggio: {send_error}")
+            return None
 
 
 async def handle_if_not_file(
@@ -358,6 +609,12 @@ async def handle_if_not_file(
         filename: Optional[str],
         callback_data: str
 ) -> bool:
+    """
+    Gestisce il caso in cui un file non sia stato creato correttamente.
+
+    Returns:
+        bool: True se c'è stato un errore (file mancante), False altrimenti
+    """
     if not filename:
         text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
         keyboard = [[InlineKeyboardButton(
@@ -376,88 +633,108 @@ async def handle_if_not_file(
     return False
 
 
-async def set_moderation_bool_setting(
-        update: Update,
-        context: CustomContext,
-        setting: str,
-        sub_setting: str,
-        value: bool,
-        category: str = None
-):
-    log_name = "_".join(setting.split("/")) + ("_category" if category else "")
-    log_c = logger.getChild(log_name)
-
-    path = f"moderation.{'.'.join(setting.split('/'))}{f'.{category}' if category else ''}.{sub_setting}"
-    set_value(context=context, path=path, value=value)
-
-    log_c.info(f"Modifica: settaggio {path} modificato in '{value}' da {update.effective_user.id}")
+async def wrong_input_message(update: Update, context: CustomContext, correct_format: str) -> None:
+    """Invia un messaggio di errore per input non valido"""
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"⚠️ Manda {correct_format}.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data="close_menu")]]
+        ),
+        parse_mode=ParseMode.HTML
+    )
 
 
-async def edit_message_safely(
-        context: CustomContext,
-        message_id: int,
-        chat_id: int,
-        text: str,
-        keyboard: InlineKeyboardMarkup
-) -> Optional[int]:
-    """Wrapper per edit_message_text con gestione errori"""
-    try:
-        await context.bot.edit_message_text(
-            message_id=message_id,
-            chat_id=chat_id,
-            text=text,
-            reply_markup=keyboard,
-            parse_mode=ParseMode.HTML,
-            link_preview_options=LinkPreviewOptions(is_disabled=True)
+async def not_implemented_yet(update: Update, context: CustomContext) -> None:
+    """Messaggio per funzionalità non ancora implementate"""
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="⚠️ Funzionalità non ancora implementata.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data="close_menu")]]
         )
-        return message_id
-    except Exception:
-        try:
-            message = await context.bot.send_message(
-                chat_id=chat_id,
-                text=text,
-                reply_markup=keyboard,
-                parse_mode=ParseMode.HTML
-            )
-            return message.id
-        except Exception as e:
-            log.error(f"Impossibile modificare o inviare un nuovo messaggio: {e}")
+    )
 
+
+# ============================================================================
+# PANEL & SETTINGS
+# ============================================================================
 
 async def create_and_render_panel(
         update: Update,
         context: CustomContext,
         base_path: str,
         text: str,
-        keyboard: list[list[ButtonItem]],
+        keyboard: List[List[ButtonItem]],
         message_id: Optional[int] = None,
         user_id: Optional[int] = None,
         send: bool = False
-):
+) -> None:
+    """
+    Crea e renderizza un pannello con configurazione specifica.
+
+    Args:
+        update: Update object
+        context: CustomContext
+        base_path: Path base per il pannello
+        text: Testo del pannello
+        keyboard: Layout tastiera
+        message_id: ID messaggio da modificare (opzionale)
+        user_id: ID utente target (opzionale)
+        send: Se True, invia nuovo messaggio invece di modificare
+    """
     panel = Panel(
         PanelConfig(base_path=base_path, text=text, keyboard=keyboard)
     )
 
-    await panel.render(update=update, context=context, message_id=message_id, user_id=user_id, send=send)
-
-
-async def wrong_input_message(update: Update, context: CustomContext, correct_format=str):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"⚠️ Manda {correct_format}.",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]]
-        ),
-        parse_mode=ParseMode.HTML
+    await panel.render(
+        update=update,
+        context=context,
+        message_id=message_id,
+        user_id=user_id,
+        send=send
     )
 
 
-def get_banned_panel():
+async def set_moderation_bool_setting(
+        update: Update,
+        context: CustomContext,
+        setting: str,
+        sub_setting: str,
+        value: bool,
+        category: Optional[str] = None
+) -> None:
+    """
+    Imposta un valore booleano per un setting di moderazione e logga l'azione.
+
+    Args:
+        update: Update object
+        context: CustomContext
+        setting: Nome del setting (può contenere '/')
+        sub_setting: Nome del sub-setting
+        value: Valore booleano da impostare
+        category: Categoria opzionale
+    """
+    log_name = "_".join(setting.split("/")) + ("_category" if category else "")
+    log_c = logger.getChild(log_name)
+
+    path = f"moderation.{'.'.join(setting.split('/'))}{f'.{category}' if category else ''}.{sub_setting}"
+    set_value(context=context, path=path, value=value)
+
+    log_c.info(
+        f"Modifica setting: {path} impostato a '{value}' "
+        f"da utente {update.effective_user.id} "
+        f"({update.effective_user.username or update.effective_user.first_name})"
+    )
+
+
+def get_banned_panel() -> Panel:
+    """Restituisce il pannello per utenti bannati"""
     return Panel(
         PanelConfig(
             base_path="banned",
             text="❌ Sei stato bannato/a. Non potrai usare il bot.",
-            keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]]
+            keyboard=[[ButtonItem(text="🗑️ Chiudi", callback_key="close_menu")]]
         ),
         send=True
     )
