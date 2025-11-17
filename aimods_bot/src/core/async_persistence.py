@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from telegram.ext import DictPersistence
 
 from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
+from aimods_bot.src.core.database_pool import DatabasePool, get_connection
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
@@ -38,9 +39,7 @@ class AsyncPostgresPersistence(DictPersistence):
         self.coalesce_delay = coalesce_delay
         self.logger = getLogger(__name__)
 
-        self._pool: Optional[asyncpg.Pool] = None
         self._initialized = False
-        self._pool_lock = None
         self._flush_lock = None
         self._flush_task: Optional[asyncio.Task] = None
         self._flush_pending = False
@@ -101,39 +100,45 @@ class AsyncPostgresPersistence(DictPersistence):
 
         return asyncio.run(_load_async())
 
-    async def _ensure_pool(self) -> None:
-        """
-        Assicura che il pool sia inizializzato nel loop corrente
-        """
-        if self._pool is not None:
-            return
-
-        if self._pool_lock is None:
-            self._pool_lock = asyncio.Lock()
-        if self._flush_lock is None:
-            self._flush_lock = asyncio.Lock()
-
-        async with self._pool_lock:
-            if self._pool is not None:
-                return
-
-            try:
-                # noinspection PyUnresolvedReferences
-                self._pool = await asyncpg.create_pool(
-                    dsn=self.url,
-                    min_size=1,
-                    max_size=10,
-                    timeout=10
-                )
-                self._initialized = True
-                self.logger.info("Database pool initialized successfully in PTB loop.")
-            except Exception as e:
-                self.logger.error(f"Failed to create database pool: {e}")
-                raise
+    # async def _ensure_pool(self) -> None:
+    #     """
+    #     Assicura che il pool sia inizializzato nel loop corrente
+    #     """
+    #     if self._pool is not None:
+    #         return
+    #
+    #     if self._pool_lock is None:
+    #         self._pool_lock = asyncio.Lock()
+    #     if self._flush_lock is None:
+    #         self._flush_lock = asyncio.Lock()
+    #
+    #     async with self._pool_lock:
+    #         if self._pool is not None:
+    #             return
+    #
+    #         try:
+    #             # noinspection PyUnresolvedReferences
+    #             self._pool = await asyncpg.create_pool(
+    #                 dsn=self.url,
+    #                 min_size=1,
+    #                 max_size=10,
+    #                 timeout=10
+    #             )
+    #             self._initialized = True
+    #             self.logger.info("Database pool initialized successfully in PTB loop.")
+    #         except Exception as e:
+    #             self.logger.error(f"Failed to create database pool: {e}")
+    #             raise
 
     async def initialize(self) -> None:
         """Per compatibilità con PTB"""
-        await self._ensure_pool()
+        if not self._initialized:
+            if self._flush_lock is None:
+                self._flush_lock = asyncio.Lock()
+
+            await DatabasePool.get_pool()
+            self._initialized = True
+            self.logger.info("AsyncPostgresPersistence initialized with centralized pool.")
 
     @staticmethod
     def _dump_pydantic(obj: Union[BotData, ChatData, UserData]) -> Dict[str, Any]:
@@ -183,14 +188,11 @@ class AsyncPostgresPersistence(DictPersistence):
         }
 
     async def _update_database(self) -> None:
-        await self._ensure_pool()
-        assert self._pool is not None
-
         logical = self._dump_into_json()
         payload_text = json.dumps(logical)
 
         try:
-            async with self._pool.acquire() as conn:
+            async with get_connection() as conn:
                 async with conn.transaction():
                     await conn.execute(
                         """
@@ -237,17 +239,17 @@ class AsyncPostgresPersistence(DictPersistence):
             self.logger.error(f"Error in flush after delay: {e}", exc_info=True)
 
     async def get_bot_data(self) -> BotData:
-        await self._ensure_pool()
-        base_dict: Dict[str, Any] = await super().get_bot_data()  # It's better to keep str here to avoid cast issues
+        await DatabasePool.get_pool()  # assicura che il pool esista
+        base_dict: Dict[str, Any] = await super().get_bot_data()
         return self._load_bot_data(base_dict)
 
     async def get_chat_data(self) -> Dict[int, ChatData]:
-        await self._ensure_pool()
+        await DatabasePool.get_pool()
         base_dict: Dict[str, Any] = await super().get_chat_data()
         return self._load_chat_data(base_dict)
 
     async def get_user_data(self) -> Dict[int, UserData]:
-        await self._ensure_pool()
+        await DatabasePool.get_pool()
         base_dict: Dict[str, Any] = await super().get_user_data()
         return self._load_user_data(base_dict)
 
@@ -295,7 +297,7 @@ class AsyncPostgresPersistence(DictPersistence):
 
     async def aclose(self) -> None:
         """
-        Chiusura sicura delle risorse
+        Chiusura sicura delle risorse.
         """
         self.logger.info("Starting AsyncPostgresPersistence cleanup...")
 
@@ -310,23 +312,13 @@ class AsyncPostgresPersistence(DictPersistence):
                 self.logger.error(f"Error cancelling flush task: {e}")
 
         # Flush finale prima di chiudere
-        if self._pool and not self._pool._closed:
+        if DatabasePool.is_initialized() and self._flush_pending:
             try:
-                if self._flush_pending:
-                    await self._update_database()
+                await self._update_database()
             except Exception as e:
                 self.logger.error(f"Error in final flush: {e}")
 
-        # Chiudi il pool
-        if self._pool and not self._pool._closed:
-            try:
-                await asyncio.wait_for(self._pool.close(), timeout=5.0)
-                self._pool = None
-                self.logger.info("Database pool closed successfully.")
-            except asyncio.TimeoutError:
-                self.logger.warning("Pool close timed out")
-            except Exception as e:
-                self.logger.error(f"Error closing pool: {e}")
+        self.logger.info("AsyncPostgresPersistence cleanup completed.")
 
 
 def migrate_bot_data(raw: Dict[str, Any]) -> BotData:
