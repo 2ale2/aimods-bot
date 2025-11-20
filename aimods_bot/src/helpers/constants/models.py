@@ -35,6 +35,7 @@ class JobData:
     thread_id: Optional[int] = None
     reply_markup: Optional[InlineKeyboardMarkup] = None
     reply_parameters: Optional[ReplyParameters] = None
+    delete_after: Optional[int] = None
 
 
 @dataclass

@@ -1,10 +1,9 @@
-import asyncio
 import os
-from typing import Optional, Any, Dict, cast, TypedDict
+from typing import Optional, Any, Dict, cast, TypedDict, Literal
 from uuid import uuid4
 
 import telegram.error
-from telegram import Update
+from telegram import Update, InputMedia
 from telegram.constants import ChatAction
 
 from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
@@ -17,22 +16,6 @@ from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_fil
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild(__name__)
-
-
-# ========== UTILITÀ ==========
-
-def register_job(context, job_id: str):
-    context.pydb.jobs[job_id] = JobInfo()
-
-
-def mark_job_done(context, job_id: str, message_id: int):
-    j = context.pydb.jobs.get(job_id, None)
-    if not j:
-        log.error(f"Job {job_id} not found")
-        return
-    j.returned_value = message_id
-    j.executed = True
-    context.pydb.jobs[job_id] = j
 
 
 # ========== JOB: DELETE ==========
@@ -54,9 +37,14 @@ async def scheduled_delete_message(context: CustomContext):
             chat_id=data.chat_id,
             message_id=data.additional_data.message_id
         )
-        log.info(f"🗑️ Messaggio {message_id} eliminato da {chat_id}")
+        log.info(f'Messaggio {message_id} eliminato da {chat_id}')
+    except telegram.error.BadRequest as e:
+        if "not found" in str(e) or "deleted" in str(e):
+            log.info(f"Messaggio {message_id} già eliminato.")
+        else:
+            log.warning(f"⚠️ Errore delete: {e}")
     except telegram.error.TelegramError as e:
-        log.warning(f"⚠️ Errore nell'eliminazione programmata: {e}")
+        log.warning(f"⚠️ Errore delete generico: {e}")
 
 
 # ========== JOB: SEND ==========
@@ -93,10 +81,19 @@ async def scheduled_send_message(context: CustomContext):
                 text=data_model.text,
                 **common_kwargs
             )
-        if job_to_edit:
-            if isinstance(message, tuple):
-                message = message[0]
-            mark_job_done(context, job_to_edit, message.message_id)
+        if message and additional_data and additional_data.delete_after:
+            msg_id_to_delete = message[0].message_id if isinstance(message, tuple) else message.message_id
+            context.job_queue.run_once(
+                callback=scheduled_delete_message,
+                when=additional_data.delete_after,
+                data=ScheduledJobData(
+                    chat_id=data_model.chat_id,
+                    text=None,
+                    additional_data=JobData(
+                        message_id=msg_id_to_delete
+                    )
+                )
+            )
     except telegram.error.TelegramError as e:
         if job_to_edit:
             context.pydb.jobs.pop(job_to_edit, None)
@@ -147,65 +144,63 @@ async def _send_media_message(context: CustomContext, data_model: ScheduledJobDa
         d = [d]
     l = [MediaItem(item=el, type=get_file_type(el), as_doc=as_doc) for el in d]
     normalized_l = await normalize_files(l)
-    if len(normalized_l) == 1:
-        # normalized_l = [(tipo, input_media), ...]
-        item = normalized_l[0]
-        file = item[1]
-        ftype = item[0]
-        text = data_model.text
-        if as_doc or ftype == "document":
-            message = await context.bot.send_document(
-                document=file.media,
-                caption=text,
-                **kwargs
-            )
-            if d_media.delete_after_sending and isinstance(d_media.files, str):
-                try:
-                    os.remove(d_media.files)
-                    log.warning()
-                except Exception as e:
-                    log.warning(f"Non è stato possibile rimuovere il file: {e}")
-                    pass
-            return message
+    message = None
+
+    try:
+        if len(normalized_l) == 1:
+            message = await _send_single_media(context, normalized_l[0], data_model.text, kwargs, as_doc)
         else:
-            file = file.media
-            match ftype:
-                case "photo":
-                    await context.bot.send_photo(
-                        photo=file,
-                        caption=text,
-                        **kwargs
-                    )
-                case "audio":
-                    await context.bot.send_audio(
-                        audio=file,
-                        caption=text,
-                        **kwargs
-                    )
-                case "video":
-                    await context.bot.send_video(
-                        video=file,
-                        caption=text,
-                        **kwargs
-                    )
-                case _:  # GIF
-                    await context.bot.send_animation(
-                        animation=file,
-                        caption=text,
-                        **kwargs
-                    )
-    else:
-        if "reply_markup" in kwargs:
-            del kwargs["reply_markup"]
-        # noinspection PyTypeChecker
-        message = await context.bot.send_media_group(
-            media=[el[1].media for el in normalized_l],
-            caption=data_model.text,
-            **kwargs
-        )
-        if not isinstance(d, (list, set, tuple, dict)):
-            message = message[0]
+            message = await _send_media_group(context, normalized_l, data_model.text, kwargs)
+
+    finally:
+        if d_media.delete_after_sending:
+            for file_path in d:
+                if isinstance(file_path, str) and os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        log.info(f"File rimosso: {file_path}")
+                    except Exception as e:
+                        log.warning(f"Impossibile rimuovere file {file_path}: {e}")
         return message
+
+
+async def _send_single_media(
+        context: CustomContext,
+        item: tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia],
+        caption: str,
+        kwargs: Dict[str, Any],
+        force_doc: bool
+):
+    ftype, input_file = item
+    media = input_file.media
+
+    if force_doc or ftype == "document":
+        return await context.bot.send_document(document=media, caption=caption, **kwargs)
+
+    match ftype:
+        case "photo":
+            return await context.bot.send_photo(photo=media, caption=caption, **kwargs)
+        case "audio":
+            return await context.bot.send_audio(audio=media, caption=caption, **kwargs)
+        case "video":
+            return await context.bot.send_video(video=media, caption=caption, **kwargs)
+        case _:
+            return await context.bot.send_animation(animation=media, caption=caption, **kwargs)
+
+
+async def _send_media_group(
+        context: CustomContext,
+        items: list[tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]],
+        caption: str,
+        kwargs: Dict[str, Any]
+):
+    kwargs.pop("reply_markup", None)
+
+    media_list = [el[1].media for el in items]
+
+    messages = await context.bot.send_media_group(media=media_list, caption=caption, **kwargs)
+
+    return messages[0] if isinstance(messages, (list, set, tuple, dict)) else messages
 
 
 # ========== JOB: EDIT ==========
@@ -258,7 +253,13 @@ async def send_temporary_message(
         action=ChatAction.TYPING
     )
 
-    job_id = str(uuid4())
+    if additional_job_data is None:
+        additional_job_data = JobData()
+
+    additional_job_data.delete_after = delay_delete
+
+    if not additional_job_data.thread_id:
+        additional_job_data.thread_id = thread_id
 
     job_data = ScheduledJobData(
         chat_id=chat_id,
@@ -269,36 +270,9 @@ async def send_temporary_message(
     context.job_queue.run_once(
         callback=scheduled_send_message,
         when=delay_before,
-        name=job_id,
         data=job_data
     )
 
-    register_job(context, job_id)
-    await _wait_for_job_completion(context, job_id)
-
-    j = context.pydb.jobs.get(job_id, None)
-    if not j:
-        log.error(f"Job {job_id} not found")
-        return
-    message_id = j.returned_value
-    context.pydb.jobs.pop(job_id, None)
-
-    context.job_queue.run_once(
-        callback=scheduled_delete_message,
-        when=delay_delete,
-        data=ScheduledJobData(
-            chat_id=chat_id,
-            text=None,
-            additional_data=JobData(
-                message_id=message_id
-            )
-        )
-    )
-
-
-async def _wait_for_job_completion(context: CustomContext, job_id: str):
-    while not context.pydb.jobs[job_id].executed:
-        await asyncio.sleep(0.1)
         
 # ========== JOB: REQUESTS ==========
 
