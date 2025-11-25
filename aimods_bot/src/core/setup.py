@@ -98,7 +98,7 @@ async def set_application_data(application: Application):
                     j.executed = True
             del current_bot_data.jobs[autorecap_job_name]
 
-        time_until_next_recap = await get_time_until_next_recap()
+        time_until_next_recap = get_time_until_next_recap()
         await application.job_queue.start()
 
         job = application.job_queue.run_repeating(

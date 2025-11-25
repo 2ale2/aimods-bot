@@ -160,3 +160,14 @@ def get_rate_limit_text(time_limit: int) -> str:
     # time_limit < SECONDS_PER_HOUR
     minutes = int(time_limit / SECONDS_PER_MINUTE)
     return f"{minutes} Minuti"
+
+
+def ensure_utc(dt: datetime) -> datetime:
+    """
+    Normalizza la data in UTC.
+    Se è naive (senza timezone), assume che sia UTC.
+    Se è aware, la converte.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)

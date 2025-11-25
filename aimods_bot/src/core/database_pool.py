@@ -37,7 +37,7 @@ class DatabasePool:
                     max_queries=50000,
                     max_inactive_connection_lifetime=300
                 )
-                log.info("✅ Connection pool creato con successo")
+                log.info("Connection pool created successfully")
             except Exception as e:
                 raise DatabaseBotException(f"Errore creazione pool: {e}")
         return cls._pool
