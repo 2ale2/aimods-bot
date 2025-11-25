@@ -41,7 +41,7 @@ class JobData:
 @dataclass
 class ScheduledJobData:
     chat_id: int
-    text: Optional[str]
+    text: Optional[str] = None
     additional_data: Optional[JobData] = None
 
 

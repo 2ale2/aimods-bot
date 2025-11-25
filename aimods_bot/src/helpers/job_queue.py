@@ -1,10 +1,11 @@
 import os
+import asyncio
 from typing import Optional, Any, Dict, cast, TypedDict, Literal
 from uuid import uuid4
 
 import telegram.error
 from telegram import Update, InputMedia
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, ParseMode
 
 from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
 from aimods_bot.src.core.customcontext import CustomContext
@@ -16,6 +17,16 @@ from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_fil
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild(__name__)
+
+
+async def async_remove_file(file_path: str):
+    if os.path.exists(file_path):
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, os.remove, file_path)
+            log.info(f"File Rimosso: {file_path}")
+        except OSError as e:
+            log.warning(f"Impossibile rimuovere {file_path}: {e}")
 
 
 # ========== JOB: DELETE ==========
@@ -33,18 +44,15 @@ async def scheduled_delete_message(context: CustomContext):
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'message_id'")
 
     try:
-        await context.bot.delete_message(
-            chat_id=data.chat_id,
-            message_id=data.additional_data.message_id
-        )
+        await context.bot.delete_message(chat_id=data.chat_id, message_id=message_id)
         log.info(f'Messaggio {message_id} eliminato da {chat_id}')
     except telegram.error.BadRequest as e:
         if "not found" in str(e) or "deleted" in str(e):
             log.info(f"Messaggio {message_id} già eliminato.")
         else:
-            log.warning(f"⚠️ Errore delete: {e}")
+            log.warning(f"Errore delete (Bad Request): {e}")
     except telegram.error.TelegramError as e:
-        log.warning(f"⚠️ Errore delete generico: {e}")
+        log.warning(f"Errore delete generico: {e}")
 
 
 # ========== JOB: SEND ==========
@@ -56,48 +64,54 @@ async def scheduled_send_message(context: CustomContext):
     if not isinstance(data_model, ScheduledJobData):
         raise WrongTypeException(data_model, "data_model", "ScheduledJobData")
 
-    additional_data = data_model.additional_data
+    additional_data = data_model.additional_data or JobData()
+    file_paths = additional_data.files
 
-    send_media = additional_data and additional_data.files is not None
+    send_media = additional_data.files is not None
 
     if (not data_model.text and not send_media) or not data_model.chat_id:
         raise JobDataMissingException("Dati mancanti: 'chat_id' o 'text'")
 
-    job_to_edit = next((j for j in context.pydb.jobs if j == job.name), None)
-
     common_kwargs = {
         "chat_id": data_model.chat_id,
-        "reply_parameters": additional_data.reply_parameters if additional_data else None,
-        "message_thread_id": additional_data.thread_id if additional_data else None,
-        "reply_markup": additional_data.reply_markup if additional_data else None,
-        "parse_mode": "HTML"
+        "reply_parameters": additional_data.reply_parameters,
+        "message_thread_id": additional_data.thread_id,
+        "reply_markup": additional_data.reply_markup,
+        "parse_mode": ParseMode.HTML
     }
 
+    common_kwargs = {k: v for k, v in common_kwargs.items() if v is not None}
+
     try:
-        if send_media:
-            message = await _send_media_message(context, data_model, common_kwargs)
+        if file_paths:
+            sent_obj = await _send_media_message(context, data_model, common_kwargs)
+            sent_messages = sent_obj if isinstance(sent_obj, list) else [sent_obj]
+        elif data_model.text:
+            msg = await context.bot.send_message(text=data_model.text, **common_kwargs)
+            sent_messages = [msg]
         else:
-            message = await context.bot.send_message(
-                text=data_model.text,
-                **common_kwargs
-            )
-        if message and additional_data and additional_data.delete_after:
-            msg_id_to_delete = message[0].message_id if isinstance(message, tuple) else message.message_id
+            log.error("Nessun testo né media da inviare.")
+            return
+
+        if sent_messages and additional_data.delete_after:
+            msg_id = sent_messages[0].message_id
+
             context.job_queue.run_once(
                 callback=scheduled_delete_message,
                 when=additional_data.delete_after,
                 data=ScheduledJobData(
                     chat_id=data_model.chat_id,
-                    text=None,
-                    additional_data=JobData(
-                        message_id=msg_id_to_delete
-                    )
+                    additional_data=JobData(message_id=msg_id)
                 )
             )
+
+        if job.name in context.pydb.jobs:
+            del context.pydb.jobs[job.name]
     except telegram.error.TelegramError as e:
-        if job_to_edit:
-            context.pydb.jobs.pop(job_to_edit, None)
-        log.error(f"❌ Errore nell'invio programmato: {e}")
+        job_key = job.name
+        if job_key in context.pydb.jobs:
+            context.pydb.jobs.pop(job_key, None)
+        log.error(f"Errore invio programmato (Chat: {data_model.chat_id}): {e}")
 
 
 async def send_action_message_after(update: Update,
@@ -137,31 +151,42 @@ async def send_action_message_after(update: Update,
 
 
 async def _send_media_message(context: CustomContext, data_model: ScheduledJobData, kwargs: Dict[str, Any]):
-    d_media = data_model.additional_data
-    d = d_media.files
-    as_doc = d_media.send_as_document
-    if isinstance(d, str):
-        d = [d]
-    l = [MediaItem(item=el, type=get_file_type(el), as_doc=as_doc) for el in d]
-    normalized_l = await normalize_files(l)
-    message = None
+    additional_data = data_model.additional_data
+    raw_files = additional_data.files
+    as_doc = additional_data.send_as_document
+
+    if isinstance(raw_files, str):
+        raw_files = [raw_files]
+
+    media_items = [
+        MediaItem(item=el, type=get_file_type(el), as_doc=as_doc)
+        for el in raw_files
+    ]
+
+    normalized_media = await normalize_files(media_items)
 
     try:
-        if len(normalized_l) == 1:
-            message = await _send_single_media(context, normalized_l[0], data_model.text, kwargs, as_doc)
+        if len(normalized_media) == 1:
+            ftype, input_media = normalized_media[0]
+            result_message = await _send_single_media(
+                context=context,
+                item=(ftype, input_media),
+                caption=data_model.text,
+                kwargs=kwargs,
+                as_doc=as_doc
+            )
         else:
-            message = await _send_media_group(context, normalized_l, data_model.text, kwargs)
-
+            result_message = await _send_media_group(
+                context=context,
+                items=normalized_media,
+                caption=data_model.text,
+                local_kwargs=kwargs
+            )
     finally:
-        if d_media.delete_after_sending:
-            for file_path in d:
-                if isinstance(file_path, str) and os.path.exists(file_path):
-                    try:
-                        os.remove(file_path)
-                        log.info(f"File rimosso: {file_path}")
-                    except Exception as e:
-                        log.warning(f"Impossibile rimuovere file {file_path}: {e}")
-        return message
+        if additional_data.delete_after_sending:
+            await asyncio.gather(*(async_remove_file(f) for f in raw_files if isinstance(f, str)))
+
+    return result_message
 
 
 async def _send_single_media(
@@ -169,38 +194,44 @@ async def _send_single_media(
         item: tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia],
         caption: str,
         kwargs: Dict[str, Any],
-        force_doc: bool
+        as_doc: bool
 ):
     ftype, input_file = item
     media = input_file.media
 
-    if force_doc or ftype == "document":
-        return await context.bot.send_document(document=media, caption=caption, **kwargs)
+    local_kwargs = kwargs.copy()
+    local_kwargs['caption'] = caption
 
-    match ftype:
-        case "photo":
-            return await context.bot.send_photo(photo=media, caption=caption, **kwargs)
-        case "audio":
-            return await context.bot.send_audio(audio=media, caption=caption, **kwargs)
-        case "video":
-            return await context.bot.send_video(video=media, caption=caption, **kwargs)
-        case _:
-            return await context.bot.send_animation(animation=media, caption=caption, **kwargs)
+    if as_doc or ftype == "document":
+        return await context.bot.send_document(document=media, **local_kwargs)
+
+    method_map = {
+        "photo": context.bot.send_photo,
+        "audio": context.bot.send_audio,
+        "video": context.bot.send_video,
+        "gif": context.bot.send_animation,
+    }
+
+    method = method_map.get(ftype, context.bot.send_document)
+    param_name = ftype if ftype in ["photo", "audio", "video"] else ("animation" if ftype == "gif" else "document")
+
+    local_kwargs[param_name] = media
+    return await method(**local_kwargs)
 
 
 async def _send_media_group(
         context: CustomContext,
         items: list[tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]],
         caption: str,
-        kwargs: Dict[str, Any]
+        local_kwargs: Dict[str, Any]
 ):
-    kwargs.pop("reply_markup", None)
+    local_kwargs.pop("reply_markup", None)
 
     media_list = [el[1].media for el in items]
 
-    messages = await context.bot.send_media_group(media=media_list, caption=caption, **kwargs)
+    messages = await context.bot.send_media_group(media=media_list, caption=caption, **local_kwargs)
 
-    return messages[0] if isinstance(messages, (list, set, tuple, dict)) else messages
+    return messages[0]  # send_media_group ritorna sempre una tupla
 
 
 # ========== JOB: EDIT ==========
@@ -224,11 +255,16 @@ async def scheduled_edit_message(context: CustomContext):
             message_id=message_id,
             text=text,
             reply_markup=reply_markup,
-            parse_mode="HTML"
+            parse_mode=ParseMode.HTML
         )
-        log.info(f"✏️ Messaggio modificato in {chat_id}")
+        log.info(f"Messaggio modificato in {chat_id}")
+    except telegram.error.BadRequest as e:
+        if "Message is not modified" in str(e):
+            log.info(f"Messaggio {message_id} non modificato (contenuto identico).")
+        else:
+            log.error(f"Errore BadRequest edit: {e}")
     except telegram.error.TelegramError as e:
-        log.error(f"❌ Errore durante la modifica del messaggio: {e}")
+        log.error(f"Errore durante la modifica del messaggio: {e}")
 
 
 async def send_temporary_message(
@@ -297,11 +333,14 @@ async def scheduled_remove_request_cooldown(context: CustomContext):
 
     context.remove_user_request_cooldown(user_id=int(data["user_id"]))
 
+
 # ========== JOB: LIMITATIONS ==========
+
 
 class RemoveLimitJobData(TypedDict):
     user_id: int
     section: str  # es. "windows:game"
+
 
 async def scheduled_remove_user_request_section_limitation(context: CustomContext):
     """Esegue la rimozione programmata di una limitazione sulle richieste (utente e sezione indicati)"""
@@ -318,7 +357,11 @@ async def scheduled_remove_user_request_section_limitation(context: CustomContex
 
 async def scheduled_section_opening_check_for_user_notification(context: CustomContext):
     section = context.job.data["section"]
-    pl, ca = section.split(":")
+    try:
+        pl, ca = section.split(":")
+    except ValueError:
+        log.error(f"Formato sezione non valido: {section}")
+        return
+
     if context.is_request_section_open(platform=pl, category=ca):
         await send_opening_notifications(context=context, section=section)
-    return

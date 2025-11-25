@@ -57,11 +57,11 @@ async def set_application_data(application: Application):
         user_joined_message_text = text.get("user_joined_message_text")
         rules_text = text.get("rules_text")
         if (not current_bot_data.user_joined_message_text or
-            current_bot_data.user_joined_message_text != user_joined_message_text):
+                current_bot_data.user_joined_message_text != user_joined_message_text):
             current_bot_data.user_joined_message_text = user_joined_message_text
 
         if (not current_bot_data.rules_text or
-            current_bot_data.rules_text != rules_text):
+                current_bot_data.rules_text != rules_text):
             current_bot_data.rules_text = rules_text
 
         json_commands = await get_data_from_json("commands")
