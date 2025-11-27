@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Union, Literal, NamedTuple, cast, Type, Tuple
+from typing import Optional, List, Union, Literal, NamedTuple, cast, Type, Tuple, Dict
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
@@ -132,46 +132,35 @@ class Panel:
         text = self.build_text()
         reply_markup = InlineKeyboardMarkup(self.build_keyboard())
         preview_options = LinkPreviewOptions(is_disabled=True)
-        if self.send or send or user_id:
+
+        target_chat_id = user_id or update.effective_chat.id
+        should_send_new = self.send or send or user_id is not None
+
+        if should_send_new:
             try:
                 await context.bot.send_message(
-                    chat_id=user_id or update.effective_chat.id,
+                    chat_id=target_chat_id,
                     text=text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML,
                     link_preview_options=preview_options
                 )
             except Forbidden:
-                log.warning("Cannot perform send massage action: "
-                            f"user {user_id or update.effective_chat.id} blocked the bot")
-        else:
-            # Se modifico un messaggio esistente, non ho bisogno dello user ID
-            if html.unescape(update.effective_message.text_html_urled) != text:
-                if message_id:
-                    try:
-                        await context.bot.edit_message_text(
-                            chat_id=update.effective_chat.id,
-                            message_id=message_id,
-                            text=text,
-                            reply_markup=reply_markup,
-                            parse_mode=ParseMode.HTML,
-                            link_preview_options=preview_options
-                        )
-                        return
-                    except BadRequest:
-                        pass
+                log.warning(f"Cannot perform send massage action: user {target_chat_id} blocked the bot")
+            except TelegramError as e:
+                log.error(f"Error sending panel to {target_chat_id}: {e}")
+            return
 
-                try:
-                    await update.effective_message.edit_text(
-                        text=text,
-                        reply_markup=reply_markup,
-                        parse_mode=ParseMode.HTML,
-                        link_preview_options=preview_options
-                    )
-                    return
-                except BadRequest:
-                    pass
+        text_changed = html.unescape(update.effective_message.text_html_urled) != text
 
+        if text_changed:
+            success = await self._try_edit_text(
+                context, update, text, reply_markup, preview_options, message_id
+            )
+            if success:
+                return
+
+            try:
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=text,
@@ -179,29 +168,68 @@ class Panel:
                     parse_mode=ParseMode.HTML,
                     link_preview_options=preview_options
                 )
-            try:
-                await context.bot.edit_message_reply_markup(
-                    message_id=message_id or update.effective_message.message_id,
-                    chat_id=update.effective_chat.id,
-                    reply_markup=reply_markup
-                )
+                return
             except TelegramError:
                 pass
 
+        try:
+            await context.bot.edit_message_reply_markup(
+                message_id=message_id or update.effective_message.message_id,
+                chat_id=update.effective_chat.id,
+                reply_markup=reply_markup
+            )
+        except TelegramError:
+            pass
 
-def _iter_category_enums_for_platform(p: Platform) -> Tuple[Type[Enum]]:
-    if p is Platform.WINDOWS:
-        return (WindowsCategory,)
-    if p is Platform.ANDROID:
-        return (AndroidCategory,)
-    if p is Platform.IOS:
-        return (IOSCategory,)
-    else:  # p is Platform.MACOS
-        return (MacOSCategory,)
+    async def _try_edit_text(
+            self,
+            context: CustomContext,
+            update: Update,
+            text: str,
+            reply_markup: InlineKeyboardMarkup,
+            preview_options: LinkPreviewOptions,
+            message_id: int = None
+    ) -> bool:
+        """Tenta di modificare il testo del messaggio. Restituisce True se ha successo."""
+        # Prova con message_id specifico
+        if message_id:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=message_id,
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=preview_options
+                )
+                return True
+            except BadRequest:
+                pass
 
+        # Prova con il messaggio corrente
+        try:
+            await update.effective_message.edit_text(
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML,
+                link_preview_options=preview_options
+            )
+            return True
+        except BadRequest:
+            pass
+
+        return False
+
+
+_PLATFORM_CATEGORY_MAP: Dict[Platform, Tuple[Type[Enum], ...]] = {
+    Platform.WINDOWS: (WindowsCategory,),
+    Platform.ANDROID: (AndroidCategory,),
+    Platform.IOS: (IOSCategory,),
+    Platform.MACOS: (MacOSCategory,)
+}
 
 def _parse_category(value: str, platform: Platform) -> Category:
-    for enum_cls in _iter_category_enums_for_platform(platform):
+    for enum_cls in _PLATFORM_CATEGORY_MAP.get(platform):
         try:
             return cast(Category, enum_cls(value))
         except ValueError:
