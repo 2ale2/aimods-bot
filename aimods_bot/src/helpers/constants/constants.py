@@ -288,3 +288,14 @@ REQUEST_REJECTION_REASONS = {
     "already_available": "Già disponibile sul canale",
     "unclear": "Richiesta non chiara"
 }
+
+DATETIME_FORMAT = "%d %b %Y alle %H:%M:%S"
+
+EMOJI_HOURGLASS = "⏳"
+EMOJI_WARNING = "⚠️"
+EMOJI_CHECKMARK = "✔"
+EMOJI_QUESTION_RED = "❓"
+EMOJI_ESCLAMATION_RED = "❗"
+EMOJI_DOT_BLUE = "🔹"
+EMOJI_DOT_ORANGE = "🔸"
+

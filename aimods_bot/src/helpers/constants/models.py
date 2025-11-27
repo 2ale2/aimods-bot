@@ -228,6 +228,7 @@ _PLATFORM_CATEGORY_MAP: Dict[Platform, Tuple[Type[Enum], ...]] = {
     Platform.MACOS: (MacOSCategory,)
 }
 
+
 def _parse_category(value: str, platform: Platform) -> Category:
     for enum_cls in _PLATFORM_CATEGORY_MAP.get(platform):
         try:
@@ -235,3 +236,6 @@ def _parse_category(value: str, platform: Platform) -> Category:
         except ValueError:
             continue
     raise ValueError(f"category='{value}' non valida per platform='{platform.value}'")
+
+
+BACK_BUTTON = ButtonItem(text="🔙 Indietro", callback_key=None)
