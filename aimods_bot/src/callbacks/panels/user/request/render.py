@@ -32,7 +32,8 @@ async def render_user_has_cooldown_panel(
 def _get_user_has_cooldown_panel_text(cooldown_end: str, cooldown_text: str):
     return (
         f"{EMOJI_HOURGLASS} <b>Hai già formulato una richiesta.</b>\n\n"
-        f"<blockquote>{EMOJI_CHECKMARK} Dopo ogni richiesta, ciascun utente deve attendere {cooldown_text}.</blockquote>\n\n"
+        f"<blockquote>{EMOJI_CHECKMARK} Dopo ogni richiesta, ciascun utente deve attendere "
+        f"{cooldown_text}.</blockquote>\n\n"
         f"{EMOJI_DOT_ORANGE} <b>Termine Cooldown</b> — <i>{cooldown_end}</i>"
     )
 
