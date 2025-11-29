@@ -3,16 +3,16 @@ settings:
     android:
       app:
         toggle: false
-        limit: 7
+        limit: null
     windows:
       software:
-        toggle: false
-        limit: 7
+        toggle: true
+        limit: 3
       game:
         toggle: true
         limit: 8
       adobe:
-        toggle: false
+        toggle: true
         limit: 3
       daw:
         toggle: false

@@ -9,6 +9,7 @@ logs/
 aimods_bot/misc/logs
 aimods_bot/misc/quick.py
 aimods_bot/misc/NOTE.txt
+aimods_bot/misc/BotConfigurationStructure.bak
 aimods_bot/.env
 aimods_bot/untitled/.idea
 untitled/Writerside/.idea
