@@ -124,6 +124,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
         log.info(f"Not sending recap for {', '.join(not_sending)} since I have no posts this time.")
 
     recap_topics = (await get_data_from_json("forum_topics"))["recap"]
+    sticker_id = None
 
     for el in recap_topics:
         if recap_topics[el]["name"] in not_sending:
@@ -152,11 +153,14 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
                 parse_mode="HTML"
             )
 
-            await context.bot.send_sticker(
+            sticker_message = await context.bot.send_sticker(
                 chat_id=bot_data.group_chat_id,
                 message_thread_id=int(recap_topics[el]["id"]),
-                sticker="aimods_bot/misc/images/official_stickers/sticker.webp"
+                sticker=sticker_id or "aimods_bot/misc/images/official_stickers/sticker.webp"
             )
+
+            if not sticker_id:
+                sticker_id = sticker_message.sticker.file_id
 
     # noinspection SqlWithoutWhere
     query = "DELETE FROM recap_posts"
