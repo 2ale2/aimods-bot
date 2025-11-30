@@ -137,157 +137,110 @@ async def admin_manage_request_route(
         await render_request_deleted_panel(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
 
-    if len(context.get_active_category_requests(platform=request.platform, category=request.category)) == 1:
-        back_button_callback_key = "admin/manage_requests/active_requests"
-    else:
-        back_button_callback_key = None
-
-    if len(path) == 0:
-        # expected: (<platform>/<category>/<id>)
-        await render_admin_manage_request_panel(
-            update=update,
-            context=context,
-            ix=ix,
-            request=request,
-            back_button_callback_key=back_button_callback_key
-        )
-
-    elif len(path) == 1:
-        if path[0] in RequestStatus and RequestStatus(path[0]) is not RequestStatus.REJECTED:
-            if not request.is_active:
-                await render_request_inactive_panel(update=update, context=context)
-                return PCS.ADMIN_CONVERSATION
-
-            # expected: (<platform>/<category>/<id>)/<new_status>
-            await render_change_request_status_confirmation_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request,
-                status=RequestStatus(path[-1])
-            )
-
-        elif path[0].startswith("limit"):
-            # expected: (<platform>/<category>/<id>)/limit_<user_id>
-            return await route_admin_limit_user_request(
-                update=update,
-                context=context,
-                path=path[1:],
-                user_id=int(path[0].split("_")[-1])
-            )
-
-        elif path[0] == "remove":
-            # expected: (<platform>/<category>/<id>)/remove
-            await render_admin_manage_request_remove_confirmation_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request
-            )
-
-        elif path[0] == "change_status":
-            if not request.is_active:
-                await render_request_inactive_panel(update=update, context=context)
-                return PCS.ADMIN_CONVERSATION
-
-            await render_admin_manage_request_change_status_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request
-            )
-
-        elif path[0] == "reject":
-            if not request.is_active:
-                await render_request_inactive_panel(update=update, context=context)
-                return PCS.ADMIN_CONVERSATION
-            context.pydc.ephemeral.rejecting = request
-            context.pydc.persistent.bot_message_id = update.effective_message.id
-            await render_admin_reject_request_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request
-            )
-            return PCS.SET_REQUEST_REJECTION_REASON
-
-    elif len(path) == 2:
-        if path[-2] in RequestStatus and path[-1] == "yes":
-            if not request.is_active:
-                await render_request_inactive_panel(update=update, context=context)
-                return PCS.ADMIN_CONVERSATION
-
-            # expected: (<platform>/<category>/<id>)/<new_status>/yes
-            status = RequestStatus(path[-2])
-            await context.edit_request_status(ix=ix, status=status)
-            request = context.get_active_request_by_id(ix=ix)
-
-            await render_request_status_changed_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request
-            )
-
-            user = update.effective_user
-            if (not await user_is_banned(context=context, user_id=user.username or user.id) and
-                    request.status_change_notifications and status == RequestStatus.COMPLETED):
-                # Notifico l'utente
-                await send_user_request_status_changed_notification(
-                    update=update,
-                    context=context,
-                    user_id=request.user_id,
-                    request=request
-                )
-
-        elif path[-2] == "remove" and path[-1] == "yes":
-            # expected: (<platform>/<category>/<id>)/remove/yes
-            context.remove_from_active_requests(ix=ix)
-            await render_admin_manage_request_removed_panel(
-                update=update,
-                context=context,
-                ix=ix
-            )
-
-        elif path[-2] == "reject" and path[-1] in RejectRequestReason:
-            if not request.is_active:
-                await render_request_inactive_panel(update=update, context=context)
-                return PCS.ADMIN_CONVERSATION
-
-            await render_admin_confirm_rejection_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request,
-                reason=path[-1]
-            )
-
-    elif len(path) == 3:
+    async def ensure_active():
         if not request.is_active:
             await render_request_inactive_panel(update=update, context=context)
-            return PCS.ADMIN_CONVERSATION
+            return False
+        return True
 
-        if path[-3] == "reject" and path[-1] == "yes":
-            await confirm_rejection(context, ix=ix, reason=path[-2])
-            await render_admin_rejection_confirmed_panel(
-                update=update,
-                context=context,
-                ix=ix,
-                request=request,
-                reason=path[-2]
+    match path:
+        case []:
+            siblings = context.get_active_category_requests(platform=request.platform, category=request.category)
+            back_key = "admin/manage_requests/active_requests" if len(siblings) == 1 else None
+
+            await render_admin_manage_request_panel(
+                update=update, context=context, ix=ix, request=request,
+                back_button_callback_key=back_key
             )
 
-            user = update.effective_user
-            if not await user_is_banned(
-                    context=context,
-                    user_id=user.username or user.id
-            ) and request.status_change_notifications:
-                # Notifico l'utente
-                await send_user_request_status_changed_notification(
-                    update=update,
-                    context=context,
-                    user_id=request.user_id,
-                    request=request
+        # --- LIMITI UTENTE ---
+        case [limit_str, *rest] if limit_str.startswith("limit"):
+            try:
+                user_id = int(limit_str.split("_")[-1])
+                return await route_admin_limit_user_request(
+                    update=update, context=context, path=rest, user_id=user_id
+                )
+            except ValueError:
+                log.error(f"Invalid limit path: {limit_str}")
+
+        # --- REMOVE ---
+        case ["remove"]:
+            await render_admin_manage_request_remove_confirmation_panel(update, context, ix, request)
+
+        case ["remove", "yes"]:
+            context.remove_from_active_requests(ix=ix)
+            await render_admin_manage_request_removed_panel(update, context, ix)
+
+        # --- CHANGE STATUS ---
+        case ["change_status"]:
+            if await ensure_active():
+                await render_admin_manage_request_change_status_panel(update, context, ix, request)
+
+        # Conferma cambio stato
+        case [status_str] if status_str in RequestStatus and RequestStatus(status_str) is not RequestStatus.REJECTED:
+            if await ensure_active():
+                await render_change_request_status_confirmation_panel(
+                    update, context, ix, request, status=RequestStatus(status_str)
                 )
 
+        # Esecuzione cambio stato (es: "COMPLETED/yes")
+        case [status_str, "yes"] if status_str in RequestStatus:
+            if await ensure_active():
+                new_status = RequestStatus(status_str)
+                await context.edit_request_status(ix=ix, status=new_status)
+
+                updated_request = context.get_active_request_by_id(ix=ix)
+                await render_request_status_changed_panel(update, context, ix, request=updated_request)
+
+                if new_status == RequestStatus.COMPLETED:
+                    await _notify_user_safe(update, context, updated_request)
+
+        # --- REJECT ---
+        case ["reject"]:
+            if await ensure_active():
+                context.pydc.ephemeral.rejecting = request
+                context.pydc.persistent.bot_message_id = update.effective_message.id
+                await render_admin_reject_request_panel(
+                    update=update,
+                    context=context,
+                    ix=ix,
+                    request=request
+                )
+                return PCS.SET_REQUEST_REJECTION_REASON
+
+        case ["reject", reason_str] if reason_str in RejectRequestReason:
+            if await ensure_active():
+                await render_admin_confirm_rejection_panel(
+                    update, context, ix, request, reason=reason_str
+                )
+
+        case ["reject", reason_str, "yes"]:
+            if await ensure_active():
+                await confirm_rejection(context, ix=ix, reason=path[-2])
+                await render_admin_rejection_confirmed_panel(
+                    update=update,
+                    context=context,
+                    ix=ix,
+                    request=request,
+                    reason=path[-2]
+                )
+                await _notify_user_safe(update, context, request)
+
+        case _:
+            log.warning(f"Unhandled path in manage_request: {path}")
+
     return PCS.ADMIN_CONVERSATION
+
+
+async def _notify_user_safe(update: Update, context: CustomContext, request):
+    """Gestisce l'invio della notifica controllando ban e preferenze utente."""
+    user = update.effective_user
+    is_banned = await user_is_banned(context=context, user_id=user.username or user.id)
+
+    if not is_banned and request.status_change_notifications:
+        await send_user_request_status_changed_notification(
+            update=update,
+            context=context,
+            user_id=request.user_id,
+            request=request
+        )
