@@ -28,32 +28,54 @@ log = logger.getChild(__name__)
 
 
 async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_admin_request_management_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+    match path:
+        case []:
+            await render_admin_request_management_panel(update=update, context=context)
+            return PCS.ADMIN_CONVERSATION
 
-    match path[0]:
-        case "active_requests":
-            return await admin_active_requests_management_route(update=update, context=context, path=path[1:])
-        case "manage_sections":
-            return await admin_request_section_configure_route(update=update, context=context, path=path[1:])
-        case "manage_limitations":
-            if len(path) == 1:
-                context.free_base_path()
-                context.pydc.persistent.limiting_user_requests = None
-            return await route_admin_manage_limitations(update=update, context=context, path=path[1:])
-        case "user_requests_archive":
+        case ["active_requests", *rest]:
+            return await admin_active_requests_management_route(update=update, context=context, path=rest)
+
+        case ["manage_sections", *rest]:
+            return await admin_request_section_configure_route(update=update, context=context, path=rest)
+
+        case ["manage_limitations"]:
+            context.free_base_path()
+            context.pydc.persistent.limiting_user_requests = None
+            return await route_admin_manage_limitations(update=update, context=context, path=[])
+
+        case ["manage_limitations", *rest]:
+            return await route_admin_manage_limitations(update=update, context=context, path=rest)
+
+        case ["user_requests_archive"]:
             await render_admin_user_requests_archive_panel(update=update, context=context)
             return PCS.SET_USER_FOR_REQUEST_ARCHIVE
-        case "last_10":
-            if len(path) == 1:
-                await render_last_ten_requests_platform_panel(update=update, context=context)
-            elif len(path) == 2:
-                await render_last_ten_requests_category_panel(update=update, context=context, pl=Platform(path[-1]))
-            else:  # len(path) == 3
-                pl = Platform(path[-2])
-                cats = get_platform_categories(platform=pl)
-                await render_last_ten_requests_section_panel(update=update, context=context, pl=pl, ca=cats(path[-1]))
+
+        case ["last_10"]:
+            await render_last_ten_requests_platform_panel(update=update, context=context)
+            return PCS.ADMIN_CONVERSATION
+
+        case ["last_10", platform_str]:
+            await render_last_ten_requests_category_panel(
+                update=update,
+                context=context,
+                pl=Platform(platform_str)
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case ["last_10", platform_str, category_str]:
+            pl = Platform(platform_str)
+            cats = get_platform_categories(platform=pl)
+            await render_last_ten_requests_section_panel(
+                update=update,
+                context=context,
+                pl=pl,
+                ca=cats(category_str)
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case _:
+            log.warning(f"Unhandled path in admin_requests_management: {path}")
             return PCS.ADMIN_CONVERSATION
 
 
@@ -63,31 +85,43 @@ async def admin_active_requests_management_route(update: Update, context: Custom
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
 
-    if len(path) == 0:
-        await render_admin_active_requests_management_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+    match path:
+        case []:
+            await render_admin_active_requests_management_panel(update=update, context=context)
 
-    if len(path) == 1:
-        await render_admin_active_requests_category_selector_panel(
-            update=update,
-            context=context,
-            platform=Platform(path[0])
-        )
-        return PCS.ADMIN_CONVERSATION
+        case [platform_str]:
+            await render_admin_active_requests_category_selector_panel(
+                update=update,
+                context=context,
+                platform=Platform(platform_str)
+            )
 
-    if len(path) == 2:
-        platform = Platform(path[0])
-        await render_admin_active_requests_category_panel(
-            update=update,
-            context=context,
-            platform=platform,
-            category=get_platform_categories(platform=platform)(path[1])
-        )
-        return PCS.ADMIN_CONVERSATION
+        case [platform_str, category_str]:
+            platform = Platform(platform_str)
+            cat_enum = get_platform_categories(platform=platform)
 
-    if len(path) >= 3:
-        # expected: <platform>/<category>/<id>/...
-        return await admin_manage_request_route(update=update, context=context, path=path[3:], ix=int(path[2]))
+            await render_admin_active_requests_category_panel(
+                update=update,
+                context=context,
+                platform=platform,
+                category=cat_enum(category_str)
+            )
+
+        case [_, _, request_id_str, *rest]:
+            if request_id_str.isdigit():
+                return await admin_manage_request_route(
+                    update=update,
+                    context=context,
+                    path=rest,
+                    ix=int(request_id_str)
+                )
+            else:
+                log.warning(f"Invalid request ID received: {request_id_str}")
+
+        case _:
+            log.warning(f"Unhandled path structure in active requests: {path}")
+
+    return PCS.ADMIN_CONVERSATION
 
 
 async def admin_manage_request_route(
