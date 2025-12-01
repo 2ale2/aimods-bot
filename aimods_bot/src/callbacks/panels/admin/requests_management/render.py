@@ -12,10 +12,14 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
                                                         get_platform_categories, get_last_n_requests)
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, create_and_render_panel
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 log = logger.getChild("admin_requests_management_render")
+
+
+def _get_header():
+    return "❔ <b>Gestione Richieste</b>"
 
 
 async def render_admin_request_management_panel(update: Update, context: CustomContext):
@@ -51,17 +55,12 @@ def _get_admin_request_management_text():
 async def render_admin_active_requests_management_panel(update: Update, context: CustomContext):
     text = _get_admin_request_management_text()
 
-    keyboard = [[]]
-    for el in PLATFORM_DETAILS:
-        item = PLATFORM_DETAILS[el]
-        icon = item["icon"]
-        label = item["label"]
+    buttons = [
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        for key, d in PLATFORM_DETAILS.items()
+    ]
 
-        if len(keyboard[-1]) == 2:
-            keyboard.append([])
-
-        keyboard[-1].append(ButtonItem(text=f"{icon} {label}", callback_key=el))
-
+    keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
@@ -74,10 +73,11 @@ async def render_admin_active_requests_management_panel(update: Update, context:
 
 
 def _get_admin_active_requests_management_text():
-    text = (f"{_get_header()}\n\n"
-            "→ 📕 <i>Richieste Attive</i>\n\n"
-            "🔹 Scegli una piattaforma.")
-    return text
+    return (
+        f"{_get_header()}\n\n"
+        "→ 📕 <i>Richieste Attive</i>\n\n"
+        "🔹 Scegli una piattaforma."
+    )
 
 
 async def render_admin_active_requests_category_selector_panel(
@@ -102,17 +102,12 @@ async def render_admin_active_requests_category_selector_panel(
             category=category
         )
 
-    keyboard = [[]]
-    for el in categories:
-        category = categories[el]
-        icon = category["icon"]
-        label = category["label"]
+    buttons = [
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        for key, d in categories.items()
+    ]
 
-        if len(keyboard[-1]) == 2:
-            keyboard.append([])
-
-        keyboard[-1].append(ButtonItem(text=f"{icon} {label}", callback_key=el))
-
+    keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
@@ -125,10 +120,11 @@ async def render_admin_active_requests_category_selector_panel(
 
 
 def _get_admin_active_requests_category_text(platform: Platform):
-    text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {PLATFORM_DETAILS[platform.value]['label']}</i>\n\n"
-            "🔹 Scegli una categoria.")
-    return text
+    return (
+        f"{_get_header()}\n\n"
+        f"→ 📕 <i>Richieste Attive {PLATFORM_DETAILS[platform.value]['label']}</i>\n\n"
+        "🔹 Scegli una categoria."
+    )
 
 
 async def render_admin_active_requests_category_panel(
@@ -159,18 +155,16 @@ async def render_admin_active_requests_category_panel(
 
     text = _get_active_requests_category_text(context=context, platform=platform, category=category, requests=requests)
 
-    section_management_button = ButtonItem(
-        text="⏯ Gestisci Sezione",
-        callback_key=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
-        override_path_generation=True
-    )
+    keyboard = [[
+        ButtonItem(
+            text="⏯ Gestisci Sezione",
+            callback_key=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
+            override_path_generation=True
+        )
+    ]]
 
-    keyboard = [[section_management_button], []]
-    for n, ix in enumerate(requests):
-        request = requests[ix]
-        if len(keyboard[-1]) == 2:
-            keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{n + 1}", callback_key=request.id))
+    req_buttons = [ButtonItem(text=f"{i + 1}", callback_key=req.id) for i, req in enumerate(requests.values())]
+    keyboard.extend(chunk_buttons(req_buttons, 2))
 
     back_button = ButtonItem(
         text="🔙 Indietro",
@@ -533,10 +527,6 @@ def _get_admin_manage_request_removed_text():
     return text
 
 
-def _get_header():
-    return "❔ <b>Gestione Richieste</b>"
-
-
 async def render_admin_manage_request_change_status_panel(
         update: Update,
         context: CustomContext,
@@ -745,10 +735,11 @@ async def render_admin_user_requests_archive_panel(update: Update, context: Cust
 
 
 def _get_admin_user_requests_archive_():
-    text = ("📕 <b>Archivio Richieste Utente</b>\n\n"
-            "▫ Da qui puoi visionare l'archivio delle richieste di un utente.\n\n"
-            "🔹 Fornisci un ID o uno username.")
-    return text
+    return (
+        "📕 <b>Archivio Richieste Utente</b>\n\n"
+        "▫ Da qui puoi visionare l'archivio delle richieste di un utente.\n\n"
+        "🔹 Fornisci un ID o uno username."
+    )
 
 
 async def send_user_request_status_changed_notification(
@@ -793,12 +784,11 @@ def _get_user_request_status_changed_notification_text(request: Request):
 async def render_last_ten_requests_platform_panel(update: Update, context: CustomContext):
     text = _get_last_ten_requests_platform_text()
 
-    keyboard = [[]]
-    for pl in PLATFORM_DETAILS:
-        item = PLATFORM_DETAILS[pl]
-        if len(keyboard[-1]) >= 2:
-            keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=pl))
+    buttons = [
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        for key, d in PLATFORM_DETAILS.items()
+    ]
+    keyboard = chunk_buttons(buttons, 2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
@@ -826,12 +816,11 @@ async def render_last_ten_requests_category_panel(update: Update, context: Custo
 
     text = _get_last_ten_requests_category_text(pl=pl)
 
-    keyboard = [[]]
-    for ca in CATEGORY_DETAILS[pl.value]:
-        item = CATEGORY_DETAILS[pl.value][ca]
-        if len(keyboard[-1]) >= 2:
-            keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=ca))
+    buttons = [
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        for key, d in CATEGORY_DETAILS[pl.value].items()
+    ]
+    keyboard = chunk_buttons(buttons, 2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(

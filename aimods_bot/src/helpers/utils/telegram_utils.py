@@ -239,6 +239,11 @@ def get_toggle_text(b: bool) -> str:
     return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
 
 
+def chunk_buttons(buttons: list[ButtonItem], size: int = 2) -> list[list[ButtonItem]]:
+    """Divide una lista piatta di bottoni in righe della dimensione specificata."""
+    return [buttons[i:i + size] for i in range(0, len(buttons), size)]
+
+
 def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]) -> Dict[str, bool]:
     """
     Converte un oggetto permissions in dizionario.
