@@ -11,11 +11,11 @@ from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, is_user_id, \
-    add_fucking_at, username_to_id, resolve_user, create_and_render_panel, wrong_input_message, chunk_buttons
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, username_to_id, create_and_render_panel, \
+    wrong_input_message, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, format_time_as_rome
 from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
-from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
 
