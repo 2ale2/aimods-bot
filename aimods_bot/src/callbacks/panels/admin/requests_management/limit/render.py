@@ -12,8 +12,8 @@ from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGOR
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, is_user_id, \
-    add_fucking_at, username_to_id, resolve_user, create_and_render_panel, wrong_input_message
-from aimods_bot.src.helpers.utils.time_utils import get_duration_text
+    add_fucking_at, username_to_id, resolve_user, create_and_render_panel, wrong_input_message, chunk_buttons
+from aimods_bot.src.helpers.utils.time_utils import get_duration_text, format_time_as_rome
 from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
 from aimods_bot.src.helpers.loggers import logger
 
@@ -92,30 +92,17 @@ async def render_admin_limit_user_panel(
         update: Update,
         context: CustomContext,
         user_id: Union[int, str],
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
         back_button_callback_key: Optional[str] = None
 ):
-    user_responses = context.pydc.ephemeral.resolved_users
-    user_response = user_responses.get(str(user_id), None)
+    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
 
-    if not user_response:
-        user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response
-
-    if limiting_user := context.pydc.persistent.limiting_user_requests.user_id:
-        user_id = limiting_user
-    else:
-        if not is_user_id(str(user_id)):
-            if user_response["status"] == "success":
-                user = user_response["user"]
-                assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
-                user_id = user.id
+    item = context.pydc.persistent.limiting_user_requests
+    if not item or item.user_id != final_user_id:
         set_user_requests_limiting_item(context=context)
-        context.pydc.persistent.limiting_user_requests.user_id = int(user_id)
+        context.pydc.persistent.limiting_user_requests.user_id = final_user_id
 
-    if isinstance(user_response, dict):
-        user_response = user_response["user"]
-
-    text = await _get_admin_limit_user_text(user=user_response, user_id=user_id, context=context)
+    text = await _get_admin_limit_user_text(user=pre_resolved_user, user_id=final_user_id, context=context)
 
     keyboard = [
         [
@@ -124,34 +111,28 @@ async def render_admin_limit_user_panel(
         ],
         [
             ButtonItem(text="✅ Conferma", callback_key="confirm"),
-            ButtonItem(
-                text="🔙 Annulla",
-                callback_key=back_button_callback_key,
-                override_path_generation=back_button_callback_key is not None
-            )
+            ButtonItem(text="🔙 Annulla", callback_key=back_button_callback_key,
+                       override_path_generation=bool(back_button_callback_key))
         ]
     ]
 
-    if context.get_user_request_limitations(user_id=user_id):
+    if context.get_user_request_limitations(user_id=int(user_id)):
         keyboard.insert(0, [ButtonItem(text="👁‍🗨 Visiona Limitazioni", callback_key="info")])
 
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
     await create_and_render_panel(
-        update=update,
-        context=context,
+        update=update, context=context,
         base_path=BASE_LIMIT_PATH.format(user_id),
-        text=text,
-        keyboard=keyboard,
-        message_id=message_id
+        text=text, keyboard=keyboard, message_id=message_id
     )
 
 
 async def _get_header(
         context: CustomContext,
-        user: Optional[Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]],
-        user_id: int
+        user_id: int,
+        user: Optional[Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]] = None
 ):
     text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
             "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
@@ -207,35 +188,24 @@ async def _get_admin_limit_user_text(
 async def render_admin_limit_user_request_duration_panel(
         update: Update,
         context: CustomContext,
-        user_id: int
+        user_id: int,
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
     context.pydc.persistent.bot_message_id = update.effective_message.id
+    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
 
-    user_responses = context.pydc.ephemeral.resolved_users
-    user_response = user_responses.get(str(user_id), False)
-    if user_response is False:  # User has not been resolved yet
-        user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response
-
-    user = user_response["user"]
-
-    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
-
-    text = await _get_admin_limit_user_request_duration_text(
-        context=context,
-        member=user,
-        user_id=user_id
-    )
+    text = await _get_header(context=context, user=pre_resolved_user, user_id=final_user_id)
+    text += ("\n🔹 Indica la durata della limitazione.\n\n"
+             "<blockquote><b>Esempio</b> – <i>100 giorni 24 ore 1 minuto 1 secondo</i></blockquote>")
 
     await create_and_render_panel(
-        update=update,
-        context=context,
-        base_path=BASE_LIMIT_PATH.format(user_id) + "/duration",
+        update=update, context=context,
+        base_path=f"{BASE_LIMIT_PATH.format(user_id)}/duration",
         text=text,
         keyboard=[
-                [ButtonItem(text="♾ A tempo indeterminato", callback_key="endless")],
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            [ButtonItem(text="♾ A tempo indeterminato", callback_key="endless")],
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
 
 
@@ -275,28 +245,22 @@ async def render_handled_request_limitation_duration_panel(
 async def render_admin_limit_user_request_sections_panel(
         update: Update,
         context: CustomContext,
-        user_id: int
+        user_id: int,
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
 ):
-    user_responses = context.pydc.ephemeral.resolved_users
-    user_response = user_responses.get(str(user_id), False)
-    if user_response is False:  # User has not been resolved yet
-        user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response
-
-    user = user_response["user"]
-    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
+    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
 
     text = await _get_admin_limit_user_request_sections_text(
         context=context,
-        user=user,
-        user_id=user_id
+        user=pre_resolved_user,
+        user_id=final_user_id
     )
     keyboard = _get_admin_limit_user_request_sections_keyboard(context=context)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.format(user_id) + "/sections",
+        base_path=BASE_LIMIT_PATH.format(final_user_id) + "/sections",
         text=text,
         keyboard=keyboard
     )
@@ -304,8 +268,8 @@ async def render_admin_limit_user_request_sections_panel(
 
 async def _get_admin_limit_user_request_sections_text(
         context: CustomContext,
-        user: Union[PyroChatMember, PTBChatMember, PTBUser, PyroUser],
-        user_id: int
+        user_id: int,
+        user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
     text = await _get_header(context=context, user=user, user_id=user_id)
 
@@ -315,67 +279,54 @@ async def _get_admin_limit_user_request_sections_text(
 
 
 def _get_admin_limit_user_request_sections_keyboard(context: CustomContext):
-    keyboard = [[]]
+    buttons = []
     for platform, categories in CATEGORY_DETAILS.items():
         pl_item = PLATFORM_DETAILS[platform]
-        pl_icon, pl_label = pl_item["icon"], pl_item["label"]
         for category in categories:
             ct_label = CATEGORY_DETAILS[platform][category]["label"]
-            if len(keyboard[-1]) >= 3:
-                keyboard.append([])
-            keyboard[-1].append(ButtonItem(
-                text=f"{pl_icon} – {ct_label}",
-                callback_key=f"{platform}-{category}")
-            )
+            buttons.append(ButtonItem(
+                text=f"{pl_item['icon']} – {ct_label}",
+                callback_key=f"{platform}-{category}"
+            ))
 
-    if all_sections_are(context=context, what=True):
-        all_button = ButtonItem(text="🆓 Sblocca Tutti", callback_key="unblock_all")
-    else:
-        all_button = ButtonItem(text="🚫 Blocca Tutti", callback_key="block_all")
+    keyboard = chunk_buttons(buttons, 3)
+
+    is_all_blocked = all_sections_are(context=context, what=True)
+    toggle_all_btn = ButtonItem(text="🆓 Sblocca Tutti" if is_all_blocked else "🚫 Blocca Tutti",
+                                callback_key="unblock_all" if is_all_blocked else "block_all")
 
     keyboard.extend([
-        [all_button],
+        [toggle_all_btn],
         [ButtonItem(text="🔙 Fine", callback_key=None)]
     ])
-
     return keyboard
 
 
 async def render_admin_user_limitation_reason_panel(
         update: Update,
         context: CustomContext,
-        user_id: int
+        user_id: int,
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ) -> bool:
     """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
-
     context.pydc.persistent.bot_message_id = update.effective_message.id
-
-    user_responses = context.pydc.ephemeral.resolved_users
-    user_response = user_responses.get(str(user_id), False)
-    if user_response is False:  # Member has not been resolved yet
-        user_response = await resolve_user(identifier=user_id)
-        user_responses[str(user_id)] = user_response
+    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
 
     all_sections_false = all_sections_are(context=context, what=False)
 
-    user = user_response["user"]
-    assert isinstance(user, (PTBChatMember, PyroChatMember, PTBUser, PyroUser))
-
     text = await _get_admin_user_limitation_reason_text(
         context=context,
-        member=user,
-        user_id=user_id,
+        member=pre_resolved_user,
+        user_id=final_user_id,
         all_sections_false=all_sections_false
     )
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.format(user_id) + "/reason",
+        base_path=BASE_LIMIT_PATH.format(final_user_id) + "/reason",
         text=text,
-        keyboard=[
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
     )
 
     return all_sections_false
@@ -383,8 +334,8 @@ async def render_admin_user_limitation_reason_panel(
 
 async def _get_admin_user_limitation_reason_text(
         context: CustomContext,
-        member: Union[PyroChatMember, PTBChatMember, PTBUser, PyroUser],
         user_id: int,
+        member: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
         all_sections_false: Optional[bool] = False
 ):
     text = await _get_header(context=context, user=member, user_id=user_id)
@@ -399,14 +350,15 @@ async def _get_admin_user_limitation_reason_text(
 
 async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
-
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
+
     await handle_limitation_confirmation(update=update, context=context)
 
     user_id = get_request_limiting_detail(context=context, what="user_id")
     duration = get_request_limiting_detail(context=context, what="duration")
     sections = get_request_limiting_detail(context=context, what="sections")
+
     text = _get_admin_user_limitation_confirmed_text(user_id=user_id, duration=duration, sections=sections)
 
     context.pydc.persistent.limiting_user_requests = None
@@ -479,44 +431,23 @@ async def _get_user_request_limitations_text(context: CustomContext, user_id: in
     else:
         for n, l in enumerate(limitations):
             pl, ca = l.section.split(":")  # es. section: "windows:software"
-            if l.until is not None:
-                until = l.until.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("%d %b %Y %H:%M:%S")
-            else:
-                until = "♾ A tempo indeterminato"
-
-            reasons_text = ""
-            for r in l.reasons:
-                reasons_text += f"            – {r}\n"
-
-            created_at = l.created_at.replace(
-                tzinfo=pytz.UTC
-            ).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
-
-            created_by = await username_to_id(username=l.created_by)
-
-            if l.updated_at:
-                updated_at = l.updated_at.replace(
-                    tzinfo=pytz.UTC
-                ).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
-                updated_by = await username_to_id(username=l.updated_by)
-            else:
-                updated_at = updated_by = None
+            until_str = l.until.strftime('%d %b %Y %H:%M:%S') if l.until else "♾ A tempo indeterminato"
+            reasons_str = "\n".join([f"            – {r}" for r in l.reasons]) or "<code>Not Provided</code>"
 
             pl_label = PLATFORM_DETAILS[pl]["label"]
             ca_label = CATEGORY_DETAILS[pl][ca]["label"]
 
-            text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
-                     f"        🔸 <u>Scadenza</u> – <i>{until}</i>\n"
-                     f"        🔸 <u>Motivazioni</u>\n"
-                     f"{f'<i>{reasons_text}</i>' if reasons_text else '<code>Not Provided</code>'}\n"
-                     f"        👤 <i>Aggiunta da "
-                     f"{add_fucking_at(created_by) if not is_user_id(created_by) else f'<code>{created_by}</code>'}"
-                     f" {created_at}</i>\n")
+            created_str = f"Aggiunta da {l.created_by} {format_time_as_rome(l.created_at)}"
 
-            if updated_at and updated_by:
-                text += ("        🔄 <i>Aggiornata da "
-                         f"{add_fucking_at(updated_by) if not is_user_id(updated_by) else f'<code>{updated_by}</code>'}"
-                         f" {updated_at}</i>\n")
+            text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
+                     f"        🔸 <u>Scadenza</u> – <i>{until_str}</i>\n"
+                     f"        🔸 <u>Motivazioni</u>\n"
+                     f"<i>{reasons_str}</i>\n"
+                     f"        👤 <i>{created_str}</i>\n")
+
+            if l.updated_at:
+                updated_str = f"Aggiornata da {await username_to_id(l.updated_by)} {format_time_as_rome(l.updated_at)}"
+                text += f"        🔄 <i>{updated_str}</i>\n"
 
     text += "\n🔹 Scegli un'opzione."
 
@@ -579,9 +510,6 @@ async def render_admin_remove_user_limitation_panel(
         context: CustomContext,
         user_id: int
 ):
-    if not is_user_id(user_id):
-        log.warning("User ID should be an integer")
-
     limits = context.get_user_request_limitations(user_id=int(user_id))
     text, keyboard = await _get_admin_remove_user_limitation_text_and_keyboard(
         context=context,
@@ -613,7 +541,7 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
     text += await get_member_details_text(context=context, user_identifier=user_id) + "\n"
 
     if limits is not None and len(limits):
-        keyboard = [[]]
+        buttons = []
         for n, l in enumerate(limits):
             pl, ca = l.section.split(":")
             ca_icon = CATEGORY_DETAILS[pl][ca]["icon"]
@@ -625,10 +553,9 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
             text += (f"      {n+1}. {ca_icon} <i>{pl_label} – {ca_label}</i>\n"
                      f"          🔸 <u>Scadenza</u> – <i>{until_text}</i>\n\n")
 
-            if len(keyboard[-1]) >= 4:
-                keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=f"{n+1}", callback_key=f"{pl}:{ca}"))
+            buttons.append(ButtonItem(text=f"{n + 1}", callback_key=f"{pl}:{ca}"))
 
+        keyboard = chunk_buttons(buttons, 4)
         keyboard.extend([
             [ButtonItem(text="🆓 Rimuovi Tutte", callback_key="remove_all")],
             [ButtonItem(text="🔙 Indietro", callback_key=None)]
@@ -700,8 +627,7 @@ async def _get_admin_remove_user_limitation_confirmation(
     for r in l.reasons:
         reasons_text += f"            – {r}\n"
 
-    created_at = l.created_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
-    created_by = await username_to_id(username=l.created_by)
+    created_str = f"Aggiunta da {f'<code>{l.created_by}</code>'} {format_time_as_rome(l.created_at)}"
 
     if l.updated_at:
         updated_at = l.updated_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
@@ -714,14 +640,11 @@ async def _get_admin_remove_user_limitation_confirmation(
              f"      🔸 <u>Scadenza</u> – {until_text}\n"
              f"      🔸 <u>Motivazioni</u>\n"
              f"{f'<i>{reasons_text}</i>' if reasons_text else '<code>Not Provided</code>'}\n"
-             f"        👤 <i>Aggiunta da "
-             f"{add_fucking_at(created_by) if not is_user_id(created_by) else f'<code>{created_by}</code>'}"
-             f" {created_at}</i>\n")
+             f"        👤 <i>{created_str}</i>\n")
 
-    if updated_at and updated_by:
-        text += ("        🔄 <i>Aggiornata da "
-                 f"{add_fucking_at(updated_by) if not is_user_id(updated_by) else f'<code>{updated_by}</code>'}"
-                 f" {updated_at}</i>\n")
+    if l.updated_at:
+        updated_str = f"Aggiornata da {f'<code>{l.updated_by}</code>'} {format_time_as_rome(l.updated_at)}"
+        text += f"        🔄 <i>{updated_str}</i>\n"
 
     text += ("\n<blockquote>ℹ Se togli questa limitazione, l'utente <b>potrà nuovamente "
              "formulare delle richieste</b> in questa sezione.</blockquote>\n\n"

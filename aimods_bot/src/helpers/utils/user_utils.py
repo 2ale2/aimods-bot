@@ -21,13 +21,15 @@ _member_cache = {}
 _cache_ttl = timedelta(minutes=5)
 
 
-async def get_cached_member(context: CustomContext, user_id: int, chat_id: int = None):
+async def get_globally_cached_member(context: CustomContext, user_id: int, chat_id: int = None):
     """Cache i membri per ridurre chiamate API ripetute"""
     cache_key = f"{chat_id}:{user_id}"
     cached = _member_cache.get(cache_key)
 
     if cached and datetime.now() - cached['timestamp'] < _cache_ttl:
         return cached['data']
+    else:
+        del _member_cache[cache_key]
 
     response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
 
@@ -37,6 +39,34 @@ async def get_cached_member(context: CustomContext, user_id: int, chat_id: int =
     }
 
     return response
+
+
+async def get_or_resolve_user(context: CustomContext, identifier: Union[str, int]):
+    """
+    Tenta di recuperare un oggetto utente (ChatMember/User) dato un ID o Username.
+    Gestisce automaticamente la cache 'ephemeral.resolved_users'.
+    Ritorna None se l'utente non esiste o non può essere risolto.
+    """
+    if isinstance(identifier, str) and identifier.isdigit():
+        identifier = int(identifier)
+
+    str_id = str(identifier)
+    cache = context.pydc.ephemeral.resolved_users
+
+    if str_id in cache:
+        res = cache[str_id]
+        if isinstance(res, dict) and "user" in res:
+            return res["user"]
+        return res
+
+    user_response = await resolve_user(identifier=identifier)
+
+    context.pydc.ephemeral.resolved_users[str_id] = user_response
+
+    if user_response["status"] == "success":
+        return user_response["user"]
+
+    return None  # Può avere senso perché eventuali errori sono già loggati in resolve_user
 
 
 async def is_admin(user_id: int, context: CustomContext) -> bool:
@@ -52,7 +82,7 @@ async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None
     Ritorna False in caso di errore.
     """
     try:
-        response = await get_cached_member(context=context, user_id=user_id, chat_id=chat_id)
+        response = await get_globally_cached_member(context=context, user_id=user_id, chat_id=chat_id)
 
         if response["status"] == "failed":
             log.error(f"Failed to resolve user {user_id}: {response.get('error')}")
@@ -75,7 +105,7 @@ async def user_is_banned(context: CustomContext, user_id: Union[int, str], chat_
         return True
 
     try:
-        response = await get_cached_member(context=context, user_id=user_id, chat_id=chat_id)
+        response = await get_globally_cached_member(context=context, user_id=user_id, chat_id=chat_id)
 
         if response["status"] == "failed":
             log.warning(f"Cannot resolve user {user_id}: {response.get('error')}")

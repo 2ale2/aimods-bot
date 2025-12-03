@@ -16,6 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message, resolve_user, is_user_id
+from aimods_bot.src.helpers.utils.user_utils import get_or_resolve_user
 
 
 async def route_admin_manage_limitations(
@@ -129,21 +130,15 @@ async def route_admin_limit_user_request(
                 )
                 return PCS.SET_REQUEST_LIMITATION_USER
 
-    if user_id is not None and isinstance(user_id, str) and not user_id.isdigit():
-        user_responses = context.pydc.ephemeral.resolved_users
-        user_response = user_responses.get(str(user_id), None)
-        if not user_response:
-            user_response = await resolve_user(identifier=user_id)
-            user_responses[str(user_id)] = user_response
-        if user_response["status"] == "success":
-            user_id = user_response["user"].id
-        elif not is_user_id(user_id):
-            await wrong_input_message(
-                update=update,
-                context=context,
-                correct_format="uno <b>username esistente</b> o un <b>ID numerico</b>"
-            )
-            return PCS.SET_REQUEST_LIMITATION_USER
+    user_obj = await get_or_resolve_user(context=context, identifier=user_id)
+
+    if not user_obj:
+        await wrong_input_message(
+            update=update,
+            context=context,
+            correct_format="un <b>identificatore esistente</b> (Username o ID numerico)"
+        )
+        return PCS.SET_REQUEST_LIMITATION_USER
 
     if int(user_id) in context.pydb.admins.keys():
         await wrong_input_message(
@@ -189,7 +184,8 @@ async def route_admin_limit_user_request(
                 await render_admin_limit_user_request_duration_panel(
                     update=update,
                     context=context,
-                    user_id=user_id
+                    user_id=user_id,
+                    pre_resolved_user=user_obj
                 )
                 return PCS.SET_REQUEST_LIMITATION_DURATION
             case "sections":
