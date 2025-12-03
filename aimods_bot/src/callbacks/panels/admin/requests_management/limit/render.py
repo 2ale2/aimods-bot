@@ -1,6 +1,5 @@
 from typing import Optional, Union, Literal
 
-import pytz
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import ChatMember as PTBChatMember, User as PTBUser, Update
 
@@ -8,7 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle impo
     handle_request_limitation_duration, get_request_limiting_detail, all_sections_are, handle_limitation_confirmation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, LOCAL_TZ
+from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
@@ -628,12 +627,6 @@ async def _get_admin_remove_user_limitation_confirmation(
         reasons_text += f"            – {r}\n"
 
     created_str = f"Aggiunta da {f'<code>{l.created_by}</code>'} {format_time_as_rome(l.created_at)}"
-
-    if l.updated_at:
-        updated_at = l.updated_at.replace(tzinfo=pytz.UTC).astimezone(LOCAL_TZ).strftime("il %d %b %Y alle %H:%M:%S")
-        updated_by = await username_to_id(username=l.updated_by)
-    else:
-        updated_at = updated_by = None
 
     text += ("🔎 <b>Dettaglio Limitazione</b>\n\n"
              f"      🔸 <u>Sezione</u> – {pl_icon} {ca_label}\n"
