@@ -17,12 +17,12 @@ async def handle_request_rejection_reason(update: Update, context: CustomContext
     reason = update.message.text
 
     request = context.pydc.ephemeral.rejecting
-    context.pydc.ephemeral.rejecting = None
 
     if request is None:
         raise MissingParameterException("Missing 'request' parameter inside ChatData.")
 
     assert isinstance(request, Request)
+    context.pydc.ephemeral.rejecting = None
 
     await render_admin_confirm_rejection_panel(
         update=update,
@@ -36,27 +36,34 @@ async def handle_request_rejection_reason(update: Update, context: CustomContext
 
 
 async def confirm_rejection(context: CustomContext, ix: int, reason: str):
-    if reason in REQUEST_REJECTION_REASONS:
-        reason = REQUEST_REJECTION_REASONS[reason]
-    await context.edit_request_status(ix=ix, status=RequestStatus.REJECTED, rejection_reason=reason)
+    final_reason = REQUEST_REJECTION_REASONS.get(reason, reason)
+
+    await context.edit_request_status(
+        ix=ix,
+        status=RequestStatus.REJECTED,
+        rejection_reason=final_reason
+    )
 
 
 async def handle_user_archive_identifier(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
 
-    identifier = update.message.text
+    raw_input = update.message.text.strip()
 
-    if not identifier.isnumeric():
-        identifier = await username_to_id(username=identifier)
-        if identifier is None:
-            await wrong_input_message(
-                update=update,
-                context=context,
-                correct_format="un ID o uno @username valido"
-            )
-            return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+    if raw_input.isdigit():
+        target_user_id = int(raw_input)
+    else:
+        target_user_id = await username_to_id(username=raw_input)
 
-    if int(identifier) in context.pydb.admins.keys():
+    if target_user_id is None:
+        await wrong_input_message(
+            update=update,
+            context=context,
+            correct_format="un ID numerico o uno @username valido"
+        )
+        return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+
+    if target_user_id in context.pydb.admins:
         await wrong_input_message(
             update=update,
             context=context,
@@ -67,7 +74,7 @@ async def handle_user_archive_identifier(update: Update, context: CustomContext)
     await render_user_request_archive_panel(
         update=update,
         context=context,
-        user_id=int(identifier),
+        user_id=target_user_id,
         requested_by_admin=True
     )
     return PCS.ADMIN_CONVERSATION
