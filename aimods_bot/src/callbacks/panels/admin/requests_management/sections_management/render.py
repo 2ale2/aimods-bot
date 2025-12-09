@@ -6,22 +6,35 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.constants.models import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import pluralize
+
+
+def _get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
+    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
+    return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
+
+
+def _get_header(subheader: Optional[str] = None) -> str:
+    base = "⏯️ <b>Gestione Sezioni</b>\n\n"
+    if subheader:
+        base += f"{subheader}\n\n"
+    return f"{base}▪ Da qui puoi impostare i parametri di apertura e chiusura delle sezioni per le richieste.\n\n"
+
+
+def _format_limit_text(limit: Optional[int]) -> str:
+    """Formatta il testo del limite."""
+    return f"{pluralize(limit, 'richiesta', 'richieste')}" if limit is not None else "🆓 <b>Nessun Limite</b>"
 
 
 async def render_admin_request_section_configure_panel(update: Update, context: CustomContext):
     text = _get_admin_request_section_configure_text()
 
-    keyboard = [[]]
-    for pl in PLATFORM_DETAILS:
-        pl_item = PLATFORM_DETAILS[pl]
-        if len(keyboard[-1]) >= 2:
-            keyboard.append([])
-        keyboard[-1].append(
-            ButtonItem(text=f"{pl_item['icon']} {pl_item['label']}", callback_key=pl)
-        )
-
+    buttons = [
+        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=key)
+        for key, item in PLATFORM_DETAILS.items()
+    ]
+    keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
@@ -33,22 +46,8 @@ async def render_admin_request_section_configure_panel(update: Update, context: 
     )
 
 
-def _get_header(subheader: Optional[str] = None) -> str:
-    header = "⏯️ <b>Gestione Sezioni</b>\n\n"
-
-    if subheader:
-        header += subheader + "\n\n"
-
-    header += "▪ Da qui puoi impostare i parametri di apertura e chiusura delle sezioni per le richieste.\n\n"
-
-    return header
-
-
 def _get_admin_request_section_configure_text():
-    text = _get_header()
-    text += "🔹 Scegli una piattaforma."
-
-    return text
+    return _get_header() + "🔹 Scegli una piattaforma."
 
 
 async def render_admin_request_section_configure_platform_panel(
@@ -58,12 +57,11 @@ async def render_admin_request_section_configure_platform_panel(
 ):
     text = _get_admin_request_section_configure_platform_text()
 
-    keyboard = [[]]
-    for ca in CATEGORY_DETAILS[platform.value]:
-        ca_item = CATEGORY_DETAILS[platform.value][ca]
-        if len(keyboard[-1]) >= 2:
-            keyboard.append([])
-        keyboard[-1].append(ButtonItem(text=f"{ca_item['icon']} {ca_item['label']}", callback_key=ca))
+    buttons = [
+        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=key)
+        for key, item in CATEGORY_DETAILS[platform.value].items()
+    ]
+    keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
@@ -76,10 +74,7 @@ async def render_admin_request_section_configure_platform_panel(
 
 
 def _get_admin_request_section_configure_platform_text():
-    text = _get_header()
-    text += "🔹 Scegli una categoria."
-
-    return text
+    return _get_header() + "🔹 Scegli una categoria."
 
 
 async def render_admin_request_section_configure_category_panel(
@@ -88,8 +83,7 @@ async def render_admin_request_section_configure_category_panel(
         platform: Platform,
         category: Category
 ):
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-    assert isinstance(config, CategorySetting)
+    config = _get_config(context=context, platform=platform, category=category)
 
     text = _get_admin_request_section_configure_category_text(config=config, platform=platform, category=category)
     toggle_text = f"{'📬 Apri' if not config.toggle else '📪 Chiudi'}"
@@ -112,19 +106,15 @@ async def render_admin_request_section_configure_category_panel(
 
 def _get_admin_request_section_configure_category_text(config: CategorySetting, platform: Platform, category: Category):
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
+    status_text = '📬 <i>Aperto</i>' if config.toggle else '📪 <i>Chiuso</i>'
 
-    if config.limit is not None:
-        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
-    else:
-        l_text = "🆓 <b>Nessun Limite</b>"
-
-    text = _get_header()
-    text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
-             f"          🔸 <u>Stato</u> – {'📬 <i>Aperto</i>' if config.toggle else '📪 <i>Chiuso</i>'}\n"
-             f"          🔸 <u>Limite Richieste</u> – <i>{l_text}</i>\n\n"
-             "🔹 Scegli un'opzione.")
-
-    return text
+    return (
+        f"{_get_header()}"
+        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"          🔸 <u>Stato</u> – {status_text}\n"
+        f"          🔸 <u>Limite Richieste</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
+        f"🔹 Scegli un'opzione."
+    )
 
 
 async def render_admin_request_section_toggle_panel(
@@ -140,7 +130,7 @@ async def render_admin_request_section_toggle_panel(
         context=context,
         platform=platform,
         category=category,
-        action=action
+        is_opening=opening
     )
 
     await create_and_render_panel(
@@ -161,27 +151,24 @@ def _get_admin_request_section_toggle_panel_text(
         context: CustomContext,
         platform: Platform,
         category: Category,
-        action: Literal["open", "close"]
+        is_opening: bool
 ):
-    opens = action == "open"
+    config = _get_config(context=context, platform=platform, category=category)
 
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-    assert isinstance(config, CategorySetting)
+    text = _get_header(subheader=f"  → <i>{'📬 Apertura' if is_opening else '📪 Chiusura'} Manuale</i>")
+    text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if is_opening else 'chiudi'} questa sezione, "
+             f"gli utenti {'non ' if not is_opening else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
-    text = _get_header(subheader=f"  → <i>{'📬 Apertura' if opens else '📪 Chiusura'} Manuale</i>")
-    text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if opens else 'chiudi'} questa sezione, "
-             f"gli utenti {'non ' if not opens else ''}potranno formulare altre richieste.</blockquote>\n\n")
+    if is_opening and config.limit is not None:
+        active_requests = len(context.get_active_category_requests(platform=platform, category=category))
+        if active_requests >= config.limit:
+            text += (
+                f"<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore al limite</b> "
+                f"impostato (<b>{pluralize(active_requests, 'richiesta', 'richieste')} su {config.limit}</b>); "
+                f"se la riapri, il <b>limite verrà automaticamente rimosso (0)</b>.</blockquote>\n\n"
+            )
 
-    r = len(context.get_active_category_requests(platform=platform, category=category))
-    if opens and config.limit is not None and r >= config.limit:
-        text += ("<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore al limite</b>"
-                 f" impostato per questa sezione (<b>{pluralize(r, 'richiesta', 'richieste')} su "
-                 f"{config.limit}</b>); se la riapri, il <b>limite verrà automaticamente impostato a "
-                 f"0 (nessun limite)</b>.</blockquote>\n\n")
-
-    text += "🔹 <b>Confermi</b>?"
-
-    return text
+    return text + "🔹 <b>Confermi</b>?"
 
 
 async def render_admin_request_section_toggled_panel(
@@ -191,7 +178,7 @@ async def render_admin_request_section_toggled_panel(
         category: Category,
         action: Literal["open", "close"]
 ):
-    text = _get_admin_request_section_toggled_text(platform=platform, category=category, action=action)
+    text = _get_admin_request_section_toggled_text(platform=platform, category=category, is_opening=(action == "open"))
 
     await create_and_render_panel(
         update=update,
@@ -208,15 +195,15 @@ async def render_admin_request_section_toggled_panel(
 def _get_admin_request_section_toggled_text(
         platform: Platform,
         category: Category,
-        action: Literal["open", "close"]
+        is_opening: bool
 ):
-    opening = action == "open"
     pl_label = PLATFORM_DETAILS[platform.value]['label']
     ca_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-    text = (f"✅ <b>Sezione {ca_label} ({pl_label}) {'Aperta' if opening else 'Chiusa'}</b>\n\n"
-            f"🔹 Scegli un'opzione.")
 
-    return text
+    return (
+        f"✅ <b>Sezione {ca_label} ({pl_label}) {'Aperta' if is_opening else 'Chiusa'}</b>\n\n"
+        f"🔹 Scegli un'opzione."
+    )
 
 
 async def render_admin_request_section_limit_panel(
@@ -262,25 +249,16 @@ async def render_admin_request_section_limit_panel(
 
 
 def _get_admin_request_section_limit_text(context: CustomContext, platform: Platform, category: Category):
-    text = _get_header(subheader="  → 🗂 <i>Imposta Limite</i>")
-
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
+    config = _get_config(context=context, platform=platform, category=category)
 
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-    assert isinstance(config, CategorySetting)
-
-    if config.limit is not None:
-        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
-    else:
-        l_text = "🆓 <b>Nessun Limite</b>"
-
-    text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
-             f"        🔸 <u>Limite Attuale</u> – <i>{l_text}</i>\n\n"
-             "<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà chiusa "
-             "automaticamente.</blockquote>\n\n"
-             "🔹 Scegli un'opzione.")
-
-    return text
+    return (
+        f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
+        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"        🔸 <u>Limite Attuale</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
+        f"<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà chiusa automaticamente.</blockquote>\n\n"
+        f"🔹 Scegli un'opzione."
+    )
 
 
 async def render_admin_request_section_limit_confirm_panel(
@@ -317,34 +295,27 @@ def _get_admin_request_section_limit_confirm_text(
         category: Category,
         limit: int
 ):
-    text = _get_header(subheader="  → 🗂 <i>Imposta Limite</i>")
-
+    config = _get_config(context=context, platform=platform, category=category)
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-    assert isinstance(config, CategorySetting)
+    r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"
 
-    if limit != 0:
-        r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}"
-    else:
-        r_text = "🆓 Nessun Limite"
+    warning = ""
+    if limit != 0 and config.limit and limit < config.limit:
+        warning = (
+            "<blockquote>⚠️ <b>Attenzione</b> – Se il limite viene ridotto e le richieste attive "
+            "superano il nuovo limite, la sezione verrà automaticamente chiusa.</blockquote>\n\n"
+        )
 
-    if config.limit is not None:
-        l_text = f"{pluralize(config.limit, 'richiesta', 'richieste')}"
-    else:
-        l_text = "🆓 <b>Nessun Limite</b>"
-
-    warn_text = ("<blockquote>⚠️ <b>Attenzione</b> – Se il limite viene ridotto e il numero di richieste attive "
-                 "presenti per questa sezione sono in numero pari o superiore, la sezione verrà automaticamente "
-                 "chiusa.</blockquote>\n\n")
-
-    text += (f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
-             f"            🔸 <u>Limite Attuale</u> – <i>{l_text}</i>\n\n"
-             "🔹 Stai <b>modificando il limite di richieste</b> per questa sezione a:\n\n"
-             f"            <b>{r_text}</b>\n\n{warn_text if limit and config.limit and limit < config.limit else ''}"
-             "🔹 <b>Confermi?</b>")
-
-    return text
+    return (
+        f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
+        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"            🔸 <u>Limite Attuale</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
+        f"🔹 Stai <b>modificando il limite di richieste</b> per questa sezione a:\n\n"
+        f"            <b>{r_text}</b>\n\n"
+        f"{warning}"
+        f"🔹 <b>Confermi?</b>"
+    )
 
 
 async def render_admin_request_section_limit_confirmed_panel(
@@ -378,7 +349,8 @@ def _get_admin_request_section_limit_confirmed_text(
     p_label = PLATFORM_DETAILS[platform.value]["label"]
     c_label = CATEGORY_DETAILS[platform.value][category.value]["label"]
     r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"
-    text = (f"✅ <b>Limite Richieste {c_label} ({p_label}) Impostato a:</b>\n\n"
-            f"        <i>{r_text}</i>\n\n"
-            "🔹 Scegli un'opzione.")
-    return text
+    return (
+        f"✅ <b>Limite Richieste {c_label} ({p_label}) Impostato a:</b>\n\n"
+        f"        <i>{r_text}</i>\n\n"
+        "🔹 Scegli un'opzione."
+    )
