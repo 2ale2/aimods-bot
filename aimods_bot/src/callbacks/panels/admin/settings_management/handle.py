@@ -13,4 +13,3 @@ async def handle_admin_section_closing_notification_toggle(context: CustomContex
     settings = context.pydc.persistent.admin_notifications.section_closing_notifications
 
     settings[pl][ca] = not settings[pl][ca]
-
