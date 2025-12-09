@@ -6,13 +6,8 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.constants.models import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons, get_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
-
-
-def _get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
-    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
-    return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
 
 
 def _get_header(subheader: Optional[str] = None) -> str:
@@ -83,7 +78,7 @@ async def render_admin_request_section_configure_category_panel(
         platform: Platform,
         category: Category
 ):
-    config = _get_config(context=context, platform=platform, category=category)
+    config = get_config(context=context, platform=platform, category=category)
 
     text = _get_admin_request_section_configure_category_text(config=config, platform=platform, category=category)
     toggle_text = f"{'📬 Apri' if not config.toggle else '📪 Chiudi'}"
@@ -153,7 +148,7 @@ def _get_admin_request_section_toggle_panel_text(
         category: Category,
         is_opening: bool
 ):
-    config = _get_config(context=context, platform=platform, category=category)
+    config = get_config(context=context, platform=platform, category=category)
 
     text = _get_header(subheader=f"  → <i>{'📬 Apertura' if is_opening else '📪 Chiusura'} Manuale</i>")
     text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if is_opening else 'chiudi'} questa sezione, "
@@ -250,7 +245,7 @@ async def render_admin_request_section_limit_panel(
 
 def _get_admin_request_section_limit_text(context: CustomContext, platform: Platform, category: Category):
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
-    config = _get_config(context=context, platform=platform, category=category)
+    config = get_config(context=context, platform=platform, category=category)
 
     return (
         f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
@@ -295,7 +290,7 @@ def _get_admin_request_section_limit_confirm_text(
         category: Category,
         limit: int
 ):
-    config = _get_config(context=context, platform=platform, category=category)
+    config = get_config(context=context, platform=platform, category=category)
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
     r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"

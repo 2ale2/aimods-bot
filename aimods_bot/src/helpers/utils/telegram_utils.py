@@ -14,6 +14,8 @@ import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
+from aimods_bot.src.core.pydantic import CategorySetting
+from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 
@@ -743,3 +745,8 @@ def get_banned_panel() -> Panel:
         ),
         send=True
     )
+
+
+def get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
+    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
+    return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
