@@ -2,130 +2,83 @@ from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_request_section_toggle, handle_request_section_limit
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.render import \
-    render_admin_request_section_configure_panel, render_admin_request_section_configure_platform_panel, \
-    render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel, \
-    render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel, \
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.render import (
+    render_admin_request_section_configure_panel, render_admin_request_section_configure_platform_panel,
+    render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel,
+    render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel,
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
-from aimods_bot.src.core.pydantic import CategorySetting
+)
 from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat, get_config
 
 
 async def admin_request_section_configure_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_admin_request_section_configure_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+    match path:
+        case []:
+            await render_admin_request_section_configure_panel(update=update, context=context)
 
-    if len(path) == 1:
-        # expected: (admin/manage_requests/manage_sections)/<platform>
-        platform = Platform(path[0])
-        await render_admin_request_section_configure_platform_panel(
-            update=update,
-            context=context,
-            platform=platform
-        )
-        return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 2:
-        # expected: (admin/manage_requests/manage_sections)/<platform>/<category>
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        await render_admin_request_section_configure_category_panel(
-            update=update,
-            context=context,
-            platform=platform,
-            category=category
-        )
-        return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 3:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        match path[2]:
-            case "limit":
-                await render_admin_request_section_limit_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category
-                )
-                return PCS.ADMIN_CONVERSATION
-            case _:  # open/close
-                await render_admin_request_section_toggle_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category,
-                    action=path[2]
-                )
-                return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 4:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        action = path[2]
-        if action in ("open", "close") and path[3] == "yes":
-            await handle_request_section_toggle(
-                context=context,
-                platform=platform,
-                category=category,
-                action=action
+        case [pl_str]:
+            await render_admin_request_section_configure_platform_panel(
+                update=update, context=context, platform=Platform(pl_str)
             )
+
+        case [pl_str, cat_str]:
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+            await render_admin_request_section_configure_category_panel(
+                update=update, context=context, platform=pl, category=cat
+            )
+
+        case [pl_str, cat_str, "limit"]:
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+            await render_admin_request_section_limit_panel(
+                update=update, context=context, platform=pl, category=cat
+            )
+
+        case [pl_str, cat_str, action] if action in ("open", "close"):
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+            await render_admin_request_section_toggle_panel(
+                update=update, context=context, platform=pl, category=cat, action=action
+            )
+
+        case [pl_str, cat_str, action, "yes"] if action in ("open", "close"):
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+
+            await handle_request_section_toggle(context=context, platform=pl, category=cat, action=action)
+
             if action == "open":
                 await schedule_section_opening_check_for_user_notification(
-                    context=context,
-                    section=f"{path[0]}:{path[1]}"
+                    context=context, section=f"{pl_str}:{cat_str}"
                 )
+
             await render_admin_request_section_toggled_panel(
-                update=update,
-                context=context,
-                platform=platform,
-                category=category,
-                action=action
+                update=update, context=context, platform=pl, category=cat, action=action
             )
-            return PCS.ADMIN_CONVERSATION
 
-        if path[2] == "limit" and path[3].isnumeric():
-            limit = int(path[3])
-            config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-            assert isinstance(config, CategorySetting)
+        case [pl_str, cat_str, "limit", limit_str]:
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+            limit = int(limit_str)
+            config = get_config(context=context, platform=pl, category=cat)
 
+            # Se il limite è identico o è "nessun limite" (0) ed era già None, ricarica il pannello
             if config.limit == limit or (config.limit is None and limit == 0):
                 await render_admin_request_section_configure_category_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category
+                    update=update, context=context, platform=pl, category=cat
                 )
             else:
                 await render_admin_request_section_limit_confirm_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category,
-                    limit=int(path[3])
+                    update=update, context=context, platform=pl, category=cat, limit=limit
                 )
-            return PCS.ADMIN_CONVERSATION
 
-    if len(path) == 5:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        if path[2] == "limit" and path[3].isnumeric() and path[4] == "yes":
-            await handle_request_section_limit(
-                context=context,
-                platform=platform,
-                category=category,
-                limit=int(path[3])
-            )
+        case [pl_str, cat_str, "limit", limit_str, "yes"]:
+            pl, cat = resolve_pl_cat(pl_str, cat_str)
+            limit = int(limit_str)
+
+            await handle_request_section_limit(context=context, platform=pl, category=cat, limit=limit)
             await render_admin_request_section_limit_confirmed_panel(
-                update=update,
-                context=context,
-                platform=platform,
-                category=category,
-                limit=int(path[3])
+                update=update, context=context, platform=pl, category=cat, limit=limit
             )
-            return PCS.ADMIN_CONVERSATION
+
+    return PCS.ADMIN_CONVERSATION

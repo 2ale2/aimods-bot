@@ -18,6 +18,7 @@ from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 log = logger.getChild("telegram_utils")
 
@@ -750,3 +751,11 @@ def get_banned_panel() -> Panel:
 def get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
     """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
     return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
+
+
+def resolve_pl_cat(pl_str: str, cat_str: str):
+    """Risolve le enum Platform e Category dalle stringhe."""
+    platform = Platform(pl_str)
+    # get_platform_categories restituisce la classe Enum (es. Category), che chiamiamo con la stringa
+    category = get_platform_categories(platform)(cat_str)
+    return platform, category
