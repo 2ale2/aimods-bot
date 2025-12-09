@@ -1,13 +1,23 @@
+import re
 from typing import Literal, Optional
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.telegram_utils import get_config
 
 log = logger.getChild(__name__)
+
+
+def _remove_limitation_jobs(context: CustomContext, user_id: int, section_pattern: str):
+    """Rimuove i job schedulati che corrispondono al pattern."""
+    job_name_pattern = rf"^request_limit:{user_id}:{section_pattern}$"
+    jobs = context.job_queue.get_jobs_by_name(job_name_pattern)
+
+    for job in jobs:
+        log.info(f"Removing scheduled job {job.name} for user {user_id}")
+        job.schedule_removal()
 
 
 async def handle_request_section_toggle(
@@ -16,20 +26,19 @@ async def handle_request_section_toggle(
         category: Category,
         action: Literal["open", "close"]
 ):
-    opening = action == "open"
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-    assert isinstance(config, CategorySetting)
+    is_opening = (action == "open")
+    config = get_config(context, platform, category)
 
-    r = len(context.get_active_category_requests(platform=platform, category=category))
-    if opening and config.limit is not None and r >= config.limit:
-        config.limit = None
+    if is_opening and config.limit is not None:
+        active_count = len(context.get_active_category_requests(platform=platform, category=category))
+        if active_count >= config.limit:
+            config.limit = None
 
-    config.toggle = opening
-
+    config.toggle = is_opening
     await save_yaml_configuration(context=context)
 
     log.info(f"Request Section {category.value} ({platform.value}) "
-             f"toggled {'on' if opening else 'off'} by {context.user_id}")
+             f"toggled {'on' if is_opening else 'off'} by {context.user_id}")
 
 
 async def handle_request_section_limit(
@@ -38,11 +47,13 @@ async def handle_request_section_limit(
         category: Category,
         limit: int
 ):
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
+    config = get_config(context, platform, category)
+
     config.limit = limit if limit != 0 else None
 
     if config.limit is not None:
-        if len(context.get_active_category_requests(platform=platform, category=category)) >= config.limit:
+        active_count = len(context.get_active_category_requests(platform=platform, category=category))
+        if active_count >= config.limit:
             config.toggle = False
 
     await save_yaml_configuration(context=context)
@@ -57,34 +68,29 @@ async def handle_remove_user_request_limitation(
         section: Optional[str],
         remove_all: bool = False
 ):
-    user_limitations = context.get_user_request_limitations(user_id=user_id)
-
+    """
+    Rimuove le limitazioni dell'utente.
+    Se remove_all è False, rimuove solo la sezione specificata e il relativo job,
+    senza toccare gli altri.
+    """
     if remove_all:
-        jobs = context.job_queue.get_jobs_by_name(rf"^request_limit:{user_id}:[^:\s]+$")
-        for job in jobs:
-            log.info(f"Removing {job.name} for {user_id} section {job.name.split(':')[2]}")
-            job.schedule_removal()
+        _remove_limitation_jobs(context, user_id, section_pattern="[^:\s]+")
 
         context.set_user_request_limitations(user_id=user_id, limitations=[])
         log.info(f"Admin {context.user_id} removed all section limitations from {user_id}")
         return
 
-    new_limitations = []
+    current_limitations = context.get_user_request_limitations(user_id=user_id)
 
-    for el in user_limitations:
-        if el.section == section:
-            continue
-        new_limitations.append(el)
+    new_limitations = [lim for lim in current_limitations if lim.section != section]
+
+    if len(new_limitations) == len(current_limitations):
+        return
 
     context.set_user_request_limitations(user_id=user_id, limitations=new_limitations)
 
-    for limitation in new_limitations:
-        if limitation.until is not None:
-            await schedule_request_limitation_deletion(
-                context=context,
-                user_id=user_id,
-                section=limitation.section,
-                until=limitation.until
-            )
+    if section:
+        safe_section = re.escape(section)
+        _remove_limitation_jobs(context, user_id, section_pattern=safe_section)
 
     log.info(f"Admin {context.user_id} removed {section} section limitations from {user_id}")
