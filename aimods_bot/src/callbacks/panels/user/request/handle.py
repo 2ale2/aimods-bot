@@ -67,22 +67,13 @@ class RequestDataManager:
             platform: Optional[Platform] = None,
             category: Optional[Category] = None
     ):
-        if context.pydc.persistent.new_request is not None:
-            try:
-                RequestDataManager.cleanup_request(context=context)
-            except Exception as e:
-                log.warning("cleanup_request failed: %s", e, exc_info=e)
+        if context.pydc.persistent.new_request:
+            RequestDataManager.cleanup_request(context=context)
 
         request_data = Request(platform=platform, category=category)
         context.pydc.persistent.new_request = request_data
 
-        log.info(
-            "Initialized new request",
-            extra={
-                "platform": getattr(platform, "value", None),
-                "category": getattr(category, "value", None),
-            }
-        )
+        log.info(f"Initialized new request for {platform.value}:{category.value}")
 
     @staticmethod
     async def request_detail(
@@ -140,7 +131,7 @@ class RequestDataManager:
         try:
             await update.callback_query.answer()
         except Exception as e:
-            log.warning(f"Non è stato possibile eseguire l'answer della cquery: {e}")
+            pass
 
         # Expect: "edit_<field>"
         detail = update.callback_query.data.split("_")[1]
