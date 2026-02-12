@@ -6,18 +6,27 @@ from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import (render_user_has_cooldown_panel,
-                                                                 render_user_request_panel, render_cant_request_panel)
+from aimods_bot.src.callbacks.panels.user.request.render import (
+    render_user_has_cooldown_panel,
+    render_user_request_panel,
+    render_cant_request_panel
+)
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
+from aimods_bot.src.helpers.constants.constants import (
+    PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
+)
+from aimods_bot.src.helpers.constants.conversation_states import (
+    PrivateConversationState as PCS,
     RequestConversationState as RCS
+)
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
+
+BYPASS_LIMITS_USERS = {7233636327, 6540199713}
 
 
 async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
@@ -31,8 +40,7 @@ async def requests_management_route(update: Update, context: CustomContext, path
                 return await request_from_notification(update=update, context=context)
 
             rc = context.user_request_cooldown()
-            if rc and update.effective_user.id not in [7233636327, 6540199713]:
-                # L'utente ha un cooldown
+            if rc and update.effective_user.id not in BYPASS_LIMITS_USERS:
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
             if len(path) > 1:
@@ -71,12 +79,11 @@ async def request_category(update: Update, context: CustomContext) -> int:
         )
         return await request_router(update=update, context=context)
 
-    name = PLATFORM_DETAILS[platform.value]['label']
-    icon = PLATFORM_DETAILS[platform.value]['icon']
-    item = "app" if platform in ("android", "ios") else "software"
+    p_details = PLATFORM_DETAILS[platform.value]
+    item_type = "app" if platform in (Platform.ANDROID, Platform.IOS) else "software"
 
-    text = (f"{icon} <b>Nuova Richiesta – {name}</b>\n\n"
-            f"🔹 Scegli la categoria di {item} che vorresti richiedere.")
+    text = (f"{p_details['icon']} <b>Nuova Richiesta – {p_details['label']}</b>\n\n"
+            f"🔹 Scegli la categoria di {item_type} che vorresti richiedere.")
 
     keyboard = []
 
@@ -153,7 +160,7 @@ async def request_router(update: Update, context: CustomContext):
         await render_cant_request_panel(update=update, context=context, message=text)
         return ConversationHandler.END
 
-    if not is_category_request_allowed(context=context, platform=platform, category=category) and user_id not in [6540199713, 7233636327]:
+    if not is_category_request_allowed(context=context, platform=platform, category=category) and user_id not in BYPASS_LIMITS_USERS:
         RequestDataManager.initialize_request(context=context)
         text = ("🔐 <b>Richieste Chiuse</b>\n\n"
                 "▪️ <b>Non è al momento possibile formulare nuove richieste</b> per questa categoria, perché ha "

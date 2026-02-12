@@ -1,4 +1,5 @@
 import asyncio
+from typing import Callable, Awaitable
 
 from telegram import Update
 
@@ -27,51 +28,85 @@ RETURN_CONVERSATION_STATES = {
     "arch": RCS.REQUEST_ARCH
 }
 
-REQUEST_FLOWS = asyncio.run(get_data_from_json('request_conversation_flows'))
+_REQUEST_FLOWS_CACHE = None
+
+
+async def get_request_flows():
+    global _REQUEST_FLOWS_CACHE
+    if _REQUEST_FLOWS_CACHE is None:
+        _REQUEST_FLOWS_CACHE = await get_data_from_json('request_conversation_flows')
+    return _REQUEST_FLOWS_CACHE
 
 
 # --- HELPERS ---
 
-async def _notify_new_request(update: Update, context: CustomContext, request: Request):
-    """Gestisce l'invio delle notifiche di nuova richiesta agli admin."""
-    pl_val = request.platform.value
-    ca_val = request.category.value
-
+async def _notify_admins_generic(
+        context: CustomContext,
+        filter_predicate: Callable[[ChatData], bool],
+        send_coroutine: Callable[[int], Awaitable[None]]
+):
+    """
+    Funzione generica per iterare sugli admin e inviare notifiche.
+    Riduce la duplicazione del codice di loop e sleep.
+    """
     for admin_id in context.pydb.admins:
         admin_data = context.application.chat_data.get(admin_id)
-        assert isinstance(admin_data, ChatData)
+        # Type narrowing sicuro
+        if not isinstance(admin_data, ChatData):
+            continue
 
-        if admin_data.persistent.admin_notifications.new_requests_notifications[str(pl_val)][str(ca_val)]:
-            await send_new_request_admin_notification(
-                update=update,
-                context=context,
-                admin_id=admin_id,
-                request=request
-            )
+        if filter_predicate(admin_data):
+            await send_coroutine(admin_id)
+            # Sleep per evitare flood limits se ci sono molti admin
             await asyncio.sleep(0.2)
+
+
+async def _notify_new_request(update: Update, context: CustomContext, request: Request):
+    pl_val = str(request.platform.value)
+    ca_val = str(request.category.value)
+
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.new_requests_notifications.get(pl_val, {}).get(ca_val, False)
+
+    async def sender(admin_id: int):
+        await send_new_request_admin_notification(update, context, admin_id, request)
+
+    await _notify_admins_generic(context, should_notify, sender)
 
 
 async def _notify_section_closing(update: Update, context: CustomContext, platform: Platform, category: Category):
-    """Gestisce l'invio delle notifiche di chiusura sezione agli admin."""
     pl_val = platform.value
-    ca_val = category.value
-    section_str = f"{pl_val}:{ca_val}"
+    ca_val = str(category.value)
+    section_str = f"{pl_val}:{category.value}"
 
-    for admin_id in context.pydb.admins:
-        admin_data = context.application.chat_data.get(admin_id)
-        assert isinstance(admin_data, ChatData)
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.section_closing_notifications.get(pl_val, {}).get(ca_val, False)
 
-        if admin_data.persistent.admin_notifications.section_closing_notifications[pl_val][str(ca_val)]:
-            await send_section_closing_admin_notification(
-                update=update,
-                context=context,
-                section=section_str,
-                admin_id=admin_id
-            )
-            await asyncio.sleep(0.2)
+    async def sender(admin_id: int):
+        await send_section_closing_admin_notification(update, context, admin_id, section_str)
+
+    await _notify_admins_generic(context, should_notify, sender)
 
 
 # --- CORE HANDLERS ---
+
+async def _get_next_step_in_flow(platform: Platform, category: Category, current_step: str) -> RequestField:
+    """Helper isolato per calcolare il prossimo step."""
+    flows = await get_request_flows()
+    try:
+        # Accesso sicuro al dizionario
+        flow_list: list[str] = flows[platform.value][category.value]["flow"]
+        current_index = flow_list.index(current_step)
+
+        if current_index + 1 < len(flow_list):
+            return RequestField(flow_list[current_index + 1])
+
+    except (KeyError, ValueError, IndexError):
+
+        raise WrongFlowException(f"Errore nel calcolo del prossimo step per {current_step}")
+
+    raise WrongFlowException("L'ultimo elemento richiesto dovrebbe essere gestito dal metodo 'recheck_request'.")
+
 
 async def request_detail(update: Update, context: CustomContext) -> int:
     """Gestisce l'input utente se necessario e richiede il dettaglio successivo."""
@@ -80,39 +115,20 @@ async def request_detail(update: Update, context: CustomContext) -> int:
 
     request_data = RequestDataManager.get_request_data(context)
 
+    next_detail = RequestField.NAME
+
     if request_data.requesting:
         await InputHandler.handle_input(update=update, context=context)
-        detail = prepare_next_detail(request_data=request_data)
-        RequestDataManager.update_field(context=context, field="requesting", value=detail)
-    else:
-        detail = RequestField.NAME
-        RequestDataManager.update_field(context=context, field="requesting", value=detail)
+        next_detail = await _get_next_step_in_flow(
+            request_data.platform,
+            request_data.category,
+            request_data.requesting.value
+        )
 
-    await RequestDataManager.request_detail(update=update, context=context, detail=detail)
+    RequestDataManager.update_field(context=context, field="requesting", value=next_detail)
+    await RequestDataManager.request_detail(update=update, context=context, detail=next_detail)
 
-    return RETURN_CONVERSATION_STATES[str(detail.value)]
-
-
-def prepare_next_detail(request_data: Request) -> RequestField:
-    """
-    Deduce il prossimo step del flow.
-
-    """
-    platform = request_data.platform
-    category = request_data.category
-    current_step = request_data.requesting.value
-
-    try:
-        flow: list[str] = REQUEST_FLOWS[platform.value][category.value]["flow"]
-        current_index = flow.index(str(current_step))
-
-        if current_index + 1 < len(flow):
-            return RequestField(flow[current_index + 1])
-
-    except (KeyError, ValueError, IndexError):
-        raise WrongFlowException(f"Errore nel calcolo del prossimo step per {current_step}")
-
-    raise WrongFlowException("L'ultimo elemento richiesto dovrebbe essere gestito dal metodo 'recheck_request'.")
+    return RETURN_CONVERSATION_STATES[str(next_detail.value)]
 
 
 async def recheck_request(update: Update, context: CustomContext):
@@ -127,16 +143,21 @@ async def recheck_request(update: Update, context: CustomContext):
 
 async def edit_request_detail(update: Update, context: CustomContext):
     """L'utente ha chiesto di modificare un dettaglio."""
-    if update.callback_query and update.callback_query.data:
-        await update.callback_query.answer()
-        data = update.callback_query.data
+    query = update.callback_query
+    if query and query.data:
+        await query.answer()
+        data = query.data
 
         if data.endswith(("steamtools", "arch")):
-            _, value = data.split(":", 1)
-            RequestDataManager.update_field(context=context, field="editing", value=RequestField(value))
-            return await RequestDataManager.recheck_request(update=update, context=context)
+            _, value_str = data.split(":", 1)
+            try:
+                field_enum = RequestField(value_str)
+                RequestDataManager.update_field(context=context, field="editing", value=field_enum)
+                return await RequestDataManager.recheck_request(update=update, context=context)
+            except ValueError:
+                pass
 
-    return await RequestDataManager.request_detail_to_edit(update=update, context=context)
+        return await RequestDataManager.request_detail_to_edit(update=update, context=context)
 
 
 async def edited_detail(update: Update, context: CustomContext):
@@ -164,14 +185,13 @@ async def confirm_request(update: Update, context: CustomContext):
     config = get_config(context, platform, category)
 
     if config and config.limit:
-        n_active = len(context.get_active_category_requests(platform=platform, category=category))
+        active_requests = context.get_active_category_requests(platform=platform, category=category)
 
-        if n_active >= config.limit:
+        if len(active_requests) >= config.limit:
             log.info(f"Section {platform.value}:{category.value} reached limit ({config.limit}). Closing.")
 
             config.toggle = False
             await save_yaml_configuration(context=context)
-
             await _notify_section_closing(update, context, platform, category)
 
     return RCS.REQUEST_SUBMITTED
@@ -179,9 +199,10 @@ async def confirm_request(update: Update, context: CustomContext):
 
 async def backer(update: Update, context: CustomContext):
     """Gestisce la navigazione all'indietro."""
-    await update.callback_query.answer()
+    query = update.callback_query
+    await query.answer()
 
-    data = update.callback_query.data
+    data = query.data
     # data format atteso: "back_<field>" o "no_edit"
 
     match data:

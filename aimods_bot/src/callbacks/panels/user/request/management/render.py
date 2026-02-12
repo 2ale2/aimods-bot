@@ -17,6 +17,9 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_user_requests_archive,
                                                         generate_user_archive_requests_pdf_file)
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 
 async def render_user_request_management_panel(update: Update, context: CustomContext):
@@ -55,13 +58,13 @@ async def render_active_request_panel(
 
     keyboard = []
 
-    if len(active_requests) != 0:
-        keyboard.insert(0, [
+    if active_requests:
+        keyboard.append([
             ButtonItem(text="📋 Info Richiesta", callback_key="details"),
             ButtonItem(text="🗑 Annulla Richiesta", callback_key="cancel")
         ])
 
-    keyboard.insert(1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
 
     await create_and_render_panel(
         update=update,
@@ -75,7 +78,7 @@ async def render_active_request_panel(
 def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
-    if len(requests) == 0:
+    if not requests:
         text += "\n\nℹ️ Non hai nessuna richiesta attiva."
         return text
 
@@ -93,13 +96,7 @@ async def render_user_request_action_panel(
         context: CustomContext,
         action: Literal["details", "cancel"]
 ):
-    if action == "details":
-        requests = context.user_active_requests
-        # if len(requests) == 1:
-        #     return await render_request_details_panel(update=update, context=context, ix=requests[0].id)
-    else:
-        # Se cancello, faccio comunque il passaggio in più.
-        requests = context.user_cancellable_requests
+    requests = context.user_cancellable_requests if action == "cancel" else context.user_active_requests
 
     text = await _get_user_request_action_panel_text(
         action=action,

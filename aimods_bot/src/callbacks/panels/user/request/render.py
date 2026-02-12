@@ -1,10 +1,9 @@
 from telegram import Update
 
-from aimods_bot.misc.quick import EMOJI_ARROW_BLUE
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
-    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED
+    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE
 from aimods_bot.src.helpers.constants.models import ButtonItem, BACK_BUTTON
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
@@ -61,7 +60,7 @@ async def render_user_request_panel(update: Update, context: CustomContext):
 def _get_user_request_panel_text():
     return (
         f"{EMOJI_QUESTION_RED} <b>Nuova Richiesta</b>\n\n"
-        f"{EMOJI_ARROW_BLUE} Per <b>quale piattaforma</b> vorresti formulare la richiesta?"
+        f"{EMOJI_DOT_BLUE} Per <b>quale piattaforma</b> vorresti formulare la richiesta?"
     )
 
 
