@@ -2,81 +2,34 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, List, Union, Literal, NamedTuple, cast, Type, Tuple, Dict
+from typing import Optional, List
 
-import telegram
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, ReplyParameters, LinkPreviewOptions
+from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPreviewOptions
 from telegram.constants import ParseMode
-from telegram.error import Forbidden, BadRequest, TelegramError
+from telegram.error import Forbidden, TelegramError, BadRequest
 
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Category
 from aimods_bot.src.helpers.loggers import logger
 
-log = logger.getChild("models")
-
-PlatformStr = Literal["android", "ios", "windows", "macos"]
-WinCatStr = Literal["game", "daw", "adobe", "software"]
-AndroidCatStr = Literal["app"]
-IOSCatStr = Literal["app"]
-MacOSCatStr = Literal["software", "daw"]
-CatStr = WinCatStr | AndroidCatStr | IOSCatStr | MacOSCatStr
-StatusStr = Literal["pending", "examining", "testing", "completed", "rejected", "cancelled"]
-
-
-@dataclass
-class JobData:
-    files: Union[str, InputMedia, List[Union[str, InputMedia]]] = None
-    message_id: Optional[int | telegram.Message] = None
-    send_as_document: bool = False
-    delete_after_sending: bool = False
-    thread_id: Optional[int] = None
-    reply_markup: Optional[InlineKeyboardMarkup] = None
-    reply_parameters: Optional[ReplyParameters] = None
-    delete_after: Optional[int] = None
-
-
-@dataclass
-class ScheduledJobData:
-    chat_id: int
-    text: Optional[str] = None
-    additional_data: Optional[JobData] = None
-
-
-@dataclass
-class MediaItem:
-    item: Union[str, InputMedia]
-    type: Literal["document", "photo", "audio", "video", "gif"]
-    as_doc: bool
+log = logger.getChild(__name__)
 
 
 @dataclass
 class ButtonItem:
     text: str
-    callback_key: Optional[str]
+    callback_key: Optional[str | PathBuilder]
     override_path_generation: bool = False
+
+
+BACK_BUTTON = ButtonItem(text="🔙 Indietro", callback_key=None)
 
 
 @dataclass
 class PanelConfig:
-    base_path: str
+    base_path: str | PathBuilder
     text: str
     keyboard: List[List[ButtonItem]]
-
-
-@dataclass
-class CanUserRequest:
-    yn: bool
-    reason: Optional[str]
-
-
-class MessageTemplate(NamedTuple):
-    app: str
-    game: str
-    daw: str
-    software: str
 
 
 class Panel:
@@ -219,23 +172,3 @@ class Panel:
             pass
 
         return False
-
-
-_PLATFORM_CATEGORY_MAP: Dict[Platform, Tuple[Type[Enum], ...]] = {
-    Platform.WINDOWS: (WindowsCategory,),
-    Platform.ANDROID: (AndroidCategory,),
-    Platform.IOS: (IOSCategory,),
-    Platform.MACOS: (MacOSCategory,)
-}
-
-
-def _parse_category(value: str, platform: Platform) -> Category:
-    for enum_cls in _PLATFORM_CATEGORY_MAP.get(platform):
-        try:
-            return cast(Category, enum_cls(value))
-        except ValueError:
-            continue
-    raise ValueError(f"category='{value}' non valida per platform='{platform.value}'")
-
-
-BACK_BUTTON = ButtonItem(text="🔙 Indietro", callback_key=None)

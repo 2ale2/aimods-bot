@@ -20,7 +20,7 @@ from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonIt
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
-log = logger.getChild("telegram_utils")
+log = logger.getChild(__name__)
 
 
 # ============================================================================
@@ -103,7 +103,7 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     return None
 
 
-async def safe_delete_wrapper(update: Update, context: CustomContext) -> bool:
+async def safe_delete_wrapper(update: Update, context: CustomContext):
     """Wrapper per safe_delete usando il messaggio corrente"""
     await safe_delete(update, context, update.effective_message)
 
@@ -234,7 +234,7 @@ def format_user_mention(
     if user_id and (username or not first_name):
         parts.append(f"(<code>{user_id}</code>)")
 
-    return " ".join(parts) if parts else f"<code>{user_id}</code>"
+    return " ".join(parts) if parts else (f"<code>{user_id}</code>" if user_id else f"{first_name}")
 
 
 def get_toggle_text(b: bool) -> str:

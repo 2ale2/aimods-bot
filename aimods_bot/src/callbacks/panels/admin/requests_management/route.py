@@ -19,21 +19,28 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
 log = logger.getChild(__name__)
 
 
-async def admin_requests_management_route(update: Update, context: CustomContext, path: list[str]):
-    match path:
+async def admin_requests_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
         case []:
             await render_admin_request_management_panel(update=update, context=context)
             return PCS.ADMIN_CONVERSATION
 
-        case ["active_requests", *rest]:
+        case [AdminRequestsRoute.ACTIVE, *rest]:
             return await admin_active_requests_management_route(update=update, context=context, path=rest)
 
         case ["manage_sections", *rest]:
@@ -75,21 +82,28 @@ async def admin_requests_management_route(update: Update, context: CustomContext
             return PCS.ADMIN_CONVERSATION
 
         case _:
-            log.warning(f"Unhandled path in admin_requests_management: {path}")
+            log.warning(f"Unhandled path in admin_requests_management: {relative_path}")
             return PCS.ADMIN_CONVERSATION
 
 
-async def admin_active_requests_management_route(update: Update, context: CustomContext, path: list[str]):
+async def admin_active_requests_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
     if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:
         #  Se la path è uguale a quella salvata, significa che sono tornato da una funzionalità secondaria
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
 
-    match path:
+    match relative_path.segments:
         case []:
+            # ==== MENU PRINCIPALE - SCELTA CATEGORIA ====
             await render_admin_active_requests_management_panel(update=update, context=context)
 
         case [platform_str]:
+            # ==== SCELTA PIATTAFORMA ====
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
@@ -97,6 +111,7 @@ async def admin_active_requests_management_route(update: Update, context: Custom
             )
 
         case [platform_str, category_str]:
+            # ==== LISTA RICHIESTE ====
             platform = Platform(platform_str)
             cat_enum = get_platform_categories(platform=platform)
 
@@ -107,19 +122,22 @@ async def admin_active_requests_management_route(update: Update, context: Custom
                 category=cat_enum(category_str)
             )
 
-        case [_, _, request_id_str, *rest]:
+
+        # ==== GESTIONE RICHIESTA ====
+        case [platform_str, category_str, request_id_str, *sub_path]:
             if request_id_str.isdigit():
                 return await admin_manage_request_route(
                     update=update,
                     context=context,
-                    path=rest,
+                    root=root.add(platform_str, category_str, request_id_str),
+                    relative_path=PathBuilder(*sub_path),
                     ix=int(request_id_str)
                 )
             else:
                 log.warning(f"Invalid request ID received: {request_id_str}")
 
         case _:
-            log.warning(f"Unhandled path structure in active requests: {path}")
+            log.warning(f"Unhandled path structure in active requests: {relative_path}")
 
     return PCS.ADMIN_CONVERSATION
 
@@ -127,7 +145,8 @@ async def admin_active_requests_management_route(update: Update, context: Custom
 async def admin_manage_request_route(
         update: Update,
         context: CustomContext,
-        path: list[str],
+        root: PathBuilder,
+        relative_path: PathBuilder,
         ix: int
 ):
     request = context.get_active_request_by_id(ix=ix)
@@ -143,7 +162,7 @@ async def admin_manage_request_route(
             return False
         return True
 
-    match path:
+    match root:
         case []:
             siblings = context.get_active_category_requests(platform=request.platform, category=request.category)
             back_key = "admin/manage_requests/active_requests" if len(siblings) == 1 else None
@@ -216,18 +235,18 @@ async def admin_manage_request_route(
 
         case ["reject", reason_str, "yes"]:
             if await ensure_active():
-                await confirm_rejection(context, ix=ix, reason=path[-2])
+                await confirm_rejection(context, ix=ix, reason=root[-2])
                 await render_admin_rejection_confirmed_panel(
                     update=update,
                     context=context,
                     ix=ix,
                     request=request,
-                    reason=path[-2]
+                    reason=root[-2]
                 )
                 await _notify_user_safe(update, context, request)
 
         case _:
-            log.warning(f"Unhandled path in manage_request: {path}")
+            log.warning(f"Unhandled path in manage_request: {root}")
 
     return PCS.ADMIN_CONVERSATION
 
