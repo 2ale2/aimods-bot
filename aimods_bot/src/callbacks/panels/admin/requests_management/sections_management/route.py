@@ -11,12 +11,18 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
 from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat, get_config
 
 
-async def admin_request_section_configure_route(update: Update, context: CustomContext, path: list[str]):
-    match path:
+async def admin_request_section_configure_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
         case []:
             await render_admin_request_section_configure_panel(update=update, context=context)
 

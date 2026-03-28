@@ -19,7 +19,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     admin_request_section_configure_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute, \
+    AdminRequestManagementRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -37,28 +38,38 @@ async def admin_requests_management_route(
 ):
     match relative_path.segments:
         case []:
-            await render_admin_request_management_panel(update=update, context=context)
+            await render_admin_request_management_panel(update=update, context=context, base_path=root)
             return PCS.ADMIN_CONVERSATION
 
         case [AdminRequestsRoute.ACTIVE, *rest]:
-            return await admin_active_requests_management_route(update=update, context=context, path=rest)
+            return await admin_active_requests_management_route(
+                update=update,
+                context=context,
+                root=root.add(AdminRequestsRoute.ACTIVE),
+                relative_path=PathBuilder(*rest)
+            )
 
-        case ["manage_sections", *rest]:
-            return await admin_request_section_configure_route(update=update, context=context, path=rest)
+        case [AdminRequestsRoute.MANAGE_SECTIONS, *rest]:
+            return await admin_request_section_configure_route(
+                update=update,
+                context=context,
+                root=root.add(AdminRequestsRoute.MANAGE_SECTIONS),
+                relative_path=PathBuilder(*rest)
+            )
 
-        case ["manage_limitations"]:
+        case [AdminRequestsRoute.MANAGE_LIMITATIONS, *rest]:
             context.free_base_path()
             context.pydc.persistent.limiting_user_requests = None
-            return await route_admin_manage_limitations(update=update, context=context, path=[])
+            return await route_admin_manage_limitations(update=update, context=context, path=rest)
 
         case ["manage_limitations", *rest]:
             return await route_admin_manage_limitations(update=update, context=context, path=rest)
 
-        case ["user_requests_archive"]:
+        case [AdminRequestsRoute.USER_REQUESTS_ARCHIVE, *rest]:
             await render_admin_user_requests_archive_panel(update=update, context=context)
             return PCS.SET_USER_FOR_REQUEST_ARCHIVE
 
-        case ["last_10"]:
+        case [AdminRequestsRoute.LAST_10, *rest]:
             await render_last_ten_requests_platform_panel(update=update, context=context)
             return PCS.ADMIN_CONVERSATION
 
@@ -100,13 +111,14 @@ async def admin_active_requests_management_route(
     match relative_path.segments:
         case []:
             # ==== MENU PRINCIPALE - SCELTA CATEGORIA ====
-            await render_admin_active_requests_management_panel(update=update, context=context)
+            await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
         case [platform_str]:
             # ==== SCELTA PIATTAFORMA ====
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
+                root=root,
                 platform=Platform(platform_str)
             )
 
@@ -121,7 +133,6 @@ async def admin_active_requests_management_route(
                 platform=platform,
                 category=cat_enum(category_str)
             )
-
 
         # ==== GESTIONE RICHIESTA ====
         case [platform_str, category_str, request_id_str, *sub_path]:
@@ -162,25 +173,16 @@ async def admin_manage_request_route(
             return False
         return True
 
-    match root:
+    match relative_path.segments:
         case []:
-            siblings = context.get_active_category_requests(platform=request.platform, category=request.category)
-            back_key = "admin/manage_requests/active_requests" if len(siblings) == 1 else None
-
-            await render_admin_manage_request_panel(
-                update=update, context=context, ix=ix, request=request,
-                back_button_callback_key=back_key
-            )
+            await render_admin_manage_request_panel(update=update, context=context, request=request)
 
         # --- LIMITI UTENTE ---
-        case [limit_str, *rest] if limit_str.startswith("limit"):
-            try:
-                user_id = int(limit_str.split("_")[-1])
-                return await route_admin_limit_user_request(
-                    update=update, context=context, path=rest, user_id=user_id
-                )
-            except ValueError:
-                log.error(f"Invalid limit path: {limit_str}")
+        case [AdminRequestManagementRoute.LIMIT, *rest]:
+            user_id = int(rest[-1])
+            return await route_admin_limit_user_request(
+                update=update, context=context, path=rest, user_id=user_id
+            )
 
         # --- REMOVE ---
         case ["remove"]:

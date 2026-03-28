@@ -117,6 +117,8 @@ async def request_from_record(request: dict) -> Request:
 def get_requests_summary(requests: dict[int, Request], with_authors: bool = False) -> str:
     """
     Ritorna il sommario delle richieste nel dizionario.
+
+    NOTA - L'ID è nella richiesta; perché non passo una lista di Request?
     """
     parts = []
 

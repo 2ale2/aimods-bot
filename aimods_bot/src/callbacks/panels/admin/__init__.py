@@ -30,18 +30,18 @@ async def admin_main_router(update: Update, context: CustomContext):
             case [AdminRoute.MODERATION, *sub_path]:
                 return await not_implemented_yet(update=update, context=context)
                 # return await moderation_router(update=update, context=context, path=s[1:])
-            case [AdminRoute.SETTINGS, *sub_path]:
+            case [AdminRoute.MANAGE_SETTINGS, *sub_path]:
                 return await admin_settings_management_route(
                     update=update,
                     context=context,
-                    root=PathBuilder(AdminRoute.SETTINGS),
+                    root=PathBuilder(AdminRoute.MANAGE_SETTINGS),
                     relative_path=PathBuilder(*sub_path)
                 )
-            case [AdminRoute.REQUESTS, *sub_path]:
+            case [AdminRoute.MANAGE_REQUESTS, *sub_path]:
                 return await admin_requests_management_route(
                     update=update,
                     context=context,
-                    root=PathBuilder(AdminRoute.REQUESTS),
+                    root=PathBuilder(AdminRoute.MANAGE_REQUESTS),
                     relative_path=PathBuilder(*sub_path)
                 )
             case GlobalAction.CLOSE:

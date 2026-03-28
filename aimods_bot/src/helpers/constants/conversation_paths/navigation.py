@@ -6,20 +6,29 @@ class GlobalAction(StrEnum):
     BACK = "back"
     CLOSE = "close_menu"
 
+    YES = "yes"
+    NO = "no"
+
+
 class AdminRoute(StrEnum):
     ROOT = "admin"
 
     MODERATION = "moderation"
-    SETTINGS = "manage_settings"
-    REQUESTS = "manage_requests"
+    MANAGE_SETTINGS = "manage_settings"
+    MANAGE_REQUESTS = "manage_requests"
 
 
 class UserRoute(StrEnum):
     ROOT = "user"
 
-    SETTINGS = "manage_settings"
+    MANAGE_SETTINGS = "manage_settings"
     VIEW_REQUESTS = "view_requests"
     ADD_REQUEST = "add_request"
+
+
+class UserViewRequestsRoute(StrEnum):
+    ACTIVE = "active_requests"
+    DETAILS = "details"
 
 
 class AdminSettingsRoute(StrEnum):
@@ -32,14 +41,27 @@ class AdminRequestsRoute(StrEnum):
     ACTIVE = "active_requests"
     MANAGE_SECTIONS = "manage_sections"
     MANAGE_LIMITATIONS = "manage_limitations"
-    USER_ARCHIVE = "user_archive"
+    USER_REQUESTS_ARCHIVE = "user_requests_archive"
     LAST_10 = "last_10"
+
+
+class AdminRequestManagementRoute(StrEnum):
+    # admin/manage_requests/<platform>/<catgeory>/<id>
+    LIMIT = "limit"
+    REMOVE = "remove"
+    REJECT = "reject"
+    CHANGE_STATUS = "change_status"
+
+
+class AdminRequestsLimitationsRoute(StrEnum):
+    # admin/manage_requests/manage_limitations
+    REMOVE_LIMITATIONS = "remove_limitations"
 
 
 class AdminNotificationsRoute(StrEnum):
     # admin/settings/notifications
     NEW_REQUESTS = "new_requests"
-    SECTION_CLOSING ="section_closing"
+    SECTION_CLOSING = "section_closing"
 
 
 class ModerationRoute(StrEnum):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List
 
 from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPreviewOptions
 from telegram.constants import ParseMode
@@ -18,7 +18,7 @@ log = logger.getChild(__name__)
 @dataclass
 class ButtonItem:
     text: str
-    callback_key: Optional[str | PathBuilder]
+    callback_key: PathBuilder
     override_path_generation: bool = False
 
 
@@ -27,7 +27,7 @@ BACK_BUTTON = ButtonItem(text="🔙 Indietro", callback_key=None)
 
 @dataclass
 class PanelConfig:
-    base_path: str | PathBuilder
+    base_path: PathBuilder
     text: str
     keyboard: List[List[ButtonItem]]
 
@@ -51,27 +51,14 @@ class Panel:
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
-                if not button.override_path_generation:
-                    c_data = self.generate_path(button.callback_key)
-                else:  # La callback key è il percorso completo
-                    c_data = button.callback_key
                 subkeyboard.append(
                     InlineKeyboardButton(
                         text=button.text,
-                        callback_data=c_data
+                        callback_data=button.callback_key.build()
                     )
                 )
             keyboard.append(subkeyboard)
         return keyboard
-
-    def generate_path(self, subpath: Optional[str]) -> str:
-        """Genera il percorso per il callback_data."""
-        if not subpath:
-            s = self.base_path.split("/")
-            return f"{'/'.join(s[:-1])}"
-        if not self.base_path:
-            return subpath
-        return f"{self.base_path}/{subpath}"
 
     async def render(
             self,

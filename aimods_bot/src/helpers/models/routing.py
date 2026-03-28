@@ -13,9 +13,9 @@ class PathBuilder:
     def add(self, *new_segments: str | Enum) -> PathBuilder:
         return PathBuilder(*(self.segments + list(new_segments)))
 
-    def back(self) -> PathBuilder:
-        if len(self.segments) > 1:
-            return PathBuilder(*self.segments[:-1])
+    def back(self, steps: int = 1) -> PathBuilder:
+        if len(self.segments) > steps:
+            return PathBuilder(*self.segments[:-steps])
         return self
 
     def pop(self, idx: int) -> PathBuilder:

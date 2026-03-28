@@ -7,7 +7,10 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
     Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
+    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserViewRequestsRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
@@ -22,25 +25,47 @@ def _get_header():
     return "❔ <b>Gestione Richieste</b>"
 
 
-async def render_admin_request_management_panel(update: Update, context: CustomContext):
+async def render_admin_request_management_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _get_admin_request_management_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_requests",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="⏯️ Gestione Sezioni", callback_key="manage_sections"),
-                ButtonItem(text="⛔️ Gestisci Limitazioni", callback_key="manage_limitations")
+                ButtonItem(
+                    text="⏯️ Gestione Sezioni",
+                    callback_key=base_path.add(AdminRequestsRoute.MANAGE_SECTIONS)
+                ),
+                ButtonItem(
+                    text="⛔️ Gestisci Limitazioni",
+                    callback_key=base_path.add(AdminRequestsRoute.MANAGE_LIMITATIONS)
+                )
             ],
             [
-                ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
-                ButtonItem(text="📕 Archivio Richieste", callback_key="user_requests_archive")
+                ButtonItem(
+                    text="📘 Richieste Attive",
+                    callback_key=base_path.add(AdminRequestsRoute.ACTIVE)
+                ),
+                ButtonItem(
+                    text="📕 Archivio Richieste",
+                    callback_key=base_path.add(AdminRequestsRoute.USER_REQUESTS_ARCHIVE)
+                )
             ],
-            [ButtonItem(text="🔟 Ultime 10", callback_key="last_10")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [
+                ButtonItem(
+                    text="🔟 Ultime 10",
+                    callback_key=base_path.add(AdminRequestsRoute.LAST_10)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="🔙 Indietro",
+                    callback_key=base_path.back()
+                )
+            ]
         ]
     )
 
@@ -52,21 +77,21 @@ def _get_admin_request_management_text():
     return text
 
 
-async def render_admin_active_requests_management_panel(update: Update, context: CustomContext):
+async def render_admin_active_requests_management_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _get_admin_request_management_text()
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
         for key, d in PLATFORM_DETAILS.items()
     ]
 
     keyboard = chunk_buttons(buttons=buttons, size=2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_requests/active_requests",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -83,6 +108,7 @@ def _get_admin_active_requests_management_text():
 async def render_admin_active_requests_category_selector_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform
 ):
     text = _get_admin_active_requests_category_text(platform=platform)
@@ -98,22 +124,23 @@ async def render_admin_active_requests_category_selector_panel(
         return await render_admin_active_requests_category_panel(
             update=update,
             context=context,
+            base_path=base_path,
             platform=platform,
             category=category
         )
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
         for key, d in categories.items()
     ]
 
     keyboard = chunk_buttons(buttons=buttons, size=2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -130,6 +157,7 @@ def _get_admin_active_requests_category_text(platform: Platform):
 async def render_admin_active_requests_category_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category
 ):
@@ -137,9 +165,9 @@ async def render_admin_active_requests_category_panel(
 
     categories = get_platform_categories(platform=platform)
     if len(categories) > 1:
-        back_button_callback_key = f"admin/manage_requests/active_requests/{platform.value}"
+        back_button_callback_key = base_path.back()
     else:
-        back_button_callback_key = "admin/manage_requests/active_requests"
+        back_button_callback_key = base_path.back(2)
 
     if len(requests) == 1:
         ix = list(requests.values())[0].id
@@ -148,9 +176,8 @@ async def render_admin_active_requests_category_panel(
         return await render_admin_manage_request_panel(
             update=update,
             context=context,
-            ix=ix,
             request=request_data,
-            back_button_callback_key=back_button_callback_key
+            base_path=base_path
         )
 
     text = _get_active_requests_category_text(context=context, platform=platform, category=category, requests=requests)
@@ -158,18 +185,26 @@ async def render_admin_active_requests_category_panel(
     keyboard = [[
         ButtonItem(
             text="⏯ Gestisci Sezione",
-            callback_key=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
-            override_path_generation=True
+            callback_key=PathBuilder(
+                AdminRoute.ROOT,
+                AdminRoute.MANAGE_REQUESTS,
+                AdminRequestsRoute.MANAGE_SECTIONS,
+                platform.value,
+                category.value
+            )
         )
     ]]
 
-    req_buttons = [ButtonItem(text=f"{i + 1}", callback_key=req.id) for i, req in enumerate(requests.values())]
+    req_buttons = [
+        ButtonItem(
+            text=f"{i + 1}",
+            callback_key=base_path.add(req.id)) for i, req in enumerate(requests.values())
+    ]
     keyboard.extend(chunk_buttons(req_buttons, 2))
 
     back_button = ButtonItem(
         text="🔙 Indietro",
-        callback_key=back_button_callback_key,
-        override_path_generation=(back_button_callback_key is not None)
+        callback_key=back_button_callback_key
     )
 
     keyboard.append([back_button]) if len(requests) else keyboard[-1].append(back_button)
@@ -177,7 +212,7 @@ async def render_admin_active_requests_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -204,11 +239,10 @@ def _get_active_requests_category_text(
                 'richieste')
             }' if config.limit else '🆓 Nessun Limite'}</i>)' if config.toggle else '🔴 Chiusa'}\n\n")
 
-    text += get_requests_summary(requests=requests)
-
     if lenr == 0:
         text += "ℹ️ Non ci sono richieste attive per questa categoria."
     else:
+        text += get_requests_summary(requests=requests)
         text += "\n🔹 Scegli la richiesta da gestire."
 
     return text
@@ -217,9 +251,8 @@ def _get_active_requests_category_text(
 async def render_admin_manage_request_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
         request: Request,
-        back_button_callback_key: str = None
+        base_path: PathBuilder
 ):
     platform = request.platform
     category = request.category
@@ -228,13 +261,14 @@ async def render_admin_manage_request_panel(
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
         request=request,
-        back_button_callback_key=back_button_callback_key
+        base_path=base_path,
+        back_callback_key=base_path.back()
     )
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -265,7 +299,12 @@ async def _get_admin_manage_request_text(
     return text
 
 
-def _get_admin_menage_request_keyboard(context: CustomContext, request: Request, back_button_callback_key: str = None):
+def _get_admin_menage_request_keyboard(
+        context: CustomContext,
+        request: Request,
+        base_path: PathBuilder,
+        back_callback_key: PathBuilder
+):
     steps = [None] + [el.value for el in RequestStatus] + [None]
 
     current_status = request.status
@@ -281,45 +320,52 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
             next_status_label = REQUEST_STATUS_DETAILS[next_status_button]["label"]
             keyboard[0].insert(0, ButtonItem(
                 text=f"{next_status_icon} {next_status_label}",
-                callback_key=next_status_button)
-                               )
+                callback_key=base_path.add(next_status_button))
+            )
         if previous_status_button:
             previous_status_icon = REQUEST_STATUS_DETAILS[previous_status_button]["icon"]
             previous_status_label = REQUEST_STATUS_DETAILS[previous_status_button]["label"]
             keyboard[0].insert(0, ButtonItem(
                 text=f"{previous_status_icon} {previous_status_label}",
-                callback_key=previous_status_button)
-                               )
+                callback_key=base_path.add(previous_status_button))
+            )
 
         keyboard.extend([
             [
-                ButtonItem(text="❌ Rifiuta Richiesta", callback_key="reject"),
-                ButtonItem(text="🔄 Cambia Stato", callback_key="change_status")
+                ButtonItem(
+                    text="❌ Rifiuta Richiesta",
+                    callback_key=base_path.add(AdminRequestManagementRoute.REJECT)
+                ),
+                ButtonItem(
+                    text="🔄 Cambia Stato",
+                    callback_key=base_path.add(AdminRequestManagementRoute.CHANGE_STATUS)
+                )
             ]
         ])
 
-    limit_buttons = [ButtonItem(text="⛔️ Limita Utente", callback_key=f"limit_{request.user_id}")]
+    limit_buttons = [ButtonItem(
+        text="⛔️ Limita Utente",
+        callback_key=base_path.add(AdminRequestManagementRoute.LIMIT, request.user_id))
+    ]
     if context.get_user_request_limitations(user_id=request.user_id):
         limit_buttons.append(
             ButtonItem(
                 text="🆓 Libera Utente",
-                callback_key=f"admin/manage_requests/manage_limitations/remove_limitations/{request.user_id}",
-                override_path_generation=True
+                callback_key=PathBuilder(
+                    AdminRoute.ROOT,
+                    AdminRoute.MANAGE_REQUESTS,
+                    AdminRequestsRoute.MANAGE_LIMITATIONS,
+                    AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS,
+                    request.user_id
+                )
             )
         )
 
-    keyboard.extend([
-        limit_buttons,
-        [ButtonItem(
-            text="🔙 Indietro",
-            callback_key=back_button_callback_key,
-            override_path_generation=(back_button_callback_key is not None)
-        )]
-    ])
+    keyboard.extend([limit_buttons, [ButtonItem(text="🔙 Indietro", callback_key=back_callback_key)]])
 
     if current_status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         keyboard[-2].insert(0, ButtonItem(
-            text="🚮 Rimuovi da Attive", callback_key="remove"
+            text="🚮 Rimuovi da Attive", callback_key=base_path.add(AdminRequestManagementRoute.REMOVE)
         ))
 
     return keyboard
@@ -328,7 +374,7 @@ def _get_admin_menage_request_keyboard(context: CustomContext, request: Request,
 async def render_change_request_status_confirmation_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request,
         status: RequestStatus
 ):
@@ -345,12 +391,12 @@ async def render_change_request_status_confirmation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/{status.value}",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="✅ Conferma", callback_key="yes"),
-                ButtonItem(text="🔙 Annulla", callback_key=None)
+                ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
             ]
         ]
     )
@@ -395,7 +441,7 @@ async def _get_render_change_request_status_confirmation_text(
 async def render_request_status_changed_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request
 ):
     platform = request.platform
@@ -403,9 +449,9 @@ async def render_request_status_changed_panel(
 
     categories = get_platform_categories(platform=platform)
     if len(categories) > 1:
-        back_button_callback_key = f"admin/manage_requests/active_requests/{platform.value}"
+        back_callback_key = base_path.back()
     else:
-        back_button_callback_key = f"admin/manage_requests/active_requests"
+        back_callback_key = base_path.back(2)
 
     text = await _get_request_status_changed_text(
         platform=platform,
@@ -416,13 +462,14 @@ async def render_request_status_changed_panel(
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
         request=request,
-        back_button_callback_key=back_button_callback_key
+        base_path=base_path,
+        back_callback_key=back_callback_key
     )
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -458,7 +505,7 @@ async def _get_request_status_changed_text(
 async def render_admin_manage_request_remove_confirmation_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request
 ):
     platform = request.platform
@@ -473,12 +520,12 @@ async def render_admin_manage_request_remove_confirmation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/remove",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="🗑 Rimuovi", callback_key="yes"),
-                ButtonItem(text="🔙 Annulla", callback_key=None)
+                ButtonItem(text="🗑 Rimuovi", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
             ]
         ]
     )
@@ -506,17 +553,17 @@ async def _get_admin_manage_request_remove_confirmation_text(
 async def render_admin_manage_request_removed_panel(
         update: Update,
         context: CustomContext,
-        ix: int
+        base_path: PathBuilder
 ):
     text = _get_admin_manage_request_removed_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=update.callback_query.data.replace(f"/{ix}/remove/yes", ""),
+        base_path=base_path.back(3),
         text=text,
         keyboard=[
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back(3))]
         ]
     )
 
@@ -530,15 +577,10 @@ def _get_admin_manage_request_removed_text():
 async def render_admin_manage_request_change_status_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request
 ):
     text = await _get_admin_manage_request_change_status_text(request=request)
-
-    platform = request.platform
-    category = request.category
-
-    path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}"
 
     keyboard = [[]]
     for sk in REQUEST_STATUS_DETAILS:
@@ -549,25 +591,21 @@ async def render_admin_manage_request_change_status_panel(
             keyboard.append([])
         if sk == "rejected":
             ckey = "reject"
-            override = False
         elif request.status.value != sk:
             ckey = sk
-            override = False
         else:
-            ckey = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}"
-            override = True
+            ckey = base_path.back()
         keyboard[-1].append(ButtonItem(
             text=f"{status['icon']} {status['label']}",
-            callback_key=ckey,
-            override_path_generation=override
+            callback_key=base_path.add(ckey)
         ))
 
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=path, override_path_generation=True)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=path,
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -588,25 +626,45 @@ async def _get_admin_manage_request_change_status_text(request: Request):
 async def render_admin_reject_request_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request
 ):
     text = await _get_admin_reject_request_text(request=request)
 
-    platform = request.platform
-    category = request.category
-
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject",
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="Serverside", callback_key=RejectRequestReason.SERVERSIDE.value)],
-            [ButtonItem(text="Non disponibile al momento", callback_key=RejectRequestReason.NOT_AVAILABLE.value)],
-            [ButtonItem(text="Già disponibile", callback_key=RejectRequestReason.ALREADY_AVAILABLE.value)],
-            [ButtonItem(text="Richiesta non chiara", callback_key=RejectRequestReason.UNCLEAR.value)],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [
+                ButtonItem(
+                    text="Serverside",
+                    callback_key=base_path.add(RejectRequestReason.SERVERSIDE.value)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="Non disponibile al momento",
+                    callback_key=base_path.add(RejectRequestReason.NOT_AVAILABLE.value)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="Già disponibile",
+                    callback_key=base_path.add(RejectRequestReason.ALREADY_AVAILABLE.value)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="Richiesta non chiara",
+                    callback_key=base_path.add(RejectRequestReason.UNCLEAR.value)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="🔙 Indietro",
+                    callback_key=base_path.back())]
         ]
     )
 
@@ -626,18 +684,13 @@ async def _get_admin_reject_request_text(request: Request):
 async def render_admin_confirm_rejection_panel(
         update: Update,
         context: CustomContext,
-        ix: int,
+        base_path: PathBuilder,
         request: Request,
         reason: Union[RejectRequestReason, str]
 ):
     text = await _get_admin_confirm_rejection_text(request=request, rejection_reason=reason)
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
-
-    platform = request.platform
-    category = request.category
-
-    base_path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject/{reason}"
 
     await create_and_render_panel(
         update=update,
@@ -646,8 +699,8 @@ async def render_admin_confirm_rejection_panel(
         text=text,
         keyboard=[
             [
-                ButtonItem(text="✅ Conferma", callback_key="yes"),
-                ButtonItem(text="🔙 Indietro", callback_key=None)
+                ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Indietro", callback_key=base_path.back())
             ]
         ],
         message_id=message_id
@@ -676,15 +729,11 @@ async def _get_admin_confirm_rejection_text(request: Request, rejection_reason: 
 async def render_admin_rejection_confirmed_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         ix: int,
-        request: Request,
         reason: str
 ):
-    platform = request.platform
-    category = request.category
-
     text = _get_admin_rejection_confirmed_text(ix=ix, reason=reason)
-    base_path = f"admin/manage_requests/active_requests/{platform.value}/{category.value}/{ix}/reject/{reason}/yes"
 
     await create_and_render_panel(
         update=update,
@@ -695,14 +744,13 @@ async def render_admin_rejection_confirmed_panel(
             [
                 ButtonItem(
                     text="🔙 Indietro",
-                    callback_key="admin/manage_requests/active_requests",
-                    override_path_generation=True
+                    callback_key=PathBuilder(
+                        AdminRoute.ROOT,
+                        AdminRoute.MANAGE_REQUESTS,
+                        AdminRequestsRoute.ACTIVE
+                    )
                 ),
-                ButtonItem(
-                    text="🏠 Home",
-                    callback_key="admin",
-                    override_path_generation=True
-                )
+                ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))
             ]
         ]
     )
@@ -720,21 +768,21 @@ def _get_admin_rejection_confirmed_text(ix: int, reason: str):
     return text
 
 
-async def render_admin_user_requests_archive_panel(update: Update, context: CustomContext):
+async def render_admin_user_requests_archive_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     context.pydc.persistent.bot_message_id = update.effective_message.message_id
 
-    text = _get_admin_user_requests_archive_()
+    text = _get_admin_user_requests_archive()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_requests/user_requests_archive",
+        base_path=base_path,
         text=text,
-        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
 
 
-def _get_admin_user_requests_archive_():
+def _get_admin_user_requests_archive():
     return (
         "📕 <b>Archivio Richieste Utente</b>\n\n"
         "▫ Da qui puoi visionare l'archivio delle richieste di un utente.\n\n"
@@ -751,18 +799,24 @@ async def send_user_request_status_changed_notification(
     text = _get_user_request_status_changed_notification_text(request=request)
     ix = request.id
 
+    base_path = PathBuilder(UserRoute.ROOT)
+
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="🚮 Chiudi", callback_key="close_menu"),
+                ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE)),
                 ButtonItem(
                     text="👁 Visiona Richiesta",
-                    callback_key=f"user/view_requests/active_requests/details/{ix}",
-                    override_path_generation=True
+                    callback_key=base_path.add(
+                        UserRoute.VIEW_REQUESTS,
+                        UserViewRequestsRoute.ACTIVE,
+                        UserViewRequestsRoute.DETAILS,
+                        ix
+                    )
                 )
             ]
         ],
@@ -781,20 +835,20 @@ def _get_user_request_status_changed_notification_text(request: Request):
     return text
 
 
-async def render_last_ten_requests_platform_panel(update: Update, context: CustomContext):
+async def render_last_ten_requests_platform_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _get_last_ten_requests_platform_text()
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
         for key, d in PLATFORM_DETAILS.items()
     ]
     keyboard = chunk_buttons(buttons, 2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_requests/last_10",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -809,24 +863,35 @@ def _get_last_ten_requests_platform_text():
     return text
 
 
-async def render_last_ten_requests_category_panel(update: Update, context: CustomContext, pl: Platform):
+async def render_last_ten_requests_category_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        pl: Platform
+):
     cats = get_platform_categories(pl)
     if len(cats) == 1:
-        return await render_last_ten_requests_section_panel(update=update, context=context, pl=pl, ca=list(cats)[0])
+        return await render_last_ten_requests_section_panel(
+            update=update,
+            context=context,
+            pl=pl,
+            ca=list(cats)[0],
+            base_path=base_path
+        )
 
     text = _get_last_ten_requests_category_text(pl=pl)
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=key)
+        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
         for key, d in CATEGORY_DETAILS[pl.value].items()
     ]
     keyboard = chunk_buttons(buttons, 2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/last_10/{pl.value}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -842,7 +907,13 @@ def _get_last_ten_requests_category_text(pl: Platform):
     return text
 
 
-async def render_last_ten_requests_section_panel(update: Update, context: CustomContext, pl: Platform, ca: Category):
+async def render_last_ten_requests_section_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        pl: Platform,
+        ca: Category
+):
     await context.bot.send_chat_action(
         chat_id=update.effective_message.chat_id,
         action=ChatAction.TYPING
@@ -850,27 +921,30 @@ async def render_last_ten_requests_section_panel(update: Update, context: Custom
     requests = await get_last_n_requests(n=10, pl=pl, ca=ca)
     text = await _get_last_ten_requests_section_text(requests=requests, pl=pl, ca=ca)
 
-    if len(get_platform_categories(pl)) == 1:
-        back_button_callback_data = "admin/manage_requests/last_10"
+    if len(get_platform_categories(pl)) > 1:
+        back_button_callback_data = base_path.back()
     else:
-        back_button_callback_data = f"admin/manage_requests/last_10/{pl.value}"
+        back_button_callback_data = base_path.back(2)
 
     await safe_delete(update=update, context=context)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/last_10/{pl.value}/{ca.value}",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
                 ButtonItem(
                     text="📕 Archivio Richieste",
-                    callback_key="admin/manage_requests/user_requests_archive",
-                    override_path_generation=True
+                    callback_key=PathBuilder(
+                        AdminRoute.ROOT,
+                        AdminRoute.MANAGE_REQUESTS,
+                        AdminRequestsRoute.USER_REQUESTS_ARCHIVE
+                    )
                 )
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=back_button_callback_data, override_path_generation=True)]
+            [ButtonItem(text="🔙 Indietro", callback_key=back_button_callback_data)]
         ],
         send=True
     )

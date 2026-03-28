@@ -31,10 +31,10 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                 keyboard=[
                     [
                         ButtonItem(text="♟ Moderazione", callback_key=path.add(AdminRoute.MODERATION)),
-                        ButtonItem(text="⚙ Impostazioni", callback_key=path.add(AdminRoute.SETTINGS))
+                        ButtonItem(text="⚙ Impostazioni", callback_key=path.add(AdminRoute.MANAGE_SETTINGS))
                     ],
                     [
-                        ButtonItem(text="❔ Gestione Richieste", callback_key=path.add(AdminRoute.REQUESTS)),
+                        ButtonItem(text="❔ Gestione Richieste", callback_key=path.add(AdminRoute.MANAGE_REQUESTS)),
                         ButtonItem(text="🔐 Chiudi", callback_key=GlobalAction.CLOSE)
                     ]
                 ],
@@ -58,7 +58,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                             callback_key=path.add(UserRoute.ADD_REQUEST)
                         )
                     ],
-                    [ButtonItem(text="⚙ Impostazioni", callback_key=path.add(UserRoute.SETTINGS))],
+                    [ButtonItem(text="⚙ Impostazioni", callback_key=path.add(UserRoute.MANAGE_SETTINGS))],
                     [ButtonItem(text="🔐 Chiudi", callback_key=GlobalAction.CLOSE)]
                 ]
             )
