@@ -6,6 +6,10 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.constants.models import ButtonItem
+
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, GlobalAction, \
+    AdminRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons, get_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
@@ -22,20 +26,20 @@ def _format_limit_text(limit: Optional[int]) -> str:
     return f"{pluralize(limit, 'richiesta', 'richieste')}" if limit is not None else "🆓 <b>Nessun Limite</b>"
 
 
-async def render_admin_request_section_configure_panel(update: Update, context: CustomContext):
+async def render_admin_request_section_configure_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _get_admin_request_section_configure_text()
 
     buttons = [
-        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=key)
+        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=base_path.add(key))
         for key, item in PLATFORM_DETAILS.items()
     ]
     keyboard = chunk_buttons(buttons=buttons, size=2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_requests/manage_sections",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -48,21 +52,22 @@ def _get_admin_request_section_configure_text():
 async def render_admin_request_section_configure_platform_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform
 ):
     text = _get_admin_request_section_configure_platform_text()
 
     buttons = [
-        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=key)
+        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=base_path.add(key))
         for key, item in CATEGORY_DETAILS[platform.value].items()
     ]
     keyboard = chunk_buttons(buttons=buttons, size=2)
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -75,6 +80,7 @@ def _get_admin_request_section_configure_platform_text():
 async def render_admin_request_section_configure_category_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category
 ):
@@ -87,14 +93,14 @@ async def render_admin_request_section_configure_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text=toggle_text, callback_key=toggle_callback),
-                ButtonItem(text="🗂 Limite", callback_key="limit")
+                ButtonItem(text=toggle_text, callback_key=base_path.add(toggle_callback)),
+                ButtonItem(text="🗂 Limite", callback_key=base_path.add(AdminRequestManagementRoute.LIMIT))
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -115,6 +121,7 @@ def _get_admin_request_section_configure_category_text(config: CategorySetting, 
 async def render_admin_request_section_toggle_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category,
         action: Literal["open", "close"]
@@ -131,12 +138,12 @@ async def render_admin_request_section_toggle_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="📬 Apri" if opening else "📪 Chiudi", callback_key='yes'),
-                ButtonItem(text="🔙 Indietro", callback_key=None)
+                ButtonItem(text="📬 Apri" if opening else "📪 Chiudi", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Indietro", callback_key=base_path.back())
             ]
         ]
     )
@@ -158,9 +165,10 @@ def _get_admin_request_section_toggle_panel_text(
         active_requests = len(context.get_active_category_requests(platform=platform, category=category))
         if active_requests >= config.limit:
             text += (
-                f"<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore al limite</b> "
-                f"impostato (<b>{pluralize(active_requests, 'richiesta', 'richieste')} su {config.limit}</b>); "
-                f"se la riapri, il <b>limite verrà automaticamente rimosso (0)</b>.</blockquote>\n\n"
+                "<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore "
+                f"al limite</b> impostato (<b>{pluralize(active_requests, 'richiesta', 'richieste')} "
+                f"su {config.limit}</b>); se la riapri, il <b>limite verrà automaticamente rimosso (0)</b>."
+                "</blockquote>\n\n"
             )
 
     return text + "🔹 <b>Confermi</b>?"
@@ -169,6 +177,7 @@ def _get_admin_request_section_toggle_panel_text(
 async def render_admin_request_section_toggled_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category,
         action: Literal["open", "close"]
@@ -178,11 +187,11 @@ async def render_admin_request_section_toggled_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/{action}",
+        base_path=base_path,
         text=text,
         keyboard=[[
-            ButtonItem(text="🔙 Indietro", callback_key=None),
-            ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
+            ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
+            ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))
         ]]
     )
 
@@ -204,40 +213,41 @@ def _get_admin_request_section_toggled_text(
 async def render_admin_request_section_limit_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category
 ):
     text = _get_admin_request_section_limit_text(context=context, platform=platform, category=category)
 
     keyboard = [
-        [ButtonItem(text="🆓 Nessun Limite", callback_key="0")],
+        [ButtonItem(text="🆓 Nessun Limite", callback_key=base_path.add("0"))],
         [
-            ButtonItem(text="1 Richiesta", callback_key="1"),
-            ButtonItem(text="2 Richieste", callback_key="2"),
-            ButtonItem(text="3 Richieste", callback_key="3")
+            ButtonItem(text="1 Richiesta", callback_key=base_path.add("1")),
+            ButtonItem(text="2 Richieste", callback_key=base_path.add("2")),
+            ButtonItem(text="3 Richieste", callback_key=base_path.add("3"))
         ],
         [
-            ButtonItem(text="4 Richieste", callback_key="4"),
-            ButtonItem(text="5 Richieste", callback_key="5"),
-            ButtonItem(text="6 Richieste", callback_key="6")
+            ButtonItem(text="4 Richieste", callback_key=base_path.add("4")),
+            ButtonItem(text="5 Richieste", callback_key=base_path.add("5")),
+            ButtonItem(text="6 Richieste", callback_key=base_path.add("6"))
         ],
         [
-            ButtonItem(text="7 Richieste", callback_key="7"),
-            ButtonItem(text="8 Richieste", callback_key="8"),
-            ButtonItem(text="9 Richieste", callback_key="9")
+            ButtonItem(text="7 Richieste", callback_key=base_path.add("7")),
+            ButtonItem(text="8 Richieste", callback_key=base_path.add("8")),
+            ButtonItem(text="9 Richieste", callback_key=base_path.add("9"))
         ],
         [
-            ButtonItem(text="10 Richieste", callback_key="10"),
-            ButtonItem(text="15 Richieste", callback_key="15"),
-            ButtonItem(text="20 Richieste", callback_key="20")
+            ButtonItem(text="10 Richieste", callback_key=base_path.add("10")),
+            ButtonItem(text="15 Richieste", callback_key=base_path.add("15")),
+            ButtonItem(text="20 Richieste", callback_key=base_path.add("20"))
         ],
-        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
     ]
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -251,14 +261,16 @@ def _get_admin_request_section_limit_text(context: CustomContext, platform: Plat
         f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
         f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
         f"        🔸 <u>Limite Attuale</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
-        f"<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà chiusa automaticamente.</blockquote>\n\n"
-        f"🔹 Scegli un'opzione."
+        "<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà "
+        "chiusa automaticamente.</blockquote>\n\n"
+        "🔹 Scegli un'opzione."
     )
 
 
 async def render_admin_request_section_limit_confirm_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category,
         limit: int
@@ -273,12 +285,12 @@ async def render_admin_request_section_limit_confirm_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit/{limit}",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="✅ Conferma", callback_key="yes"),
-                ButtonItem(text="🔙 Annulla", callback_key=None)
+                ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
             ]
         ]
     )
@@ -316,6 +328,7 @@ def _get_admin_request_section_limit_confirm_text(
 async def render_admin_request_section_limit_confirmed_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         platform: Platform,
         category: Category,
         limit: int
@@ -325,12 +338,12 @@ async def render_admin_request_section_limit_confirmed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_sections/{platform.value}/{category.value}/limit",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="🔙 Indietro", callback_key=None),
-                ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
+                ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
+                ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))
             ]
         ]
     )
