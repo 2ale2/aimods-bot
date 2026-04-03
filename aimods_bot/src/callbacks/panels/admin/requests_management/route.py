@@ -16,7 +16,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_last_ten_requests_platform_panel, render_last_ten_requests_category_panel, \
     render_last_ten_requests_section_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
-    admin_request_section_configure_route
+    admin_request_section_configure_selection_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute, \
@@ -50,7 +50,7 @@ async def admin_requests_management_route(
             )
 
         case [AdminRequestsRoute.MANAGE_SECTIONS, *rest]:
-            return await admin_request_section_configure_route(
+            return await admin_request_section_configure_selection_route(
                 update=update,
                 context=context,
                 root=root.add(AdminRequestsRoute.MANAGE_SECTIONS),

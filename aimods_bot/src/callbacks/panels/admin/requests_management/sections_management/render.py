@@ -5,7 +5,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.models.ui import ButtonItem
 
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, GlobalAction, \
     AdminRoute

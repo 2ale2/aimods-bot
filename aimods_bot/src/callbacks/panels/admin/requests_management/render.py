@@ -808,7 +808,7 @@ async def send_user_request_status_changed_notification(
         text=text,
         keyboard=[
             [
-                ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE)),
+                ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU)),
                 ButtonItem(
                     text="👁 Visiona Richiesta",
                     callback_key=base_path.add(

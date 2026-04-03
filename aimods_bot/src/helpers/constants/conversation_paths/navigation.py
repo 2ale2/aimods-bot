@@ -4,10 +4,15 @@ from enum import StrEnum
 class GlobalAction(StrEnum):
     MAIN_MENU = "main_menu"
     BACK = "back"
-    CLOSE = "close_menu"
+    CLOSE_MENU = "close_menu"
 
     YES = "yes"
     NO = "no"
+
+    CONFIRM = "confirm"
+
+    OPEN = "open"
+    CLOSE = "close"
 
 
 class AdminRoute(StrEnum):
@@ -56,6 +61,19 @@ class AdminRequestManagementRoute(StrEnum):
 class AdminRequestsLimitationsRoute(StrEnum):
     # admin/manage_requests/manage_limitations
     REMOVE_LIMITATIONS = "remove_limitations"
+    VIEW_LIMITATIONS = "view_limitations"
+    LIMIT_USER_REQUESTS = "limit_user_requests"
+
+
+class AdminManageRequestLimitationsRoute(StrEnum):
+    # admin/manage_requests/manage_limitations/view_limitations
+    VIEW = "view"
+    REMOVE = "remove"
+    ADD = "add"
+    INFO = "info"
+
+    DURATION = "duration"
+    SECTIONS = "sections"
 
 
 class AdminNotificationsRoute(StrEnum):

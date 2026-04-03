@@ -44,7 +44,7 @@ async def admin_main_router(update: Update, context: CustomContext):
                     root=PathBuilder(AdminRoute.MANAGE_REQUESTS),
                     relative_path=PathBuilder(*sub_path)
                 )
-            case GlobalAction.CLOSE:
+            case GlobalAction.CLOSE_MENU:
                 pass
 
     finally:
