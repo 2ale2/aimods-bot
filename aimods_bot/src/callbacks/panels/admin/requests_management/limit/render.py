@@ -9,13 +9,14 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsLimitationsRoute, \
-    AdminManageRequestLimitationsRoute, GlobalAction
+    AdminManageRequestLimitationsRoute as AMRLR, GlobalAction, AdminRoute, AdminRequestsRoute, \
+    AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, username_to_id, create_and_render_panel, \
-    wrong_input_message, chunk_buttons
+    wrong_input_message, chunk_buttons, format_user_mention
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, format_time_as_rome
 from aimods_bot.src.helpers.utils.user_utils import get_member_details_text
 
@@ -25,7 +26,34 @@ BASE_LIMIT_PATH = "admin/manage_requests/manage_limitations/limit_user_request/l
 
 
 async def render_admin_manage_limitations_panel(update: Update, context: CustomContext, base_path: PathBuilder):
-    text = _get_admin_manage_limitations_panel()
+    text = _get_admin_manage_limitations_text()
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=base_path,
+        text=text,
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
+    )
+
+
+def _get_admin_manage_limitations_text():
+    text = ("⛔ <b>Gestione Limitationi</b>\n\n"
+            "▪️ Da qui puoi gestire le limitazioni alle richieste di un utente.\n\n"
+            "🔹 Indica un ID o uno @username da controllare.")
+    return text
+
+
+async def render_admin_manage_user_limitations_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        resolved_user: Union[int, PTBUser, PyroUser]
+):
+    message_id = context.pydc.persistent.bot_message_id
+    context.pydc.persistent.bot_message_id = None
+
+    text = _get_admin_manage_user_limitations_text(resolved_user=resolved_user)
 
     await create_and_render_panel(
         update=update,
@@ -33,64 +61,113 @@ async def render_admin_manage_limitations_panel(update: Update, context: CustomC
         base_path=base_path,
         text=text,
         keyboard=[
-                [
-                    ButtonItem(
-                        text="👁️‍🗨️ Visiona Limitazioni",
-                        callback_key=AdminRequestsLimitationsRoute.VIEW_LIMITATIONS
-                    )
-                ],
-                [
-                    ButtonItem(
-                        text="➕ Aggiungi Limitazione",
-                        callback_key=AdminRequestsLimitationsRoute.LIMIT_USER_REQUESTS
-                    ),
-                    ButtonItem(
-                        text="➖ Rimuovi Limitazioni",
-                        callback_key=AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS
-                    )
-                ],
-                [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
-            ]
+            [
+                ButtonItem(
+                    text="👁️‍🗨️ Visiona",
+                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.VIEW)
+                )
+            ],
+            [
+                ButtonItem(
+                    text="➕ Aggiungi",
+                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.ADD)
+                ),
+                ButtonItem(
+                    text="➖ Rimuovi",
+                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.REMOVE)
+                )
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
+        ],
+        message_id=message_id
     )
 
 
-def _get_admin_manage_limitations_panel():
+def _get_admin_manage_user_limitations_text(resolved_user: Union[int, PTBUser, PyroUser]):
     text = ("⛔ <b>Gestione Limitazioni</b>\n\n"
-            "▪ Da qui puoi gestire le limitazioni sulle richieste per gli utenti.\n\n"
-            "🔹 Scegli un'opzione.")
+            "▪ Da qui puoi gestire le limitazioni sulle richieste dell'utente ")
+
+    if isinstance(resolved_user, int):
+        text += format_user_mention(user_id=resolved_user)
+    else:
+        text += format_user_mention(
+            user_id=resolved_user.id,
+            username=resolved_user.username,
+            first_name=resolved_user.first_name
+        )
+
+    text += ".\n\n🔹 Scegli un'opzione."
 
     return text
 
 
-async def render_admin_view_limitations_panel(update: Update, context: CustomContext, base_path: PathBuilder):
-    text = _get_admin_action_limitations_text(action=AdminManageRequestLimitationsRoute.VIEW)
+async def render_admin_view_user_request_limitations_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        user_id: int
+):
+    text = _get_user_request_limitations_text(context=context, user_id=user_id)
 
     await create_and_render_panel(
         update=update,
         context=context,
         base_path=base_path,
         text=text,
-        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
+        keyboard=[
+            [
+                ButtonItem(
+                    text="➕ Aggiungi",
+                    callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.ADD)
+                ),
+                ButtonItem(
+                    text="➖ Rimuovi",
+                    callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.REMOVE)
+                )
+            ],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back().back())]
+        ]
     )
 
 
-def _get_admin_action_limitations_text(action: AdminManageRequestLimitationsRoute):
-    if action == AdminManageRequestLimitationsRoute.VIEW:
-        text = ("👁️‍🗨️ <b>Visiona Limitazioni</b>\n\n"
-                "▪ Da qui puoi visionare lo stato attuale delle limitazioni imposte agli utenti.\n\n")
-    elif action == AdminManageRequestLimitationsRoute.REMOVE:
-        text = ("➖ <b>Rimuovi Limitazioni</b>\n\n"
-                "▪ Da qui puoi rimuovere le limitazioni sulle richieste agli utenti.\n\n")
-    else:  # action == AdminManageRequestLimitationsRoute.ADD
-        text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
-                "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n")
+async def _get_user_request_limitations_text(context: CustomContext, user_id: int):
+    text = ("⛔ <b>Limitazioni Richieste Utente</b>\n\n"
+            "▪️ Qui le informazioni sulle limitazioni imposte ad un utente nel fare le richieste.\n\n"
+            "👤 <b>Dettagli Utente</b>\n\n")
 
-    text += "🔹 Indica un ID o uno @username da verificare."
+    text += await get_member_details_text(context=context, user_identifier=user_id)
+    text += "\n🔎 <b>Dettaglio Limitazioni</b>\n"
+    limitations = context.get_user_request_limitations(user_id=user_id)
+    if limitations is None or len(limitations) == 0:
+        text += "\n<blockquote>ℹ L'utente non ha limitazioni attive per le richieste.</blockquote>\n"
+    else:
+        for n, l in enumerate(limitations):
+            pl, ca = l.section.split(":")  # es. section: "windows:software"
+            until_str = l.until.strftime('%d %b %Y %H:%M:%S') if l.until else "♾ A tempo indeterminato"
+            reasons_str = "\n".join([f"            – {r}" for r in l.reasons]) or "<code>Not Provided</code>"
+
+            pl_label = PLATFORM_DETAILS[pl]["label"]
+            ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+
+            created_str = f"Aggiunta da {l.created_by} {format_time_as_rome(l.created_at)}"
+
+            text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
+                     f"        🔸 <u>Scadenza</u> – <i>{until_str}</i>\n"
+                     f"        🔸 <u>Motivazioni</u>\n"
+                     f"<i>{reasons_str}</i>\n"
+                     f"        👤 <i>{created_str}</i>\n")
+
+            if l.updated_at:
+                updated_str = f"Aggiornata da {await username_to_id(l.updated_by)} {format_time_as_rome(l.updated_at)}"
+                text += f"        🔄 <i>{updated_str}</i>\n"
+
+    text += "\n🔹 Scegli un'opzione."
+
     return text
 
 
 async def render_admin_limit_user_request_panel(update: Update, context: CustomContext, base_path: PathBuilder):
-    text = _get_admin_action_limitations_text(action=AdminManageRequestLimitationsRoute.ADD)
+    text = _get_admin_manage_limitations_text(action=AdminManageRequestLimitationsUtils.ADD)
 
     await create_and_render_panel(
         update=update,
@@ -101,15 +178,14 @@ async def render_admin_limit_user_request_panel(update: Update, context: CustomC
     )
 
 
-async def render_admin_limit_user_panel(
+async def render_admin_add_user_request_limitation_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        user_id: Union[int, str],
-        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
-        back_button_callback_key: Optional[str] = None
+        user_id: int,
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
-    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
+    final_user_id = pre_resolved_user.id if pre_resolved_user else user_id
 
     item = context.pydc.persistent.limiting_user_requests
     if not item or item.user_id != final_user_id:
@@ -120,11 +196,11 @@ async def render_admin_limit_user_panel(
 
     keyboard = [
         [
-            ButtonItem(text="⏳ Durata", callback_key=AdminManageRequestLimitationsRoute.DURATION),
-            ButtonItem(text="🗄 Sezioni", callback_key=AdminManageRequestLimitationsRoute.SECTIONS)
+            ButtonItem(text="⏳ Durata", callback_key=base_path.add(AMRLR.DURATION)),
+            ButtonItem(text="🗄 Sezioni", callback_key=base_path.add(AMRLR.SECTIONS))
         ],
         [
-            ButtonItem(text="✅ Conferma", callback_key=GlobalAction.CONFIRM),
+            ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.CONFIRM)),
             ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
         ]
     ]
@@ -132,28 +208,24 @@ async def render_admin_limit_user_panel(
     if context.get_user_request_limitations(user_id=int(user_id)):
         keyboard.insert(0, [ButtonItem(
             text="👁‍🗨 Visiona Limitazioni",
-            callback_key=AdminManageRequestLimitationsRoute.INFO)
+            callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.VIEW))
         ])
-
-    message_id = context.pydc.persistent.bot_message_id
-    context.pydc.persistent.bot_message_id = None
 
     await create_and_render_panel(
         update=update, context=context,
-        base_path=base_path.add(user_id),
+        base_path=base_path,
         text=text,
-        keyboard=keyboard,
-        message_id=message_id
+        keyboard=keyboard
     )
 
 
 async def _get_header(
         context: CustomContext,
-        user_id: int,
+        user_id: Union[int, str],
         user: Optional[Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser]] = None
 ):
     text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
-            "▪️ Da qui puoi impostare le limitazioni alle richieste di un utente.\n\n"
+            f"▪️ Da qui puoi impostare le limitazioni alle richieste dell'utente <code>{user_id}</code>.\n\n"
             "👤 <b>Dettagli Utente</b>\n\n")
 
     text += await get_member_details_text(user=user, user_identifier=user_id)
@@ -163,7 +235,7 @@ async def _get_header(
         set_user_requests_limiting_item(context=context)
         item.user_id = user_id
 
-    total_sec = int(item.duration)
+    total_sec = item.duration
     if total_sec is not None and total_sec == 0:
         duration_text = "♾ A Tempo Indeterminato"
     else:
@@ -206,34 +278,36 @@ async def _get_admin_limit_user_text(
 async def render_admin_limit_user_request_duration_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int,
         pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
-    context.pydc.persistent.bot_message_id = update.effective_message.id
-    final_user_id = pre_resolved_user.id if pre_resolved_user else int(user_id)
+    final_user_id = pre_resolved_user.id if pre_resolved_user else user_id
 
-    text = await _get_header(context=context, user=pre_resolved_user, user_id=final_user_id)
-    text += ("\n🔹 Indica la durata della limitazione.\n\n"
-             "<blockquote><b>Esempio</b> – <i>100 giorni 24 ore 1 minuto 1 secondo</i></blockquote>")
+    text = await _get_admin_limit_user_request_duration_text(
+        context=context,
+        pre_resolved_user=pre_resolved_user,
+        user_id=final_user_id
+    )
 
     await create_and_render_panel(
-        update=update, context=context,
-        base_path=f"{BASE_LIMIT_PATH.format(user_id)}/duration",
+        update=update,
+        context=context,
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="♾ A tempo indeterminato", callback_key="endless")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="♾ A tempo indeterminato", callback_key=base_path.add(AMRLR.ENDLESS))],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
 
 async def _get_admin_limit_user_request_duration_text(
         context: CustomContext,
-        member: Union[PyroChatMember, PTBChatMember, PyroUser, PTBUser],
-        user_id: int
+        user_id: int,
+        pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
-    text = await _get_header(context=context, user=member, user_id=user_id)
-
+    text = await _get_header(context=context, user=pre_resolved_user, user_id=user_id)
     text += ("\n🔹 Indica la durata della limitazione.\n\n"
              "<blockquote><b>Esempio</b> – <i>100 giorni 24 ore 1 minuto 1 secondo</i></blockquote>")
 
@@ -242,20 +316,18 @@ async def _get_admin_limit_user_request_duration_text(
 
 async def render_handled_request_limitation_duration_panel(
         update: Update,
-        context: CustomContext
+        context: CustomContext,
+        base_path: PathBuilder
 ):
-    if not update.callback_query:
-        await safe_delete(update=update, context=context)
-
-    user_id = get_request_limiting_detail(context=context, what="user_id")
+    user_id = get_request_limiting_detail(context=context, what=AdminManageRequestLimitationsUtils.USER_ID)
     if not await handle_request_limitation_duration(update=update, context=context):
         return PCS.SET_REQUEST_LIMITATION_DURATION
 
-    await render_admin_limit_user_panel(
+    await render_admin_add_user_request_limitation_panel(
         update=update,
         context=context,
-        user_id=user_id,
-        back_button_callback_key=context.pydc.persistent.base_path
+        base_path=base_path,
+        user_id=user_id
     )
     return PCS.ADMIN_CONVERSATION
 
@@ -263,6 +335,7 @@ async def render_handled_request_limitation_duration_panel(
 async def render_admin_limit_user_request_sections_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int,
         pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
 ):
@@ -273,12 +346,12 @@ async def render_admin_limit_user_request_sections_panel(
         user=pre_resolved_user,
         user_id=final_user_id
     )
-    keyboard = _get_admin_limit_user_request_sections_keyboard(context=context)
+    keyboard = _get_admin_limit_user_request_sections_keyboard(context=context, base_path=base_path)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.format(final_user_id) + "/sections",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -296,7 +369,7 @@ async def _get_admin_limit_user_request_sections_text(
     return text
 
 
-def _get_admin_limit_user_request_sections_keyboard(context: CustomContext):
+def _get_admin_limit_user_request_sections_keyboard(context: CustomContext, base_path: PathBuilder):
     buttons = []
     for platform, categories in CATEGORY_DETAILS.items():
         pl_item = PLATFORM_DETAILS[platform]
@@ -304,18 +377,18 @@ def _get_admin_limit_user_request_sections_keyboard(context: CustomContext):
             ct_label = CATEGORY_DETAILS[platform][category]["label"]
             buttons.append(ButtonItem(
                 text=f"{pl_item['icon']} – {ct_label}",
-                callback_key=f"{platform}-{category}"
+                callback_key=base_path.add(f"{platform}-{category}")
             ))
 
     keyboard = chunk_buttons(buttons, 3)
 
     is_all_blocked = all_sections_are(context=context, what=True)
     toggle_all_btn = ButtonItem(text="🆓 Sblocca Tutti" if is_all_blocked else "🚫 Blocca Tutti",
-                                callback_key="unblock_all" if is_all_blocked else "block_all")
+                                callback_key=AMRLR.UNBLOCK_ALL if is_all_blocked else AMRLR.BLOCK_ALL)
 
     keyboard.extend([
         [toggle_all_btn],
-        [ButtonItem(text="🔙 Fine", callback_key=None)]
+        [ButtonItem(text="🔙 Fine", callback_key=base_path.back())]
     ])
     return keyboard
 
@@ -323,6 +396,7 @@ def _get_admin_limit_user_request_sections_keyboard(context: CustomContext):
 async def render_admin_user_limitation_reason_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int,
         pre_resolved_user: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ) -> bool:
@@ -342,9 +416,9 @@ async def render_admin_user_limitation_reason_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.format(final_user_id) + "/reason",
+        base_path=base_path,
         text=text,
-        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
 
     return all_sections_false
@@ -366,16 +440,16 @@ async def _get_admin_user_limitation_reason_text(
     return text
 
 
-async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext):
+async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     await safe_delete(update=update, context=context)
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
     await handle_limitation_confirmation(update=update, context=context)
 
-    user_id = get_request_limiting_detail(context=context, what="user_id")
-    duration = get_request_limiting_detail(context=context, what="duration")
-    sections = get_request_limiting_detail(context=context, what="sections")
+    user_id = get_request_limiting_detail(context=context, what=AdminManageRequestLimitationsUtils.USER_ID)
+    duration = get_request_limiting_detail(context=context, what=AMRLR.DURATION)
+    sections = get_request_limiting_detail(context=context, what=AMRLR.SECTIONS)
 
     text = _get_admin_user_limitation_confirmed_text(user_id=user_id, duration=duration, sections=sections)
 
@@ -384,22 +458,20 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.removesuffix("/limit_{}/"),
+        base_path=base_path,
         text=text,
         keyboard=[
-                [
-                    ButtonItem(
-                        text="❔ Gestione Richieste",
-                        callback_key="admin/manage_requests",
-                        override_path_generation=True
-                    ),
-                    ButtonItem(
-                        text="🏠 Home",
-                        callback_key="admin",
-                        override_path_generation=True
-                    )
-                ]
-            ],
+            [
+                ButtonItem(
+                    text="❔ Gestione Richieste",
+                    callback_key=PathBuilder(AdminRoute.ROOT, AdminRoute.MANAGE_REQUESTS)
+                ),
+                ButtonItem(
+                    text="🏠 Home",
+                    callback_key=PathBuilder(AdminRoute.ROOT)
+                )
+            ]
+        ],
         message_id=message_id
     )
 
@@ -421,66 +493,32 @@ def _get_admin_user_limitation_confirmed_text(user_id: int, duration: Optional[i
 async def render_user_requests_limitations_info_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int
 ):
-    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
 
     text = await _get_user_request_limitations_text(context=context, user_id=user_id)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=BASE_LIMIT_PATH.format(user_id) + "/info",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
 
 
-async def _get_user_request_limitations_text(context: CustomContext, user_id: int):
-    text = ("⛔ <b>Limitazioni Richieste Utente</b>\n\n"
-            "▪️ Qui le informazioni sulle limitazioni imposte ad un utente nel fare le richieste.\n\n"
-            "👤 <b>Dettagli Utente</b>\n\n")
-
-    text += await get_member_details_text(context=context, user_identifier=user_id)
-    text += "\n🔎 <b>Dettaglio Limitazioni</b>\n"
-    limitations = context.get_user_request_limitations(user_id=user_id)
-    if limitations is None or len(limitations) == 0:
-        text += "\n<blockquote>ℹ L'utente non ha limitazioni attive per le richieste.</blockquote>\n"
-    else:
-        for n, l in enumerate(limitations):
-            pl, ca = l.section.split(":")  # es. section: "windows:software"
-            until_str = l.until.strftime('%d %b %Y %H:%M:%S') if l.until else "♾ A tempo indeterminato"
-            reasons_str = "\n".join([f"            – {r}" for r in l.reasons]) or "<code>Not Provided</code>"
-
-            pl_label = PLATFORM_DETAILS[pl]["label"]
-            ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-
-            created_str = f"Aggiunta da {l.created_by} {format_time_as_rome(l.created_at)}"
-
-            text += (f"\n    {n + 1}.  <b>{pl_label}</b> – <b>{ca_label}</b>\n"
-                     f"        🔸 <u>Scadenza</u> – <i>{until_str}</i>\n"
-                     f"        🔸 <u>Motivazioni</u>\n"
-                     f"<i>{reasons_str}</i>\n"
-                     f"        👤 <i>{created_str}</i>\n")
-
-            if l.updated_at:
-                updated_str = f"Aggiornata da {await username_to_id(l.updated_by)} {format_time_as_rome(l.updated_at)}"
-                text += f"        🔄 <i>{updated_str}</i>\n"
-
-    text += "\n🔹 Scegli un'opzione."
-
-    return text
-
-
 async def render_admin_view_user_limitations_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int
 ):
     text = await _get_user_request_limitations_text(context=context, user_id=user_id)
 
     keyboard = [
-        [ButtonItem(text="➕ Aggiungi", callback_key=BASE_LIMIT_PATH.format(user_id), override_path_generation=True)],
+        [ButtonItem(text="➕ Aggiungi", callback_key=base_path.add(user_id, AdminManageRequestLimitationsUtils.ADD))],
     ]
 
     limitations = context.get_user_request_limitations(user_id=user_id)
@@ -489,12 +527,11 @@ async def render_admin_view_user_limitations_panel(
         keyboard[0].append(
             ButtonItem(
                 text="➖ Rimuovi",
-                callback_key=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
-                override_path_generation=True
+                callback_key=base_path.back().add(AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS)
             )
         )
 
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
@@ -502,7 +539,7 @@ async def render_admin_view_user_limitations_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_limitations/view_limitations/{user_id}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=message_id
@@ -510,7 +547,7 @@ async def render_admin_view_user_limitations_panel(
 
 
 async def render_admin_remove_limitations_panel(update: Update, context: CustomContext):
-    text = _get_admin_action_limitations_text(action="remove")
+    text = _get_admin_manage_limitations_text(action="remove")
 
     await create_and_render_panel(
         update=update,
@@ -518,8 +555,8 @@ async def render_admin_remove_limitations_panel(update: Update, context: CustomC
         base_path=f"admin/manage_requests/manage_limitations/remove_limitations",
         text=text,
         keyboard=[
-                [ButtonItem(text="🔙 Indietro", callback_key=None)]
-            ]
+            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        ]
     )
 
 
@@ -568,7 +605,7 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
 
             until_text = l.until.strftime('%d %B %Y %H:%M:%S') if l.until else "♾ A tempo indeterminato"
 
-            text += (f"      {n+1}. {ca_icon} <i>{pl_label} – {ca_label}</i>\n"
+            text += (f"      {n + 1}. {ca_icon} <i>{pl_label} – {ca_label}</i>\n"
                      f"          🔸 <u>Scadenza</u> – <i>{until_text}</i>\n\n")
 
             buttons.append(ButtonItem(text=f"{n + 1}", callback_key=f"{pl}:{ca}"))
@@ -680,11 +717,11 @@ async def render_admin_user_limitation_removed_panel(
         base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
         text=text,
         keyboard=[
-                [
-                    ButtonItem(text="🔙 Indietro", callback_key=None),
-                    ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
-                ]
+            [
+                ButtonItem(text="🔙 Indietro", callback_key=None),
+                ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
             ]
+        ]
     )
 
 

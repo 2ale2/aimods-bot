@@ -45,6 +45,7 @@ class UserData(BaseModel):
 
 class AdminLimitingUserRequests(BaseModel):
     user_id: int = Field(default_factory=int, description="User ID of the user to be limited")
+    username: Optional[str] = Field(default=None, description="Username of the user to be limited")
     duration: int = Field(default_factory=int, description="Limit duration in seconds (0 if unlimited)")
     sections: Dict[str, Dict[str, bool]] = Field(
         default_factory=dict,
@@ -96,11 +97,11 @@ class ChatDataEphemeral(BaseModel):
         default=None,
         description="Request that has been selected for rejection from admin (allows to write personalized reason)."
     )
-    resolved_members: Optional[Dict[str, Optional[Union[PTBChatMember, PyroChatMember]]]] = Field(
+    resolved_members: Optional[Dict[int, Optional[Union[PTBChatMember, PyroChatMember]]]] = Field(
         default_factory=dict,
         description="Members cache to avoid flood limit while resolving. Must be not in persistence."
     )
-    resolved_users: Optional[Dict[str, Union[PTBUser, PyroUser]]] = Field(
+    resolved_users: Optional[Dict[int, Union[PTBUser, PyroUser]]] = Field(
         default_factory=dict,
         description="Users cache to avoid flood limit while resolving. Must be not in persistence."
     )

@@ -232,9 +232,11 @@ async def get_member_details_text(
     if not user and context:
         resolved = context.pydc.ephemeral.resolved_users
         resolving_attempt = resolved.get(str(user_identifier), False)
-        if resolving_attempt is None:  # User has not been resolved yet
+        if not resolving_attempt:  # User has not been resolved yet
             resolving_attempt = await resolve_user(identifier=user_identifier)
-            resolved[str(user_identifier)] = resolving_attempt["user"]
+            if resolving_attempt["status"] == "success":
+                user = resolving_attempt["user"]
+                resolved[str(user_identifier)] = user
 
     if user:
         if isinstance(user, Union[PTBChatMember, PyroChatMember]):

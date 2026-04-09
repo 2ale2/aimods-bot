@@ -1,44 +1,57 @@
 from typing import Optional
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_topic
+    handle_request_limitation_topic, handle_limitation_user, handle_request_limitation_duration
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import \
-    render_admin_limit_user_panel, render_admin_limit_user_request_duration_panel, \
+    render_admin_add_user_request_limitation_panel, render_admin_limit_user_request_duration_panel, \
     render_handled_request_limitation_duration_panel, render_admin_limit_user_request_sections_panel, \
     render_admin_user_limitation_reason_panel, render_user_requests_limitations_info_panel, \
-    render_admin_limit_user_request_panel, render_admin_manage_limitations_panel, render_admin_view_limitations_panel, \
+    render_admin_limit_user_request_panel, render_admin_manage_limitations_panel, \
+    render_admin_manage_user_limitations_panel, \
     render_admin_remove_limitations_panel, render_admin_remove_user_limitation_confirmation_panel, \
-    render_admin_user_limitation_removed_panel, render_admin_remove_user_limitation_panel
+    render_admin_user_limitation_removed_panel, render_admin_remove_user_limitation_panel, \
+    render_admin_view_user_request_limitations_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsUtils, \
+    AdminManageRequestLimitationsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
-from aimods_bot.src.helpers.utils.user_utils import get_or_resolve_user
+from aimods_bot.src.helpers.utils.user_utils import get_or_resolve_user, is_admin
 
 
 async def route_admin_manage_limitations(
         update: Update,
         context: CustomContext,
-        path: list[str]
+        root: PathBuilder,
+        relative_path: PathBuilder
 ):
-    if not path:
-        await render_admin_manage_limitations_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+    match relative_path.segments:
+        case []:
+            await render_admin_manage_limitations_panel(update=update, context=context, base_path=root)
+            return PCS.ADMIN_CONVERSATION
 
-    match path:
-        case ["limit_user_request", *rest]:
-            return await route_admin_limit_user_request(update=update, context=context, path=rest, user_id=None)
+        case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
+            return await route_admin_limit_user_request(
+                update=update,
+                context=context,
+                root=root.add(AdminManageRequestLimitationsUtils.LIMIT),
+                relative_path=PathBuilder(*rest),
+                user_id=None
+            )
 
-        case ["view_limitations"]:
+        case [AdminManageRequestLimitationsUtils.VIEW]:
             context.pydc.ephemeral.action = "view"
             context.pydc.persistent.bot_message_id = update.effective_message.id
-            await render_admin_view_limitations_panel(update=update, context=context)
+            await render_admin_manage_user_limitations_panel(update=update, context=context)
             return PCS.SET_VIEW_REQUEST_LIMITATION_USER
 
-        case ["remove_limitations"]:
+        case [AdminManageRequestLimitationsUtils.REMOVE]:
             context.pydc.ephemeral.action = "remove"
             context.pydc.persistent.bot_message_id = update.effective_message.id
             await render_admin_remove_limitations_panel(update=update, context=context)
@@ -107,11 +120,82 @@ async def route_admin_manage_limitations(
 async def route_admin_limit_user_request(
         update: Update,
         context: CustomContext,
-        path: Optional[list[str]] = None,
+        root: PathBuilder,
+        relative_path: PathBuilder,
         user_id: Optional[int] = None
 ):
     if not context.pydc.persistent.base_path and update.callback_query:
         context.set_base_path(base_path=update.callback_query.data.rsplit("/", 1)[0])
+
+    match relative_path.segments:
+        case []:
+            context.pydc.persistent.bot_message_id = update.effective_message.id
+            await render_admin_manage_limitations_panel(
+                update=update,
+                context=context,
+                base_path=root
+            )
+            return PCS.SET_REQUEST_LIMITATION_USER
+
+        case [identifier]:
+            resolved_user = await handle_limitation_user(identifier=identifier)
+
+            if resolved_user is None:
+                # utente non trovato
+                await wrong_input_message(
+                    update=update,
+                    context=context,
+                    correct_format="un <b>identificatore esistente</b> (Username o ID numerico)"
+                )
+
+                return PCS.SET_REQUEST_LIMITATION_USER
+
+            limiting_user = context.pydu.persistent.limiting_user_requests
+
+            user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
+
+            if await is_admin(context=context, user_id=user_id):
+                await wrong_input_message(
+                    update=update,
+                    context=context,
+                    correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
+                )
+                return PCS.SET_REQUEST_LIMITATION_USER
+
+            limiting_user.user_id = user_id
+
+            if not isinstance(resolved_user, int):
+                limiting_user.username = resolved_user.username
+                context.pydc.ephemeral.resolved_users[resolved_user.id] = resolved_user
+
+            await render_admin_manage_user_limitations_panel(
+                update=update,
+                context=context,
+                base_path=root.add(user_id),
+                resolved_user=resolved_user
+            )
+
+            return PCS.ADMIN_CONVERSATION
+
+        case [identifier, AdminManageRequestLimitationsUtils.VIEW]:
+            await render_admin_view_user_request_limitations_panel(
+                update=update,
+                context=context,
+                base_path=root.add(AdminManageRequestLimitationsUtils.VIEW),
+                user_id=identifier
+            )
+
+            return PCS.ADMIN_CONVERSATION
+
+        case [identifier, AdminManageRequestLimitationsUtils.ADD, *rest]:
+            return await route_admin_add_request_limitation_route(
+                update=update,
+                context=context,
+                root=root.add(AdminManageRequestLimitationsUtils.ADD),
+                relative_path=PathBuilder(*rest),
+                user_id=int(identifier)
+            )
+
 
     path = path or []
     if path and path[0].startswith("limit_"):
@@ -166,7 +250,7 @@ async def route_admin_limit_user_request(
         limiting_item.user_id = user_id
 
     if not path:
-        await render_admin_limit_user_panel(
+        await render_admin_add_user_request_limitation_panel(
             update=update,
             context=context,
             user_id=user_id,
@@ -203,4 +287,77 @@ async def route_admin_limit_user_request(
                 context.pydc.ephemeral.resolved_users = {}
                 context.pydc.ephemeral.resolved_members = {}
                 return PCS.SET_REQUEST_LIMITATION_REASON
+            return PCS.ADMIN_CONVERSATION
+
+
+async def route_admin_add_request_limitation_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder,
+        user_id: int
+):
+    if context.pydc.ephemeral.resolved_users[user_id]:
+        pre_resolved_user = context.pydc.ephemeral.resolved_users[user_id]
+    else:
+        pre_resolved_user = None
+
+    match relative_path.segments:
+        case []:
+            await render_admin_add_user_request_limitation_panel(
+                update=update,
+                context=context,
+                base_path=root,
+                user_id=user_id,
+                pre_resolved_user=pre_resolved_user
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [AdminManageRequestLimitationsRoute.DURATION]:
+            context.pydc.persistent.bot_message_id = update.effective_message.id
+
+            await render_admin_limit_user_request_duration_panel(
+                update=update,
+                context=context,
+                base_path=root.add(AdminManageRequestLimitationsRoute.DURATION),
+                user_id=user_id,
+                pre_resolved_user=pre_resolved_user
+            )
+            return PCS.SET_REQUEST_LIMITATION_DURATION
+
+        case [AdminManageRequestLimitationsRoute.DURATION, duration_input]:
+            if not await handle_request_limitation_duration(
+                    update=update,
+                    context=context,
+                    duration_input=duration_input
+            ):
+                return PCS.SET_REQUEST_LIMITATION_DURATION
+
+            await render_admin_add_user_request_limitation_panel(
+                update=update,
+                context=context,
+                base_path=root,
+                user_id=user_id
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [AdminManageRequestLimitationsRoute.SECTIONS]:
+            await render_admin_limit_user_request_sections_panel(
+                update=update,
+                context=context,
+                base_path=root.add(AdminManageRequestLimitationsRoute.SECTIONS),
+                user_id=user_id,
+                pre_resolved_user=pre_resolved_user
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [AdminManageRequestLimitationsRoute.SECTIONS, section_input]:
+            await handle_request_limitation_topic(update=update, context=context, section_input=section_input)
+            await render_admin_limit_user_request_sections_panel(
+                update=update,
+                context=context,
+                base_path=root.back(),
+                user_id=user_id,
+                pre_resolved_user=pre_resolved_user
+            )
             return PCS.ADMIN_CONVERSATION

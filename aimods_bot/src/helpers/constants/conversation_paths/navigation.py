@@ -52,7 +52,6 @@ class AdminRequestsRoute(StrEnum):
 
 class AdminRequestManagementRoute(StrEnum):
     # admin/manage_requests/<platform>/<catgeory>/<id>
-    LIMIT = "limit"
     REMOVE = "remove"
     REJECT = "reject"
     CHANGE_STATUS = "change_status"
@@ -65,15 +64,26 @@ class AdminRequestsLimitationsRoute(StrEnum):
     LIMIT_USER_REQUESTS = "limit_user_requests"
 
 
-class AdminManageRequestLimitationsRoute(StrEnum):
-    # admin/manage_requests/manage_limitations/view_limitations
+class AdminManageRequestLimitationsUtils(StrEnum):
+    LIMIT = "limit"
     VIEW = "view"
     REMOVE = "remove"
     ADD = "add"
+    USER_ID = "user_id"
+
+
+class AdminManageRequestLimitationsRoute(StrEnum):
+    # admin/manage_requests/manage_limitations/view_limitations
     INFO = "info"
 
     DURATION = "duration"
     SECTIONS = "sections"
+    REASON = "reason"
+
+    ENDLESS = "endless"
+
+    BLOCK_ALL = "block_all"
+    UNBLOCK_ALL = "unblock_all"
 
 
 class AdminNotificationsRoute(StrEnum):

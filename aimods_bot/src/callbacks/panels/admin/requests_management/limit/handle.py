@@ -6,11 +6,26 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
+    AdminManageRequestLimitationsRoute
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_user, is_user_id, safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.loggers import logger
 
-log = logger.getChild("handle_request_limitation")
+log = logger.getChild(__name__)
+
+
+async def handle_limitation_user(identifier: str):
+    if is_user_id(identifier):
+        return identifier
+
+    response = await resolve_user(identifier=identifier)
+
+    if response["status"] != "success":
+        return None
+
+    return response["user"]
 
 
 def set_user_requests_limiting_item(context: CustomContext, set_true_section: Optional[str] = None):
@@ -46,20 +61,22 @@ def set_request_limiting_detail(
     setattr(item, what, value)
 
 
-async def handle_request_limitation_duration(update: Update, context: CustomContext):
+async def handle_request_limitation_duration(update: Update, context: CustomContext, duration_input: str):
+    await safe_delete(update=update, context=context)
+
     item = context.pydc.persistent.limiting_user_requests
-    if update.callback_query and update.callback_query.data.endswith("endless"):
+
+    if duration_input == AdminManageRequestLimitationsRoute.ENDLESS:
         item.duration = 0
         return True
 
-    text = update.effective_message.text
-    parsed = parse_duration(duration_string=text)
+    parsed = parse_duration(duration_string=duration_input)
 
     if not parsed:
         await update.effective_message.reply_text(
             text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]
+                [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE_MENU)]
             ]),
             parse_mode=ParseMode.HTML
         )
@@ -69,18 +86,17 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
     return True
 
 
-async def handle_request_limitation_topic(update: Update, context: CustomContext):
-    data = update.callback_query.data.split("/")[-1]
+async def handle_request_limitation_topic(update: Update, context: CustomContext, section_input: str):
     item = context.pydc.persistent.limiting_user_requests
     sections = item.sections
 
-    if data in ("block_all", "unblock_all"):
-        flag = (data == "block_all")
+    if section_input in (AdminManageRequestLimitationsRoute.BLOCK_ALL, AdminManageRequestLimitationsRoute.UNBLOCK_ALL):
+        flag = (section_input == AdminManageRequestLimitationsRoute.BLOCK_ALL)
         for cats in sections.values():
             for k in cats:
                 cats[k] = flag
     else:
-        platform_str, category_str = data.split("-")
+        platform_str, category_str = section_input.split("-")
         cats = sections.get(platform_str)
         cats[category_str] = not cats[category_str]
 
