@@ -427,8 +427,8 @@ async def render_admin_user_limitation_reason_panel(
 async def _get_admin_user_limitation_reason_text(
         context: CustomContext,
         user_id: int,
-        member: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None,
-        all_sections_false: Optional[bool] = False
+        all_sections_false: bool,
+        member: Optional[Union[PTBChatMember, PyroChatMember, PTBUser, PyroUser]] = None
 ):
     text = await _get_header(context=context, user=member, user_id=user_id)
 
@@ -488,25 +488,6 @@ def _get_admin_user_limitation_confirmed_text(user_id: int, duration: Optional[i
             f"🔹 Hai aggiunto <b>{get_duration_text(duration) if duration else "♾ tempo illimitato"}</b> "
             f"{sections_text.removesuffix(', ')}.")
     return text
-
-
-async def render_user_requests_limitations_info_panel(
-        update: Update,
-        context: CustomContext,
-        base_path: PathBuilder,
-        user_id: int
-):
-    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
-
-    text = await _get_user_request_limitations_text(context=context, user_id=user_id)
-
-    await create_and_render_panel(
-        update=update,
-        context=context,
-        base_path=base_path,
-        text=text,
-        keyboard=keyboard
-    )
 
 
 async def render_admin_view_user_limitations_panel(
