@@ -195,7 +195,13 @@ async def route_admin_limit_user_request(
             )
 
         case [identifier, AdminManageRequestLimitationsUtils.REMOVE, *rest]:
-            pass
+            await route_admin_remove_request_limitation_route(
+                update=update,
+                context=context,
+                root=root.add(AdminManageRequestLimitationsUtils.REMOVE),
+                relative_path=PathBuilder(*rest),
+                user_id=int(identifier)
+            )
 
 
 async def route_admin_add_request_limitation_route(
@@ -205,10 +211,7 @@ async def route_admin_add_request_limitation_route(
         relative_path: PathBuilder,
         user_id: int
 ):
-    if context.pydc.ephemeral.resolved_users[user_id]:
-        pre_resolved_user = context.pydc.ephemeral.resolved_users[user_id]
-    else:
-        pre_resolved_user = None
+    pre_resolved_user = context.pydc.ephemeral.resolved_users.get(user_id, None)
 
     match relative_path.segments:
         case []:
@@ -282,3 +285,17 @@ async def route_admin_add_request_limitation_route(
                     del context.pydc.ephemeral.resolved_users[user_id]
                 return PCS.SET_REQUEST_LIMITATION_REASON
             return PCS.ADMIN_CONVERSATION
+
+
+async def route_admin_remove_request_limitation_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder,
+        user_id: int
+):
+    pre_resolved_user = context.pydc.ephemeral.resolved_users.get(user_id, None)
+
+    match relative_path.segments:
+        case []:
+

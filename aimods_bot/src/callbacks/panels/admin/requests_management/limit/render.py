@@ -527,16 +527,16 @@ async def render_admin_view_user_limitations_panel(
     )
 
 
-async def render_admin_remove_limitations_panel(update: Update, context: CustomContext):
-    text = _get_admin_manage_limitations_text(action="remove")
+async def render_admin_remove_limitations_panel(update: Update, context: CustomContext, base_path: PathBuilder):
+    text = _get_admin_manage_limitations_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_limitations/remove_limitations",
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
