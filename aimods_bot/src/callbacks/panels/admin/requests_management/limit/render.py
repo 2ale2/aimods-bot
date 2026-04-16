@@ -4,17 +4,16 @@ from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import ChatMember as PTBChatMember, User as PTBUser, Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    handle_request_limitation_duration, get_request_limiting_detail, all_sections_are, handle_limitation_confirmation
+    get_request_limiting_detail, all_sections_are, handle_limitation_confirmation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsLimitationsRoute, \
-    AdminManageRequestLimitationsRoute as AMRLR, GlobalAction, AdminRoute, AdminRequestsRoute, \
-    AdminManageRequestLimitationsUtils
+    AdminManageRequestLimitationsRoute as AMRLR, GlobalAction, AdminRoute, AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, username_to_id, create_and_render_panel, \
     wrong_input_message, chunk_buttons, format_user_mention
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, format_time_as_rome
@@ -167,7 +166,7 @@ async def _get_user_request_limitations_text(context: CustomContext, user_id: in
 
 
 async def render_admin_limit_user_request_panel(update: Update, context: CustomContext, base_path: PathBuilder):
-    text = _get_admin_manage_limitations_text(action=AdminManageRequestLimitationsUtils.ADD)
+    text = _get_admin_manage_limitations_text()
 
     await create_and_render_panel(
         update=update,
@@ -312,24 +311,6 @@ async def _get_admin_limit_user_request_duration_text(
              "<blockquote><b>Esempio</b> – <i>100 giorni 24 ore 1 minuto 1 secondo</i></blockquote>")
 
     return text
-
-
-async def render_handled_request_limitation_duration_panel(
-        update: Update,
-        context: CustomContext,
-        base_path: PathBuilder
-):
-    user_id = get_request_limiting_detail(context=context, what=AdminManageRequestLimitationsUtils.USER_ID)
-    if not await handle_request_limitation_duration(update=update, context=context):
-        return PCS.SET_REQUEST_LIMITATION_DURATION
-
-    await render_admin_add_user_request_limitation_panel(
-        update=update,
-        context=context,
-        base_path=base_path,
-        user_id=user_id
-    )
-    return PCS.ADMIN_CONVERSATION
 
 
 async def render_admin_limit_user_request_sections_panel(
@@ -544,31 +525,30 @@ async def render_admin_remove_limitations_panel(update: Update, context: CustomC
 async def render_admin_remove_user_limitation_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int
 ):
-    limits = context.get_user_request_limitations(user_id=int(user_id))
+    limits = context.get_user_request_limitations(user_id=user_id)
     text, keyboard = await _get_admin_remove_user_limitation_text_and_keyboard(
         context=context,
         limits=limits,
-        user_id=user_id
+        user_id=user_id,
+        base_path=base_path
     )
-
-    message_id = context.pydc.persistent.bot_message_id
-    context.pydc.persistent.bot_message_id = None
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}",
+        base_path=base_path,
         text=text,
-        keyboard=keyboard,
-        message_id=message_id
+        keyboard=keyboard
     )
 
 
 async def _get_admin_remove_user_limitation_text_and_keyboard(
         context: CustomContext,
         limits: Optional[list[RequestSectionLimitation]],
+        base_path: PathBuilder,
         user_id: int
 ):
     text = ("➖ <b>Rimuovi Limitazioni</b>\n\n"
@@ -589,19 +569,19 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
             text += (f"      {n + 1}. {ca_icon} <i>{pl_label} – {ca_label}</i>\n"
                      f"          🔸 <u>Scadenza</u> – <i>{until_text}</i>\n\n")
 
-            buttons.append(ButtonItem(text=f"{n + 1}", callback_key=f"{pl}:{ca}"))
+            buttons.append(ButtonItem(text=f"{n + 1}", callback_key=base_path.add(f"{pl}:{ca}")))
 
         keyboard = chunk_buttons(buttons, 4)
         keyboard.extend([
-            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key="remove_all")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key=AMRLR.REMOVE_ALL)],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ])
 
         text += "🔹 Scegli la limitazione da rimuovere."
     else:
         keyboard = [[
-            ButtonItem(text="🔙 Indietro", callback_key=None),
-            ButtonItem(text="🏠 Home", callback_key="admin", override_path_generation=True)
+            ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
+            ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))
         ]]
         text += ("<blockquote>ℹ L'utente non ha limitazioni attive per le richieste.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")
@@ -612,27 +592,26 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
 async def render_admin_remove_user_limitation_confirmation_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         user_id: int,
-        l: Optional[RequestSectionLimitation],
-        remove_all: bool = False
+        limitation: Optional[RequestSectionLimitation],
+        remove_all: bool
 ):
     text = await _get_admin_remove_user_limitation_confirmation(
         context=context,
         user_id=user_id,
-        l=l,
+        limitation=limitation,
         remove_all=remove_all
     )
-
-    end_data = l.section if l else "remove_all"
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"admin/manage_requests/manage_limitations/remove_limitations/{user_id}/{end_data}",
+        base_path=base_path,
         text=text,
         keyboard=[[
-            ButtonItem(text="✅ Confermo", callback_key="yes"),
-            ButtonItem(text="🔙 Annulla", callback_key=None)
+            ButtonItem(text="✅ Confermo", callback_key=base_path.add(GlobalAction.CONFIRM)),
+            ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
         ]]
     )
 
@@ -640,7 +619,7 @@ async def render_admin_remove_user_limitation_confirmation_panel(
 async def _get_admin_remove_user_limitation_confirmation(
         context: CustomContext,
         user_id: int,
-        l: RequestSectionLimitation,
+        limitation: Optional[RequestSectionLimitation],
         remove_all: bool = False
 ):
     text = ("➖ <b>Rimuovi Limitazioni</b>\n\n"
@@ -654,16 +633,16 @@ async def _get_admin_remove_user_limitation_confirmation(
                  "🔹 Confermi?")
         return text
 
-    pl, ca = l.section.split(":")
+    pl, ca = limitation.section.split(":")
     pl_icon = PLATFORM_DETAILS[pl]["icon"]
     ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-    until_text = l.until.strftime('%d %B %Y %H:%M:%S') if l.until else "♾ A tempo indeterminato"
+    until_text = limitation.until.strftime('%d %B %Y %H:%M:%S') if limitation.until else "♾ A tempo indeterminato"
 
     reasons_text = ""
-    for r in l.reasons:
+    for r in limitation.reasons:
         reasons_text += f"            – {r}\n"
 
-    created_str = f"Aggiunta da {f'<code>{l.created_by}</code>'} {format_time_as_rome(l.created_at)}"
+    created_str = f"Aggiunta da {f'<code>{limitation.created_by}</code>'} {format_time_as_rome(limitation.created_at)}"
 
     text += ("🔎 <b>Dettaglio Limitazione</b>\n\n"
              f"      🔸 <u>Sezione</u> – {pl_icon} {ca_label}\n"
@@ -672,8 +651,8 @@ async def _get_admin_remove_user_limitation_confirmation(
              f"{f'<i>{reasons_text}</i>' if reasons_text else '<code>Not Provided</code>'}\n"
              f"        👤 <i>{created_str}</i>\n")
 
-    if l.updated_at:
-        updated_str = f"Aggiornata da {f'<code>{l.updated_by}</code>'} {format_time_as_rome(l.updated_at)}"
+    if limitation.updated_at:
+        updated_str = f"Aggiornata da {f'<code>{limitation.updated_by}</code>'} {format_time_as_rome(limitation.updated_at)}"
         text += f"        🔄 <i>{updated_str}</i>\n"
 
     text += ("\n<blockquote>ℹ Se togli questa limitazione, l'utente <b>potrà nuovamente "
@@ -687,10 +666,9 @@ async def render_admin_user_limitation_removed_panel(
         update: Update,
         context: CustomContext,
         user_id: int,
-        section: Optional[str],
-        remove_all: bool = False
+        section: str
 ):
-    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section, remove_all=remove_all)
+    text = _get_admin_user_limitation_removed_text(user_id=user_id, section=section, remove_all=(section == AMRLR.REMOVE_ALL))
 
     await create_and_render_panel(
         update=update,

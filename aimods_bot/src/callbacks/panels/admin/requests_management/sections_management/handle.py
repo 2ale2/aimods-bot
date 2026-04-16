@@ -3,6 +3,7 @@ from typing import Literal, Optional
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsRoute
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import get_config
@@ -65,16 +66,13 @@ async def handle_request_section_limit(
 async def handle_remove_user_request_limitation(
         context: CustomContext,
         user_id: int,
-        section: Optional[str],
-        remove_all: bool = False
+        selected_section: str
 ):
     """
     Rimuove le limitazioni dell'utente.
-    Se remove_all è False, rimuove solo la sezione specificata e il relativo job,
-    senza toccare gli altri.
     """
-    if remove_all:
-        _remove_limitation_jobs(context, user_id, section_pattern="[^:\s]+")
+    if selected_section == AdminManageRequestLimitationsRoute.REMOVE_ALL:
+        _remove_limitation_jobs(context, user_id, section_pattern=r"[^:\s]+")
 
         context.set_user_request_limitations(user_id=user_id, limitations=[])
         log.info(f"Admin {context.user_id} removed all section limitations from {user_id}")
@@ -82,15 +80,14 @@ async def handle_remove_user_request_limitation(
 
     current_limitations = context.get_user_request_limitations(user_id=user_id)
 
-    new_limitations = [lim for lim in current_limitations if lim.section != section]
+    new_limitations = [lim for lim in current_limitations if lim.section != selected_section]
 
     if len(new_limitations) == len(current_limitations):
         return
 
     context.set_user_request_limitations(user_id=user_id, limitations=new_limitations)
 
-    if section:
-        safe_section = re.escape(section)
-        _remove_limitation_jobs(context, user_id, section_pattern=safe_section)
+    safe_section = re.escape(selected_section)
+    _remove_limitation_jobs(context, user_id, section_pattern=safe_section)
 
-    log.info(f"Admin {context.user_id} removed {section} section limitations from {user_id}")
+    log.info(f"Admin {context.user_id} removed {selected_section} section limitations from {user_id}")

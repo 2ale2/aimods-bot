@@ -73,9 +73,7 @@ class AdminManageRequestLimitationsUtils(StrEnum):
 
 
 class AdminManageRequestLimitationsRoute(StrEnum):
-    # admin/manage_requests/manage_limitations/view_limitations
-    INFO = "info"
-
+    # admin/manage_requests/manage_limitations/<user_id>/add
     DURATION = "duration"
     SECTIONS = "sections"
     REASON = "reason"
@@ -84,6 +82,9 @@ class AdminManageRequestLimitationsRoute(StrEnum):
 
     BLOCK_ALL = "block_all"
     UNBLOCK_ALL = "unblock_all"
+
+    # admin/manage_requests/manage_limitations/<user_id>/remove
+    REMOVE_ALL = "remove_all"
 
 
 class AdminNotificationsRoute(StrEnum):
