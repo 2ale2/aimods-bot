@@ -23,6 +23,9 @@ class PathBuilder:
             return PathBuilder(self.segments.pop(idx))
         return self
 
+    def change(self, old_segment: str, new_segment: str) -> PathBuilder:
+        return PathBuilder([new_segment if segment == old_segment else old_segment for segment in self.segments])
+
     def build(self) -> str:
         return "/".join(self.segments)
 

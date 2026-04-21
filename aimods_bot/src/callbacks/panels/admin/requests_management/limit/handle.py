@@ -17,12 +17,11 @@ log = logger.getChild(__name__)
 
 
 async def handle_limitation_user(identifier: str):
-    if is_user_id(identifier):
-        return identifier
-
     response = await resolve_user(identifier=identifier)
 
     if response["status"] != "success":
+        if is_user_id(identifier):
+            return identifier
         return None
 
     return response["user"]
@@ -66,7 +65,7 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
 
     item = context.pydc.persistent.limiting_user_requests
 
-    if duration_input == AdminManageRequestLimitationsRoute.ENDLESS:
+    if duration_input == AdminManageRequestLimitationsRoute.DURATION_ENDLESS:
         item.duration = 0
         return True
 
@@ -113,10 +112,13 @@ def all_sections_are(context: CustomContext, what: bool):
     return True
 
 
-async def handle_limitation_confirmation(update: Update, context: CustomContext):
-    await handle_limitation_reason(update=update, context=context)
-
-    user_id = get_request_limiting_detail(context=context, what="user_id")
+async def handle_limitation_confirmation(
+        update: Update,
+        context: CustomContext,
+        user_id: int,
+        reason: str
+):
+    await handle_limitation_reason(update=update, context=context, reason=reason)
 
     new_limitations = get_request_limitations(update=update, context=context)
     current_limitations = context.get_user_request_limitations(user_id=user_id)
@@ -175,8 +177,8 @@ async def handle_limitation_confirmation(update: Update, context: CustomContext)
     context.set_user_request_limitations(user_id=user_id, limitations=total_limitations)
 
 
-async def handle_limitation_reason(update: Update, context: CustomContext):
-    set_request_limiting_detail(context=context, what="reason", value=update.effective_message.text)
+async def handle_limitation_reason(update: Update, context: CustomContext, reason: str):
+    set_request_limiting_detail(context=context, what="reason", value=reason)
 
 
 def get_request_limitations(update: Update, context: CustomContext) -> list[RequestSectionLimitation]:

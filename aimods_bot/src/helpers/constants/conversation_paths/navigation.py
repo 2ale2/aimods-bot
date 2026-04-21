@@ -78,7 +78,7 @@ class AdminManageRequestLimitationsRoute(StrEnum):
     SECTIONS = "sections"
     REASON = "reason"
 
-    ENDLESS = "endless"
+    DURATION_ENDLESS = "endless"
 
     BLOCK_ALL = "block_all"
     UNBLOCK_ALL = "unblock_all"
