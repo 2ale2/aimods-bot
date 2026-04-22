@@ -1,11 +1,11 @@
 import re
-from typing import Literal, Optional
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsRoute
-from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsRoute, \
+    GlobalAction
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 from aimods_bot.src.helpers.utils.telegram_utils import get_config
 
 log = logger.getChild(__name__)
@@ -14,6 +14,7 @@ log = logger.getChild(__name__)
 def _remove_limitation_jobs(context: CustomContext, user_id: int, section_pattern: str):
     """Rimuove i job schedulati che corrispondono al pattern."""
     job_name_pattern = rf"^request_limit:{user_id}:{section_pattern}$"
+    # noinspection PyUnresolvedReferences
     jobs = context.job_queue.get_jobs_by_name(job_name_pattern)
 
     for job in jobs:
@@ -25,7 +26,7 @@ async def handle_request_section_toggle(
         context: CustomContext,
         platform: Platform,
         category: Category,
-        action: Literal["open", "close"]
+        action: GlobalAction
 ):
     is_opening = (action == "open")
     config = get_config(context, platform, category)
@@ -79,6 +80,10 @@ async def handle_remove_user_request_limitation(
         return
 
     current_limitations = context.get_user_request_limitations(user_id=user_id)
+
+    if current_limitations is None:
+        log.warning(f"User {user_id} has no limitations")
+        return
 
     new_limitations = [lim for lim in current_limitations if lim.section != selected_section]
 

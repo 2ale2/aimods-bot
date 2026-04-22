@@ -9,7 +9,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
 )
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, GlobalAction
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
+    AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -64,7 +65,7 @@ async def admin_request_section_configure_route(
                 base_path=root
             )
 
-        case [AdminRequestManagementRoute.LIMIT, *rest]:
+        case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
             match PathBuilder(*rest).segments:
                 case []:
                     await render_admin_request_section_limit_panel(
@@ -72,7 +73,7 @@ async def admin_request_section_configure_route(
                         context=context,
                         platform=platform,
                         category=category,
-                        base_path=root.add(AdminRequestManagementRoute.LIMIT)
+                        base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT)
                     )
 
                 case [limit_str]:
@@ -92,7 +93,7 @@ async def admin_request_section_configure_route(
                         await render_admin_request_section_limit_confirm_panel(
                             update=update,
                             context=context,
-                            base_path=root.add(AdminRequestManagementRoute.LIMIT, limit_str),
+                            base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT, limit_str),
                             platform=platform,
                             category=category,
                             limit=limit

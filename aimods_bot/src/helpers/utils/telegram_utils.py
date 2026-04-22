@@ -18,6 +18,7 @@ from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 
 log = logger.getChild(__name__)
@@ -671,7 +672,7 @@ async def not_implemented_yet(update: Update, context: CustomContext) -> None:
 async def create_and_render_panel(
         update: Update,
         context: CustomContext,
-        base_path: str,
+        base_path: PathBuilder,
         text: str,
         keyboard: List[List[ButtonItem]],
         message_id: Optional[int] = None,

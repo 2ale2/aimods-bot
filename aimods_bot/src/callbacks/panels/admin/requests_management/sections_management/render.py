@@ -1,15 +1,14 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
-from aimods_bot.src.helpers.models.ui import ButtonItem
-
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, GlobalAction, \
-    AdminRoute
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
+    AdminRoute, AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons, get_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
@@ -98,7 +97,7 @@ async def render_admin_request_section_configure_category_panel(
         keyboard=[
             [
                 ButtonItem(text=toggle_text, callback_key=base_path.add(toggle_callback)),
-                ButtonItem(text="🗂 Limite", callback_key=base_path.add(AdminRequestManagementRoute.LIMIT))
+                ButtonItem(text="🗂 Limite", callback_key=base_path.add(AdminManageRequestLimitationsUtils.LIMIT))
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
@@ -124,7 +123,7 @@ async def render_admin_request_section_toggle_panel(
         base_path: PathBuilder,
         platform: Platform,
         category: Category,
-        action: Literal["open", "close"]
+        action: GlobalAction
 ):
     opening = action == "open"
 
@@ -180,7 +179,7 @@ async def render_admin_request_section_toggled_panel(
         base_path: PathBuilder,
         platform: Platform,
         category: Category,
-        action: Literal["open", "close"]
+        action: GlobalAction
 ):
     text = _get_admin_request_section_toggled_text(platform=platform, category=category, is_opening=(action == "open"))
 

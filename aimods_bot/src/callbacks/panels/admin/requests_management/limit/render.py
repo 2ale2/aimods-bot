@@ -35,7 +35,7 @@ async def render_admin_manage_limitations_panel(update: Update, context: CustomC
 
 
 def _get_admin_manage_limitations_text():
-    text = ("⛔ <b>Gestione Limitationi</b>\n\n"
+    text = ("⛔ <b>Gestione Limitazioni</b>\n\n"
             "▪️ Da qui puoi gestire le limitazioni alle richieste di un utente.\n\n"
             "🔹 Indica un ID o uno @username da controllare.")
     return text
@@ -104,7 +104,7 @@ async def render_admin_view_user_request_limitations_panel(
         base_path: PathBuilder,
         pre_resolved_user: Union[int, PTBUser, PyroUser]
 ):
-    text = _get_user_request_limitations_text(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_user_request_limitations_text(context=context, pre_resolved_user=pre_resolved_user)
 
     await create_and_render_panel(
         update=update,
@@ -128,8 +128,12 @@ async def render_admin_view_user_request_limitations_panel(
 
 
 async def _get_user_request_limitations_text(context: CustomContext, pre_resolved_user: Union[int, PTBUser, PyroUser]):
-    pre_resolved_user_is_int = isinstance(pre_resolved_user, int)
-    user_id = pre_resolved_user if pre_resolved_user_is_int else pre_resolved_user.id
+    if isinstance(pre_resolved_user, int):
+        user_id = pre_resolved_user
+        user = None
+    else:
+        user_id = pre_resolved_user.id
+        user = pre_resolved_user
 
     text = ("⛔ <b>Limitazioni Richieste Utente</b>\n\n"
             "▪️ Qui le informazioni sulle limitazioni imposte ad un utente nel fare le richieste.\n\n"
@@ -137,7 +141,7 @@ async def _get_user_request_limitations_text(context: CustomContext, pre_resolve
 
     text += await get_member_details_text(
         context=context,
-        user=pre_resolved_user if not pre_resolved_user_is_int else None,
+        user=user,
         user_identifier=user_id
     )
     text += "\n🔎 <b>Dettaglio Limitazioni</b>\n"
@@ -217,9 +221,12 @@ async def _get_header(
         context: CustomContext,
         pre_resolved_user: Union[int, PyroUser, PTBUser]
 ):
-    pre_resolved_user_is_int = isinstance(pre_resolved_user, int)
-    user_id = pre_resolved_user if pre_resolved_user_is_int else pre_resolved_user.id
-    user = pre_resolved_user if not pre_resolved_user_is_int else None
+    if isinstance(pre_resolved_user, int):
+        user_id = pre_resolved_user
+        user = None
+    else:
+        user_id = pre_resolved_user.id
+        user = pre_resolved_user
 
     text = ("⛔ <b>Limita Richieste Utente</b>\n\n"
             f"▪️ Da qui puoi impostare le limitazioni alle richieste dell'utente <code>{user_id}</code>.\n\n"
@@ -352,10 +359,12 @@ def _get_admin_limit_user_request_sections_keyboard(context: CustomContext, base
             ))
 
     keyboard = chunk_buttons(buttons, 3)
-
     is_all_blocked = all_sections_are(context=context, what=True)
+
+    callback_key = base_path.add(AMRLR.UNBLOCK_ALL) if is_all_blocked else base_path.add(AMRLR.BLOCK_ALL)
+
     toggle_all_btn = ButtonItem(text="🆓 Sblocca Tutti" if is_all_blocked else "🚫 Blocca Tutti",
-                                callback_key=AMRLR.UNBLOCK_ALL if is_all_blocked else AMRLR.BLOCK_ALL)
+                                callback_key=callback_key)
 
     keyboard.extend([
         [toggle_all_btn],

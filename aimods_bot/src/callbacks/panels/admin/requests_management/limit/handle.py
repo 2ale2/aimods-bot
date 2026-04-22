@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime, timezone
+from enum import StrEnum
 from typing import Literal, Union, Optional
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -42,9 +43,9 @@ def set_user_requests_limiting_item(context: CustomContext, set_true_section: Op
     return context.pydc.persistent.limiting_user_requests
 
 
-def get_request_limiting_detail(context: CustomContext, what: Literal["user_id", "duration", "sections", "reason"]):
+def get_request_limiting_detail(context: CustomContext, what: StrEnum):
     limiting_item = set_user_requests_limiting_item(context=context)
-    return getattr(limiting_item, what)
+    return getattr(limiting_item, str(what))
 
 
 def set_request_limiting_detail(

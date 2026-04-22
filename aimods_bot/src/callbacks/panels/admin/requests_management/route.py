@@ -3,8 +3,7 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.admin.requests_management.handle import confirm_rejection
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_limit_user_request, \
-    route_admin_manage_limitations
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
 from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
     render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
     render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
@@ -60,9 +59,6 @@ async def admin_requests_management_route(
         case [AdminRequestsRoute.MANAGE_LIMITATIONS, *rest]:
             context.free_base_path()
             context.pydc.persistent.limiting_user_requests = None
-            return await route_admin_manage_limitations(update=update, context=context, path=rest)
-
-        case ["manage_limitations", *rest]:
             return await route_admin_manage_limitations(update=update, context=context, path=rest)
 
         case [AdminRequestsRoute.USER_REQUESTS_ARCHIVE, *rest]:
