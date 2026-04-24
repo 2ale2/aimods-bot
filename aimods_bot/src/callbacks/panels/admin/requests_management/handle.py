@@ -16,13 +16,13 @@ async def handle_request_rejection_reason(update: Update, context: CustomContext
 
     reason = update.message.text
 
-    request = context.pydc.ephemeral.rejecting
+    request = context.pydc.ephemeral.working_request
 
     if request is None:
         raise MissingParameterException("Missing 'request' parameter inside ChatData.")
 
     assert isinstance(request, Request)
-    context.pydc.ephemeral.rejecting = None
+    context.pydc.ephemeral.working_request = None
 
     await render_admin_confirm_rejection_panel(
         update=update,

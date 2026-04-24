@@ -42,6 +42,7 @@ def _get_user_archive_request_identifier_text():
     )
 
 
+# noinspection PyUnresolvedReferences
 async def render_user_archive_panel(
         update: Update,
         context: CustomContext,
@@ -122,9 +123,7 @@ async def render_user_archive_panel(
         context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 
-
-
-async def _get_user_request_archive_text(requests: list[Request], requested_from_admin: bool = False):
+async def _get_user_request_archive_text(requests: list[Request], requested_from_admin: bool = False) -> str:
     text = "📕 <b>Archivio Richieste</b>\n\n"
 
     if requested_from_admin:
@@ -141,12 +140,12 @@ async def _get_user_request_archive_text(requests: list[Request], requested_from
     return text
 
 
-async def _get_archive_pdf_file(requests: list[Request], user_id: int):
+async def _get_archive_pdf_file(requests: list[Request], user_id: int) -> str:
     if os.path.exists(f"archive_{user_id}_{len(requests)}.pdf"):
         return f"archive_{user_id}_{len(requests)}.pdf"
 
-    p = await generate_user_archive_requests_pdf_file(
+    file = await generate_user_archive_requests_pdf_file(
         requests=requests,
         input_path=f"archive_{user_id}_{len(requests)}.tex"
     )
-    return p
+    return file

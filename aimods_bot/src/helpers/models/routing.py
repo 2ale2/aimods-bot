@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from typing import Self
 
 
 class PathBuilder:
@@ -10,12 +11,16 @@ class PathBuilder:
     def from_string(cls, string: str) -> PathBuilder:
         return cls(*string.split("/"))
 
-    def add(self, *new_segments: str | Enum) -> PathBuilder:
-        return PathBuilder(*(self.segments + list(new_segments)))
+    def add(self, new_segments: str | Enum | list[str | Enum]) -> Self:
+        if isinstance(new_segments, list):
+            self.segments.extend(new_segments)
+        else:
+            self.segments.append(new_segments)
+        return self
 
     def back(self, steps: int = 1) -> PathBuilder:
         if len(self.segments) > steps:
-            return PathBuilder(*self.segments[:-steps])
+            self.segments = self.segments[:-steps]
         return self
 
     def pop(self, idx: int) -> PathBuilder:

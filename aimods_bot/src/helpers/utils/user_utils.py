@@ -300,3 +300,14 @@ def check_auth(n: int = 5, bypass_count: bool = False):
         return wrapper
 
     return decorator
+
+
+async def resolve_user_from_identifier(identifier: str):
+    response = await resolve_user(identifier=identifier)
+
+    if response["status"] != "success":
+        if is_user_id(identifier):
+            return identifier
+        return None
+
+    return response["user"]

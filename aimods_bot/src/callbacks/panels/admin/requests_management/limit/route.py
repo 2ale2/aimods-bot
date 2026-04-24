@@ -4,7 +4,7 @@ from pyrogram.types import User as PyroUser
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, User as PTBUser
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import handle_request_limitation_topic, \
-    handle_limitation_user, handle_request_limitation_duration, handle_limitation_confirmation
+    handle_request_limitation_duration, handle_limitation_confirmation
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import (
     render_admin_add_user_request_limitation_panel, render_admin_limit_user_request_duration_panel,
     render_admin_limit_user_request_sections_panel,
@@ -21,7 +21,7 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Admin
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, is_user_id
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.user_utils import is_admin, resolve_user_from_identifier
 
 
 async def route_admin_manage_limitations(
@@ -43,7 +43,7 @@ async def route_admin_manage_limitations(
 
             match PathBuilder(*rest).segments:
                 case []:
-                    resolved_user = await handle_limitation_user(identifier=identifier)
+                    resolved_user = await resolve_user_from_identifier(identifier=identifier)
 
                     if resolved_user is None:
                         # utente non trovato
@@ -59,9 +59,6 @@ async def route_admin_manage_limitations(
 
                     user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
-                    # nel path sempre uno user id
-                    relative_path.change(identifier, str(user_id))
-
                     if await is_admin(context=context, user_id=user_id):
                         await wrong_input_message(
                             update=update,
@@ -70,6 +67,9 @@ async def route_admin_manage_limitations(
                                            "agli admin"
                         )
                         return PCS.SET_REQUEST_LIMITATION_USER
+
+                    # nel path sempre uno user id
+                    relative_path.change(identifier, str(user_id))
 
                     limiting_user.user_id = user_id
 

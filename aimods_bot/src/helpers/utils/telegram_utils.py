@@ -16,7 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.models import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
@@ -747,6 +747,18 @@ def get_banned_panel() -> Panel:
         ),
         send=True
     )
+
+
+async def render_action_not_permitted_panel(update: Update, context: CustomContext, base_path: PathBuilder) -> None:
+    text = ("⛔ <b>Azione Vietata</b>\n\n"
+            "🔐 Non hai i permessi per eseguire questa azione.")
+
+    keyabord = [
+        [
+            ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
+            ButtonItem(text="🏠 Home", callback_key=PathBuilder(base_path.segments[0]))
+        ]
+    ]
 
 
 def get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:

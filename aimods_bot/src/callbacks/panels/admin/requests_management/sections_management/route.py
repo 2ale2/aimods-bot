@@ -18,7 +18,7 @@ from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat, get_config
 
 
-async def admin_request_section_configure_selection_route(
+async def route_admin_request_section_configure_selection(
         update: Update,
         context: CustomContext,
         root: PathBuilder,

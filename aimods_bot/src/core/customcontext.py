@@ -93,7 +93,7 @@ class ChatDataEphemeral(BaseModel):
         description="Memory space to keep which action the user is performing"
     )
     # ======== Admins ========
-    rejecting: Optional[Request] = Field(
+    working_request: Optional[Request] = Field(
         default=None,
         description="Request that has been selected for rejection from admin (allows to write personalized reason)."
     )

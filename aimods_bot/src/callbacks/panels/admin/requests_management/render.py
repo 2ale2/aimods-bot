@@ -560,10 +560,10 @@ async def render_admin_manage_request_removed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path.back(3),
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back(3))]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path)]
         ]
     )
 
@@ -874,8 +874,8 @@ async def render_last_ten_requests_category_panel(
         return await render_last_ten_requests_section_panel(
             update=update,
             context=context,
-            pl=pl,
-            ca=list(cats)[0],
+            platform=pl,
+            category=list(cats)[0],
             base_path=base_path
         )
 
@@ -911,17 +911,17 @@ async def render_last_ten_requests_section_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        pl: Platform,
-        ca: Category
+        platform: Platform,
+        category: Category
 ):
     await context.bot.send_chat_action(
         chat_id=update.effective_message.chat_id,
         action=ChatAction.TYPING
     )
-    requests = await get_last_n_requests(n=10, pl=pl, ca=ca)
-    text = await _get_last_ten_requests_section_text(requests=requests, pl=pl, ca=ca)
+    requests = await get_last_n_requests(n=10, pl=platform, ca=category)
+    text = await _get_last_ten_requests_section_text(requests=requests, pl=platform, ca=category)
 
-    if len(get_platform_categories(pl)) > 1:
+    if len(get_platform_categories(platform)) > 1:
         back_button_callback_data = base_path.back()
     else:
         back_button_callback_data = base_path.back(2)

@@ -10,22 +10,11 @@ from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
     AdminManageRequestLimitationsRoute
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_user, is_user_id, safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
-
-
-async def handle_limitation_user(identifier: str):
-    response = await resolve_user(identifier=identifier)
-
-    if response["status"] != "success":
-        if is_user_id(identifier):
-            return identifier
-        return None
-
-    return response["user"]
 
 
 def set_user_requests_limiting_item(context: CustomContext, set_true_section: Optional[str] = None):

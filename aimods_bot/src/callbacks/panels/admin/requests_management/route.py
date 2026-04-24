@@ -11,15 +11,16 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import ren
     render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
     render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
     render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
-    render_admin_user_requests_archive_panel, send_user_request_status_changed_notification, \
+    send_user_request_status_changed_notification, \
     render_last_ten_requests_platform_panel, render_last_ten_requests_category_panel, \
     render_last_ten_requests_section_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
-    admin_request_section_configure_selection_route
+    route_admin_request_section_configure_selection
+from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute, \
-    AdminManageRequestLimitationsUtils
+    AdminManageRequestLimitationsUtils, AdminRequestManagementRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -41,7 +42,7 @@ async def admin_requests_management_route(
             return PCS.ADMIN_CONVERSATION
 
         case [AdminRequestsRoute.ACTIVE, *rest]:
-            return await admin_active_requests_management_route(
+            return await route_admin_active_requests_management(
                 update=update,
                 context=context,
                 root=root.add(AdminRequestsRoute.ACTIVE),
@@ -49,7 +50,7 @@ async def admin_requests_management_route(
             )
 
         case [AdminRequestsRoute.MANAGE_SECTIONS, *rest]:
-            return await admin_request_section_configure_selection_route(
+            return await route_admin_request_section_configure_selection(
                 update=update,
                 context=context,
                 root=root.add(AdminRequestsRoute.MANAGE_SECTIONS),
@@ -67,38 +68,47 @@ async def admin_requests_management_route(
             )
 
         case [AdminRequestsRoute.USER_REQUESTS_ARCHIVE, *rest]:
-            await render_admin_user_requests_archive_panel(update=update, context=context)
-            return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+            return await route_user_archive(
+                update=update,
+                context=context,
+                root=root.add(AdminRequestsRoute.USER_REQUESTS_ARCHIVE),
+                relative_path=PathBuilder(*rest)
+            )
 
         case [AdminRequestsRoute.LAST_10, *rest]:
-            await render_last_ten_requests_platform_panel(update=update, context=context)
-            return PCS.ADMIN_CONVERSATION
+            full_path_builder = root.add(AdminRequestsRoute.LAST_10, *rest)
 
-        case ["last_10", platform_str]:
-            await render_last_ten_requests_category_panel(
-                update=update,
-                context=context,
-                pl=Platform(platform_str)
-            )
-            return PCS.ADMIN_CONVERSATION
-
-        case ["last_10", platform_str, category_str]:
-            pl = Platform(platform_str)
-            cats = get_platform_categories(platform=pl)
-            await render_last_ten_requests_section_panel(
-                update=update,
-                context=context,
-                pl=pl,
-                ca=cats(category_str)
-            )
+            match PathBuilder(*rest).segments:
+                case []:
+                    await render_last_ten_requests_platform_panel(
+                        update=update,
+                        context=context,
+                        base_path=full_path_builder
+                    )
+                case [platform]:
+                    await render_last_ten_requests_category_panel(
+                        update=update,
+                        context=context,
+                        base_path=full_path_builder,
+                        pl=Platform(platform)
+                    )
+                case [platform, category]:
+                    platform = Platform(platform)
+                    await render_last_ten_requests_section_panel(
+                        update=update,
+                        context=context,
+                        base_path=full_path_builder,
+                        platform=platform,
+                        category=get_platform_categories(platform=platform)(category)
+                    )
             return PCS.ADMIN_CONVERSATION
 
         case _:
-            log.warning(f"Unhandled path in admin_requests_management: {relative_path}")
+            log.warning(f"Unhandled path in admin_requests_management: {relative_path.build()}")
             return PCS.ADMIN_CONVERSATION
 
 
-async def admin_active_requests_management_route(
+async def route_admin_active_requests_management(
         update: Update,
         context: CustomContext,
         root: PathBuilder,
@@ -112,31 +122,26 @@ async def admin_active_requests_management_route(
     # noinspection SpellCheckingInspection
     match relative_path.segments:
         case []:
-            # ==== Menu Principale - Scelta Categoria ====
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
         case [platform_str]:
-            # ==== scelta Piattaforma ====
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
-                base_path=root,
+                base_path=root.add(platform_str),
                 platform=Platform(platform_str)
             )
 
         case [platform_str, category_str]:
-            # ==== Lista Richieste ====
             platform = Platform(platform_str)
-            cat_enum = get_platform_categories(platform=platform)
-
             await render_admin_active_requests_category_panel(
                 update=update,
                 context=context,
+                base_path=root.add(category_str),
                 platform=platform,
-                category=cat_enum(category_str)
+                category=get_platform_categories(platform=platform)(category_str)
             )
 
-        # ==== GESTIONE RICHIESTA ====
         case [platform_str, category_str, request_id_str, *sub_path]:
             if request_id_str.isdigit():
                 return await admin_manage_request_route(
@@ -183,8 +188,8 @@ async def admin_manage_request_route(
                 request=request,
                 base_path=root
             )
+            return PCS.ADMIN_CONVERSATION
 
-        # --- LIMITI UTENTE ---
         case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
             user_id = request.user_id
             return await route_admin_manage_limitations(
@@ -195,41 +200,95 @@ async def admin_manage_request_route(
             )
 
         # --- REMOVE ---
-        case ["remove"]:
-            await render_admin_manage_request_remove_confirmation_panel(update, context, ix, request)
+        case [AdminRequestManagementRoute.REMOVE, *rest]:
+            match PathBuilder(*rest).segments:
+                case []:
+                    await render_admin_manage_request_remove_confirmation_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(AdminRequestManagementRoute.REMOVE),
+                        request=request
+                    )
+                case [GlobalAction.YES]:
+                    context.remove_from_active_requests(ix=ix)
+                    await render_admin_manage_request_removed_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.back(3)
+                    )
+            return PCS.ADMIN_CONVERSATION
 
-        case ["remove", "yes"]:
-            context.remove_from_active_requests(ix=ix)
-            await render_admin_manage_request_removed_panel(update, context, ix)
-
-        # --- CHANGE STATUS ---
-        case ["change_status"]:
+        case [AdminRequestManagementRoute.CHANGE_STATUS, *rest]:
             if await ensure_active():
-                await render_admin_manage_request_change_status_panel(update, context, ix, request)
+                root.add(AdminRequestManagementRoute.CHANGE_STATUS)
 
-        # Conferma cambio stato
-        case [status_str] if status_str in RequestStatus and RequestStatus(status_str) is not RequestStatus.REJECTED:
+                match PathBuilder(*rest).segments:
+                    case []:
+                        await render_admin_manage_request_change_status_panel(
+                            update=update,
+                            context=context,
+                            base_path=root,
+                            request=request
+                        )
+
+                    case [new_status_str, *rest]:
+                        new_status = RequestStatus(new_status_str)
+                        root.add(new_status_str)
+
+                        match PathBuilder(*rest).segments:
+                            case []:
+                                await render_change_request_status_confirmation_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root,
+                                    request=request,
+                                    status=new_status
+                                )
+                            case [GlobalAction.YES]:
+                                new_status = RequestStatus(new_status_str)
+                                await context.edit_request_status(ix=ix, status=new_status)
+
+                                updated_request = context.get_active_request_by_id(ix=ix)
+                                await render_request_status_changed_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root.back(),
+                                    request=updated_request
+                                )
+                                if new_status == RequestStatus.COMPLETED:
+                                    await _notify_user_safe(update, context, updated_request)
+
+            return PCS.ADMIN_CONVERSATION
+
+        case [AdminRequestManagementRoute.REJECT, *rest]:
             if await ensure_active():
-                await render_change_request_status_confirmation_panel(
-                    update, context, ix, request, status=RequestStatus(status_str)
-                )
+                root.add(AdminRequestManagementRoute.REJECT)
 
-        # Esecuzione cambio stato (es: "COMPLETED/yes")
-        case [status_str, "yes"] if status_str in RequestStatus:
-            if await ensure_active():
-                new_status = RequestStatus(status_str)
-                await context.edit_request_status(ix=ix, status=new_status)
-
-                updated_request = context.get_active_request_by_id(ix=ix)
-                await render_request_status_changed_panel(update, context, ix, request=updated_request)
-
-                if new_status == RequestStatus.COMPLETED:
-                    await _notify_user_safe(update, context, updated_request)
-
+                match PathBuilder(*rest).segments:
+                    case []:
+                        # non salvo la richiesta nella persistenza per evitare problemi di concorrenza
+                        # verifico a ogni pressione se la richiesta è ancora attivo
+                        context.pydc.persistent.bot_message_id = update.effective_message.id
+                        await render_admin_reject_request_panel(
+                            update=update,
+                            context=context,
+                            base_path=root,
+                            request=request
+                        )
+                        return PCS.SET_REQUEST_REJECTION_REASON
+                    case [reason_str]:
+                        if reason_str in RejectRequestReason:
+                            await render_admin_confirm_rejection_panel(
+                                update=update,
+                                context=context,
+                                base_path=root.add(),
+                                request,
+                                reason=reason_str
+                            )
         # --- REJECT ---
         case ["reject"]:
             if await ensure_active():
-                context.pydc.ephemeral.rejecting = request
+                context.pydc.ephemeral.working_request = request
                 context.pydc.persistent.bot_message_id = update.effective_message.id
                 await render_admin_reject_request_panel(
                     update=update,
