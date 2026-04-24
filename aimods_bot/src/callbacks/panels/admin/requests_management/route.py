@@ -19,7 +19,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute, \
-    AdminRequestManagementRoute
+    AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -59,7 +59,12 @@ async def admin_requests_management_route(
         case [AdminRequestsRoute.MANAGE_LIMITATIONS, *rest]:
             context.free_base_path()
             context.pydc.persistent.limiting_user_requests = None
-            return await route_admin_manage_limitations(update=update, context=context, path=rest)
+            return await route_admin_manage_limitations(
+                update=update,
+                context=context,
+                root=root.add(AdminRequestsRoute.MANAGE_LIMITATIONS),
+                relative_path=PathBuilder(*rest)
+            )
 
         case [AdminRequestsRoute.USER_REQUESTS_ARCHIVE, *rest]:
             await render_admin_user_requests_archive_panel(update=update, context=context)
@@ -104,22 +109,23 @@ async def admin_active_requests_management_route(
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
 
+    # noinspection SpellCheckingInspection
     match relative_path.segments:
         case []:
-            # ==== MENU PRINCIPALE - SCELTA CATEGORIA ====
+            # ==== Menu Principale - Scelta Categoria ====
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
         case [platform_str]:
-            # ==== SCELTA PIATTAFORMA ====
+            # ==== scelta Piattaforma ====
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
-                root=root,
+                base_path=root,
                 platform=Platform(platform_str)
             )
 
         case [platform_str, category_str]:
-            # ==== LISTA RICHIESTE ====
+            # ==== Lista Richieste ====
             platform = Platform(platform_str)
             cat_enum = get_platform_categories(platform=platform)
 
@@ -171,13 +177,21 @@ async def admin_manage_request_route(
 
     match relative_path.segments:
         case []:
-            await render_admin_manage_request_panel(update=update, context=context, request=request)
+            await render_admin_manage_request_panel(
+                update=update,
+                context=context,
+                request=request,
+                base_path=root
+            )
 
         # --- LIMITI UTENTE ---
-        case [AdminRequestManagementRoute.LIMIT, *rest]:
-            user_id = int(rest[-1])
-            return await route_admin_limit_user_request(
-                update=update, context=context, path=rest, user_id=user_id
+        case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
+            user_id = request.user_id
+            return await route_admin_manage_limitations(
+                update=update,
+                context=context,
+                root=root.add(AdminManageRequestLimitationsUtils.LIMIT, user_id),
+                relative_path=PathBuilder(*rest)
             )
 
         # --- REMOVE ---
