@@ -267,7 +267,7 @@ async def admin_manage_request_route(
                 match PathBuilder(*rest).segments:
                     case []:
                         # non salvo la richiesta nella persistenza per evitare problemi di concorrenza
-                        # verifico a ogni pressione se la richiesta è ancora attivo
+                        # verifico a ogni pressione se la richiesta è ancora attiva
                         context.pydc.persistent.bot_message_id = update.effective_message.id
                         await render_admin_reject_request_panel(
                             update=update,
@@ -277,47 +277,29 @@ async def admin_manage_request_route(
                         )
                         return PCS.SET_REQUEST_REJECTION_REASON
                     case [reason_str]:
-                        if reason_str in RejectRequestReason:
-                            await render_admin_confirm_rejection_panel(
-                                update=update,
-                                context=context,
-                                base_path=root.add(),
-                                request,
-                                reason=reason_str
-                            )
-        # --- REJECT ---
-        case ["reject"]:
-            if await ensure_active():
-                context.pydc.ephemeral.working_request = request
-                context.pydc.persistent.bot_message_id = update.effective_message.id
-                await render_admin_reject_request_panel(
-                    update=update,
-                    context=context,
-                    ix=ix,
-                    request=request
-                )
-                return PCS.SET_REQUEST_REJECTION_REASON
-
-        case ["reject", reason_str] if reason_str in RejectRequestReason:
-            if await ensure_active():
-                await render_admin_confirm_rejection_panel(
-                    update, context, ix, request, reason=reason_str
-                )
-
-        case ["reject", reason_str, "yes"]:
-            if await ensure_active():
-                await confirm_rejection(context, ix=ix, reason=root[-2])
-                await render_admin_rejection_confirmed_panel(
-                    update=update,
-                    context=context,
-                    ix=ix,
-                    request=request,
-                    reason=root[-2]
-                )
-                await _notify_user_safe(update, context, request)
+                        reason = RejectRequestReason(reason_str) if reason_str in RejectRequestReason else reason_str
+                        await render_admin_confirm_rejection_panel(
+                            update=update,
+                            context=context,
+                            base_path=root.add(reason_str),
+                            request=request,
+                            reason=reason
+                        )
+                        return PCS.ADMIN_CONVERSATION
+                    case [reason_str, GlobalAction.YES]:
+                        await confirm_rejection(context, ix=ix, reason=reason_str)
+                        await render_admin_rejection_confirmed_panel(
+                            update=update,
+                            context=context,
+                            base_path=root,
+                            ix=ix,
+                            reason=reason_str
+                        )
+                        await _notify_user_safe(update, context, request)
+                        return PCS.ADMIN_CONVERSATION
 
         case _:
-            log.warning(f"Unhandled path in manage_request: {root}")
+            log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
 
     return PCS.ADMIN_CONVERSATION
 

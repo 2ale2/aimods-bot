@@ -8,7 +8,8 @@ from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
     Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
-    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserViewRequestsRoute
+    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserViewRequestsRoute, \
+    AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
@@ -345,7 +346,7 @@ def _get_admin_menage_request_keyboard(
 
     limit_buttons = [ButtonItem(
         text="⛔️ Limita Utente",
-        callback_key=base_path.add(AdminRequestManagementRoute.LIMIT, request.user_id))
+        callback_key=base_path.add(AdminManageRequestLimitationsUtils.LIMIT, str(request.user_id)))
     ]
     if context.get_user_request_limitations(user_id=request.user_id):
         limit_buttons.append(
@@ -356,7 +357,7 @@ def _get_admin_menage_request_keyboard(
                     AdminRoute.MANAGE_REQUESTS,
                     AdminRequestsRoute.MANAGE_LIMITATIONS,
                     AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS,
-                    request.user_id
+                    str(request.user_id)
                 )
             )
         )
