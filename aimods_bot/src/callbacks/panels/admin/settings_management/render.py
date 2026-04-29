@@ -2,7 +2,11 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.models.ui import ButtonItem
+
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminSettingsRoute, \
+    AdminSettingsNotificationsRoute, AdminRoute, GlobalAction
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
 
 
@@ -12,7 +16,8 @@ def _build_notification_ui(
         settings_dict: dict,
         header_title: str,
         description: str,
-        footer_info: str
+        footer_info: str,
+        base_path: PathBuilder
 ):
     """
     Costruisce dinamicamente il testo ad albero e la tastiera a griglia per le impostazioni di notifica.
@@ -35,13 +40,16 @@ def _build_notification_ui(
             status_icon = '🔔' if is_active else '🔕'
             text_parts.append(f"                   🔸 <i>{ca_data['label']}</i> – {status_icon}\n")
 
-            buttons.append(ButtonItem(text=f"{pl_data['icon']} {ca_data['label']}", callback_key=f"{pl}:{ca}"))
+            buttons.append(ButtonItem(
+                text=f"{pl_data['icon']} {ca_data['label']}",
+                callback_key=base_path.add(f"{pl}:{ca}"))
+            )
 
     keyboard = chunk_buttons(buttons=buttons, size=4)
 
     text_parts.append(f"\n{footer_info}")
 
-    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=base_path.back())])
 
     return "".join(text_parts), keyboard
 
@@ -62,17 +70,21 @@ def _get_disabled_panel_text(data: str, context_topic: str) -> str:
 
 # --- RENDERING PANEL PRINCIPALI ---
 
-async def render_admin_settings_management_panel(update: Update, context: CustomContext):
+async def render_admin_settings_management_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     text = _get_admin_settings_management_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings",
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="🔔 Notifiche", callback_key="notifications")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔔 Notifiche", callback_key=base_path.add(AdminSettingsRoute.NOTIFICATIONS))],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -83,20 +95,30 @@ def _get_admin_settings_management_text():
             "🔹 Scegli un'opzione.")
 
 
-async def render_admin_notification_settings_management_panel(update: Update, context: CustomContext):
+async def render_admin_notification_settings_management_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     text = _get_admin_notification_settings_management_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="📥 Nuove Richieste", callback_key="new_requests"),
-                ButtonItem(text="📪 Chiusura Sezioni", callback_key="section_closing")
+                ButtonItem(
+                    text="📥 Nuove Richieste",
+                    callback_key=base_path.add(AdminSettingsNotificationsRoute.NEW_REQUESTS)
+                ),
+                ButtonItem(
+                    text="📪 Chiusura Sezioni",
+                    callback_key=base_path.add(AdminSettingsNotificationsRoute.SECTION_CLOSING)
+                )
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -110,7 +132,11 @@ def _get_admin_notification_settings_management_text():
 
 # --- RENDERING SPECIFICI (New Requests) ---
 
-async def render_admin_new_requests_notification_settings_panel(update: Update, context: CustomContext):
+async def render_admin_new_requests_notification_settings_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     settings = context.pydc.persistent.admin_notifications.new_requests_notifications
 
     text, keyboard = _build_notification_ui(
@@ -124,7 +150,7 @@ async def render_admin_new_requests_notification_settings_panel(update: Update, 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications/new_requests",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -136,9 +162,9 @@ async def render_new_requests_notification_disabled_panel(update: Update, contex
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin",
+        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
-        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]]
+        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )
 
 

@@ -14,7 +14,7 @@ from aimods_bot.src.callbacks.panels.admin.settings_management.render import (
 )
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminSettingsRoute, NotificationAction, \
-    AdminNotificationsRoute
+    AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
@@ -27,7 +27,7 @@ async def admin_settings_management_route(
 ):
     match relative_path.segments:
         case []:
-            await render_admin_settings_management_panel(update=update, context=context)
+            await render_admin_settings_management_panel(update=update, context=context, base_path=root)
 
         case [AdminSettingsRoute.NOTIFICATIONS, *sub_path]:
             await admin_notification_settings_management_route(
@@ -49,21 +49,21 @@ async def admin_notification_settings_management_route(
 ):
     match relative_path.segments:
         case []:
-            await render_admin_notification_settings_management_panel(update=update, context=context)
+            await render_admin_notification_settings_management_panel(update=update, context=context, base_path=root)
 
-        case [AdminNotificationsRoute.NEW_REQUESTS, *sub_path]:
+        case [AdminSettingsNotificationsRoute.NEW_REQUESTS, *sub_path]:
             await admin_new_requests_notification_settings_management_route(
                 update=update,
                 context=context,
-                root=root.add(AdminNotificationsRoute.NEW_REQUESTS),
+                root=root.add(AdminSettingsNotificationsRoute.NEW_REQUESTS),
                 relative_path=PathBuilder(*sub_path)
             )
 
-        case [AdminNotificationsRoute.SECTION_CLOSING, *sub_path]:
+        case [AdminSettingsNotificationsRoute.SECTION_CLOSING, *sub_path]:
             await admin_closing_section_notification_settings_management_route(
                 update=update,
                 context=context,
-                root=root.add(AdminNotificationsRoute.SECTION_CLOSING),
+                root=root.add(AdminSettingsNotificationsRoute.SECTION_CLOSING),
                 relative_path=PathBuilder(*sub_path)
             )
 
@@ -77,15 +77,17 @@ async def admin_new_requests_notification_settings_management_route(
 ):
     match relative_path.segments:
         case []:
-            await render_admin_new_requests_notification_settings_panel(update=update, context=context)
+            await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
 
         case [data]:
             await handle_admin_new_requests_notification_toggle(context=context, data=data)
-            await render_admin_new_requests_notification_settings_panel(update=update, context=context)
+            await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
 
         case [data, NotificationAction.FROM_NOTIFICATION]:
             await handle_admin_new_requests_notification_toggle(context=context, data=data)
             await render_new_requests_notification_disabled_panel(update=update, context=context, data=data)
+
+    return PCS.ADMIN_CONVERSATION
 
 
 # --- SEZIONE: ADMIN SECTION CLOSING NOTIFICATIONS SETTINGS ---

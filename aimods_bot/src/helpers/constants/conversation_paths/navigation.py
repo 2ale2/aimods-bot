@@ -87,7 +87,7 @@ class AdminManageRequestLimitationsRoute(StrEnum):
     REMOVE_ALL = "remove_all"
 
 
-class AdminNotificationsRoute(StrEnum):
+class AdminSettingsNotificationsRoute(StrEnum):
     # admin/settings/notifications
     NEW_REQUESTS = "new_requests"
     SECTION_CLOSING = "section_closing"
