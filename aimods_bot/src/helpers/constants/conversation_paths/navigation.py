@@ -31,10 +31,12 @@ class UserRoute(StrEnum):
     ADD_REQUEST = "add_request"
 
 
-class UserViewRequestsRoute(StrEnum):
+class UserManageRequestsRoute(StrEnum):
     ACTIVE = "active_requests"
     REQUEST_ARCHIVE = "request_archive"
+
     DETAILS = "details"
+    CANCEL = "cancel"
 
 
 class AdminSettingsRoute(StrEnum):

@@ -41,3 +41,6 @@ class PathBuilder:
 
     def __len__(self) -> int:
         return len(self.segments)
+
+    def __add__(self, other: PathBuilder) -> PathBuilder:
+        return PathBuilder(*(self.segments + other.segments))

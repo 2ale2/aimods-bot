@@ -8,7 +8,7 @@ from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
     Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
-    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserViewRequestsRoute, \
+    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserManageRequestsRoute, \
     AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
@@ -814,8 +814,8 @@ async def send_user_request_status_changed_notification(
                     text="👁 Visiona Richiesta",
                     callback_key=base_path.add(
                         UserRoute.VIEW_REQUESTS,
-                        UserViewRequestsRoute.ACTIVE,
-                        UserViewRequestsRoute.DETAILS,
+                        UserManageRequestsRoute.ACTIVE,
+                        UserManageRequestsRoute.DETAILS,
                         ix
                     )
                 )

@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 from pyrogram.types import InlineKeyboardButton
 from telegram import Update, InlineKeyboardMarkup
@@ -10,7 +10,9 @@ from telegram.error import BadRequest
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserViewRequestsRoute
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserManageRequestsRoute, UserRoute, \
+    GlobalAction
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
@@ -19,7 +21,6 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_user_requests_archive,
                                                         generate_user_archive_requests_pdf_file)
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
-from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
 
@@ -36,11 +37,11 @@ async def render_user_request_management_panel(update: Update, context: CustomCo
             [
                 ButtonItem(
                     text="📘 Richieste Attive",
-                    callback_key=base_path.add(UserViewRequestsRoute.ACTIVE)
+                    callback_key=base_path.add(UserManageRequestsRoute.ACTIVE)
                 ),
                 ButtonItem(
                     text="📕 Archivio Richieste",
-                    callback_key=base_path.add(UserViewRequestsRoute.REQUEST_ARCHIVE)
+                    callback_key=base_path.add(UserManageRequestsRoute.REQUEST_ARCHIVE)
                 )
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
@@ -69,16 +70,16 @@ async def render_active_request_panel(
 
     if active_requests:
         keyboard.append([
-            ButtonItem(text="📋 Info Richiesta", callback_key="details"),
-            ButtonItem(text="🗑 Annulla Richiesta", callback_key="cancel")
+            ButtonItem(text="📋 Info Richiesta", callback_key=base_path.add(UserManageRequestsRoute.DETAILS)),
+            ButtonItem(text="🗑 Annulla Richiesta", callback_key=base_path.add(UserManageRequestsRoute.CANCEL))
         ])
 
-    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=None)])
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user/view_requests/active_requests",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -103,39 +104,43 @@ def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
 async def render_user_request_action_panel(
         update: Update,
         context: CustomContext,
-        action: Literal["details", "cancel"]
+        action: UserManageRequestsRoute,
+        base_path: PathBuilder
 ):
-    requests = context.user_cancellable_requests if action == "cancel" else context.user_active_requests
+    if action == UserManageRequestsRoute.CANCEL:
+        requests = context.user_cancellable_requests
+    else:
+        requests = context.user_active_requests
 
     text = await _get_user_request_action_panel_text(
         action=action,
         requests=requests
     )
-    keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action)
+    keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action, base_path=base_path)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"user/view_requests/active_requests/{action}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
 
 
 async def _get_user_request_action_panel_text(
-        action: Literal["details", "cancel"],
+        action: UserManageRequestsRoute,
         requests: dict[int, Request]
 ) -> str:
     text = f"👁‍🗨 <b>Gestione Richieste Attive</b>"
-    if action == "cancel":
+    if action == UserManageRequestsRoute.CANCEL:
         text += "\n\n→ 🗑 <b>Cancellazione</b>"
-        if len(requests) == 0:
+        if not len(requests):
             text += "\n\nℹ️ Non hai richieste cancellabili.\n\n"
             return text
 
-    else:  # action == "details"
+    else:  # action == UserManageRequestsRoute.DETAILS
         text += "\n\n→ 📋 <b>Informazioni</b>"
-        if len(requests) == 0:
+        if not len(requests):
             text += "\n\nℹ️ Non hai richieste da visionare.\n\n"
             return text
 
@@ -143,30 +148,32 @@ async def _get_user_request_action_panel_text(
 
     text += "\n\n" + summary
 
-    text += f"\n🔹 Scegli quale richiesta vuoi {'visionare' if action == 'details' else 'cancellare'}."
+    text += ("\n🔹 Scegli quale richiesta vuoi "
+             f"{'visionare' if action == UserManageRequestsRoute.DETAILS else 'cancellare'}.")
 
     return text
 
 
 async def _get_user_request_action_panel_keyboard(
         context: CustomContext,
-        action: Literal["details", "cancel"]
+        action: UserManageRequestsRoute,
+        base_path: PathBuilder
 ) -> list[list[ButtonItem]]:
-    if action == "cancel":
+    if action == UserManageRequestsRoute.CANCEL:
         requests = context.user_cancellable_requests
     else:
         requests = context.user_active_requests
 
-    if len(requests) != 0:
+    if len(requests):
         keyboard = [[]]
         for n, ix in enumerate(requests):
             request = requests[ix]
             if len(keyboard[-1]) >= 4:
                 keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=str(n + 1), callback_key=request.id))
-        keyboard.insert(len(keyboard) + 1, [ButtonItem(text="🔙 Indietro", callback_key=None)])
+            keyboard[-1].append(ButtonItem(text=str(n + 1), callback_key=base_path.add(str(request.id))))
+        keyboard.insert(len(keyboard) + 1, [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
     else:
-        keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=None)]]
+        keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
 
     return keyboard
 
@@ -174,28 +181,37 @@ async def _get_user_request_action_panel_keyboard(
 async def render_request_details_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         ix: int
 ):
     request = context.get_active_request_by_id(ix=ix)
     text = await _get_request_details_panel_text(request=request)
 
     keyboard = [
-        [ButtonItem(text="📋 Visiona Altra Richiesta", callback_key=None)],
-        [ButtonItem(text="🔙 Indietro", callback_key="user/view_requests", override_path_generation=True)]
+        [
+            ButtonItem(
+                text="📋 Visiona Altra Richiesta",
+                callback_key=base_path.back())
+        ],
+        [
+            ButtonItem(
+                text="🔙 Indietro",
+                callback_key=PathBuilder(UserRoute.ROOT, UserManageRequestsRoute.ACTIVE))
+        ]
     ]
     if request.is_active:
         notifications = request.status_change_notifications
         keyboard.insert(1, [
             ButtonItem(
-                text=f"{'🔔 Attiva' if not notifications else '🔕 Disattiva'} Notifiche Esito",
-                callback_key=f"{'enable_' if not notifications else 'disable_'}notifications"
+                text=f"{'🔕 Disattiva' if notifications else '🔔 Attiva'} Notifiche Esito",
+                callback_key=base_path.add(f"{'disable_' if notifications else 'enable_'}notifications")
             )
         ])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"user/view_requests/active_requests/details/{ix}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -215,6 +231,7 @@ async def _get_request_details_panel_text(request: Request) -> str:
 async def render_confirm_cancel_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         ix: int
 ):
     request = context.get_active_request_by_id(ix=ix)
@@ -226,8 +243,8 @@ async def render_confirm_cancel_panel(
         text = await _get_confirm_cancel_text(request=request)
         keyboard = [
             [
-                ButtonItem(text="🌪 Conferma", callback_key="yes"),
-                ButtonItem(text="🔙 Annulla", callback_key=None)
+                ButtonItem(text="🌪 Conferma", callback_key=base_path.add(GlobalAction.YES)),
+                ButtonItem(text="🔙 Annulla", callback_key=base_path.back())
             ]
         ]
     else:
@@ -235,12 +252,12 @@ async def render_confirm_cancel_panel(
                 "→ 🗑 <b>Cancellazione</b>\n\n"
                 "<blockquote>⚠️ Non puoi più cancellare questa richiesta.</blockquote>\n\n"
                 "🔹 Torna indietro per continuare.")
-        keyboard = [[ButtonItem(text="🔙 Annulla", callback_key=None)]]
+        keyboard = [[ButtonItem(text="🔙 Annulla", callback_key=base_path.back())]]
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"user/view_requests/active_requests/cancel/{ix}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
