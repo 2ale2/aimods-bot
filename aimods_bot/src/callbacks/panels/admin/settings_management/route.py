@@ -67,6 +67,8 @@ async def admin_notification_settings_management_route(
                 relative_path=PathBuilder(*sub_path)
             )
 
+    return PCS.ADMIN_CONVERSATION
+
 
 # --- SEZIONE: ADMIN NEW REQUESTS NOTIFICATIONS SETTINGS ---
 async def admin_new_requests_notification_settings_management_route(
@@ -99,12 +101,22 @@ async def admin_closing_section_notification_settings_management_route(
 ):
     match relative_path.segments:
         case []:
-            await render_admin_section_closing_notification_settings_panel(update=update, context=context)
+            await render_admin_section_closing_notification_settings_panel(
+                update=update,
+                context=context,
+                base_path=root
+            )
 
         case [data]:
             await handle_admin_section_closing_notification_toggle(context=context, data=data)
-            await render_admin_section_closing_notification_settings_panel(update=update, context=context)
+            await render_admin_section_closing_notification_settings_panel(
+                update=update,
+                context=context,
+                base_path=root
+            )
 
         case [data, NotificationAction.FROM_NOTIFICATION]:
             await handle_admin_section_closing_notification_toggle(context=context, data=data)
             await render_section_closure_notification_disabled_panel(update=update, context=context, data=data)
+
+    return PCS.ADMIN_CONVERSATION

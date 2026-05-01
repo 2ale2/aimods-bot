@@ -140,6 +140,7 @@ async def render_admin_new_requests_notification_settings_panel(
     settings = context.pydc.persistent.admin_notifications.new_requests_notifications
 
     text, keyboard = _build_notification_ui(
+        base_path=base_path,
         settings_dict=settings,
         header_title="📥 <i>Notifiche</i> → <i><u>Nuove Richieste</u></i>",
         description="Da qui puoi gestire le notifiche sulle <b>nuove richieste</b>.",
@@ -170,10 +171,15 @@ async def render_new_requests_notification_disabled_panel(update: Update, contex
 
 # --- RENDERING SPECIFICI (Section Closing) ---
 
-async def render_admin_section_closing_notification_settings_panel(update: Update, context: CustomContext):
+async def render_admin_section_closing_notification_settings_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     settings = context.pydc.persistent.admin_notifications.section_closing_notifications
 
     text, keyboard = _build_notification_ui(
+        base_path=base_path,
         settings_dict=settings,
         header_title="📪 <i>Notifiche</i> → <i><u>Chiusura Sezioni</u></i>",
         description="Da qui puoi gestire le notifiche sulla <b>chiusura delle sezioni</b>.",
@@ -185,7 +191,7 @@ async def render_admin_section_closing_notification_settings_panel(update: Updat
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications/section_closing",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -197,7 +203,7 @@ async def render_section_closure_notification_disabled_panel(update: Update, con
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin",
+        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
-        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]]
+        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )
