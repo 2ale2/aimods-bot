@@ -10,7 +10,9 @@ from telegram.error import BadRequest
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserViewRequestsRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
                                                         get_request_details,
@@ -22,20 +24,26 @@ from aimods_bot.src.helpers.loggers import logger
 log = logger.getChild(__name__)
 
 
-async def render_user_request_management_panel(update: Update, context: CustomContext):
+async def render_user_request_management_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _get_user_request_management_panel_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user/view_requests",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="📘 Richieste Attive", callback_key="active_requests"),
-                ButtonItem(text="📕 Archivio Richieste", callback_key="requests_archive")
+                ButtonItem(
+                    text="📘 Richieste Attive",
+                    callback_key=base_path.add(UserViewRequestsRoute.ACTIVE)
+                ),
+                ButtonItem(
+                    text="📕 Archivio Richieste",
+                    callback_key=base_path.add(UserViewRequestsRoute.REQUEST_ARCHIVE)
+                )
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -51,7 +59,8 @@ def _get_user_request_management_panel_text() -> str:
 
 async def render_active_request_panel(
         update: Update,
-        context: CustomContext
+        context: CustomContext,
+        base_path: PathBuilder
 ):
     active_requests = context.user_active_requests
     text = _get_active_request_panel_text(requests=active_requests)

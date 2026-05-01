@@ -33,6 +33,7 @@ class UserRoute(StrEnum):
 
 class UserViewRequestsRoute(StrEnum):
     ACTIVE = "active_requests"
+    REQUEST_ARCHIVE = "request_archive"
     DETAILS = "details"
 
 
