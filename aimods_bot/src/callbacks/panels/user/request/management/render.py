@@ -101,22 +101,16 @@ def _get_active_request_panel_text(requests: dict[int, Request]) -> str:
     return text
 
 
-async def render_user_request_action_panel(
+async def render_user_manage_active_requests_panel(
         update: Update,
         context: CustomContext,
-        action: UserManageRequestsRoute,
         base_path: PathBuilder
 ):
-    if action == UserManageRequestsRoute.CANCEL:
-        requests = context.user_cancellable_requests
-    else:
-        requests = context.user_active_requests
+    requests = context.user_active_requests
 
-    text = await _get_user_request_action_panel_text(
-        action=action,
-        requests=requests
-    )
-    keyboard = await _get_user_request_action_panel_keyboard(context=context, action=action, base_path=base_path)
+    text = _get_user_manage_requests_main_panel(requests=requests)
+
+    keyboard = await _get_user_manage_requests_main_panel_keyboard(base_path=base_path, requests=requests)
 
     await create_and_render_panel(
         update=update,
@@ -125,6 +119,13 @@ async def render_user_request_action_panel(
         text=text,
         keyboard=keyboard
     )
+
+
+def _get_user_manage_requests_main_panel(requests: dict[int, Request]) -> str:
+    text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n" +
+            get_requests_summary(requests=requests) +
+            "\n🔹 Scegli quale richiesta vuoi gestire.")
+    return text
 
 
 async def _get_user_request_action_panel_text(
@@ -154,16 +155,10 @@ async def _get_user_request_action_panel_text(
     return text
 
 
-async def _get_user_request_action_panel_keyboard(
-        context: CustomContext,
-        action: UserManageRequestsRoute,
-        base_path: PathBuilder
+async def _get_user_manage_requests_main_panel_keyboard(
+        base_path: PathBuilder,
+        requests: dict[int, Request]
 ) -> list[list[ButtonItem]]:
-    if action == UserManageRequestsRoute.CANCEL:
-        requests = context.user_cancellable_requests
-    else:
-        requests = context.user_active_requests
-
     if len(requests):
         keyboard = [[]]
         for n, ix in enumerate(requests):

@@ -3,7 +3,7 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.callbacks.panels.user.request.management.handle import cancel_request, toggle_status_notifications
 from aimods_bot.src.callbacks.panels.user.request.management.render import \
-    render_active_request_panel, render_user_request_management_panel, render_user_request_action_panel, \
+    render_active_request_panel, render_user_request_management_panel, render_user_manage_active_requests_panel, \
     render_confirm_cancel_panel, render_request_details_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserManageRequestsRoute
@@ -22,7 +22,7 @@ async def user_request_management_route(update: Update, context: CustomContext, 
             await render_user_request_management_panel(update=update, context=context)
             return PCS.USER_CONVERSATION
         case [UserManageRequestsRoute.ACTIVE, *rest]:
-            return await user_request_action_route(
+            return await user_active_requests_management_route(
                 update=update,
                 context=context,
                 root=path.add(UserManageRequestsRoute.ACTIVE),
@@ -38,7 +38,7 @@ async def user_request_management_route(update: Update, context: CustomContext, 
             return PCS.USER_CONVERSATION
 
 
-async def user_request_action_route(
+async def user_active_requests_management_route(
         update: Update,
         context: CustomContext,
         root: PathBuilder,
@@ -52,7 +52,7 @@ async def user_request_action_route(
         case [action, *rest]:
             match PathBuilder(*rest):
                 case []:
-                    await render_user_request_action_panel(
+                    await render_user_manage_active_requests_panel(
                         update=update,
                         context=context,
                         action=action,
