@@ -38,6 +38,9 @@ class UserManageRequestsRoute(StrEnum):
     DETAILS = "details"
     CANCEL = "cancel"
 
+    ENABLE_STATUS_NOTIFICATION = "enable_notification"
+    DISABLE_STATUS_NOTIFICATION = "disable_notification"
+
 
 class AdminSettingsRoute(StrEnum):
     # admin/settings
