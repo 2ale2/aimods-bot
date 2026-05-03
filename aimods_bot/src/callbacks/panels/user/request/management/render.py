@@ -74,7 +74,7 @@ def _get_user_manage_active_requests_main_panel(requests: dict[int, Request]) ->
         text += "\n\nℹ️ Non hai nessuna richiesta attiva."
         return text
 
-    text += "\n\n▫️ Ecco le <b>richieste attive</b>.\n\n"
+    text += "\n\n▫️ Ecco le tue <b>richieste attive</b>.\n\n"
 
     text += get_requests_summary(requests=requests)
 
@@ -123,15 +123,15 @@ async def render_manage_selected_request_panel(
         ])
 
     if request.is_active:
-        notifications = request.status_change_notifications
-        if notifications:
+        notification = request.status_change_notifications
+        if notification:
             notify_toggle_button = UserManageRequestsRoute.DISABLE_STATUS_NOTIFICATION
         else:
             notify_toggle_button = UserManageRequestsRoute.ENABLE_STATUS_NOTIFICATION
 
         keyboard.insert(0, [
             ButtonItem(
-                text=f"{'🔕 Disattiva' if notifications else '🔔 Attiva'} Notifiche Esito",
+                text=f"{'🔕 Disattiva' if notification else '🔔 Attiva'} Notifiche Esito",
                 callback_key=base_path.add(notify_toggle_button)
             )
         ])
@@ -148,7 +148,7 @@ async def render_manage_selected_request_panel(
 async def _get_manage_selected_request_text(request: Request) -> str:
     text = (f"👁‍🗨 <b>Gestione Richieste Attive</b>"
             "\n\n→ 📋 <b>Informazioni</b>\n\n"
-            "▫️ Ecco i dettagli della tua richiesta.\n\n")
+            "▫️ Ecco i dettagli della richiesta.\n\n")
 
     text += await get_request_details(request=request)
     text += "\n\n🔹 Scegli un'opzione."

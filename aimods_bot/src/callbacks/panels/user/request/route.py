@@ -17,10 +17,12 @@ from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
     PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
 )
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS,
     RequestConversationState as RCS
 )
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.loggers import logger
 
@@ -29,13 +31,18 @@ log = logger.getChild(__name__)
 BYPASS_LIMITS_USERS = {7233636327, 6540199713}
 
 
-async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
+async def requests_management_route(update: Update, context: CustomContext, path: PathBuilder):
     RequestDataManager.cleanup_request(context=context)
 
-    match path[0]:
-        case "view_requests":
-            return await user_request_management_route(update=update, context=context, path=path[1:])
-        case "add_request":
+    match path.segments:
+        case [UserRoute.VIEW_REQUESTS, *rest]:
+            return await user_request_management_route(
+                update=update,
+                context=context,
+                root=path.add(UserRoute.VIEW_REQUESTS),
+                relative_path=PathBuilder(*rest)
+            )
+        case [UserRoute.ADD_REQUEST, *rest]:
             if path[-1] == "from_notification":
                 return await request_from_notification(update=update, context=context)
 

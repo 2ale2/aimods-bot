@@ -199,7 +199,7 @@ async def get_request_details(request: Request, admin: bool = False):
 
         if request.status == RequestStatus.COMPLETED and not admin:
             parts.append(
-                "\n<blockquote>ℹ <b>Cosa Significa?</b> — Se una richiesta è <i>✅ Completata</i> "
+                "\n<blockquote>ℹ <b>Cosa Significa?</b> — Se una richiesta è <i>✅ Completata</i>, "
                 "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
                 "e MacOS, <b>il rilascio sulle piattaforme avverrà assieme al post, oppure prima</b>.</blockquote>"
             )

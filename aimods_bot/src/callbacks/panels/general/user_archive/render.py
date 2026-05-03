@@ -71,7 +71,7 @@ async def render_user_archive_panel(
                 raise
             await context.bot.edit_message_text(
                 chat_id=update.effective_user.id,
-                message_id=context.pydc.persistent.bot_message_id,
+                message_id=message_id,
                 text=archive_text,
                 parse_mode=ParseMode.HTML
             )

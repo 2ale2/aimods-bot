@@ -62,15 +62,6 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
 
             user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
-            if await is_admin(context=context, user_id=user_id):
-                await wrong_input_message(
-                    update=update,
-                    context=context,
-                    correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> "
-                                   "agli admin"
-                )
-                return PCS.SET_USER_FOR_REQUEST_ARCHIVE
-
             # nel path sempre uno user id
             relative_path.change(identifier, str(user_id))
 

@@ -15,23 +15,28 @@ from aimods_bot.src.helpers.models.routing import PathBuilder
 log = logger.getChild(__name__)
 
 
-async def user_request_management_route(update: Update, context: CustomContext, path: PathBuilder):
-    match path.segments:
+async def user_request_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
         case []:
-            await render_user_request_management_panel(update=update, context=context, base_path=path)
+            await render_user_request_management_panel(update=update, context=context, base_path=root)
             return PCS.USER_CONVERSATION
         case [UserManageRequestsRoute.ACTIVE, *rest]:
             return await user_active_requests_management_route(
                 update=update,
                 context=context,
-                root=path.add(UserManageRequestsRoute.ACTIVE),
+                root=root.add(UserManageRequestsRoute.ACTIVE),
                 relative_path=PathBuilder(*rest)
             )
         case UserManageRequestsRoute.REQUEST_ARCHIVE:
             await route_user_archive(
                 update=update,
                 context=context,
-                root=path.add(UserManageRequestsRoute.REQUEST_ARCHIVE),
+                root=root.add(UserManageRequestsRoute.REQUEST_ARCHIVE),
                 relative_path=PathBuilder()  # Misura di sicurezza: forzo [] per forzare il ramo corretto del router
             )
             return PCS.USER_CONVERSATION
@@ -53,15 +58,14 @@ async def user_active_requests_management_route(
                 case []:
                     if not request:
                         log.warning(f"Active request {request_id} from user {update.effective_user.id} not found")
-
                         await render_user_manage_active_requests_panel(update=update, context=context, base_path=root)
-
-                    await render_manage_selected_request_panel(
-                        update=update,
-                        context=context,
-                        base_path=root.add(request_id),
-                        request=request
-                    )
+                    else:
+                        await render_manage_selected_request_panel(
+                            update=update,
+                            context=context,
+                            base_path=root.add(request_id),
+                            request=request
+                        )
 
                 case [toggle_notification] if toggle_notification in (
                     UserManageRequestsRoute.ENABLE_STATUS_NOTIFICATION,
