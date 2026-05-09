@@ -40,7 +40,7 @@ async def user_main_router(update: Update, context: CustomContext):
     path.pop(0)
     try:
         if path[0] in ("add_request", "view_requests"):
-            return await requests_management_route(update=update, context=context, path=path)
+            return await requests_management_route(update=update, context=context, root=path)
         if path[0] == "manage_settings":
             return await user_settings_management_route(update=update, context=context, path=path[1:])
     finally:

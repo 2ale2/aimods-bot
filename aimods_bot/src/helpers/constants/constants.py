@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytz
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Union
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
@@ -266,13 +266,15 @@ class RequestStatus(Enum):
     CANCELLED = "cancelled"
 
 
-class RequestField(Enum):
+class RequestField(StrEnum):
     NAME = "name"
     LINK = "link"
     VERSION = "version"
-    FUNCTIONALITIES = "functionalities"
+    FEATURES = "features"
     STEAMTOOLS = "steamtools"
-    ARCH = "arch"
+    HYPERVISOR = "hypervisor"
+    ARCH_ARM = "arch_arm"
+    MAC_OS_VERSION = "mac_os_version"
 
 
 class RejectRequestReason(Enum):

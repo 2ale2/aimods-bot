@@ -4,7 +4,7 @@ from typing import Callable, Awaitable
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager, InputHandler
-from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_panel
+from aimods_bot.src.callbacks.panels.user.request.render import render_user_request_platform_panel
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.exceptions import WrongFlowException
 from aimods_bot.src.core.pydantic import Request
@@ -231,5 +231,5 @@ async def backer(update: Update, context: CustomContext):
 async def route_back_to_main(update: Update, context: CustomContext):
     """Reset e ritorno alla home."""
     RequestDataManager.initialize_request(context=context)
-    await render_user_request_panel(update=update, context=context)
+    await render_user_request_platform_panel(update=update, context=context)
     return RCS.MAIN_BACKER

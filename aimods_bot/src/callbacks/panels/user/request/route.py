@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManag
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_has_cooldown_panel,
-    render_user_request_panel,
+    render_user_request_platform_panel,
     render_cant_request_panel
 )
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
@@ -31,31 +31,49 @@ log = logger.getChild(__name__)
 BYPASS_LIMITS_USERS = {7233636327, 6540199713}
 
 
-async def requests_management_route(update: Update, context: CustomContext, path: PathBuilder):
+async def requests_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
     RequestDataManager.cleanup_request(context=context)
 
-    match path.segments:
+    match relative_path.segments:
         case [UserRoute.VIEW_REQUESTS, *rest]:
             return await user_request_management_route(
                 update=update,
                 context=context,
-                root=path.add(UserRoute.VIEW_REQUESTS),
+                root=root.add(UserRoute.VIEW_REQUESTS),
                 relative_path=PathBuilder(*rest)
             )
         case [UserRoute.ADD_REQUEST, *rest]:
-            if path[-1] == "from_notification":
+            root.add(UserRoute.ADD_REQUEST)
+
+            match PathBuilder(*rest):
+                case []:
+                    await render_user_request_platform_panel(
+                        update=update,
+                        context=context,
+                        base_path=root
+                    )
+
+                case [UserRoute.NOTIFICATION, platform, category]:
+
+
+            if root[-1] == "from_notification":
                 return await request_from_notification(update=update, context=context)
 
             rc = context.user_request_cooldown()
             if rc and update.effective_user.id not in BYPASS_LIMITS_USERS:
                 await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
                 return PCS.USER_CONVERSATION
-            if len(path) > 1:
+            if len(root) > 1:
                 # expected: ".../add_request/<platform>
                 return await request_category(update=update, context=context)
 
             RequestDataManager.initialize_request(context=context)
-            await render_user_request_panel(update=update, context=context)
+            await render_user_request_platform_panel(update=update, context=context)
             return PCS.NEW_REQUEST
 
 

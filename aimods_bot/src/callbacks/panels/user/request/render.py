@@ -3,7 +3,9 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
-    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE
+    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
@@ -37,22 +39,26 @@ def _get_user_has_cooldown_panel_text(cooldown_end: str, cooldown_text: str):
     )
 
 
-async def render_user_request_panel(update: Update, context: CustomContext):
+async def render_user_request_platform_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user/add_request",
+        base_path=base_path,
         text=_get_user_request_panel_text(),
         keyboard=[
             [
-                ButtonItem(text="🤖 Android", callback_key="android"),
-                ButtonItem(text="💻 Windows", callback_key="windows")
+                ButtonItem(text="🤖 Android", callback_key=base_path.add(Platform.ANDROID)),
+                ButtonItem(text="💻 Windows", callback_key=base_path.add(Platform.WINDOWS)),
             ],
             [
-                ButtonItem(text="🍏 iOS", callback_key="ios"),
-                ButtonItem(text="🖥 MacOS", callback_key="macos")
+                ButtonItem(text="🍏 iOS", callback_key=base_path.add(Platform.IOS)),
+                ButtonItem(text="🖥 MacOS", callback_key=base_path.add(Platform.MACOS))
             ],
-            [BACK_BUTTON]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 

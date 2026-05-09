@@ -30,6 +30,8 @@ class UserRoute(StrEnum):
     VIEW_REQUESTS = "view_requests"
     ADD_REQUEST = "add_request"
 
+    NOTIFICATION = "notification"
+
 
 class UserManageRequestsRoute(StrEnum):
     ACTIVE = "active_requests"
