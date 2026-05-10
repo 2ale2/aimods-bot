@@ -58,7 +58,8 @@ async def requests_management_route(
                         base_path=root
                     )
 
-                case [UserRoute.NOTIFICATION, platform, category]:
+                case [platform] if platform in Platform:
+
 
 
             if root[-1] == "from_notification":
