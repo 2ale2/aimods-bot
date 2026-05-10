@@ -162,69 +162,93 @@ REQUEST_STATUS_DETAILS = {
 }
 
 REQUEST_DETAILS_CONFIG = {
-            "android": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "windows": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "game": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-                    'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
-                },
-                "adobe": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-                    'arch': {'label': 'CPU ARM', 'format': 'bool'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            },
-            "ios": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "macos": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            }
+    "android": {
+        "app": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
         }
+    },
+    "windows": {
+        "software": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+        },
+        "game": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'},
+            'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
+        },
+        "adobe": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'},
+            'arch': {'label': 'CPU ARM', 'format': 'bool'}
+        },
+        "daw": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'}
+        }
+    },
+    "ios": {
+        "app": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+        }
+    },
+    "macos": {
+        "software": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'},
+            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
+        },
+        "daw": {
+            'name': {'label': 'Nome', 'format': 'text'},
+            'link': {'label': 'Link', 'format': 'link'},
+            'version': {'label': 'Versione', 'format': 'code'}
+        }
+    }
+}
 
 
-class Platform(Enum):
+class Platform(StrEnum):
     ANDROID = "android"
-    IOS = "ios"
     WINDOWS = "windows"
+    IOS = "ios"
     MACOS = "macos"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case Platform.ANDROID:
+                return "🤖"
+            case Platform.WINDOWS:
+                return "💻"
+            case Platform.IOS:
+                return "🍏"
+            case Platform.MACOS:
+                return "🖥"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case Platform.ANDROID:
+                return "Android"
+            case Platform.WINDOWS:
+                return "Windows"
+            case Platform.IOS:
+                return "iOS"
+            case Platform.MACOS:
+                return "MacOS"
 
 
 class WindowsCategory(Enum):
@@ -300,4 +324,3 @@ EMOJI_QUESTION_RED = "❓"
 EMOJI_ESCLAMATION_RED = "❗"
 EMOJI_DOT_BLUE = "🔹"
 EMOJI_DOT_ORANGE = "🔸"
-

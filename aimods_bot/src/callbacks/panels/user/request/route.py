@@ -22,6 +22,7 @@ from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS,
     RequestConversationState as RCS
 )
+from aimods_bot.src.helpers.models.requests import CATEGORIES_PER_PLATFORM
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.loggers import logger
@@ -59,8 +60,13 @@ async def requests_management_route(
                     )
 
                 case [platform] if platform in Platform:
+                    more_then_one_cat = len(CATEGORIES_PER_PLATFORM[platform]) > 1
+                    if more_then_one_cat:
+                        pass
+                    else:
+                        pass
 
-
+                    return PCS.USER_CONVERSATION
 
             if root[-1] == "from_notification":
                 return await request_from_notification(update=update, context=context)

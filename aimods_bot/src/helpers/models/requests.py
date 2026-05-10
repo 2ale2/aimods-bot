@@ -1,3 +1,5 @@
+from collections import defaultdict
+from dataclasses import dataclass
 from typing import Literal, Annotated, Any, ClassVar
 from pydantic import BaseModel, BeforeValidator, HttpUrl
 
@@ -29,7 +31,7 @@ class BaseRequest(BaseModel):
     FLOW: ClassVar[list[RequestField]]
 
 
-class AndroidAppDetails(BaseRequest):
+class AndroidApp(BaseRequest):
     platform: Literal[Platform.ANDROID] = Platform.ANDROID
     category: Literal[Category.APP] = Category.APP
 
@@ -173,13 +175,29 @@ class MacOsDaw(BaseRequest):
     ]
 
 
-REQUEST_MODELS = {
-    (Platform.ANDROID, Category.APP): AndroidAppDetails,
-    (Platform.WINDOWS, Category.SOFTWARE): WindowsSoftware,
-    (Platform.WINDOWS, Category.GAME): WindowsGame,
-    (Platform.WINDOWS, Category.ADOBE): WindowsAdobe,
-    (Platform.WINDOWS, Category.DAW): WindowsDaw,
-    (Platform.IOS, Category.APP): IosApp,
-    (Platform.MACOS, Category.SOFTWARE): MacOsSoftware,
-    (Platform.MACOS, Category.DAW): MacOsDaw,
+@dataclass(frozen=True)
+class CategoryConfig:
+    label: str
+    icon: str
+    model: type
+
+
+REQUESTS_LAYOUT_REGISTRY: dict[tuple[Platform, Category], CategoryConfig] = {
+    (Platform.ANDROID, Category.APP): CategoryConfig("App", "🤖", AndroidApp),
+
+    (Platform.WINDOWS, Category.GAME): CategoryConfig("Gioco", "🕹", WindowsGame),
+    (Platform.WINDOWS, Category.ADOBE): CategoryConfig("Adobe", "🖌", WindowsAdobe),
+    (Platform.WINDOWS, Category.DAW): CategoryConfig("DAW", "🎹", WindowsDaw),
+    (Platform.WINDOWS, Category.SOFTWARE): CategoryConfig("Software", "⌨", WindowsSoftware),
+
+    (Platform.IOS, Category.APP): CategoryConfig("App", "🍏", IosApp),
+
+    (Platform.MACOS, Category.DAW): CategoryConfig("DAW", "🎹", MacOsDaw),
+    (Platform.MACOS, Category.SOFTWARE): CategoryConfig("Software", "🖥", MacOsSoftware)
 }
+
+
+CATEGORIES_PER_PLATFORM: dict[Platform, list[CategoryConfig]] = defaultdict(list)
+
+for (plat, _), config in REQUESTS_LAYOUT_REGISTRY.items():
+    CATEGORIES_PER_PLATFORM[plat].append(config)
