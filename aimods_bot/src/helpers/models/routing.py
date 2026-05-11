@@ -1,8 +1,8 @@
 from __future__ import annotations
-from enum import Enum
+from enum import StrEnum
 from typing import Self
 
-Segment = str | Enum
+Segment = str | StrEnum
 
 
 class PathBuilder:

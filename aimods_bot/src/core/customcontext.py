@@ -24,6 +24,7 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RI
     CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.requests import BaseRequest
 
 log = logger.getChild("custom_context")
 
@@ -61,6 +62,24 @@ class AdminLimitingUserRequests(BaseModel):
             }
 
 
+class RequestWizardSession(BaseModel):
+    """Contenitore per lo stato della sessione di compilazione attiva."""
+
+    draft: BaseRequest = Field(
+        description="New Request instance the user is compiling for submission."
+    )
+
+    from_notification: bool = Field(
+        default=False,
+        description="Tells if the Request is being made from a received notification."
+    )
+
+    request_msg_id: Optional[int] = Field(
+        default=None,
+        description="The bot message containing the wizard."
+    )
+
+
 class ChatDataPersistent(BaseModel):
     # ======== Both Admins & Users ========
     bot_message_id: Optional[int] = Field(
@@ -75,9 +94,9 @@ class ChatDataPersistent(BaseModel):
     )
     # ======== Users ========
     user_notifications: UserNotifications = Field(default_factory=UserNotifications)
-    new_request: Optional[Request] = Field(
+    active_request_wizard: Optional[RequestWizardSession] = Field(
         default=None,
-        description="Memory space to keep request data before adding it into bot data"
+        description="Active Request compiling session. If None, the user is not formulating a Request."
     )
     base_path: Optional[str] = Field(
         default_factory=str,
@@ -157,7 +176,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         return self.chat_data
 
     @property
-    def pydu(self) -> ChatData:
+    def pydu(self) -> UserData:
         return self.user_data
 
     def __init__(

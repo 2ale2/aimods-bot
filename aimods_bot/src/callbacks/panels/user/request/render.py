@@ -17,9 +17,9 @@ from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 async def render_user_has_cooldown_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         rc: RequestCooldown
-) -> None:
-    """Renderizza il pannello che informa l'utente del cooldown attivo."""
+):
     cooldown_secs = int(context.pydb.configuration.settings.request.cooldown.total_seconds())
     cooldown_text = get_duration_text(cooldown_secs, with_emoji=False)
     cooldown_end = rc.until.astimezone(LOCAL_TZ).strftime(DATETIME_FORMAT)
@@ -27,9 +27,9 @@ async def render_user_has_cooldown_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user/add_request",
+        base_path=base_path,
         text=_get_user_has_cooldown_panel_text(cooldown_end, cooldown_text),
-        keyboard=[[BACK_BUTTON]]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
 
 

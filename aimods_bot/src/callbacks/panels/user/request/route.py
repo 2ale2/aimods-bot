@@ -9,7 +9,7 @@ from aimods_bot.src.callbacks.panels.user.request.management.route import user_r
 from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_has_cooldown_panel,
     render_user_request_platform_panel,
-    render_cant_request_panel
+    render_cant_request_panel, render_user_request_category_panel
 )
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
@@ -22,7 +22,7 @@ from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS,
     RequestConversationState as RCS
 )
-from aimods_bot.src.helpers.models.requests import CATEGORIES_PER_PLATFORM
+from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.loggers import logger
@@ -59,14 +59,38 @@ async def requests_management_route(
                         base_path=root
                     )
 
-                case [platform] if platform in Platform:
-                    more_then_one_cat = len(CATEGORIES_PER_PLATFORM[platform]) > 1
-                    if more_then_one_cat:
-                        pass
-                    else:
-                        pass
+                case [platform, *rest] if platform in Platform:
+                    root.add(platform)
+                    match PathBuilder(*rest).segments:
+                        case []:
+                            more_then_one_cat = len(REQUESTS_LAYOUT_REGISTRY[platform]) > 1
+                            if more_then_one_cat:
+                                await render_user_request_category_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root,
+                                    platform=platform
+                                )
+                            else:
+                                category = list(REQUESTS_LAYOUT_REGISTRY[platform].keys())[0].value()
 
-                    return PCS.USER_CONVERSATION
+                                request_cooldown = context.user_request_cooldown()
+                                if request_cooldown and update.effective_user.id not in BYPASS_LIMITS_USERS:
+                                    await render_user_has_cooldown_panel(
+                                        update=update,
+                                        context=context,
+                                        rc=request_cooldown,
+                                        base_path=root
+                                    )
+
+                            return PCS.USER_CONVERSATION
+
+                        case [category, *rest] if category in Category:
+                            root.add(category)
+                            match PathBuilder(*rest):
+                                case l if l in ([], ):
+
+
 
             if root[-1] == "from_notification":
                 return await request_from_notification(update=update, context=context)

@@ -1,9 +1,12 @@
-from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Literal, Annotated, Any, ClassVar
-from pydantic import BaseModel, BeforeValidator, HttpUrl
+from pydantic import BaseModel, BeforeValidator, HttpUrl, Field
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField
+from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus
+from aimods_bot.src.helpers.loggers import logger
+
+log = logger.getChild(__name__)
 
 
 def prepend_https(value: Any) -> Any:
@@ -18,17 +21,45 @@ UxHttpUrl = Annotated[HttpUrl, BeforeValidator(prepend_https)]
 
 
 class BaseRequest(BaseModel):
+    id: int | None = None
     user_id: int
+
     platform: Platform
     category: Category
+
+    issued_at: datetime | None = None
+    status: RequestStatus | None = None
+
     requesting: RequestField | None = None
     editing: bool = False
-
-    @property
-    def kind(self) -> str:
-        return f"{self.platform}_{self.category}"
+    rejection_reason: str | None = None
+    status_change_notifications: bool = True
 
     FLOW: ClassVar[list[RequestField]]
+
+    @property
+    def is_active(self) -> bool:
+        if not self.status:
+            return False
+        return self.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
+
+    def confirm_submission(self) -> None:
+        self.status = RequestStatus.PENDING
+        self.issued_at = datetime.now(timezone.utc)
+
+    def can_be_cancelled(self, cancel_time_sec: int) -> bool:
+        if self.status != RequestStatus.PENDING or not self.issued_at:
+            return False
+        delta = datetime.now(timezone.utc) - self.issued_at
+        return delta.total_seconds() < cancel_time_sec
+
+    def edit_status(self, status: RequestStatus, rejection_reason: str | None = None) -> None:
+        if status == RequestStatus.REJECTED:
+            if not rejection_reason or not rejection_reason.strip():
+                raise ValueError("A rejection reason must be provided.")
+            else:
+                self.rejection_reason = rejection_reason
+        self.status = status
 
 
 class AndroidApp(BaseRequest):
@@ -182,22 +213,24 @@ class CategoryConfig:
     model: type
 
 
-REQUESTS_LAYOUT_REGISTRY: dict[tuple[Platform, Category], CategoryConfig] = {
-    (Platform.ANDROID, Category.APP): CategoryConfig("App", "🤖", AndroidApp),
+REQUESTS_LAYOUT_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
+    Platform.ANDROID: {
+        Category.APP: CategoryConfig("App", "🤖", AndroidApp),
+    },
 
-    (Platform.WINDOWS, Category.GAME): CategoryConfig("Gioco", "🕹", WindowsGame),
-    (Platform.WINDOWS, Category.ADOBE): CategoryConfig("Adobe", "🖌", WindowsAdobe),
-    (Platform.WINDOWS, Category.DAW): CategoryConfig("DAW", "🎹", WindowsDaw),
-    (Platform.WINDOWS, Category.SOFTWARE): CategoryConfig("Software", "⌨", WindowsSoftware),
+    Platform.WINDOWS: {
+        Category.GAME: CategoryConfig("Gioco", "🕹", WindowsGame),
+        Category.ADOBE: CategoryConfig("Adobe", "🖌", WindowsAdobe),
+        Category.DAW: CategoryConfig("DAW", "🎹", WindowsDaw),
+        Category.SOFTWARE: CategoryConfig("Software", "⌨", WindowsSoftware),
+    },
 
-    (Platform.IOS, Category.APP): CategoryConfig("App", "🍏", IosApp),
+    Platform.IOS: {
+        Category.APP: CategoryConfig("App", "🍏", IosApp),
+    },
 
-    (Platform.MACOS, Category.DAW): CategoryConfig("DAW", "🎹", MacOsDaw),
-    (Platform.MACOS, Category.SOFTWARE): CategoryConfig("Software", "🖥", MacOsSoftware)
+    Platform.MACOS: {
+        Category.DAW: CategoryConfig("DAW", "🎹", MacOsDaw),
+        Category.SOFTWARE: CategoryConfig("Software", "🖥", MacOsSoftware),
+    }
 }
-
-
-CATEGORIES_PER_PLATFORM: dict[Platform, list[CategoryConfig]] = defaultdict(list)
-
-for (plat, _), config in REQUESTS_LAYOUT_REGISTRY.items():
-    CATEGORIES_PER_PLATFORM[plat].append(config)

@@ -251,27 +251,12 @@ class Platform(StrEnum):
                 return "MacOS"
 
 
-class WindowsCategory(Enum):
+class Category(StrEnum):
+    APP = "app"
     GAME = "game"
     DAW = "daw"
     ADOBE = "adobe"
     SOFTWARE = "software"
-
-
-class AndroidCategory(Enum):
-    APP = "app"
-
-
-class IOSCategory(Enum):
-    APP = "app"
-
-
-class MacOSCategory(Enum):
-    SOFTWARE = "software"
-    DAW = "daw"
-
-
-Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
 
 
 class Arch(Enum):
