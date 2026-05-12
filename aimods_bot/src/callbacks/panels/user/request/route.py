@@ -12,12 +12,12 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     render_cant_request_panel, render_user_request_category_panel
 )
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
     PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
 )
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserRoute
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserRoute, NotificationAction as NA
 from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS,
     RequestConversationState as RCS
@@ -38,8 +38,6 @@ async def requests_management_route(
         root: PathBuilder,
         relative_path: PathBuilder
 ):
-    RequestDataManager.cleanup_request(context=context)
-
     match relative_path.segments:
         case [UserRoute.VIEW_REQUESTS, *rest]:
             return await user_request_management_route(
@@ -51,13 +49,23 @@ async def requests_management_route(
         case [UserRoute.ADD_REQUEST, *rest]:
             root.add(UserRoute.ADD_REQUEST)
 
-            match PathBuilder(*rest):
+            match PathBuilder(*rest).segments:
                 case []:
                     await render_user_request_platform_panel(
                         update=update,
                         context=context,
                         base_path=root
                     )
+
+                case [NA.FROM_NOTIFICATION, platform, category] if platform in Platform and category in Category:
+                    platform = Platform(platform)
+                    category = Category(category)
+                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
+                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
+                        from_notification=True,
+                        request_msg_id=update.effective_message.id
+                    )
+                    relative_path.pop(NA.FROM_NOTIFICATION)
 
                 case [platform, *rest] if platform in Platform:
                     root.add(platform)
@@ -82,30 +90,28 @@ async def requests_management_route(
                                         rc=request_cooldown,
                                         base_path=root
                                     )
-
-                            return PCS.USER_CONVERSATION
+                                else:
+                                    platform = Platform(platform)
+                                    category = Category(category)
+                                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
+                                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
+                                        from_notification=False,
+                                        request_msg_id=update.effective_message.id
+                                    )
 
                         case [category, *rest] if category in Category:
                             root.add(category)
                             match PathBuilder(*rest):
-                                case l if l in ([], ):
+                                case []:
+                                    platform = Platform(platform)
+                                    category = Category(category)
+                                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
+                                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
+                                        from_notification=False,
+                                        request_msg_id=update.effective_message.id
+                                    )
 
-
-
-            if root[-1] == "from_notification":
-                return await request_from_notification(update=update, context=context)
-
-            rc = context.user_request_cooldown()
-            if rc and update.effective_user.id not in BYPASS_LIMITS_USERS:
-                await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
-                return PCS.USER_CONVERSATION
-            if len(root) > 1:
-                # expected: ".../add_request/<platform>
-                return await request_category(update=update, context=context)
-
-            RequestDataManager.initialize_request(context=context)
-            await render_user_request_platform_panel(update=update, context=context)
-            return PCS.NEW_REQUEST
+    return PCS.USER_CONVERSATION
 
 
 async def request_category(update: Update, context: CustomContext) -> int:

@@ -22,9 +22,12 @@ class PathBuilder:
             self.segments = self.segments[:-steps]
         return self
 
-    def pop(self, idx: int) -> Self:
+    def pop(self, segment: int | str) -> Self:
         if self.segments:
-            self.segments.pop(idx)
+            if isinstance(segment, int):
+                self.segments.pop(segment)
+            else:
+                self.segments = [s for s in self.segments if s != segment]
         return self
 
     def change(self, old_segment: str, new_segment: str) -> Self:
