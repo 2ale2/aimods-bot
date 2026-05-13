@@ -58,21 +58,21 @@ async def requests_management_route(
                     )
 
                 case [NA.FROM_NOTIFICATION, platform, category] if platform in Platform and category in Category:
-                    platform = Platform(platform)
-                    category = Category(category)
-                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
-                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
-                        from_notification=True,
-                        request_msg_id=update.effective_message.id
-                    )
                     relative_path.pop(NA.FROM_NOTIFICATION)
+                    context.avvia_sessione_wizard(
+                        user_id=update.effective_user.id,
+                        platform=Platform(platform),
+                        category=Category(category),
+                        from_notification=True,
+                        msg_id=update.effective_message.id
+                    )
 
                 case [platform, *rest] if platform in Platform:
                     root.add(platform)
                     match PathBuilder(*rest).segments:
                         case []:
-                            more_then_one_cat = len(REQUESTS_LAYOUT_REGISTRY[platform]) > 1
-                            if more_then_one_cat:
+                            configs_cat = REQUESTS_LAYOUT_REGISTRY[platform]
+                            if len(configs_cat) > 1:
                                 await render_user_request_category_panel(
                                     update=update,
                                     context=context,
@@ -80,10 +80,11 @@ async def requests_management_route(
                                     platform=platform
                                 )
                             else:
-                                category = list(REQUESTS_LAYOUT_REGISTRY[platform].keys())[0].value()
-
+                                category = list(configs_cat.keys())[0].value()
+                                is_bypassed = (update.effective_user.id in BYPASS_LIMITS_USERS)
                                 request_cooldown = context.user_request_cooldown()
-                                if request_cooldown and update.effective_user.id not in BYPASS_LIMITS_USERS:
+
+                                if request_cooldown and not is_bypassed:
                                     await render_user_has_cooldown_panel(
                                         update=update,
                                         context=context,
@@ -91,25 +92,36 @@ async def requests_management_route(
                                         base_path=root
                                     )
                                 else:
-                                    platform = Platform(platform)
-                                    category = Category(category)
-                                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
-                                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
+                                    context.avvia_sessione_wizard(
+                                        user_id=update.effective_user.id,
+                                        platform=Platform(platform),
+                                        category=Category(category),
                                         from_notification=False,
-                                        request_msg_id=update.effective_message.id
+                                        msg_id=update.effective_message.id
                                     )
 
                         case [category, *rest] if category in Category:
                             root.add(category)
                             match PathBuilder(*rest):
                                 case []:
-                                    platform = Platform(platform)
-                                    category = Category(category)
-                                    context.pydc.persistent.active_request_wizard = RequestWizardSession(
-                                        draft=REQUESTS_LAYOUT_REGISTRY[platform][category],
-                                        from_notification=False,
-                                        request_msg_id=update.effective_message.id
-                                    )
+                                    cooldown = context.user_request_cooldown()
+                                    is_bypassed = (update.effective_user.id in BYPASS_LIMITS_USERS)
+
+                                    if cooldown and not is_bypassed:
+                                        await render_user_has_cooldown_panel(
+                                            update=update,
+                                            context=context,
+                                            rc=cooldown,
+                                            base_path=root,
+                                        )
+                                    else:
+                                        context.avvia_sessione_wizard(
+                                            user_id=update.effective_user.id,
+                                            platform=Platform(platform),
+                                            category=Category(category),
+                                            from_notification=False,
+                                            msg_id=update.effective_message.id
+                                        )
 
     return PCS.USER_CONVERSATION
 

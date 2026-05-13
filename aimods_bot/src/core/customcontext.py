@@ -24,7 +24,7 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RI
     CATEGORY_DETAILS, Platform, Category
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.requests import BaseRequest
+from aimods_bot.src.helpers.models.requests import BaseRequest, REQUESTS_LAYOUT_REGISTRY
 
 log = logger.getChild("custom_context")
 
@@ -269,6 +269,23 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             category: Category
     ) -> dict[int, Request]:
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
+
+    def avvia_sessione_wizard(
+            self,
+            user_id: int,
+            platform: Platform,
+            category: Category,
+            from_notification: bool,
+            msg_id: int
+    ) -> None:
+        config = REQUESTS_LAYOUT_REGISTRY[platform][category]
+        fresh_draft = config.model(user_id=user_id, platform=platform, category=category)
+
+        self.pydc.persistent.active_request_wizard = RequestWizardSession(
+            draft=fresh_draft,
+            from_notification=from_notification,
+            request_msg_id=msg_id
+        )
 
     def user_request_cooldown(self, user_id: Optional[int] = None) -> Optional[RequestCooldown]:
         user_id = user_id or self.user_id
