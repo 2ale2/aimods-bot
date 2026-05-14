@@ -11,317 +11,62 @@ from aimods_bot.src.core.pydantic import Request, Architecture
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG, Platform, Category, \
     RequestField, Arch
 from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.models import MessageTemplate
+from aimods_bot.src.helpers.models.utils import MessageTemplate
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
 from aimods_bot.src.helpers.utils.user_utils import check_auth
 
-log = logger.getChild("request_handler")
+log = logger.getChild(__name__)
 
-
-FIELD_MESSAGES = {
+FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
     RequestField.NAME: MessageTemplate(
+        default="🔹 Indica il <b>nome</b> di ciò che vorresti richiedere.",
         app="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
         game="🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
         software="🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
-        daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere."
+        daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere.",
+        adobe="🔹 Indica il <b>nome del prodotto Adobe</b> che vorresti richiedere."
     ),
     RequestField.LINK: MessageTemplate(
-        app="🔹 Indica il <b>link dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica il <b>link del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica il <b>link del software</b> che vorresti richiedere.",
-        daw="🔹 Indica il <b>link della DAW o del Plug-In</b> che vorresti richiedere."
+        default="🔹 Indica il <b>link di riferimento</b>.",
+        app="🔹 Indica il <b>link ufficilae dell'app</b>.",
+        game="🔹 Indica il <b>link ufficiale del gioco</b>.",
+        software="🔹 Indica il <b>link ufficiale del software</b>.",
+        daw="🔹 Indica il <b>link ufficiale della DAW o del Plug-In</b>."
     ),
     RequestField.VERSION: MessageTemplate(
+        default="🔹 Indica la <b>versione</b> che vorresti richiedere.",
         app="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
         game="🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
         software="🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
-        daw="🔹 Indica la <b>versione della DAW o del Plug-In</b> che vorresti richiedere."
+        daw="🔹 Indica la <b>versione della DAW o del Plug-In</b>.",
+        adobe="🔹 Indica <b>la versione</b> del prodotto Adobe."
     ),
-    RequestField.FUNCTIONALITIES: MessageTemplate(
-        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare.",
-        game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare.",
+    RequestField.FEATURES: MessageTemplate(
+        default="🔹 Indica le <b>funzionalità</b> che vorresti sbloccare.",
+        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare (es. Premium, No Pubblicità).",
+        game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare (es. Gioco Pagato, Monete infinite).",
         software="🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
-        daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b> che vorresti richiedere."
+        daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b>.",
+        adobe="🔹 Indica le <b>funzionalità o i filtri aggiuntivi</b> da sbloccare."
+    ),
+    RequestField.STEAMTOOLS: MessageTemplate(
+        default="🔹 Accetteresti il titolo con i file <b>SteamTools</b>?"
+    ),
+    RequestField.HYPERVISOR: MessageTemplate(
+        default="🔹 Accetteresti il titolo con metodo <b>Hypervisor</b>?"
+    ),
+    RequestField.ARCH_ARM: MessageTemplate(
+        default="🔹 Il tuo dispositivo ha architettura <b>ARM</b>?"
+    ),
+    RequestField.MAC_OS_VERSION: MessageTemplate(
+        default="🔹 Indica la tua versione esatta di <b>macOS</b> (es. Sonoma 14.5)."
     )
 }
 
-CONVERSATION_STATES = {
-    RequestField.NAME: RCS.EDIT_NAME,
-    RequestField.LINK: RCS.EDIT_LINK,
-    RequestField.VERSION: RCS.EDIT_VERSION,
-    RequestField.FUNCTIONALITIES: RCS.EDIT_FUNCTIONALITIES
-}
 
-REQUEST_FLOWS = asyncio.run(get_data_from_json('request_conversation_flows'))
-
-
-class RequestDataManager:
-    """Gestisce i dati della richiesta in modo centralizzato"""
-
-    @staticmethod
-    def initialize_request(
-            context: CustomContext,
-            platform: Optional[Platform] = None,
-            category: Optional[Category] = None
-    ):
-        if context.pydc.persistent.new_request:
-            RequestDataManager.cleanup_request(context=context)
-
-        request_data = Request(platform=platform, category=category)
-        context.pydc.persistent.new_request = request_data
-
-        log.info(f"Initialized new request for {platform.value}:{category.value}")
-
-    @staticmethod
-    async def request_detail(
-            update: Update,
-            context: CustomContext,
-            detail: RequestField
-    ):
-        request_data = RequestDataManager.get_request_data(context)
-        category = request_data.category
-        text = MessageBuilder.build_request_summary(request_data=request_data)
-
-        RequestDataManager.update_field(context=context, field="requesting", value=detail)
-
-        if detail == RequestField.STEAMTOOLS:
-            link_steamtools = "https://t.me/c/1523566735/13066"
-            text += f"\n🔹 Accetteresti anche i file <a href=\"{link_steamtools}\">Steam Tools</a>?"
-        elif detail == RequestField.ARCH:
-            link_arm_info = "https://justpaste.it/windowsarm"
-            text += f"\n🔹 Possiedi una <a href=\"{link_arm_info}\">CPU di tipo ARM</a>?"
-        else:
-            field_enum = RequestField(detail)
-            message_template = FIELD_MESSAGES[field_enum]
-
-            if category.value == "app":
-                text += f"\n{message_template.app}"
-            elif category.value == "game":
-                text += f"\n{message_template.game}"
-            elif category.value == "daw":
-                text += f"\n{message_template.daw}"
-            else:
-                text += f"\n{message_template.software}"
-
-        keyboard = KeyboardBuilder.get_back_keyboard(
-            request_data=request_data,
-            detail=detail,
-            bool_keyboard=(detail in (RequestField.STEAMTOOLS, RequestField.ARCH))
-        )
-
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_message.chat_id,
-            text=text,
-            keyboard=keyboard
-        )
-
-    @staticmethod
-    async def request_detail_to_edit(
-            update: Update,
-            context: CustomContext
-    ):
-        if not update.callback_query:
-            raise MissingParameterException("Manca la callback query in questo Update")
-
-        try:
-            await update.callback_query.answer()
-        except Exception as e:
-            pass
-
-        # Expect: "edit_<field>"
-        detail = update.callback_query.data.split("_")[1]
-        request_data = RequestDataManager.get_request_data(context)
-        category = request_data.category
-
-        RequestDataManager.update_field(context, "editing", RequestField(detail))
-
-        field_enum = RequestField(detail)
-        message_template = FIELD_MESSAGES[field_enum]
-
-        if category.value == "app":
-            field_message = message_template.app
-        elif category.value == "game":
-            field_message = message_template.game
-        elif category.value == "daw":
-            field_message = message_template.daw
-        else:
-            field_message = message_template.software
-
-        text = MessageBuilder.build_request_summary(
-            request_data=request_data,
-            editing_field=detail
-        )
-        text += f"\n{field_message}"
-
-        keyboard = KeyboardBuilder.get_back_keyboard(
-            request_data=request_data,
-            detail=None,
-            callback_data="no_edit"
-        )
-
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=text,
-            keyboard=keyboard)
-
-        return CONVERSATION_STATES[field_enum]
-
-    @staticmethod
-    def get_request_data(context: CustomContext) -> Request:
-        """Ottiene i dati della richiesta corrente"""
-        request = context.pydc.persistent.new_request
-        if request is None:
-            RequestDataManager.initialize_request(context=context)
-            request = context.pydc.persistent.new_request
-        return request
-
-    @staticmethod
-    def update_field(context: CustomContext, field: str, value: Any) -> None:
-        """Aggiorna un campo specifico della richiesta"""
-        request_data = RequestDataManager.get_request_data(context)
-        if field == "arch":
-            value = Architecture(arch=Arch(value))
-        setattr(request_data, field, value)
-        RequestDataManager.update_request_data(context, request_data)
-
-        log.debug(f"Updated field {field} with value: {value}")
-
-    @staticmethod
-    def update_request_data(context: CustomContext, request_data: Request):
-        context.pydc.persistent.new_request = request_data
-
-    @staticmethod
-    async def recheck_request(update: Update, context: CustomContext):
-        if update.callback_query:
-            data = update.callback_query.data
-            if data.startswith(("bool_yes", "bool_no")):
-                await InputHandler.handle_input(update=update, context=context)
-
-        request_data = RequestDataManager.get_request_data(context)
-
-        text = MessageBuilder.build_request_summary(request_data=request_data)
-        text += ("\n🔹 Verifica i dettagli della tua richiesta. "
-                 "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"
-                 "<blockquote>⚠️ Assicurati che i dettagli siano <b>chiari</b>, "
-                 "altrimenti <b>la tua richiesta sarà bocciata</b>.</blockquote>")
-
-        keyboard = KeyboardBuilder.get_review_keyboard(request_data=request_data)
-
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=text,
-            keyboard=keyboard
-        )
-
-        return RCS.CHECK_REQUEST
-
-    @staticmethod
-    @check_auth(bypass_count=True)
-    async def confirm_request(
-            update: Update,
-            context: CustomContext
-    ):
-        """Conferma e salva la richiesta nel database"""
-        request_data = RequestDataManager.get_request_data(context)
-
-        ix = await RequestDataManager.insert_request(
-            update=update,
-            context=context,
-            request_data=request_data
-        )
-
-        confirmation_text = MessageBuilder.build_confirmation_message()
-        confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
-
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=confirmation_text,
-            keyboard=confirmation_keyboard
-        )
-
-        RequestDataManager.cleanup_request(context=context)
-        return ix
-
-    # noinspection PyTypedDict
-    @staticmethod
-    async def insert_request(
-            update: Update,
-            context: CustomContext,
-            request_data: Request
-    ):
-        """Aggiorna le richieste dell'utente nel context"""
-
-        platform = request_data.platform
-        category = request_data.category
-        uid = update.effective_user.id
-
-        request_for_db = request_data.model_dump(mode="json")
-        request_for_db.pop("platform", None)
-        request_for_db.pop("category", None)
-        request_for_db.pop("status", None)
-        request_for_db.pop("requesting", None)
-        request_for_db.pop("editing", None)
-        request_for_db.pop("id", None)
-        request_for_db.pop("user_id", None)
-        request_for_db.pop("issued_at", None)
-        request_for_db_str = json.dumps(request_for_db)
-
-        rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
-
-        query = """
-                INSERT INTO requests_test (id, platform, content, user_id, status, issued_at, category, rejection_reason)
-                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
-                RETURNING id, issued_at"""
-
-        result = await fetch_query(
-            query=query,
-            params=[platform.value, request_for_db_str, uid, category.value, rejection_reason]
-        )
-
-        if not result:
-            raise Exception(f"Errore durante l'inserimento della richiesta: \n\n{request_for_db}")
-
-        inserted = dict(result[0])
-
-        ix = int(inserted["id"])
-        issued_at = inserted["issued_at"]
-        rejection_reason = inserted.get("rejection_reason", None)
-
-        context.pydb.active_requests[ix] = Request(
-            id=ix,
-            user_id=uid,
-            # status = (default) RequestStatus.PENDING,
-            issued_at=issued_at.isoformat(),
-            platform=platform,
-            category=category,
-            name=request_for_db["name"],
-            arch=request_for_db.get("arch", None),
-            version=request_for_db.get("version", ""),
-            link=request_for_db.get("link", ""),
-            functionalities=request_for_db.get("functionalities", ""),
-            steamtools=request_for_db.get("steamtools", False),
-            rejection_reason=rejection_reason
-        )
-
-        log.info(f"Request inserted with ID {ix} for user {uid}")
-        return ix
-
-    @staticmethod
-    def cleanup_request(context: CustomContext) -> None:
-        """Pulisce i dati della richiesta dal context"""
-        context.pydc.persistent.new_request = None
-        context.pydc.persistent.bot_message_id = None
 
 
 class KeyboardBuilder:

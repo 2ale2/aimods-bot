@@ -7,7 +7,7 @@ from typing import Union, Literal, Optional, NamedTuple, Dict, Tuple, Type
 from telegram import InputMedia
 
 from aimods_bot.src.helpers.constants.constants import Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory
+    MacOSCategory, Category
 
 
 @dataclass
@@ -23,11 +23,18 @@ class CanUserRequest:
     reason: Optional[str]
 
 
-class MessageTemplate(NamedTuple):
-    app: str
-    game: str
-    daw: str
-    software: str
+@dataclass(frozen=True)
+class MessageTemplate:
+    default: str
+    app: str | None = None
+    game: str | None = None
+    software: str | None = None
+    daw: str | None = None
+    adobe: str | None = None
+
+    def get_prompt(self, category: Category) -> str:
+        specific_prompt = getattr(self, category.value, None)
+        return specific_prompt or self.default
 
 
 _PLATFORM_CATEGORY_MAP: Dict[Platform, Tuple[Type[Enum], ...]] = {

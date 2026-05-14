@@ -270,7 +270,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     ) -> dict[int, Request]:
         return self.get_active_category_requests(platform=platform, category=category, from_user=True)
 
-    def avvia_sessione_wizard(
+    def init_request_wizard_session(
             self,
             user_id: int,
             platform: Platform,

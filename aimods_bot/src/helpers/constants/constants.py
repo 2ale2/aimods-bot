@@ -285,6 +285,26 @@ class RequestField(StrEnum):
     ARCH_ARM = "arch_arm"
     MAC_OS_VERSION = "mac_os_version"
 
+    @property
+    def label(self) -> str:
+        match self:
+            case RequestField.NAME:
+                return "Nome"
+            case RequestField.LINK:
+                return "Link"
+            case RequestField.VERSION:
+                return "Versione"
+            case RequestField.FEATURES:
+                return "Funzionalità"
+            case RequestField.STEAMTOOLS:
+                return "SteamTools"
+            case RequestField.HYPERVISOR:
+                return "HyperVisor"
+            case RequestField.ARCH_ARM:
+                return "Arch. ARM"
+            case RequestField.MAC_OS_VERSION:
+                return "Versione MacOS"
+
 
 class RejectRequestReason(Enum):
     SERVERSIDE = "serverside"

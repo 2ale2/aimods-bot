@@ -1,12 +1,16 @@
+import html
+
+from pydantic import HttpUrl
 from telegram import Update
 
+from aimods_bot.src.callbacks.panels.user.request.handle import FIELD_MESSAGES
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
     CATEGORY_DETAILS
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, CATEGORIES_PER_PLATFORM
+from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, CATEGORIES_PER_PLATFORM, BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
@@ -123,6 +127,42 @@ def _get_user_cant_request_text(reason: str):
         f"▪ <b>Motivo</b> – {reason}"
     )
 
+
+async def render_global_request_wizard_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
+    wizard = context.pydc.persistent.active_request_wizard
+    wizard.draft.
+
+
+def _get_request_wizard_step_text(draft: BaseRequest):
+    # TODO: Terminare la stampa (manca riepilogo richiesta)
+    cat_conf = REQUESTS_LAYOUT_REGISTRY[draft.platform][draft.category]
+
+    text = f"{draft.platform.icon} <b>Nuova Richiesta – {cat_conf.label}</b>\n\n"
+
+    for flow_el in draft.FLOW:
+        field_name = flow_el.value
+        if flow_el == draft.requesting:
+            add_label = "🖋"
+        elif field_name in draft.model_fields_set:
+            label = getattr(draft, field_name)
+            if isinstance(label, HttpUrl):
+                add_label = f"<a href=\"{label}\">🔗 Link</a>"
+            elif isinstance(label, bool):
+                add_label = f"<code>{label}</code>"
+            else:
+                add_label = html.escape(str(label))
+        else:
+            add_label = f"{cat_conf.icon}"
+
+        text += f"{EMOJI_DOT_ORANGE} {flow_el.label} – {add_label}\n\n"
+
+    text += FIELD_MESSAGES.get(draft.requesting).get_prompt(draft.category)
+
+    return text
 
 async def render_cant_request_panel(update: Update, context: CustomContext, message: str):
     await create_and_render_panel(

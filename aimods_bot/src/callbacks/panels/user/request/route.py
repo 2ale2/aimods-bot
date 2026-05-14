@@ -1,3 +1,4 @@
+import os
 from zoneinfo import ZoneInfo
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -12,7 +13,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     render_cant_request_panel, render_user_request_category_panel
 )
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
-from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
     PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
@@ -22,10 +23,10 @@ from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS,
     RequestConversationState as RCS
 )
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
-from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
 
@@ -48,7 +49,6 @@ async def requests_management_route(
             )
         case [UserRoute.ADD_REQUEST, *rest]:
             root.add(UserRoute.ADD_REQUEST)
-
             match PathBuilder(*rest).segments:
                 case []:
                     await render_user_request_platform_panel(
@@ -56,17 +56,16 @@ async def requests_management_route(
                         context=context,
                         base_path=root
                     )
-
                 case [NA.FROM_NOTIFICATION, platform, category] if platform in Platform and category in Category:
                     relative_path.pop(NA.FROM_NOTIFICATION)
-                    context.avvia_sessione_wizard(
+                    context.init_request_wizard_session(
                         user_id=update.effective_user.id,
                         platform=Platform(platform),
                         category=Category(category),
                         from_notification=True,
                         msg_id=update.effective_message.id
                     )
-
+                    # manca avvio pannello
                 case [platform, *rest] if platform in Platform:
                     root.add(platform)
                     match PathBuilder(*rest).segments:
@@ -92,13 +91,14 @@ async def requests_management_route(
                                         base_path=root
                                     )
                                 else:
-                                    context.avvia_sessione_wizard(
+                                    context.init_request_wizard_session(
                                         user_id=update.effective_user.id,
                                         platform=Platform(platform),
                                         category=Category(category),
                                         from_notification=False,
                                         msg_id=update.effective_message.id
                                     )
+                                    # manca avvio pannello
 
                         case [category, *rest] if category in Category:
                             root.add(category)
@@ -115,13 +115,23 @@ async def requests_management_route(
                                             base_path=root,
                                         )
                                     else:
-                                        context.avvia_sessione_wizard(
+                                        context.init_request_wizard_session(
                                             user_id=update.effective_user.id,
                                             platform=Platform(platform),
                                             category=Category(category),
                                             from_notification=False,
                                             msg_id=update.effective_message.id
                                         )
+                                        # manca avvio pannello
+                                case _:
+                                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: "
+                                                f"{relative_path.build()}")
+                        case _:
+                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+                case _:
+                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+        case _:
+            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
     return PCS.USER_CONVERSATION
 
