@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import List
 
 from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPreviewOptions
@@ -19,7 +20,7 @@ log = logger.getChild(__name__)
 @dataclass
 class ButtonItem:
     text: str
-    callback_key: PathBuilder | GlobalAction
+    callback_key: PathBuilder | StrEnum
     override_path_generation: bool = False
 
 

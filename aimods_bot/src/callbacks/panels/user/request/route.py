@@ -5,12 +5,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
 
-from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_has_cooldown_panel,
     render_user_request_platform_panel,
-    render_cant_request_panel, render_user_request_category_panel
+    render_cant_request_panel, render_user_request_category_panel, render_global_request_wizard_panel
 )
 from aimods_bot.src.callbacks.panels.user.request.request import request_detail
 from aimods_bot.src.core.customcontext import CustomContext
@@ -57,7 +56,6 @@ async def requests_management_route(
                         base_path=root
                     )
                 case [NA.FROM_NOTIFICATION, platform, category] if platform in Platform and category in Category:
-                    relative_path.pop(NA.FROM_NOTIFICATION)
                     context.init_request_wizard_session(
                         user_id=update.effective_user.id,
                         platform=Platform(platform),
@@ -65,7 +63,12 @@ async def requests_management_route(
                         from_notification=True,
                         msg_id=update.effective_message.id
                     )
-                    # manca avvio pannello
+                    await render_global_request_wizard_panel(
+                        update=update,
+                        context=context,
+                        base_path=root
+                    )
+                    return PCS.USER_REQUEST_WIZARD_SESSION
                 case [platform, *rest] if platform in Platform:
                     root.add(platform)
                     match PathBuilder(*rest).segments:
@@ -98,7 +101,12 @@ async def requests_management_route(
                                         from_notification=False,
                                         msg_id=update.effective_message.id
                                     )
-                                    # manca avvio pannello
+                                    await render_global_request_wizard_panel(
+                                        update=update,
+                                        context=context,
+                                        base_path=root
+                                    )
+                                    return PCS.USER_REQUEST_WIZARD_SESSION
 
                         case [category, *rest] if category in Category:
                             root.add(category)
@@ -122,7 +130,12 @@ async def requests_management_route(
                                             from_notification=False,
                                             msg_id=update.effective_message.id
                                         )
-                                        # manca avvio pannello
+                                        await render_global_request_wizard_panel(
+                                            update=update,
+                                            context=context,
+                                            base_path=root
+                                        )
+                                        return PCS.USER_REQUEST_WIZARD_SESSION
                                 case _:
                                     log.warning(f"Unhandled path in {os.path.realpath(__file__)}: "
                                                 f"{relative_path.build()}")

@@ -4,7 +4,6 @@ import pytz
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Union
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 
@@ -161,64 +160,6 @@ REQUEST_STATUS_DETAILS = {
     }
 }
 
-REQUEST_DETAILS_CONFIG = {
-    "android": {
-        "app": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-        }
-    },
-    "windows": {
-        "software": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-        },
-        "game": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-            'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
-        },
-        "adobe": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-            'arch': {'label': 'CPU ARM', 'format': 'bool'}
-        },
-        "daw": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'}
-        }
-    },
-    "ios": {
-        "app": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-        }
-    },
-    "macos": {
-        "software": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'},
-            'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-        },
-        "daw": {
-            'name': {'label': 'Nome', 'format': 'text'},
-            'link': {'label': 'Link', 'format': 'link'},
-            'version': {'label': 'Versione', 'format': 'code'}
-        }
-    }
-}
-
 
 class Platform(StrEnum):
     ANDROID = "android"
@@ -329,3 +270,19 @@ EMOJI_QUESTION_RED = "❓"
 EMOJI_ESCLAMATION_RED = "❗"
 EMOJI_DOT_BLUE = "🔹"
 EMOJI_DOT_ORANGE = "🔸"
+
+EMOJI_NUMBER = {
+    0: "0️⃣",
+    1: "1️⃣",
+    2: "2️⃣",
+    3: "3️⃣",
+    4: "4️⃣",
+    5: "5️⃣",
+    6: "6️⃣",
+    7: "7️⃣",
+    8: "8️⃣",
+    9: "9️⃣",
+    10: "🔟"
+}
+
+COMMAND_PREFIX = [".", "!", "/"]

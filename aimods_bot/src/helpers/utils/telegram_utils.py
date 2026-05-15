@@ -16,6 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction
 from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -648,7 +649,7 @@ async def wrong_input_message(update: Update, context: CustomContext, correct_fo
         chat_id=update.effective_chat.id,
         text=f"⚠️ Manda {correct_format}.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data="close_menu")]]
+            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
         ),
         parse_mode=ParseMode.HTML
     )

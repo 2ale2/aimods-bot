@@ -30,8 +30,6 @@ class BaseRequest(BaseModel):
     issued_at: datetime | None = None
     status: RequestStatus | None = None
 
-    requesting: RequestField | None = None
-    editing: bool = False
     rejection_reason: str | None = None
     status_change_notifications: bool = True
 

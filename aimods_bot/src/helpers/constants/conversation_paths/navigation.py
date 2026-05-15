@@ -14,6 +14,8 @@ class GlobalAction(StrEnum):
     OPEN = "open"
     CLOSE = "close"
 
+    REQUEST_WIZARD_BACK = "request_wizard_back"
+
 
 class AdminRoute(StrEnum):
     ROOT = "admin"

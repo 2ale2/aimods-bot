@@ -21,7 +21,7 @@ from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, Ba
     RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, \
     UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    CATEGORY_DETAILS, Platform, Category
+    CATEGORY_DETAILS, Platform, Category, RequestField
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest, REQUESTS_LAYOUT_REGISTRY
@@ -67,6 +67,16 @@ class RequestWizardSession(BaseModel):
 
     draft: BaseRequest = Field(
         description="New Request instance the user is compiling for submission."
+    )
+
+    requesting: RequestField = Field(
+        default=None,
+        description="The wizard request field the user is filling."
+    )
+
+    editing: bool = Field(
+        default=None,
+        description="The wizard request field the user is editing"
     )
 
     from_notification: bool = Field(
