@@ -9,7 +9,8 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Globa
     AdminRoute, AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons, get_config
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
+from aimods_bot.src.helpers.utils.request_utils import get_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 

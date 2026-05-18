@@ -1,4 +1,3 @@
-from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Annotated, Any, ClassVar
@@ -236,6 +235,7 @@ REQUESTS_LAYOUT_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
     }
 }
 
+
 FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
     RequestField.NAME: MessageTemplate(
         default="🔹 Indica il <b>nome</b> di ciò che vorresti richiedere.",
@@ -281,8 +281,3 @@ FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
         default="🔹 Indica la tua versione esatta di <b>macOS</b> (es. Sonoma 14.5)."
     )
 }
-
-CATEGORIES_PER_PLATFORM: dict[Platform, list[CategoryConfig]] = defaultdict(list)
-
-for (plat, _), config in REQUESTS_LAYOUT_REGISTRY.items():
-    CATEGORIES_PER_PLATFORM[plat].append(config)

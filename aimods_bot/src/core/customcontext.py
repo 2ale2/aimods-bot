@@ -69,12 +69,12 @@ class RequestWizardSession(BaseModel):
         description="New Request instance the user is compiling for submission."
     )
 
-    requesting: RequestField = Field(
+    requesting: RequestField | None = Field(
         default=None,
         description="The wizard request field the user is filling."
     )
 
-    editing: bool = Field(
+    editing: bool | None = Field(
         default=None,
         description="The wizard request field the user is editing"
     )
@@ -84,7 +84,7 @@ class RequestWizardSession(BaseModel):
         description="Tells if the Request is being made from a received notification."
     )
 
-    request_msg_id: Optional[int] = Field(
+    request_msg_id: int | None = Field(
         default=None,
         description="The bot message containing the wizard."
     )
@@ -339,8 +339,8 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def is_user_request_limited(
             self,
-            platform: Optional[Platform],
-            category: Optional[Category],
+            platform: Platform,
+            category: Category,
             user_id: Optional[int] = None
     ) -> Optional[RequestSectionLimitation]:
         """Esegue il double check e ritorna l'eventuale limitazione, oppure None se l'utente non è limitato."""
@@ -349,7 +349,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ul = self.get_user_request_limitations()
         if ul:
             for l in ul:
-                if l.section == f"{platform.value}:{category.value}":
+                if l.platform == platform and l.category == category:
                     return l
         return None
 

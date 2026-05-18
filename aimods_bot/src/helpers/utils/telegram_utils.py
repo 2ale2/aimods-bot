@@ -14,8 +14,7 @@ import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction
 from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
@@ -766,11 +765,6 @@ async def render_action_not_permitted_panel(update: Update, context: CustomConte
             ButtonItem(text="🏠 Home", callback_key=PathBuilder(base_path.segments[0]))
         ]
     ]
-
-
-def get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
-    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
-    return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
 
 
 def resolve_pl_cat(pl_str: str, cat_str: str):

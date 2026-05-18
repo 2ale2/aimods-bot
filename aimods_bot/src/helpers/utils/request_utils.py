@@ -6,7 +6,8 @@ from typing import AsyncIterator, Iterable, Text, Optional, Union
 
 from pydantic import BaseModel, ValidationError, field_validator
 
-from aimods_bot.src.core.pydantic import Request, Architecture
+from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.pydantic import Request, Architecture, CategorySetting
 from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
     Platform, WindowsCategory, AndroidCategory, IOSCategory, \
     MacOSCategory, Arch, RequestStatus, Category, CATEGORY_DETAILS
@@ -376,3 +377,8 @@ async def get_last_n_requests(
         return []
 
     return [await request_from_record(dict(record)) for record in res]
+
+
+def get_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
+    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
+    return getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)

@@ -1,17 +1,24 @@
-from typing import get_args
+import asyncio
+from typing import get_args, Callable, Awaitable
 
 from pydantic import ValidationError
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
-from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import RequestField
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction
+from aimods_bot.src.core.customcontext import CustomContext, ChatData
+from aimods_bot.src.helpers.constants.constants import RequestField, Platform, Category
+from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.requests import BaseRequest
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
+from aimods_bot.src.helpers.utils.request_utils import get_config
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
+from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
+    send_section_closing_admin_notification
 
 log = logger.getChild(__name__)
 
@@ -85,10 +92,15 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
 
     _advance_or_finish_wizard(wizard)
 
+    if context.pydc.persistent.base_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    else:
+        base_path = PathBuilder(UserRoute.ROOT)
+
     await render_global_request_wizard_panel(
         update=update,
         context=context,
-        base_path=context.pydc.persistent.base_path
+        base_path=base_path
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -117,10 +129,15 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
         wizard.requesting = query.data
         wizard.editing = True
 
+    if context.pydc.persistent.base_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    else:
+        base_path = PathBuilder(UserRoute.ROOT)
+
     await render_global_request_wizard_panel(
         update=update,
         context=context,
-        base_path=context.pydc.persistent.base_path
+        base_path=base_path
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -157,10 +174,15 @@ async def handle_wizard_back(update: Update, context: CustomContext):
         wizard.requesting = prev_field
         setattr(draft, prev_field.value, None)
 
+    if context.pydc.persistent.base_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    else:
+        base_path = PathBuilder(UserRoute.ROOT)
+
     await render_global_request_wizard_panel(
         update=update,
         context=context,
-        base_path=context.pydc.persistent.base_path
+        base_path=base_path
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -203,13 +225,81 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     await query.answer()
     log.info(f"Request formulated by {update.effective_user.id} submitted")
 
+    await _notify_new_request(update=update, context=context, request=wizard.draft)
+
+    platform = wizard.draft.platform
+    category = wizard.draft.category
+    config = get_config(context, platform, category)
+
+    if config and config.limit:
+        active_requests = context.get_active_category_requests(platform=platform, category=category)
+        if len(active_requests) >= config.limit:
+            config.toggle = False
+            await save_yaml_configuration(context=context)
+            await _notify_section_closing(update, context, platform, category)
+
+    if context.pydc.persistent.base_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    else:
+        base_path = PathBuilder(UserRoute.ROOT)
+
     await render_request_wizard_confirmation_panel(
         update=update,
         context=context,
-        base_path=context.pydc.persistent.base_path,
+        base_path=base_path,
         from_notification=wizard.from_notification
     )
 
     context.pydc.persistent.active_request_wizard = None
 
     return PCS.USER_CONVERSATION
+
+
+async def _notify_admins_generic(
+        context: CustomContext,
+        filter_predicate: Callable[[ChatData], bool],
+        send_coroutine: Callable[[int], Awaitable[None]]
+):
+    """
+    Funzione generica per iterare sugli admin e inviare notifiche.
+    """
+    for admin_id in context.pydb.admins:
+        admin_data = context.application.chat_data.get(admin_id)
+        if not isinstance(admin_data, ChatData):
+            continue
+
+        if filter_predicate(admin_data):
+            await send_coroutine(admin_id)
+            await asyncio.sleep(0.2)
+
+
+async def _notify_new_request(update: Update, context: CustomContext, request: BaseRequest):
+    pl_val = str(request.platform.value)
+    ca_val = str(request.category.value)
+
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.new_requests_notifications.get(pl_val, {}).get(ca_val, False)
+
+    async def sender(admin_id: int):
+        await send_new_request_admin_notification(update=update, context=context, admin_id=admin_id, request=request)
+
+    await _notify_admins_generic(context, should_notify, sender)
+
+
+async def _notify_section_closing(update: Update, context: CustomContext, platform: Platform, category: Category):
+    pl_val = platform.value
+    ca_val = str(category.value)
+    section_str = f"{pl_val}:{category.value}"
+
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.section_closing_notifications.get(pl_val, {}).get(ca_val, False)
+
+    async def sender(admin_id: int):
+        await send_section_closing_admin_notification(
+            update=update,
+            context=context,
+            admin_id=admin_id,
+            section=section_str
+        )
+
+    await _notify_admins_generic(context, should_notify, sender)

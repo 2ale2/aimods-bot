@@ -10,8 +10,7 @@ from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
     EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, FIELD_MESSAGES, \
-    CATEGORIES_PER_PLATFORM
+from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
@@ -83,14 +82,13 @@ async def render_user_request_category_panel(
         base_path: PathBuilder,
         platform: Platform
 ):
-    buttons = []
-    for config in CATEGORIES_PER_PLATFORM[platform]:
-        buttons.append(
-            ButtonItem(
-                text=f"{config.icon} {config.label}",
-                callback_key=config.label
-            )
+    buttons = [
+        ButtonItem(
+            text=f"{config.icon} {config.label}",
+            callback_key=cat_enum.value
         )
+        for cat_enum, config in REQUESTS_LAYOUT_REGISTRY[platform]
+    ]
 
     await create_and_render_panel(
         update=update,
@@ -257,17 +255,16 @@ def _get_request_wizard_confirmation_keyboard(from_notification: bool):
     ]
 
 
-async def render_cant_request_panel(update: Update, context: CustomContext, message: str):
+async def render_cant_request_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        message: str
+):
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="user/add_request",
+        base_path=base_path,
         text=message,
-        keyboard=[
-            [ButtonItem(
-                text="🔙 Indietro",
-                callback_key="user/add_request",
-                override_path_generation=True
-            )]
-        ]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )

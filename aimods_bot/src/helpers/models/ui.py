@@ -20,7 +20,7 @@ log = logger.getChild(__name__)
 @dataclass
 class ButtonItem:
     text: str
-    callback_key: PathBuilder | StrEnum
+    callback_key: PathBuilder | str
     override_path_generation: bool = False
 
 

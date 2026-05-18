@@ -6,7 +6,7 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Admin
     GlobalAction
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
-from aimods_bot.src.helpers.utils.telegram_utils import get_config
+from aimods_bot.src.helpers.utils.request_utils import get_config
 
 log = logger.getChild(__name__)
 

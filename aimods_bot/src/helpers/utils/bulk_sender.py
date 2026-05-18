@@ -11,6 +11,7 @@ from aimods_bot.src.core.pydantic import Request, CategorySetting
 from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
 from aimods_bot.src.helpers.constants.models import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
@@ -228,7 +229,7 @@ async def send_new_request_admin_notification(
         update: Update,
         context: CustomContext,
         admin_id: int,
-        request: Request
+        request: BaseRequest
 ):
     """Send notification to admin about new request."""
     pl, ca = request.platform.value, request.category.value

@@ -15,7 +15,8 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat, get_config
+from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat
+from aimods_bot.src.helpers.utils.request_utils import get_config
 
 
 async def route_admin_request_section_configure_selection(

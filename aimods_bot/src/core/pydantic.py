@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import List, Optional, Literal, Dict, Union, Any, Set
+from typing import List, Optional, Literal, Dict, Union, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
@@ -275,13 +275,14 @@ class RequestCooldown(BaseModel):
 
 
 class RequestSectionLimitation(BaseModel):
-    section: str = ""
+    platform: Platform
+    category: Category
     until: Optional[datetime] = None
-    reasons: Optional[list[str]] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
-    created_by: int = Field(default_factory=int)
-    updated_by: int = Field(default_factory=int)
+    created_by: int = 0
+    updated_by: int = 0
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
