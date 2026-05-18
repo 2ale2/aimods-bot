@@ -35,6 +35,12 @@ class UserRoute(StrEnum):
     NOTIFICATION = "notification"
 
 
+class UserManageSettingsRoute(StrEnum):
+    NOTIFICATIONS = "notifications"
+
+    SECTION_OPENING_NOTIFICATIONS = "section_opening_notifications"
+
+
 class UserManageRequestsRoute(StrEnum):
     ACTIVE = "active_requests"
     REQUEST_ARCHIVE = "request_archive"

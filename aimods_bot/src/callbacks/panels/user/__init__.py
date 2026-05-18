@@ -42,7 +42,7 @@ async def user_main_router(update: Update, context: CustomContext):
         if path[0] in ("add_request", "view_requests"):
             return await requests_management_route(update=update, context=context, root=path)
         if path[0] == "manage_settings":
-            return await user_settings_management_route(update=update, context=context, path=path[1:])
+            return await user_settings_management_route(update=update, context=context, root=path[1:])
     finally:
         try:
             await update.callback_query.answer()
