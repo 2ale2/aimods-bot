@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Union, Literal, Optional, NamedTuple, Dict, Tuple, Type
+from typing import Union, Literal, Optional
 
 from telegram import InputMedia
 
-from aimods_bot.src.helpers.constants.constants import Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Category
+from aimods_bot.src.helpers.constants.constants import Category
 
 
 @dataclass
@@ -35,11 +33,3 @@ class MessageTemplate:
     def get_prompt(self, category: Category) -> str:
         specific_prompt = getattr(self, category.value, None)
         return specific_prompt or self.default
-
-
-_PLATFORM_CATEGORY_MAP: Dict[Platform, Tuple[Type[Enum], ...]] = {
-    Platform.WINDOWS: (WindowsCategory,),
-    Platform.ANDROID: (AndroidCategory,),
-    Platform.IOS: (IOSCategory,),
-    Platform.MACOS: (MacOSCategory,)
-}

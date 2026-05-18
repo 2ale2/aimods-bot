@@ -4,17 +4,16 @@ from typing import get_args
 from pydantic import HttpUrl
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.handle import FIELD_MESSAGES
 from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
-    CATEGORY_DETAILS, EMOJI_NUMBER
+    EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, CATEGORIES_PER_PLATFORM, BaseRequest
+from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, FIELD_MESSAGES, \
+    CATEGORIES_PER_PLATFORM
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 
@@ -146,7 +145,8 @@ async def render_global_request_wizard_panel(
         context=context,
         base_path=base_path,
         text=text,
-        keyboard=keyboard
+        keyboard=keyboard,
+        message_id=wizard.request_msg_id
     )
 
 
@@ -190,7 +190,7 @@ def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list
     if from_notification:
         cancel_button = ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)
     else:
-        cancel_button = ButtonItem(text="🏠 Home", callback_key=PathBuilder(UserRoute.ROOT))
+        cancel_button = ButtonItem(text="🔙 Home", callback_key=PathBuilder(UserRoute.ROOT))
 
     if wizard.requesting:
         keyboard = []
@@ -212,6 +212,49 @@ def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list
         keyboard = chunk_buttons(buttons=buttons, size=2)
         keyboard.append([ButtonItem(text="✅ Conferma", callback_key=GlobalAction.CONFIRM), cancel_button])
         return keyboard
+
+
+async def render_request_wizard_confirmation_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        from_notification: bool
+):
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=base_path,
+        text=_get_request_wizard_confirmation_text(),
+        keyboard=_get_request_wizard_confirmation_keyboard(from_notification=from_notification)
+    )
+
+
+def _get_request_wizard_confirmation_text():
+    return ("✅ <b>Richiesta Inviata Correttamente!</b>\n\n"
+            "🔹 Puoi monitorare lo stato di avanzamento in tempo reale dal tuo pannello di controllo. "
+            "Riceverai una notifica quando la tua richiesta verrà chiusa.\n\n"
+            "ℹ️ Puoi disattivare le notifiche dalle impostazioni.")
+
+
+def _get_request_wizard_confirmation_keyboard(from_notification: bool):
+    if from_notification:
+        back_button = ButtonItem(text="📪 Chiudi", callback_key=GlobalAction.CLOSE)
+    else:
+        back_button = ButtonItem(text="🏠 Torna alla Home", callback_key=PathBuilder(UserRoute.ROOT))
+
+    return [
+            [
+                ButtonItem(
+                    text="♟️ Gestisci Richieste",
+                    callback_key=PathBuilder(UserRoute.ROOT, UserRoute.VIEW_REQUESTS)
+                ),
+                ButtonItem(
+                    text="⚙️ Gestisci Imp.",
+                    callback_key=PathBuilder(UserRoute.ROOT, UserRoute.MANAGE_SETTINGS)
+                )
+            ],
+            [back_button]
+    ]
 
 
 async def render_cant_request_panel(update: Update, context: CustomContext, message: str):

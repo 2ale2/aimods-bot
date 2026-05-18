@@ -1,10 +1,13 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Annotated, Any, ClassVar
-from pydantic import BaseModel, BeforeValidator, HttpUrl, Field
+
+from pydantic import BaseModel, BeforeValidator, HttpUrl
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.utils import MessageTemplate
 
 log = logger.getChild(__name__)
 
@@ -232,3 +235,54 @@ REQUESTS_LAYOUT_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
         Category.SOFTWARE: CategoryConfig("Software", "🖥", MacOsSoftware),
     }
 }
+
+FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
+    RequestField.NAME: MessageTemplate(
+        default="🔹 Indica il <b>nome</b> di ciò che vorresti richiedere.",
+        app="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
+        game="🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
+        software="🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
+        daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere.",
+        adobe="🔹 Indica il <b>nome del prodotto Adobe</b> che vorresti richiedere."
+    ),
+    RequestField.LINK: MessageTemplate(
+        default="🔹 Indica il <b>link di riferimento</b>.",
+        app="🔹 Indica il <b>link ufficile dell'app</b>.",
+        game="🔹 Indica il <b>link ufficiale del gioco</b>.",
+        software="🔹 Indica il <b>link ufficiale del software</b>.",
+        daw="🔹 Indica il <b>link ufficiale della DAW o del Plug-In</b>."
+    ),
+    RequestField.VERSION: MessageTemplate(
+        default="🔹 Indica la <b>versione</b> che vorresti richiedere.",
+        app="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
+        game="🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
+        software="🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
+        daw="🔹 Indica la <b>versione della DAW o del Plug-In</b>.",
+        adobe="🔹 Indica <b>la versione</b> del prodotto Adobe."
+    ),
+    RequestField.FEATURES: MessageTemplate(
+        default="🔹 Indica le <b>funzionalità</b> che vorresti sbloccare.",
+        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare (es. Premium, No Pubblicità).",
+        game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare (es. Gioco Pagato, Monete infinite).",
+        software="🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
+        daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b>.",
+        adobe="🔹 Indica le <b>funzionalità o i filtri aggiuntivi</b> da sbloccare."
+    ),
+    RequestField.STEAMTOOLS: MessageTemplate(
+        default="🔹 Accetteresti il titolo con i file <b>SteamTools</b>?"
+    ),
+    RequestField.HYPERVISOR: MessageTemplate(
+        default="🔹 Accetteresti il titolo con metodo <b>Hypervisor</b>?"
+    ),
+    RequestField.ARCH_ARM: MessageTemplate(
+        default="🔹 Il tuo dispositivo ha architettura <b>ARM</b>?"
+    ),
+    RequestField.MAC_OS_VERSION: MessageTemplate(
+        default="🔹 Indica la tua versione esatta di <b>macOS</b> (es. Sonoma 14.5)."
+    )
+}
+
+CATEGORIES_PER_PLATFORM: dict[Platform, list[CategoryConfig]] = defaultdict(list)
+
+for (plat, _), config in REQUESTS_LAYOUT_REGISTRY.items():
+    CATEGORIES_PER_PLATFORM[plat].append(config)

@@ -63,6 +63,7 @@ async def requests_management_route(
                         from_notification=True,
                         msg_id=update.effective_message.id
                     )
+                    context.pydc.persistent.base_path = root
                     await render_global_request_wizard_panel(
                         update=update,
                         context=context,
@@ -94,6 +95,7 @@ async def requests_management_route(
                                         base_path=root
                                     )
                                 else:
+                                    context.pydc.persistent.base_path = root
                                     context.init_request_wizard_session(
                                         user_id=update.effective_user.id,
                                         platform=Platform(platform),
@@ -123,6 +125,7 @@ async def requests_management_route(
                                             base_path=root,
                                         )
                                     else:
+                                        context.pydc.persistent.base_path = root
                                         context.init_request_wizard_session(
                                             user_id=update.effective_user.id,
                                             platform=Platform(platform),
