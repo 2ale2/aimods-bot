@@ -59,7 +59,7 @@ async def handle_user_archive_identifier(update: Update, context: CustomContext)
         await wrong_input_message(
             update=update,
             context=context,
-            correct_format="un ID numerico o uno @username valido"
+            correct_message="Invia un ID numerico o uno @username valido."
         )
         return PCS.SET_USER_FOR_REQUEST_ARCHIVE
 
@@ -67,7 +67,7 @@ async def handle_user_archive_identifier(update: Update, context: CustomContext)
         await wrong_input_message(
             update=update,
             context=context,
-            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
+            correct_message="Invia uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin."
         )
         return PCS.SET_USER_FOR_REQUEST_ARCHIVE
 

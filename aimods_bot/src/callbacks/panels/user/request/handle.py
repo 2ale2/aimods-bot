@@ -1,8 +1,7 @@
 from typing import get_args
 
 from pydantic import ValidationError
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
+from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
@@ -51,21 +50,18 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
     user_input = update.message.text
 
     if not user_input:
-        await wrong_input_message(update=update, context=context, correct_format="solo testo, senza allegati.")
+        await wrong_input_message(update=update, context=context, correct_message="Manda solo testo, senza allegati.")
         return PCS.USER_REQUEST_WIZARD_SESSION
 
     field_type = wizard.draft.model_fields[wizard.requesting.value].annotation
     is_boolean_expected = (field_type is bool) or (bool in get_args(field_type))
 
     if is_boolean_expected:
-        await context.bot.send_message(
-            chat_id=update.effective_user.id,
-            text="⚠️ Usa i bottoni della tastiera per rispondere Sì o No.",
-            reply_to_message_id=wizard.request_msg_id,
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
-            ),
-            parse_mode=ParseMode.HTML
+        await wrong_input_message(
+            context=context,
+            update=update,
+            correct_message="Usa i bottoni della tastiera per rispondere Sì o No.",
+            reply_to_message_id=wizard.request_msg_id
         )
         return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -74,9 +70,17 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
     except ValidationError as e:
         errors = e.errors()
         if any(err.get("type") == "url_parsing" for err in errors):
-            await wrong_input_message(update=update, context=context, correct_format=" un link valido.")
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_message="Manda un link valido."
+            )
         else:
-            await update.message.reply_text("⚠️ Input non valido, riprova.")
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_message="Input non valido, riprova o contatta un amministratore."
+            )
         return PCS.USER_REQUEST_WIZARD_SESSION
 
     _advance_or_finish_wizard(wizard)

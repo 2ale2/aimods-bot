@@ -775,7 +775,7 @@ async def handle_limitation_identifier(update: Update, context: CustomContext):
             await wrong_input_message(
                 update=update,
                 context=context,
-                correct_format="un ID o uno @username valido"
+                correct_message="Manda un ID o uno @username valido."
             )
             return PCS.SET_VIEW_REQUEST_LIMITATION_USER
 
@@ -783,7 +783,7 @@ async def handle_limitation_identifier(update: Update, context: CustomContext):
         await wrong_input_message(
             update=update,
             context=context,
-            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
+            correct_message="Manda uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin."
         )
         return PCS.SET_VIEW_REQUEST_LIMITATION_USER
 

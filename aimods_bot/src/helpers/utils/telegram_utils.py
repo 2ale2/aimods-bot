@@ -643,14 +643,20 @@ async def handle_if_not_file(
     return False
 
 
-async def wrong_input_message(update: Update, context: CustomContext, correct_format: str) -> None:
+async def wrong_input_message(
+        update: Update,
+        context: CustomContext,
+        correct_message: str,
+        reply_to_message_id: int | None = None
+) -> None:
     """Invia un messaggio di errore per input non valido"""
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"⚠️ Manda {correct_format}.",
+        text=f"⚠️ {correct_message}",
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
         ),
+        reply_to_message_id=reply_to_message_id,
         parse_mode=ParseMode.HTML
     )
 

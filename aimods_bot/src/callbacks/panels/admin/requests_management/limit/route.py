@@ -50,7 +50,7 @@ async def route_admin_manage_limitations(
                         await wrong_input_message(
                             update=update,
                             context=context,
-                            correct_format="un <b>identificatore esistente</b> (Username o ID numerico)"
+                            correct_message="Manda un <b>identificatore esistente</b> (Username o ID numerico)."
                         )
 
                         return PCS.SET_REQUEST_LIMITATION_USER
@@ -63,8 +63,8 @@ async def route_admin_manage_limitations(
                         await wrong_input_message(
                             update=update,
                             context=context,
-                            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> "
-                                           "agli admin"
+                            correct_message="Manda uno <b>username</b> o un <b>ID numerico</b> che "
+                                            "<b>non appartengano</b> agli admin."
                         )
                         return PCS.SET_REQUEST_LIMITATION_USER
 

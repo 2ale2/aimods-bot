@@ -56,7 +56,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                 await wrong_input_message(
                     update=update,
                     context=context,
-                    correct_format="un <b>identificatore esistente</b> (Username o ID numerico)"
+                    correct_message="Manda un <b>identificatore esistente</b> (Username o ID numerico)."
                 )
                 return PCS.SET_USER_FOR_REQUEST_ARCHIVE
 
