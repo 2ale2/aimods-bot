@@ -13,6 +13,9 @@ from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
 async def admin_main_router(update: Update, context: CustomContext):
+    if not update.callback_query:
+        raise ValueError("No callback query in Update!")
+
     c_data = update.callback_query.data
     if isinstance(c_data, InvalidCallbackData):
         return await start(update=update, context=context)
@@ -23,7 +26,7 @@ async def admin_main_router(update: Update, context: CustomContext):
     if len(path) == 1:
         return await start(update=update, context=context)
 
-    path = path.pop(0)
+    path.pop(0)
 
     try:
         match path.segments:

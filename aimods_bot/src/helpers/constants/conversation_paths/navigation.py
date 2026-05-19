@@ -14,6 +14,9 @@ class GlobalAction(StrEnum):
     OPEN = "open"
     CLOSE = "close"
 
+    TOGGLE_ON = "toggle_on"
+    TOGGLE_OFF = "toggle_off"
+
     REQUEST_WIZARD_BACK = "request_wizard_back"
 
 
@@ -125,6 +128,16 @@ class SecurityFiltersRoute(StrEnum):
     CHECKS = "checks"
     INAPPROPRIATE_CONTENT = "inappropriate_content"
     LENGHT = "length"
+
+    PUNISHMENT = "punishment"
+    WHITELIST = "whitelist"
+
+
+class AntispamRoute(StrEnum):
+    LINK = "link"
+    MENTION = "mention"
+    FORWARD = "forward"
+    MEDIA = "media"
 
 
 class NotificationAction(StrEnum):
