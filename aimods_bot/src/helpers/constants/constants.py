@@ -247,6 +247,37 @@ class RequestField(StrEnum):
                 return "Versione MacOS"
 
 
+class ChatType(StrEnum):
+    USER = "user"
+    GROUP = "group"
+    CHANNEL = "channel"
+    BOT = "bot"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "Utenti"
+            case ChatType.GROUP:
+                return "Gruppi"
+            case ChatType.CHANNEL:
+                return "Canali"
+            case ChatType.BOT:
+                return "Bot"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "👤"
+            case ChatType.GROUP:
+                return "👥"
+            case ChatType.CHANNEL:
+                return "📢"
+            case ChatType.BOT:
+                return "🤖"
+
+
 class RejectRequestReason(Enum):
     SERVERSIDE = "serverside"
     NOT_AVAILABLE = "not_available"

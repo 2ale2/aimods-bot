@@ -12,21 +12,6 @@ from aimods_bot.src.helpers.utils.file_utils import make_temp_file
 from aimods_bot.src.helpers.utils.telegram_utils import handle_if_not_file, safe_delete
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
-
-CATEGORY_LABELS = {
-    "user": "Utenti",
-    "group": "Gruppi",
-    "channel": "Canali",
-    "bot": "Bot"
-}
-
-CATEGORY_EMOJI = {
-    "user": "👤",
-    "group": "👥",
-    "channel": "📢",
-    "bot": "🤖"
-}
-
 BASE_TEXT = "📨 <b>Impostazioni Anti-Spam</b>\n\n↦ 💬 <i>Gestione Whitelist</i>"
 
 CategoryType = Literal["user", "group", "channel", "bot"]

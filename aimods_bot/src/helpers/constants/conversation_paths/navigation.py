@@ -133,6 +133,12 @@ class SecurityFiltersRoute(StrEnum):
     WHITELIST = "whitelist"
 
 
+class ModerationListsRoute(StrEnum):
+    VIEW = "view"
+    ADD = "add"
+    REMOVE = "remove"
+
+
 class AntispamRoute(StrEnum):
     LINK = "link"
     MENTION = "mention"

@@ -34,7 +34,12 @@ async def antispam_route(update: Update, context: CustomContext, root: PathBuild
                 path=root[1:]
             )
         case [SecurityFiltersRoute.WHITELIST, *rest]:
-            return await antispam_whitelist_route(update=update, context=context, path=root[1:])
+            return await antispam_whitelist_route(
+                update=update,
+                context=context,
+                root=root[1:],
+                relative_path=None
+            )
         case [AntispamRoute.LINK, *rest]:
             return await antispam_link_route(update=update, context=context, path=root[1:])
         case [AntispamRoute.MENTION, *rest]:
