@@ -330,8 +330,8 @@ def render_requests_latex_footer() -> str:
 
 async def get_last_n_requests(
         n: int,
-        pl: Optional[Union[Platform, str]],
-        ca: Optional[Union[Category, str]]
+        platform: Optional[Union[Platform, str]],
+        category: Optional[Union[Category, str]]
 ) -> list[Request]:
     """
     Ritorna le ultime n richieste fatte per una specifica sezione.
@@ -340,29 +340,29 @@ async def get_last_n_requests(
     if not isinstance(n, int) or n < 0:
         raise ValueError(f"Invalid number of requests: {n}")
 
-    if pl and isinstance(pl, Platform):
-        pl = pl.value
-    if ca and isinstance(ca, Category):
-        ca = ca.value
+    if platform and isinstance(platform, Platform):
+        platform = platform.value
+    if category and isinstance(category, Category):
+        category = category.value
 
-    if pl and pl not in PLATFORM_DETAILS:
-        raise ValueError(f"Invalid platform: {pl}")
-    if pl and ca and ca not in CATEGORY_DETAILS[pl]:
-        raise ValueError(f"Invalid category: {ca}")
+    if platform and platform not in PLATFORM_DETAILS:
+        raise ValueError(f"Invalid platform: {platform}")
+    if platform and category and category not in CATEGORY_DETAILS[platform]:
+        raise ValueError(f"Invalid category: {category}")
 
     query = "SELECT * FROM requests"
     params = []
     conditions = []
 
-    if pl:
-        params.append(pl)
+    if platform:
+        params.append(platform)
         conditions.append(f"platform = ${len(params)}")
 
-        if ca:
-            params.append(ca)
+        if category:
+            params.append(category)
             conditions.append(f"category = ${len(params)}")
-    elif ca:
-        params.append(ca)
+    elif category:
+        params.append(category)
         conditions.append(f"category = ${len(params)}")
 
     if conditions:

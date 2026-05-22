@@ -229,7 +229,7 @@ class RestartData(BaseModel):
 
 
 class BanListItem(BaseModel):
-    expires_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""
     admin: int = 0
 

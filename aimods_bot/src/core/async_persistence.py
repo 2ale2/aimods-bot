@@ -100,36 +100,6 @@ class AsyncPostgresPersistence(DictPersistence):
 
         return asyncio.run(_load_async())
 
-    # async def _ensure_pool(self) -> None:
-    #     """
-    #     Assicura che il pool sia inizializzato nel loop corrente
-    #     """
-    #     if self._pool is not None:
-    #         return
-    #
-    #     if self._pool_lock is None:
-    #         self._pool_lock = asyncio.Lock()
-    #     if self._flush_lock is None:
-    #         self._flush_lock = asyncio.Lock()
-    #
-    #     async with self._pool_lock:
-    #         if self._pool is not None:
-    #             return
-    #
-    #         try:
-    #             # noinspection PyUnresolvedReferences
-    #             self._pool = await asyncpg.create_pool(
-    #                 dsn=self.url,
-    #                 min_size=1,
-    #                 max_size=10,
-    #                 timeout=10
-    #             )
-    #             self._initialized = True
-    #             self.logger.info("Database pool initialized successfully in PTB loop.")
-    #         except Exception as e:
-    #             self.logger.error(f"Failed to create database pool: {e}")
-    #             raise
-
     async def initialize(self) -> None:
         """Per compatibilità con PTB"""
         if not self._initialized:

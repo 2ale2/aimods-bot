@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytz
 
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 
@@ -71,95 +71,6 @@ MODERATION_DISPLAY_ITEMS = {
     "antiflood": DisplayItem("🌊", "Anti-Flood", "a chi fa flooding")
 }
 
-PLATFORM_DETAILS = {
-    "android": {
-        "label": "Android",
-        "icon": "🤖"
-    },
-    "windows": {
-        "label": "Windows",
-        "icon": "💻"
-    },
-    "ios": {
-        "label": "iOS",
-        "icon": "🍏"
-    },
-    "macos": {
-        "label": "MacOS",
-        "icon": "🖥"
-    }
-}
-
-CATEGORY_DETAILS = {
-    "android": {
-        "app": {
-            "label": "App",
-            "icon": "🤖"
-        }
-    },
-    "windows": {
-        "game": {
-            "label": "Gioco",
-            "icon": "🕹"
-        },
-        "adobe": {
-            "label": "Adobe",
-            "icon": "🖌"
-        },
-        "daw": {
-            "label": "DAW",
-            "icon": "🎹"
-        },
-        "software": {
-            "label": "Software",
-            "icon": "⌨"
-        }
-    },
-    "ios": {
-        "app": {
-            "label": "App",
-            "icon": "🍏"
-        }
-    },
-    "macos": {
-        "daw": {
-            "label": "DAW",
-            "icon": "🎹"
-        },
-        "software": {
-            "label": "Software",
-            "icon": "🖥"
-        }
-    }
-}
-
-REQUEST_STATUS_DETAILS = {
-    "pending": {
-        "label": "In Attesa",
-        "icon": "⏳"
-    },
-    "examining": {
-        "label": "In Esame",
-        "icon": "🔎"
-    },
-    "testing": {
-        "label": "In Test",
-        "icon": "🧪"
-    },
-    "completed": {
-        "label": "Completata",
-        "icon": "✅"
-    },
-    "rejected": {
-        "label": "Rifiutata",
-        "icon": "❌"
-    },
-    "cancelled": {
-        "label": "Cancellata",
-        "icon": "🗑️"
-    }
-}
-
 
 class Platform(StrEnum):
     ANDROID = "android"
@@ -200,20 +111,52 @@ class Category(StrEnum):
     SOFTWARE = "software"
 
 
-class Arch(Enum):
+class Arch(StrEnum):
     x86 = "x86"
     x86_64 = "x86_64"
     ARM = "arm"
     ARM_64 = "arm64"
 
 
-class RequestStatus(Enum):
+class RequestStatus(StrEnum):
     PENDING = "pending"
     EXAMINING = "examining"
     TESTING = "testing"
     COMPLETED = "completed"
     REJECTED = "rejected"
     CANCELLED = "cancelled"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case RequestStatus.PENDING:
+                return "In Attesa"
+            case RequestStatus.EXAMINING:
+                return "In Esame"
+            case RequestStatus.TESTING:
+                return "In Test"
+            case RequestStatus.COMPLETED:
+                return "Completata"
+            case RequestStatus.REJECTED:
+                return "Rifiutata"
+            case RequestStatus.CANCELLED:
+                return "Cancellata"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case RequestStatus.PENDING:
+                return "⏳"
+            case RequestStatus.EXAMINING:
+                return "🔎"
+            case RequestStatus.TESTING:
+                return "🧪"
+            case RequestStatus.COMPLETED:
+                return "✅"
+            case RequestStatus.REJECTED:
+                return "❌"
+            case RequestStatus.CANCELLED:
+                return "🗑️"
 
 
 class RequestField(StrEnum):
@@ -278,19 +221,24 @@ class ChatType(StrEnum):
                 return "🤖"
 
 
-class RejectRequestReason(Enum):
+class RejectRequestReason(StrEnum):
     SERVERSIDE = "serverside"
     NOT_AVAILABLE = "not_available"
     ALREADY_AVAILABLE = "already_available"
     UNCLEAR = "unclear"
 
+    @property
+    def label(self) -> str:
+        match self:
+            case RejectRequestReason.SERVERSIDE:
+                return "Serverside"
+            case RejectRequestReason.NOT_AVAILABLE:
+                return "Non disponibile al momento"
+            case RejectRequestReason.ALREADY_AVAILABLE:
+                return "Già disponibile sul canale"
+            case RejectRequestReason.UNCLEAR:
+                return "Richiesta non chiara"
 
-REQUEST_REJECTION_REASONS = {
-    "serverside": "Serverside",
-    "not_available": "Non disponibile al momento",
-    "already_available": "Già disponibile sul canale",
-    "unclear": "Richiesta non chiara"
-}
 
 DATETIME_FORMAT = "%d %b %Y alle %H:%M:%S"
 

@@ -90,7 +90,7 @@ async def admin_requests_management_route(
                         update=update,
                         context=context,
                         base_path=full_path_builder,
-                        pl=Platform(platform)
+                        platform=Platform(platform)
                     )
                 case [platform, category]:
                     platform = Platform(platform)
@@ -214,7 +214,7 @@ async def admin_manage_request_route(
                     await render_admin_manage_request_removed_panel(
                         update=update,
                         context=context,
-                        base_path=root.back(3)
+                        base_path=root.back(2)
                     )
             return PCS.ADMIN_CONVERSATION
 

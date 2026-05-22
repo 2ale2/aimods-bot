@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import format_user_mention, res
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, format_time_as_rome
 
-log = logger.getChild("bot_logger")
+log = logger.getChild(__name__)
 
 CHANNEL_LOGGER_ID = int(os.getenv("CHANNEL_LOGGER_ID"))
 
@@ -19,7 +19,7 @@ async def log_ban(
         context: CustomContext,
         admin_id: int,
         user_id: int,
-        until: datetime,
+        until: datetime | None,
         reason: str = None):
     log.info(f"→ User {user_id} banned by admin {admin_id}. "
              f"{f'Reason: {reason}' if reason else 'No reason specified.'}")
@@ -43,7 +43,7 @@ async def _log_ban_text(
         context: CustomContext,
         admin_id: int,
         user_id: int,
-        until: datetime = zero_datetime(),
+        until: datetime | None = zero_datetime(),
         reason: str = None):
     if user_id == update.effective_user.id:
         user = update.effective_user

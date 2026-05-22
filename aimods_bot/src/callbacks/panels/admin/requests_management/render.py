@@ -1,15 +1,13 @@
-from typing import Union
-
 from telegram import Update
 from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request, CategorySetting
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, REQUEST_STATUS_DETAILS, \
-    Platform, Category, RequestStatus, RejectRequestReason, REQUEST_REJECTION_REASONS
+from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserManageRequestsRoute, \
     AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
@@ -19,11 +17,40 @@ from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
-log = logger.getChild("admin_requests_management_render")
+log = logger.getChild(__name__)
 
 
 def _get_header():
     return "❔ <b>Gestione Richieste</b>"
+
+
+async def _build_request_panel_preamble(
+    request: Request,
+    icon: str,
+    title: str,
+    *,
+    include_platform_category: bool = True,
+    body: str = "▪️ Da qui puoi gestire questa richiesta.\n\n",
+    include_details: bool = True,
+) -> str:
+    if include_platform_category:
+        platform = request.platform
+        category = request.category
+        if not platform or not category:
+            raise ValueError("Platform and category must not be None!")
+        ca_label = REQUESTS_LAYOUT_REGISTRY[platform][category].label
+        subtitle = f"{title} {platform.label} – {ca_label}"
+    else:
+        subtitle = title
+
+    text = (
+        f"{_get_header()}\n\n"
+        f"→ {icon} <i>{subtitle}</i>\n\n"
+        f"{body}"
+    )
+    if include_details:
+        text += await get_request_details(request=request, admin=True)
+    return text
 
 
 async def render_admin_request_management_panel(update: Update, context: CustomContext, base_path: PathBuilder):
@@ -82,8 +109,8 @@ async def render_admin_active_requests_management_panel(update: Update, context:
     text = _get_admin_request_management_text()
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
-        for key, d in PLATFORM_DETAILS.items()
+        ButtonItem(text=f"{pl.icon} {pl.label}", callback_key=base_path.add(pl))
+        for pl in Platform
     ]
 
     keyboard = chunk_buttons(buttons=buttons, size=2)
@@ -114,13 +141,12 @@ async def render_admin_active_requests_category_selector_panel(
 ):
     text = _get_admin_active_requests_category_text(platform=platform)
 
-    categories = CATEGORY_DETAILS.get(platform.value, None)
+    categories = REQUESTS_LAYOUT_REGISTRY.get(platform, None)
     if not categories:
-        log.error(f"La piattaforma {platform.value} non è in constants.CATEGORY_DETAILS.")
-        return None
+        raise ValueError(f"Platform {platform.value} not recognized!")
 
     if len(categories) == 1:
-        category = get_platform_categories(platform=platform)(list(categories.keys())[0])
+        category = get_platform_categories(platform=platform)(next(iter(categories)))
 
         return await render_admin_active_requests_category_panel(
             update=update,
@@ -131,8 +157,8 @@ async def render_admin_active_requests_category_selector_panel(
         )
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
-        for key, d in categories.items()
+        ButtonItem(text=f"{cat_config.icon} {cat_config.label}", callback_key=base_path.add(cat_key))
+        for cat_key, cat_config in categories.items()
     ]
 
     keyboard = chunk_buttons(buttons=buttons, size=2)
@@ -150,7 +176,7 @@ async def render_admin_active_requests_category_selector_panel(
 def _get_admin_active_requests_category_text(platform: Platform):
     return (
         f"{_get_header()}\n\n"
-        f"→ 📕 <i>Richieste Attive {PLATFORM_DETAILS[platform.value]['label']}</i>\n\n"
+        f"→ 📕 <i>Richieste Attive {platform.label}</i>\n\n"
         "🔹 Scegli una categoria."
     )
 
@@ -171,7 +197,7 @@ async def render_admin_active_requests_category_panel(
         back_button_callback_key = base_path.back(2)
 
     if len(requests) == 1:
-        ix = list(requests.values())[0].id
+        ix = next(iter(requests))
         request_data = context.get_active_request_by_id(ix=ix)
 
         return await render_admin_manage_request_panel(
@@ -190,16 +216,16 @@ async def render_admin_active_requests_category_panel(
                 AdminRoute.ROOT,
                 AdminRoute.MANAGE_REQUESTS,
                 AdminRequestsRoute.MANAGE_SECTIONS,
-                platform.value,
-                category.value
+                platform,
+                category
             )
         )
     ]]
 
     req_buttons = [
         ButtonItem(
-            text=f"{i + 1}",
-            callback_key=base_path.add(req.id)) for i, req in enumerate(requests.values())
+            text=f"{i}",
+            callback_key=base_path.add(str(req))) for i, req in enumerate(requests.keys(), start=1)
     ]
     keyboard.extend(chunk_buttons(req_buttons, 2))
 
@@ -208,7 +234,10 @@ async def render_admin_active_requests_category_panel(
         callback_key=back_button_callback_key
     )
 
-    keyboard.append([back_button]) if len(requests) else keyboard[-1].append(back_button)
+    if len(requests):
+        keyboard.append([back_button])
+    else:
+        keyboard[-1].append(back_button)
 
     await create_and_render_panel(
         update=update,
@@ -225,15 +254,17 @@ def _get_active_requests_category_text(
         category: Category,
         requests: dict[int, Request]
 ):
-    config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
+    request_settings = context.pydb.configuration.settings.request
+    platform_key = platform.value
+    category_key = category.value
+
+    config = getattr(getattr(request_settings, platform_key), category_key)
     assert isinstance(config, CategorySetting)
 
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
     lenr = len(requests)
 
     text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
+            f"→ 📕 <i>Richieste Attive {platform.label} – {REQUESTS_LAYOUT_REGISTRY[platform][category].label}</i>\n\n"
             f"👁‍🗨 Sezione – {f'🟢 Aperta (<i>{f'ancora {pluralize(
                 config.limit - lenr,
                 'richiesta',
@@ -258,7 +289,10 @@ async def render_admin_manage_request_panel(
     platform = request.platform
     category = request.category
 
-    text = await _get_admin_manage_request_text(request=request, platform=platform, category=category)
+    if not platform or not category:
+        raise ValueError("Platform and category must not be None!")
+
+    text = await _get_admin_manage_request_text(request=request)
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
         request=request,
@@ -275,28 +309,12 @@ async def render_admin_manage_request_panel(
     )
 
 
-async def _get_admin_manage_request_text(
-        request: Request,
-        platform: Platform,
-        category: Category
-):
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-    text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    status = request.status
-
-    text += await get_request_details(request=request, admin=True)
-
-    if status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
+async def _get_admin_manage_request_text(request: Request) -> str:
+    text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
+    if request.status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
-                 f"contrassegnata come {'completata' if status == RequestStatus.COMPLETED else 'rifiutata'}."
-                 f"</blockquote>\n")
-
+                 f"contrassegnata come {request.status.label.lower()}.</blockquote>\n")
     text += "\n🔹 Scegli un'opzione."
-
     return text
 
 
@@ -306,28 +324,23 @@ def _get_admin_menage_request_keyboard(
         base_path: PathBuilder,
         back_callback_key: PathBuilder
 ):
-    steps = [None] + [el.value for el in RequestStatus] + [None]
+    steps = [None] + [el for el in RequestStatus] + [None]
 
     current_status = request.status
-    current_status_value = current_status.value
-    current_index = steps.index(str(current_status_value))
+    current_index = steps.index(current_status)
     next_status_button = steps[current_index + 1]
     previous_status_button = steps[current_index - 1]
 
     keyboard = [[]]
     if current_status not in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         if next_status_button:
-            next_status_icon = REQUEST_STATUS_DETAILS[next_status_button]["icon"]
-            next_status_label = REQUEST_STATUS_DETAILS[next_status_button]["label"]
             keyboard[0].insert(0, ButtonItem(
-                text=f"{next_status_icon} {next_status_label}",
+                text=f"{next_status_button.icon} {next_status_button.label}",
                 callback_key=base_path.add(next_status_button))
             )
         if previous_status_button:
-            previous_status_icon = REQUEST_STATUS_DETAILS[previous_status_button]["icon"]
-            previous_status_label = REQUEST_STATUS_DETAILS[previous_status_button]["label"]
             keyboard[0].insert(0, ButtonItem(
-                text=f"{previous_status_icon} {previous_status_label}",
+                text=f"{previous_status_button.icon} {previous_status_button.label}",
                 callback_key=base_path.add(previous_status_button))
             )
 
@@ -382,12 +395,10 @@ async def render_change_request_status_confirmation_panel(
     platform = request.platform
     category = request.category
 
-    text = await _get_render_change_request_status_confirmation_text(
-        platform=platform,
-        category=category,
-        request=request,
-        status=status
-    )
+    if not platform or not category:
+        raise ValueError("Platform and category must not be None!")
+
+    text = await _get_render_change_request_status_confirmation_text(request=request, status=status)
 
     await create_and_render_panel(
         update=update,
@@ -403,39 +414,15 @@ async def render_change_request_status_confirmation_panel(
     )
 
 
-async def _get_render_change_request_status_confirmation_text(
-        platform: Platform,
-        category: Category,
-        request: Request,
-        status: RequestStatus
-):
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-
-    actual_status = REQUEST_STATUS_DETAILS[request.status.value]
-    actual_status_icon = actual_status["icon"]
-    actual_status_label = actual_status["label"]
-
-    new_status = REQUEST_STATUS_DETAILS[status.value]
-    new_status_icon = new_status["icon"]
-    new_status_label = new_status["label"]
-
-    text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
+async def _get_render_change_request_status_confirmation_text(request: Request, status: RequestStatus):
+    text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
     text += ("\n🔄 Stai <b>cambiando lo stato</b> di questa richiesta:\n\n"
-             f"      {actual_status_icon} <i><b>{actual_status_label}</b></i>    ⟼"
-             f"    {new_status_icon} <i><b>{new_status_label}</b></i>\n\n")
-
+             f"      {request.status.icon} <i><b>{request.status.label}</b></i>    ⟼"
+             f"    {status.icon} <i><b>{status.label}</b></i>\n\n")
     if status is RequestStatus.COMPLETED:
         text += ("<blockquote>⚠️ <b>Attenzione</b> – Se confermi non potrai più cambiare lo stato della richiesta ed"
                  " essa verrà rimossa dalle richieste attive dopo 24 ore.</blockquote>\n\n")
-
     text += "🔹 <b>Confermi</b>?"
-
     return text
 
 
@@ -448,17 +435,16 @@ async def render_request_status_changed_panel(
     platform = request.platform
     category = request.category
 
+    if not platform or not category:
+        raise ValueError("Platform and category must not be None!")
+
     categories = get_platform_categories(platform=platform)
     if len(categories) > 1:
         back_callback_key = base_path.back()
     else:
         back_callback_key = base_path.back(2)
 
-    text = await _get_request_status_changed_text(
-        platform=platform,
-        category=category,
-        request=request
-    )
+    text = await _get_request_status_changed_text(request=request)
 
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
@@ -476,30 +462,12 @@ async def render_request_status_changed_panel(
     )
 
 
-async def _get_request_status_changed_text(
-        platform: Platform,
-        category: Category,
-        request: Request
-):
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-
-    status = REQUEST_STATUS_DETAILS[request.status.value]
-    status_icon = status["icon"]
-    status_label = status["label"]
-
-    text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
+async def _get_request_status_changed_text(request: Request) -> str:
+    text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
     if request.status is RequestStatus.COMPLETED:
         text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
                  "contrassegnata come completata.</blockquote>\n")
-
-    text += f"\n\n✅ <b>Stato {status_icon} <i>{status_label}</i> impostato</b>.\n"
-
+    text += f"\n\n✅ <b>Stato {request.status.icon} <i>{request.status.label}</i> impostato</b>.\n"
     return text
 
 
@@ -512,11 +480,10 @@ async def render_admin_manage_request_remove_confirmation_panel(
     platform = request.platform
     category = request.category
 
-    text = await _get_admin_manage_request_remove_confirmation_text(
-        platform=platform,
-        category=category,
-        request=request
-    )
+    if not platform or not category:
+        raise ValueError("Platform and category must not be None!")
+
+    text = await _get_admin_manage_request_remove_confirmation_text(request=request)
 
     await create_and_render_panel(
         update=update,
@@ -532,22 +499,9 @@ async def render_admin_manage_request_remove_confirmation_panel(
     )
 
 
-async def _get_admin_manage_request_remove_confirmation_text(
-        platform: Platform,
-        category: Category,
-        request: Request
-):
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ct_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-
-    text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {pl_label} – {ct_label}</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
+async def _get_admin_manage_request_remove_confirmation_text(request: Request) -> str:
+    text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
     text += "\n🚮 Confermi di <b>rimuovere questa richiesta non attiva</b>?"
-
     return text
 
 
@@ -564,7 +518,7 @@ async def render_admin_manage_request_removed_panel(
         base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="🔙 Indietro", callback_key=base_path)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -584,22 +538,18 @@ async def render_admin_manage_request_change_status_panel(
     text = await _get_admin_manage_request_change_status_text(request=request)
 
     keyboard = [[]]
-    for sk in REQUEST_STATUS_DETAILS:
-        if sk == "cancelled":
+    for sk in RequestStatus:
+        if sk == RequestStatus.CANCELLED:
             continue
-        status = REQUEST_STATUS_DETAILS[sk]
         if len(keyboard[-1]) >= 2:
             keyboard.append([])
-        if sk == "rejected":
-            ckey = "reject"
-        elif request.status.value != sk:
-            ckey = sk
+        if sk == RequestStatus.REJECTED:
+            button_base_path = base_path.add(AdminRequestManagementRoute.REJECT)
+        elif request.status != sk:
+            button_base_path = base_path.add(sk)
         else:
-            ckey = base_path.back()
-        keyboard[-1].append(ButtonItem(
-            text=f"{status['icon']} {status['label']}",
-            callback_key=base_path.add(ckey)
-        ))
+            button_base_path = base_path.back()
+        keyboard[-1].append(ButtonItem(text=f"{sk.icon} {sk.label}", callback_key=button_base_path))
 
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
 
@@ -612,15 +562,12 @@ async def render_admin_manage_request_change_status_panel(
     )
 
 
-async def _get_admin_manage_request_change_status_text(request: Request):
-    text = (f"{_get_header()}\n\n"
-            f"→ 🔄 <i>Cambio Stato Richiesta</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
+async def _get_admin_manage_request_change_status_text(request: Request) -> str:
+    text = await _build_request_panel_preamble(
+        request, "🔄", "Cambio Stato Richiesta",
+        include_platform_category=False,
+    )
     text += "\n🔹 Scegli il nuovo stato da impostare."
-
     return text
 
 
@@ -641,25 +588,25 @@ async def render_admin_reject_request_panel(
             [
                 ButtonItem(
                     text="Serverside",
-                    callback_key=base_path.add(RejectRequestReason.SERVERSIDE.value)
+                    callback_key=base_path.add(RejectRequestReason.SERVERSIDE)
                 )
             ],
             [
                 ButtonItem(
                     text="Non disponibile al momento",
-                    callback_key=base_path.add(RejectRequestReason.NOT_AVAILABLE.value)
+                    callback_key=base_path.add(RejectRequestReason.NOT_AVAILABLE)
                 )
             ],
             [
                 ButtonItem(
                     text="Già disponibile",
-                    callback_key=base_path.add(RejectRequestReason.ALREADY_AVAILABLE.value)
+                    callback_key=base_path.add(RejectRequestReason.ALREADY_AVAILABLE)
                 )
             ],
             [
                 ButtonItem(
                     text="Richiesta non chiara",
-                    callback_key=base_path.add(RejectRequestReason.UNCLEAR.value)
+                    callback_key=base_path.add(RejectRequestReason.UNCLEAR)
                 )
             ],
             [
@@ -670,15 +617,12 @@ async def render_admin_reject_request_panel(
     )
 
 
-async def _get_admin_reject_request_text(request: Request):
-    text = (f"{_get_header()}\n\n"
-            f"→ ❌ <i>Rifiuto Richiesta</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
+async def _get_admin_reject_request_text(request: Request) -> str:
+    text = await _build_request_panel_preamble(
+        request, "❌", "Rifiuto Richiesta",
+        include_platform_category=False,
+    )
     text += "\n❓ Scegli il motivo del rifiuto o scrivine uno."
-
     return text
 
 
@@ -687,7 +631,7 @@ async def render_admin_confirm_rejection_panel(
         context: CustomContext,
         base_path: PathBuilder,
         request: Request,
-        reason: Union[RejectRequestReason, str]
+        reason: RejectRequestReason | str
 ):
     text = await _get_admin_confirm_rejection_text(request=request, rejection_reason=reason)
     message_id = context.pydc.persistent.bot_message_id
@@ -708,22 +652,18 @@ async def render_admin_confirm_rejection_panel(
     )
 
 
-async def _get_admin_confirm_rejection_text(request: Request, rejection_reason: Union[RejectRequestReason, str]):
-    text = (f"{_get_header()}\n\n"
-            f"→ ❌ <i>Rifiuto Richiesta</i>\n\n"
-            "▪️ Da qui puoi gestire questa richiesta.\n\n")
-
-    text += await get_request_details(request=request, admin=True)
-
-    if rejection_reason in REQUEST_REJECTION_REASONS:
-        rejection_reason = REQUEST_REJECTION_REASONS[rejection_reason]
-
+async def _get_admin_confirm_rejection_text(request: Request, rejection_reason: RejectRequestReason | str):
+    text = await _build_request_panel_preamble(
+        request, "❌", "Rifiuto Richiesta",
+        include_platform_category=False,
+    )
+    if rejection_reason in RejectRequestReason:
+        rejection_reason = RejectRequestReason(rejection_reason)
     text += ("\n\n<b>❗ Stai rifiutando questa richiesta per il seguente motivo:\n\n"
              f"      ↪ <i>{rejection_reason}</i></b>\n\n"
              "<blockquote>⚠️ <b>Attenzione</b> – Se confermi non potrai più cambiare lo stato della richiesta ed"
              " essa verrà rimossa dalle richieste attive dopo 24 ore.</blockquote>\n\n"
              "🔹 <b>Confermi?</b>")
-
     return text
 
 
@@ -758,8 +698,8 @@ async def render_admin_rejection_confirmed_panel(
 
 
 def _get_admin_rejection_confirmed_text(ix: int, reason: str):
-    if reason in REQUEST_REJECTION_REASONS:
-        reason = REQUEST_REJECTION_REASONS[reason]
+    if reason in RejectRequestReason:
+        reason = RejectRequestReason(reason)
 
     text = ("❌ <b>Richiesta Rifiutata Correttamente</b>\n\n"
             f"      🔸 <u>ID</u> – <code>{ix}</code>\n"
@@ -816,7 +756,7 @@ async def send_user_request_status_changed_notification(
                         UserRoute.VIEW_REQUESTS,
                         UserManageRequestsRoute.ACTIVE,
                         UserManageRequestsRoute.DETAILS,
-                        ix
+                        str(ix)
                     )
                 )
             ]
@@ -826,12 +766,15 @@ async def send_user_request_status_changed_notification(
 
 
 def _get_user_request_status_changed_notification_text(request: Request):
-    pl, ca = request.platform.value, request.category.value
-    pl_label = PLATFORM_DETAILS[pl]["label"]
-    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
+    platform = request.platform
+    category = request.category
+
+    if not platform or not category:
+        raise ValueError("Platform and category must not be None!")
 
     text = (f"🆙 <b>Aggiornamento Richiesta <code>{request.id}</code></b>\n\n"
-            f"▫ La tua richiesta (<b>{ca_label} {pl_label}</b>) ha appena ricevuto il suo <b>esito</b>!")
+            f"▫ La tua richiesta (<b>{REQUESTS_LAYOUT_REGISTRY[platform][category].label} {platform.label}</b>) "
+            "ha appena ricevuto il suo <b>esito</b>!")
 
     return text
 
@@ -840,8 +783,8 @@ async def render_last_ten_requests_platform_panel(update: Update, context: Custo
     text = _get_last_ten_requests_platform_text()
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
-        for key, d in PLATFORM_DETAILS.items()
+        ButtonItem(text=f"{platform.icon} {platform.label}", callback_key=base_path.add(platform))
+        for platform in Platform
     ]
     keyboard = chunk_buttons(buttons, 2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
@@ -868,23 +811,23 @@ async def render_last_ten_requests_category_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        pl: Platform
+        platform: Platform
 ):
-    cats = get_platform_categories(pl)
+    cats = REQUESTS_LAYOUT_REGISTRY[platform]
     if len(cats) == 1:
         return await render_last_ten_requests_section_panel(
             update=update,
             context=context,
-            platform=pl,
-            category=list(cats)[0],
+            platform=platform,
+            category=next(iter(cats)),
             base_path=base_path
         )
 
-    text = _get_last_ten_requests_category_text(pl=pl)
+    text = _get_last_ten_requests_category_text(platform=platform)
 
     buttons = [
-        ButtonItem(text=f"{d['icon']} {d['label']}", callback_key=base_path.add(key))
-        for key, d in CATEGORY_DETAILS[pl.value].items()
+        ButtonItem(text=f"{cat_config.icon} {cat_config.label}", callback_key=base_path.add(cat_key))
+        for cat_key, cat_config in cats.items()
     ]
     keyboard = chunk_buttons(buttons, 2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
@@ -898,9 +841,8 @@ async def render_last_ten_requests_category_panel(
     )
 
 
-def _get_last_ten_requests_category_text(pl: Platform):
-    item = PLATFORM_DETAILS[pl.value]
-    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {item['icon']} {item['label']}\n\n"
+def _get_last_ten_requests_category_text(platform: Platform):
+    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {platform.icon} {platform.label}\n\n"
 
     text += ("▫ Da qui puoi visionare le ultima 10 richieste per categoria.\n\n"
              "🔹 Scegli una categoria.")
@@ -919,8 +861,8 @@ async def render_last_ten_requests_section_panel(
         chat_id=update.effective_message.chat_id,
         action=ChatAction.TYPING
     )
-    requests = await get_last_n_requests(n=10, pl=platform, ca=category)
-    text = await _get_last_ten_requests_section_text(requests=requests, pl=platform, ca=category)
+    requests = await get_last_n_requests(n=10, platform=platform, category=category)
+    text = await _get_last_ten_requests_section_text(requests=requests, platform=platform, category=category)
 
     if len(get_platform_categories(platform)) > 1:
         back_button_callback_data = base_path.back()
@@ -951,15 +893,20 @@ async def render_last_ten_requests_section_panel(
     )
 
 
-async def _get_last_ten_requests_section_text(requests: list[Request], pl: Platform, ca: Category) -> str:
-    pl_icon = PLATFORM_DETAILS[pl.value]["icon"]
-    ca_label = CATEGORY_DETAILS[pl.value][ca.value]["label"]
-    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {pl_icon} {ca_label}\n\n"
+async def _get_last_ten_requests_section_text(requests: list[Request], platform: Platform, category: Category) -> str:
+    ca_label = REQUESTS_LAYOUT_REGISTRY[platform][category].label
+    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {platform.icon} {ca_label}\n\n"
     if len(requests) == 0:
         text += ("<blockquote>ℹ Nessuna richiesta ancora formulata per questa sezione.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")
     else:
-        text += get_requests_summary(requests={request.id: request for request in requests}, with_authors=True)
+        requests_dict = {}
+        for request in requests:
+            if request.id is None:
+                raise ValueError("Request must have an ID!")
+            requests_dict[request.id] = request
+
+        text += get_requests_summary(requests=requests_dict, with_authors=True)
         text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori "
                  "informazioni su una richiesta, o contatta Layton.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")
