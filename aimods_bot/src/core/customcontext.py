@@ -24,7 +24,7 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RI
     CATEGORY_DETAILS, Platform, Category, RequestField
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.requests import BaseRequest, REQUESTS_LAYOUT_REGISTRY
+from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
 
 log = logger.getChild("custom_context")
 
@@ -288,7 +288,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             from_notification: bool,
             msg_id: int
     ) -> None:
-        config = REQUESTS_LAYOUT_REGISTRY[platform][category]
+        config = PLATFORM_CATEGORY_REGISTRY[platform][category]
         fresh_draft = config.model(user_id=user_id, platform=platform, category=category)
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(

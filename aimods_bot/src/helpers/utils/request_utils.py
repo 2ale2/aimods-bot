@@ -8,15 +8,14 @@ from pydantic import BaseModel, ValidationError, field_validator
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Request, Architecture, CategorySetting
-from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
-    Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Arch, RequestStatus, Category, CATEGORY_DETAILS
+from aimods_bot.src.helpers.constants.constants import Platform, Arch, RequestStatus, Category
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
-log = logger.getChild("request_utils")
+log = logger.getChild(__name__)
 
 
 class RequestContent(BaseModel):
@@ -39,16 +38,6 @@ class RequestContent(BaseModel):
         except (ValueError, KeyError) as e:
             log.error(f"Invalid arch structure: {e}")
             return None
-
-
-def get_platform_categories(platform: Platform):
-    categories = {
-        Platform.ANDROID: AndroidCategory,
-        Platform.WINDOWS: WindowsCategory,
-        Platform.IOS: IOSCategory,
-        Platform.MACOS: MacOSCategory
-    }
-    return categories[platform]
 
 
 async def get_user_requests_archive(user_id: int) -> list[Request]:
@@ -83,7 +72,7 @@ async def request_from_record(request: dict) -> Request:
 
     platform = Platform(raw_platform) if raw_platform else None
     if raw_platform and raw_category:
-        category = get_platform_categories(Platform(platform))(raw_category)
+        category = Category(raw_category)
     else:
         category = None
 

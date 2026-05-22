@@ -7,7 +7,7 @@ from aimods_bot.src.helpers.constants.constants import Platform, Category, Reque
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserManageRequestsRoute, \
     AdminManageRequestLimitationsUtils
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
@@ -38,7 +38,7 @@ async def _build_request_panel_preamble(
         category = request.category
         if not platform or not category:
             raise ValueError("Platform and category must not be None!")
-        ca_label = REQUESTS_LAYOUT_REGISTRY[platform][category].label
+        ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
         subtitle = f"{title} {platform.label} – {ca_label}"
     else:
         subtitle = title
@@ -141,7 +141,7 @@ async def render_admin_active_requests_category_selector_panel(
 ):
     text = _get_admin_active_requests_category_text(platform=platform)
 
-    categories = REQUESTS_LAYOUT_REGISTRY.get(platform, None)
+    categories = PLATFORM_CATEGORY_REGISTRY.get(platform, None)
     if not categories:
         raise ValueError(f"Platform {platform.value} not recognized!")
 
@@ -264,7 +264,7 @@ def _get_active_requests_category_text(
     lenr = len(requests)
 
     text = (f"{_get_header()}\n\n"
-            f"→ 📕 <i>Richieste Attive {platform.label} – {REQUESTS_LAYOUT_REGISTRY[platform][category].label}</i>\n\n"
+            f"→ 📕 <i>Richieste Attive {platform.label} – {PLATFORM_CATEGORY_REGISTRY[platform][category].label}</i>\n\n"
             f"👁‍🗨 Sezione – {f'🟢 Aperta (<i>{f'ancora {pluralize(
                 config.limit - lenr,
                 'richiesta',
@@ -773,7 +773,7 @@ def _get_user_request_status_changed_notification_text(request: Request):
         raise ValueError("Platform and category must not be None!")
 
     text = (f"🆙 <b>Aggiornamento Richiesta <code>{request.id}</code></b>\n\n"
-            f"▫ La tua richiesta (<b>{REQUESTS_LAYOUT_REGISTRY[platform][category].label} {platform.label}</b>) "
+            f"▫ La tua richiesta (<b>{PLATFORM_CATEGORY_REGISTRY[platform][category].label} {platform.label}</b>) "
             "ha appena ricevuto il suo <b>esito</b>!")
 
     return text
@@ -813,7 +813,7 @@ async def render_last_ten_requests_category_panel(
         base_path: PathBuilder,
         platform: Platform
 ):
-    cats = REQUESTS_LAYOUT_REGISTRY[platform]
+    cats = PLATFORM_CATEGORY_REGISTRY[platform]
     if len(cats) == 1:
         return await render_last_ten_requests_section_panel(
             update=update,
@@ -894,7 +894,7 @@ async def render_last_ten_requests_section_panel(
 
 
 async def _get_last_ten_requests_section_text(requests: list[Request], platform: Platform, category: Category) -> str:
-    ca_label = REQUESTS_LAYOUT_REGISTRY[platform][category].label
+    ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
     text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {platform.icon} {ca_label}\n\n"
     if len(requests) == 0:
         text += ("<blockquote>ℹ Nessuna richiesta ancora formulata per questa sezione.</blockquote>\n\n"

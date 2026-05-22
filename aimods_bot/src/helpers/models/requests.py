@@ -213,7 +213,7 @@ class CategoryConfig:
     model: type
 
 
-REQUESTS_LAYOUT_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
+PLATFORM_CATEGORY_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
     Platform.ANDROID: {
         Category.APP: CategoryConfig("App", "🤖", AndroidApp),
     },

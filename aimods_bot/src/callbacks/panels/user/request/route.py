@@ -19,7 +19,7 @@ from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS
 )
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
 log = logger.getChild(__name__)
@@ -73,7 +73,7 @@ async def requests_management_route(
 
                     match PathBuilder(*rest).segments:
                         case []:
-                            configs_cat = REQUESTS_LAYOUT_REGISTRY[platform]
+                            configs_cat = PLATFORM_CATEGORY_REGISTRY[platform]
                             if len(configs_cat) > 1:
                                 await render_user_request_category_panel(
                                     update=update,

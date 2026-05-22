@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serial
 from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CATEGORY_DETAILS
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 
 log = logger.getChild("pydantic")
 
@@ -370,5 +370,5 @@ class UserNotifications(BaseModel):
         if not self.section_opening_notifications:
             self.section_opening_notifications = {
                 platform: {category: False for category in categories}
-                for platform, categories in REQUESTS_LAYOUT_REGISTRY.items()
+                for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
             }

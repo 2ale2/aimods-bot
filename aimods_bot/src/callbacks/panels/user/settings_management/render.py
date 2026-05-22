@@ -4,7 +4,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import UserNotifications
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserManageSettingsRoute, GlobalAction
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
@@ -102,7 +102,7 @@ def _get_user_section_opening_notification_settings_text_keyboard(settings: User
 
     for platform in Platform:
         text += f"              {platform.icon} <b>{platform.label}</b>\n"
-        for cat, cat_conf in REQUESTS_LAYOUT_REGISTRY[platform].items():
+        for cat, cat_conf in PLATFORM_CATEGORY_REGISTRY[platform].items():
             text += (f"                   🔸 <i>{cat_conf.label}</i> – "
                      f"{'🔔' if current_settings[platform][cat] else '🔕'}\n")
             buttons.append(
@@ -143,7 +143,7 @@ async def render_section_opening_notification_disabled_panel(
 def _get_section_opening_notification_disabled_text(data: str):
     pl, ca = data.split(":")
     platform = Platform(pl)
-    category = REQUESTS_LAYOUT_REGISTRY[platform][Category(ca)]
+    category = PLATFORM_CATEGORY_REGISTRY[platform][Category(ca)]
 
     text = ("✅ <b>Notifiche Disattivate</b>\n\n"
             "▫ <b>Non riceverai più le notifiche</b> inerenti all'apertura "

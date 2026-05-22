@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
     EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
-from aimods_bot.src.helpers.models.requests import REQUESTS_LAYOUT_REGISTRY, FIELD_MESSAGES
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
@@ -87,7 +87,7 @@ async def render_user_request_category_panel(
             text=f"{config.icon} {config.label}",
             callback_key=cat_enum.value
         )
-        for cat_enum, config in REQUESTS_LAYOUT_REGISTRY[platform]
+        for cat_enum, config in PLATFORM_CATEGORY_REGISTRY[platform]
     ]
 
     await create_and_render_panel(
@@ -150,7 +150,7 @@ async def render_global_request_wizard_panel(
 
 def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
     draft = wizard.draft
-    cat_conf = REQUESTS_LAYOUT_REGISTRY[draft.platform][draft.category]
+    cat_conf = PLATFORM_CATEGORY_REGISTRY[draft.platform][draft.category]
 
     text = f"{draft.platform.icon} <b>Nuova Richiesta – {cat_conf.label}</b>\n\n"
 
