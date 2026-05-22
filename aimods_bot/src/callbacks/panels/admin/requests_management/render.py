@@ -11,9 +11,7 @@ from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
-                                                        get_request_details,
-                                                        get_platform_categories, get_last_n_requests)
+from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details, get_last_n_requests
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
@@ -146,7 +144,7 @@ async def render_admin_active_requests_category_selector_panel(
         raise ValueError(f"Platform {platform.value} not recognized!")
 
     if len(categories) == 1:
-        category = get_platform_categories(platform=platform)(next(iter(categories)))
+        category = next(iter(categories))
 
         return await render_admin_active_requests_category_panel(
             update=update,
@@ -190,7 +188,10 @@ async def render_admin_active_requests_category_panel(
 ):
     requests = context.get_active_category_requests(platform=platform, category=category)
 
-    categories = get_platform_categories(platform=platform)
+    categories = PLATFORM_CATEGORY_REGISTRY.get(platform)
+    if not categories:
+        raise ValueError(f"Platform {platform.value} not recognized!")
+
     if len(categories) > 1:
         back_button_callback_key = base_path.back()
     else:
@@ -438,7 +439,11 @@ async def render_request_status_changed_panel(
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
 
-    categories = get_platform_categories(platform=platform)
+    categories = PLATFORM_CATEGORY_REGISTRY.get(platform)
+
+    if not categories:
+        raise ValueError(f"Platform {platform.value} not supported!")
+
     if len(categories) > 1:
         back_callback_key = base_path.back()
     else:
@@ -864,7 +869,12 @@ async def render_last_ten_requests_section_panel(
     requests = await get_last_n_requests(n=10, platform=platform, category=category)
     text = await _get_last_ten_requests_section_text(requests=requests, platform=platform, category=category)
 
-    if len(get_platform_categories(platform)) > 1:
+    categories = PLATFORM_CATEGORY_REGISTRY.get(platform)
+
+    if not categories:
+        raise ValueError(f"Platform {platform.value} not supported!")
+
+    if len(categories) > 1:
         back_button_callback_data = base_path.back()
     else:
         back_button_callback_data = base_path.back(2)
