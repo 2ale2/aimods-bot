@@ -29,6 +29,9 @@ class BaseRequest(BaseModel):
     platform: Platform
     category: Category
 
+    name: str
+    version: str
+
     issued_at: datetime | None = None
     status: RequestStatus | None = None
 
@@ -66,9 +69,7 @@ class AndroidApp(BaseRequest):
     platform: Literal[Platform.ANDROID] = Platform.ANDROID
     category: Literal[Category.APP] = Category.APP
 
-    name: str
     link: UxHttpUrl
-    version: str
     features: str
 
     FLOW: ClassVar[list[RequestField]] = [
@@ -83,9 +84,7 @@ class WindowsSoftware(BaseRequest):
     platform: Literal[Platform.WINDOWS] = Platform.WINDOWS
     category: Literal[Category.SOFTWARE] = Category.SOFTWARE
 
-    name: str
     link: UxHttpUrl
-    version: str
     features: str
 
     FLOW: ClassVar[list[RequestField]] = [
@@ -100,9 +99,7 @@ class WindowsGame(BaseRequest):
     platform: Literal[Platform.WINDOWS] = Platform.WINDOWS
     category: Literal[Category.GAME] = Category.GAME
 
-    name: str
     link: UxHttpUrl
-    version: str
     features: str
     steamtools: bool
     hypervisor: bool
@@ -121,8 +118,6 @@ class WindowsAdobe(BaseRequest):
     platform: Literal[Platform.WINDOWS] = Platform.WINDOWS
     category: Literal[Category.ADOBE] = Category.ADOBE
 
-    name: str
-    version: str
     features: str
     arch_arm: bool
 
@@ -138,9 +133,7 @@ class WindowsDaw(BaseRequest):
     platform: Literal[Platform.WINDOWS] = Platform.WINDOWS
     category: Literal[Category.DAW] = Category.DAW
 
-    name: str
     link: UxHttpUrl
-    version: str
 
     FLOW: ClassVar[list[RequestField]] = [
         RequestField.NAME,
@@ -153,9 +146,7 @@ class IosApp(BaseRequest):
     platform: Literal[Platform.IOS] = Platform.IOS
     category: Literal[Category.APP] = Category.APP
 
-    name: str
     link: UxHttpUrl
-    version: str
     features: str
 
     FLOW: ClassVar[list[RequestField]] = [
@@ -170,9 +161,7 @@ class MacOsSoftware(BaseRequest):
     platform: Literal[Platform.MACOS] = Platform.MACOS
     category: Literal[Category.SOFTWARE] = Category.SOFTWARE
 
-    name: str
     link: UxHttpUrl
-    version: str
     features: str
     mac_os_version: str
     arch_arm: bool
@@ -191,9 +180,7 @@ class MacOsDaw(BaseRequest):
     platform: Literal[Platform.MACOS] = Platform.MACOS
     category: Literal[Category.DAW] = Category.DAW
 
-    name: str
     link: UxHttpUrl
-    version: str
     mac_os_version: str
     arch_arm: bool
 

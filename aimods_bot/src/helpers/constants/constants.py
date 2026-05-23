@@ -72,6 +72,13 @@ MODERATION_DISPLAY_ITEMS = {
 }
 
 
+class FieldFormat(StrEnum):
+    TEXT = "text"  # <i>valore</i>
+    CODE = "code"  # <code>valore</code>
+    LINK = "link"  # <a href="valore">🔗 Link</a>
+    BOOL = "bool"  # ✔️ / ✖️
+
+
 class Platform(StrEnum):
     ANDROID = "android"
     WINDOWS = "windows"
@@ -188,6 +195,18 @@ class RequestField(StrEnum):
                 return "Arch. ARM"
             case RequestField.MAC_OS_VERSION:
                 return "Versione MacOS"
+
+    @property
+    def format(self) -> FieldFormat:
+        match self:
+            case RequestField.NAME | RequestField.FEATURES:
+                return FieldFormat.TEXT
+            case RequestField.LINK:
+                return FieldFormat.LINK
+            case RequestField.VERSION | RequestField.MAC_OS_VERSION:
+                return FieldFormat.CODE
+            case RequestField.STEAMTOOLS | RequestField.HYPERVISOR | RequestField.ARCH_ARM:
+                return FieldFormat.BOOL
 
 
 class ChatType(StrEnum):
