@@ -7,11 +7,11 @@ from typing import List, Optional, Literal, Dict, Union, Any
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CATEGORY_DETAILS
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 
-log = logger.getChild("pydantic")
+log = logger.getChild(__name__)
 
 
 class PunishmentType(str, Enum):
@@ -349,13 +349,13 @@ class AdminNotifications(BaseModel):
     def model_post_init(self, __context):
         if not self.new_requests_notifications:
             self.new_requests_notifications = {
-                platform: {category: False for category in categories}
-                for platform, categories in CATEGORY_DETAILS.items()
+                platform: {category: False for category in categories.keys()}
+                for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
             }
         if not self.section_closing_notifications:
             self.section_closing_notifications = {
-                platform: {category: False for category in categories}
-                for platform, categories in CATEGORY_DETAILS.items()
+                platform: {category: False for category in categories.keys()}
+                for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
             }
 
 

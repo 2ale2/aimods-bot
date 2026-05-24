@@ -1,4 +1,4 @@
-import platform as platf
+import platform as pl
 from pathlib import Path
 from typing import Iterable, AsyncIterator, Any
 
@@ -109,7 +109,7 @@ def _render_field_value_latex(value: Any, fmt: FieldFormat) -> str:
 
 
 def render_requests_latex_header() -> str:
-    s = platf.system()
+    s = pl.system()
     if s == "Windows":
         font = "Segoe UI Emoji"
     else:
