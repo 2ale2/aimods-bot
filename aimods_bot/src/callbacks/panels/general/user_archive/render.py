@@ -11,8 +11,8 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Admin
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
-from aimods_bot.src.helpers.utils.request_utils import get_user_requests_archive, \
-    generate_user_archive_requests_pdf_file
+from aimods_bot.src.helpers.utils.request_utils import get_user_requests_archive
+from aimods_bot.src.helpers.utils.latex_utils import generate_user_archive_requests_pdf_file
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 
 

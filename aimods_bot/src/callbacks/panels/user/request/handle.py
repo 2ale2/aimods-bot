@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
-from aimods_bot.src.helpers.utils.request_utils import get_config
+from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
     send_section_closing_admin_notification
@@ -229,7 +229,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     platform = wizard.draft.platform
     category = wizard.draft.category
-    config = get_config(context, platform, category)
+    config = get_section_config(context, platform, category)
 
     if config and config.limit:
         active_requests = context.get_active_category_requests(platform=platform, category=category)

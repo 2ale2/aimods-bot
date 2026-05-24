@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Globa
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
-from aimods_bot.src.helpers.utils.request_utils import get_config
+from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 
@@ -84,7 +84,7 @@ async def render_admin_request_section_configure_category_panel(
         platform: Platform,
         category: Category
 ):
-    config = get_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, platform=platform, category=category)
 
     text = _get_admin_request_section_configure_category_text(config=config, platform=platform, category=category)
     toggle_text = f"{'📬 Apri' if not config.toggle else '📪 Chiudi'}"
@@ -155,7 +155,7 @@ def _get_admin_request_section_toggle_panel_text(
         category: Category,
         is_opening: bool
 ):
-    config = get_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, platform=platform, category=category)
 
     text = _get_header(subheader=f"  → <i>{'📬 Apertura' if is_opening else '📪 Chiusura'} Manuale</i>")
     text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if is_opening else 'chiudi'} questa sezione, "
@@ -255,7 +255,7 @@ async def render_admin_request_section_limit_panel(
 
 def _get_admin_request_section_limit_text(context: CustomContext, platform: Platform, category: Category):
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
-    config = get_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, platform=platform, category=category)
 
     return (
         f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
@@ -302,7 +302,7 @@ def _get_admin_request_section_limit_confirm_text(
         category: Category,
         limit: int
 ):
-    config = get_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, platform=platform, category=category)
     ca_item = CATEGORY_DETAILS[platform.value][category.value]
 
     r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"

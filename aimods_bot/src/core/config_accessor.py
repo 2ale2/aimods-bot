@@ -1,7 +1,6 @@
-import copy
-
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import Configuration
+from aimods_bot.src.core.pydantic import Configuration, CategorySetting
+from aimods_bot.src.helpers.constants.constants import Platform, Category
 
 
 def get_config(context: CustomContext) -> Configuration:
@@ -10,21 +9,27 @@ def get_config(context: CustomContext) -> Configuration:
 
 def get_value(context, path: str, default=None):
     """Ritorna una sezione della configurazione del bot o un valore specifico."""
-
     try:
         config = get_config(context)
-        keys = path.split(".")
-        for key in keys:
-            config = config[key]
+        for key in path.split("."):
+            config = getattr(config, key)
         return config
-    except KeyError:
+    except AttributeError:
         return default
 
 
 def set_value(context, path: str, value):
     config = get_config(context)
-    config_copy = copy.copy(config)
     keys = path.replace("/", ".").split(".")
+    obj = config
     for key in keys[:-1]:
-        config_copy = config_copy[key]
-    config_copy[keys[-1]] = value
+        obj = getattr(obj, key)
+    setattr(obj, keys[-1], value)
+
+
+def get_section_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
+    """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
+    return getattr(
+        getattr(context.pydb.configuration.settings.request, platform.value),
+        category.value
+    )

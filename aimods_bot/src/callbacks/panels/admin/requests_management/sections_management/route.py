@@ -16,7 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat
-from aimods_bot.src.helpers.utils.request_utils import get_config
+from aimods_bot.src.core.config_accessor import get_section_config
 
 
 async def route_admin_request_section_configure_selection(
@@ -79,7 +79,7 @@ async def admin_request_section_configure_route(
 
                 case [limit_str]:
                     limit = int(limit_str)
-                    config = get_config(context=context, platform=platform, category=category)
+                    config = get_section_config(context=context, platform=platform, category=category)
 
                     # Se il limite è identico o è "nessun limite" (0) ed era già None, ricarica il pannello
                     if config.limit == limit or (config.limit is None and limit == 0):

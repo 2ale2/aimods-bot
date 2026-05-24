@@ -6,7 +6,7 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Admin
     GlobalAction
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
-from aimods_bot.src.helpers.utils.request_utils import get_config
+from aimods_bot.src.core.config_accessor import get_section_config
 
 log = logger.getChild(__name__)
 
@@ -29,7 +29,7 @@ async def handle_request_section_toggle(
         action: GlobalAction
 ):
     is_opening = (action == "open")
-    config = get_config(context, platform, category)
+    config = get_section_config(context, platform, category)
 
     if is_opening and config.limit is not None:
         active_count = len(context.get_active_category_requests(platform=platform, category=category))
@@ -49,7 +49,7 @@ async def handle_request_section_limit(
         category: Category,
         limit: int
 ):
-    config = get_config(context, platform, category)
+    config = get_section_config(context, platform, category)
 
     config.limit = limit if limit != 0 else None
 
