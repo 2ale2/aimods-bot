@@ -1,30 +1,27 @@
-import copy
 import os
+from datetime import timedelta, datetime, timezone
 from typing import List
 
 from pydantic import ValidationError
-
-import aimods_bot.src.helpers.constants.constants as constants
-from datetime import timedelta, datetime, timezone
-from telegram.ext import Application, BaseHandler
 from pyrogram import Client
 from pyrogram.errors import RPCError
+from telegram.ext import Application, BaseHandler
 
-from aimods_bot.src.core.pydantic import Configuration, JobInfo, RequestConversationFlow, CommandConfig
+import aimods_bot.src.helpers.constants.constants as constants
+from aimods_bot.src.core.config_loader import load_configuration
 from aimods_bot.src.core.customcontext import BotData
+from aimods_bot.src.core.pydantic import Configuration, JobInfo, CommandConfig
 from aimods_bot.src.helpers.constants.constants import (
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK
 )
+from aimods_bot.src.helpers.job_queue import (scheduled_remove_user_request_section_limitation,
+                                              scheduled_remove_completed_requests)
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
-from aimods_bot.src.core.config_loader import load_configuration
-from aimods_bot.src.handlers.collect import all_handlers, active_handlers
-from aimods_bot.src.helpers.job_queue import (scheduled_remove_user_request_section_limitation,
-                                              scheduled_remove_completed_requests)
 
-log = logger.getChild("application_setup")
+log = logger.getChild(__name__)
 
 
 # noinspection PyUnresolvedReferences
@@ -76,26 +73,14 @@ async def set_application_data(application: Application):
         if not current_bot_data.hashtags or current_bot_data.hashtags != hashtags:
             current_bot_data.hashtags = hashtags
 
-        json_request_conversation_flows = await get_data_from_json("request_conversation_flows")
-        request_conversation_flows = {}
-        for pl in json_request_conversation_flows:
-            request_conversation_flows[pl] = {}
-            for ct in json_request_conversation_flows[pl]:
-                request_conversation_flows[pl][ct] = RequestConversationFlow(
-                    **json_request_conversation_flows[pl][ct]
-                )
-
         application.bot_data.base_path = None
 
         autorecap_job_name = "auto_recap"
         if current_bot_data.jobs:
             j = current_bot_data.jobs.get(autorecap_job_name, None)
-            if j and not j.executed:
-                execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
-                execution_time = execution_time.replace(tzinfo=timezone.utc)
-                if execution_time <= datetime.now(timezone.utc):
-                    await create_and_send_recaps(context=application)
-                    j.executed = True
+            if j and j.next_date and not j.executed and j.next_date <= datetime.now(timezone.utc):
+                await create_and_send_recaps(context=application)
+                j.executed = True
             del current_bot_data.jobs[autorecap_job_name]
 
         time_until_next_recap = get_time_until_next_recap()
@@ -111,64 +96,72 @@ async def set_application_data(application: Application):
         log.info(f"Next recap settled at {job.next_t}")
 
         current_bot_data.jobs[autorecap_job_name] = JobInfo(
-            next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+            next_date=job.next_t,
             executed=False
         )
 
-        new_jobs = copy.deepcopy(current_bot_data.jobs)
-        for job_item in current_bot_data.jobs:
-            if job_item.startswith("remove_inactive_request"):
-                del new_jobs[job_item]
-                j = current_bot_data.jobs.get(job_item, None)
-                if j and not j.executed:
-                    execution_time = datetime.strptime(j.next_date, "%d_%m_%Y_%H_%M_%S")
-                    execution_time = execution_time.replace(tzinfo=timezone.utc)
-                    ix = job_item.split(":")[1]
-                    if execution_time <= datetime.now(timezone.utc):
-                        current_bot_data.active_requests.pop(int(ix), None)
-                    else:
-                        application.job_queue.run_once(
-                            callback=scheduled_remove_completed_requests,
-                            when=execution_time,
-                            data={"ix": ix},
-                            name=job_item
-                        )
-                        new_jobs[job_item] = JobInfo(
-                            next_date=j.next_date,
-                            executed=False
-                        )
+        new_jobs = {}
+        for job_item, j in current_bot_data.jobs.items():
+            if not job_item.startswith("remove_inactive_request"):
+                new_jobs[job_item] = j
+                continue
+
+            if not j or j.executed or not j.next_date:
+                continue
+
+            ix = job_item.split(":")[1]
+            if j.next_date <= datetime.now(timezone.utc):
+                current_bot_data.active_requests.pop(int(ix), None)
+                continue
+
+            application.job_queue.run_once(
+                callback=scheduled_remove_completed_requests,
+                when=j.next_date,
+                data={"ix": ix},
+                name=job_item,
+            )
+            new_jobs[job_item] = j
+
         current_bot_data.jobs = new_jobs
 
-        new_jobs = copy.deepcopy(current_bot_data.jobs)
-        for job_item in current_bot_data.jobs:
-            if job_item.startswith("request_limit"):
-                del new_jobs[job_item]
-                j = current_bot_data.jobs.get(job_item, None)
-                if j and not j.executed:
-                    details = job_item.split(":")[1:]
-                    user_id, section = details[0], details[1]
-                    user_data = current_bot_data.user_limitations.get(int(user_id), None)
-                    if not user_data or not user_data.requests:
-                        continue
-                    n_ul = []
-                    for limitation in user_data.requests:
-                        if limitation.until is not None and limitation.until < datetime.now(timezone.utc):
-                            continue
-                        log.debug(f"Rescheduling limitation {job_item} "
-                                  f"({limitation.until.strftime("%d_%m_%Y_%H_%M_%S")}")
-                        application.job_queue.run_once(
-                            callback=scheduled_remove_user_request_section_limitation,
-                            when=limitation.until,
-                            data={"user_id": user_id, "section": section},
-                            name=job_item
-                        )
-                        new_jobs[job_item] = JobInfo(
-                            next_date=limitation.until.strftime("%d_%m_%Y_%H_%M_%S"),
-                            executed=False
-                        )
-                        n_ul.append(limitation)
-                    user_data.requests = n_ul
-                    current_bot_data.user_limitations[int(user_id)] = user_data
+        new_jobs = {}
+        now = datetime.now(timezone.utc)
+        for job_item, j in current_bot_data.jobs.items():
+            if not job_item.startswith("request_limit"):
+                new_jobs[job_item] = j
+                continue
+
+            if not j or j.executed:
+                continue
+
+            _, user_id_str, section = job_item.split(":", 2)
+            user_id = int(user_id_str)
+            user_data = current_bot_data.user_limitations.get(user_id)
+            if not user_data or not user_data.requests:
+                continue
+
+            active_limitations = []
+            for limitation in user_data.requests:
+                # Limitation permanente: tieni ma non rischedulare
+                if limitation.until is None:
+                    active_limitations.append(limitation)
+                    continue
+
+                if limitation.until < now:
+                    continue
+
+                log.debug(f"Rescheduling limitation {job_item} ({limitation.until.isoformat()})")
+                application.job_queue.run_once(
+                    callback=scheduled_remove_user_request_section_limitation,
+                    when=limitation.until,
+                    data={"user_id": user_id, "section": section},
+                    name=job_item,
+                )
+                new_jobs[job_item] = JobInfo(next_date=limitation.until, executed=False)
+                active_limitations.append(limitation)
+
+            user_data.requests = active_limitations
+
         current_bot_data.jobs = new_jobs
 
         try:
@@ -182,8 +175,7 @@ async def set_application_data(application: Application):
             log.error(f"Failed to initialize Pyrogram client: {e}")
             raise
 
-        _pyro_instance = pyro_inst
-        constants.pyro_instance = _pyro_instance
+        constants.pyro_instance = pyro_inst
         await constants.pyro_instance.start()
 
         r = await get_data_from_json("restarting")

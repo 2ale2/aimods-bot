@@ -6,8 +6,7 @@ from typing import List, Optional, Literal, Dict, Union, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, Arch, RequestStatus, RequestField, \
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.constants.constants import Platform, Category, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 
@@ -22,7 +21,7 @@ class PunishmentType(str, Enum):
 
 
 class JobInfo(BaseModel):
-    next_date: str = Field(default_factory=str)
+    next_date: datetime | None = None
     executed: bool = Field(default=False)
     returned_value: Optional[Any] = Field(default=None)
 
@@ -84,7 +83,11 @@ class RequestConfig(BaseModel):
     windows: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
     ios: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
     macos: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
-    cancel_timer: int = Field(default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, ge=0, description="Timer for cancelling requests")
+    cancel_timer: int = Field(
+        default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
+        ge=0,
+        description="Timer for cancelling requests"
+    )
     cooldown: timedelta = Field(default_factory=lambda: timedelta(days=7))
 
     @field_validator("cooldown", mode="before")
@@ -239,40 +242,9 @@ class CommandConfig(BaseModel):
     parameters: List[Literal["mention", "permissions", "duration", "message"]] = []
 
 
-class Architecture(BaseModel):
-    arch: Arch = None
-
-    @property
-    def arm_bool(self) -> bool:
-        return self.arch in (Arch.ARM, Arch.ARM_64)
-
-
-class RequestConversationFlow(BaseModel):
-    flow: List[Literal["name", "link", "version", "functionalities", "steamtools", "arch"]]
-    back_data: List[
-        Literal[
-            "back_main",
-            "back_category",
-            "back_name",
-            "back_link",
-            "back_version",
-            "back_functionalities",
-            "back_arch",
-            "back_steamtools"
-        ]
-    ]
-
-
-class RequestConversationFlowsConfig(BaseModel):
-    android: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
-    windows: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
-    ios: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
-    macos: Dict[Category, RequestConversationFlow] = Field(default_factory=dict)
-
-
 class RequestCooldown(BaseModel):
     user_id: int = Field(default_factory=int)
-    until: datetime = Field(default_factory=lambda: datetime.now() + timedelta(days=7))
+    until: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))
 
 
 class RequestSectionLimitation(BaseModel):
@@ -280,8 +252,8 @@ class RequestSectionLimitation(BaseModel):
     category: Category
     until: Optional[datetime] = None
     reasons: list[str] = Field(default_factory=list)
-    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: int = 0
     updated_by: int = 0
 
@@ -294,45 +266,6 @@ class RequestSectionLimitation(BaseModel):
 class UserLimitations(BaseModel):
     user_id: Union[int, str] = Field(default_factory=str)
     requests: Optional[list[RequestSectionLimitation]] = Field(default_factory=list)
-
-
-class Request(BaseModel):
-    id: Optional[int] = 0
-    user_id: Optional[int] = 0
-    status: RequestStatus = RequestStatus.PENDING
-    issued_at: str = ""
-    platform: Optional[Platform] = None
-    category: Optional[Category] = None
-    name: str = ""
-    arch: Optional[Architecture] = None
-    version: str = ""
-    link: str = ""
-    functionalities: str = ""
-    steamtools: Optional[bool] = None
-    requesting: Optional[RequestField] = None
-    editing: Optional[RequestField] = None
-    rejection_reason: Optional[str] = Field(default_factory=str)
-    status_change_notifications: bool = True
-
-    @property
-    def is_active(self):
-        return self.status not in (RequestStatus.CANCELLED, RequestStatus.COMPLETED, RequestStatus.REJECTED)
-
-    def can_be_cancelled(self, cancel_time_sec: int):
-        if self.status != RequestStatus.PENDING:
-            return False
-        issued_datetime = datetime.fromisoformat(self.issued_at)
-        if issued_datetime.tzinfo is None:
-            issued_datetime = issued_datetime.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - issued_datetime).total_seconds() < cancel_time_sec
-
-    def edit_status(self, status: RequestStatus, rejection_reason: Optional[str] = None):
-        if status == RequestStatus.REJECTED:
-            if not rejection_reason:
-                log.warning("A rejection reason should bt not provided.")
-            else:
-                self.rejection_reason = rejection_reason
-        self.status = status
 
 
 class AdminNotifications(BaseModel):

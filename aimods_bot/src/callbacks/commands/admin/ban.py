@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
 
-log = logger.getChild("ban_command")
+log = logger.getChild(__name__)
 
 
 ERROR_MESSAGES = {
