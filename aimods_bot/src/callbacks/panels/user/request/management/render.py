@@ -1,14 +1,13 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserManageRequestsRoute, UserRoute, \
     GlobalAction
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.utils.request_utils import (get_requests_summary,
-                                                        get_request_details)
+from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 
 log = logger.getChild(__name__)
@@ -67,7 +66,7 @@ async def render_user_manage_active_requests_panel(
     )
 
 
-def _get_user_manage_active_requests_main_panel(requests: dict[int, Request]) -> str:
+def _get_user_manage_active_requests_main_panel(requests: dict[int, BaseRequest]) -> str:
     text = "👁‍🗨 <b>Gestione Richieste Attive</b>"
 
     if not requests:
@@ -85,7 +84,7 @@ def _get_user_manage_active_requests_main_panel(requests: dict[int, Request]) ->
 
 async def _get_user_manage_requests_main_panel_keyboard(
         base_path: PathBuilder,
-        requests: dict[int, Request]
+        requests: dict[int, BaseRequest]
 ) -> list[list[ButtonItem]]:
     if len(requests):
         keyboard = [[]]
@@ -105,7 +104,7 @@ async def render_manage_selected_request_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        request: Request
+        request: BaseRequest
 ):
     text = await _get_manage_selected_request_text(request=request)
 
@@ -145,12 +144,12 @@ async def render_manage_selected_request_panel(
     )
 
 
-async def _get_manage_selected_request_text(request: Request) -> str:
+async def _get_manage_selected_request_text(request: BaseRequest) -> str:
     text = (f"👁‍🗨 <b>Gestione Richieste Attive</b>"
             "\n\n→ 📋 <b>Informazioni</b>\n\n"
             "▫️ Ecco i dettagli della richiesta.\n\n")
 
-    text += await get_request_details(request=request)
+    text += get_request_details(request=request)
     text += "\n\n🔹 Scegli un'opzione."
 
     return text
@@ -160,7 +159,7 @@ async def render_confirm_cancel_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        request: Request
+        request: BaseRequest
 ):
     timer_sec = context.pydb.configuration.settings.request.cancel_timer
     if request.can_be_cancelled(timer_sec):
@@ -187,8 +186,8 @@ async def render_confirm_cancel_panel(
     )
 
 
-async def _get_confirm_cancel_text(request: Request) -> str:
-    details_text = await get_request_details(request=request)
+async def _get_confirm_cancel_text(request: BaseRequest) -> str:
+    details_text = get_request_details(request=request)
     text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
             "→ 🗑 <b>Cancellazione</b>\n\n")
     text += details_text

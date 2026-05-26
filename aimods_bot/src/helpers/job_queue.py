@@ -356,12 +356,19 @@ async def scheduled_remove_user_request_section_limitation(context: CustomContex
 # ========== JOB: SECTIONS MANAGEMENT ==========
 
 async def scheduled_section_opening_check_for_user_notification(context: CustomContext):
-    section = context.job.data["section"]
-    try:
-        pl, ca = section.split(":")
-    except ValueError:
-        log.error(f"Formato sezione non valido: {section}")
-        return
+    if not context.job:
+        raise ValueError("Job must not be None!")
 
-    if context.is_request_section_open(platform=pl, category=ca):
-        await send_opening_notifications(context=context, section=section)
+    if not context.job.data:
+        raise ValueError("Job data must not be None!")
+
+    if not isinstance(context.job.data, dict):
+        raise ValueError("Job data must be a dict!")
+
+    if any(dict_item not in context.job.data for dict_item in ("platform", "category")):
+        raise ValueError("Missing platform or category in job data!")
+
+    platform, category = context.job.data["platform"], context.job.data["category"]
+
+    if context.is_request_section_open(platform=platform, category=category):
+        await send_opening_notifications(context=context, platform=platform, category=category)

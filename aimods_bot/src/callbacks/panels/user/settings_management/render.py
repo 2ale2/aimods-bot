@@ -113,8 +113,8 @@ def _get_user_section_opening_notification_settings_text_keyboard(settings: User
 
     keyboard = chunk_buttons(buttons=buttons, size=4)
 
-    text += ("\n🔹 Riceverai <b>una notifica</b> ogni volta che una <b>sezione per le richieste</b> contrassegnata con "
-             "una campanella <b>viene aperta</b>.")
+    text += ("\n🔹 Riceverai <b>una notifica</b> ogni volta che una <b>sezione per le richieste</b> "
+             "contrassegnata con una campanella <b>viene aperta</b>.")
 
     keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=base_path.back())])
 
@@ -125,9 +125,10 @@ async def render_section_opening_notification_disabled_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        data: str
+        platform: Platform,
+        category: Category
 ):
-    text = _get_section_opening_notification_disabled_text(data=data)
+    text = _get_section_opening_notification_disabled_text(platform=platform, category=category)
 
     await create_and_render_panel(
         update=update,
@@ -140,10 +141,8 @@ async def render_section_opening_notification_disabled_panel(
     )
 
 
-def _get_section_opening_notification_disabled_text(data: str):
-    pl, ca = data.split(":")
-    platform = Platform(pl)
-    category = PLATFORM_CATEGORY_REGISTRY[platform][Category(ca)]
+def _get_section_opening_notification_disabled_text(platform: Platform, category: Category):
+    category = PLATFORM_CATEGORY_REGISTRY[platform][category]
 
     text = ("✅ <b>Notifiche Disattivate</b>\n\n"
             "▫ <b>Non riceverai più le notifiche</b> inerenti all'apertura "

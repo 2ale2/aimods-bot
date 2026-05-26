@@ -17,11 +17,10 @@ from telegram.ext import CallbackContext, ExtBot, Application
 from telegram import User as PTBUser, ChatMember as PTBChatMember
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
-from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, Request, CommandConfig, \
-    RequestConversationFlowsConfig, UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, \
-    UserNotifications, CategorySetting
+from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
+    UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    CATEGORY_DETAILS, Platform, Category, RequestField
+    Platform, Category, RequestField
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
@@ -57,8 +56,8 @@ class AdminLimitingUserRequests(BaseModel):
     def model_post_init(self, __context):
         if not self.sections:
             self.sections = {
-                platform: {category: False for category in categories}
-                for platform, categories in CATEGORY_DETAILS.items()
+                platform: {category: False for category in categories.keys()}
+                for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
             }
 
 
@@ -122,7 +121,7 @@ class ChatDataEphemeral(BaseModel):
         description="Memory space to keep which action the user is performing"
     )
     # ======== Admins ========
-    working_request: Optional[Request] = Field(
+    working_request: Optional[BaseRequest] = Field(
         default=None,
         description="Request that has been selected for rejection from admin (allows to write personalized reason)."
     )
@@ -160,8 +159,7 @@ class BotData(BaseModel):
     channel_join_link: str = ""
     group_join_link: str = "https://example.com"
 
-    request_conversations_flows: RequestConversationFlowsConfig = Field(default_factory=RequestConversationFlowsConfig)
-    active_requests: Dict[int, Request] = Field(default_factory=dict)
+    active_requests: Dict[int, BaseRequest] = Field(default_factory=dict)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     restart: RestartData = Field(default_factory=RestartData)
 

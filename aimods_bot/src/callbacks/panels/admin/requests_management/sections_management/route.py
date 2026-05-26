@@ -140,7 +140,9 @@ async def admin_request_section_configure_route(
 
                     if action == GlobalAction.OPEN:
                         await schedule_section_opening_check_for_user_notification(
-                            context=context, section=f"{platform.value}:{category.value}"
+                            context=context,
+                            platform=platform,
+                            category=category
                         )
 
                     await render_admin_request_section_toggled_panel(

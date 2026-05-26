@@ -3,6 +3,7 @@ from typing import Optional, Any, Callable
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import JobInfo
+from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_request_cooldown, scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.loggers import logger
@@ -23,6 +24,9 @@ def _schedule_unique_job(
     """
     Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo.
     """
+    if context.job_queue is None:
+        raise ValueError("Job Queue must not be None!")
+
     current_jobs = context.job_queue.get_jobs_by_name(job_name)
     for j in current_jobs:
         j.schedule_removal()
@@ -57,7 +61,7 @@ async def schedule_request_limitation_deletion(
     )
 
     context.pydb.jobs[job_name] = JobInfo(
-        next_date=until_utc.isoformat(),
+        next_date=until_utc,
         executed=False
     )
 
@@ -77,18 +81,22 @@ async def schedule_request_cooldown_removal(context: CustomContext, user_id: int
     )
 
     context.pydb.jobs[job_name] = JobInfo(
-        next_date=until_utc.isoformat(),
+        next_date=until_utc,
         executed=False
     )
 
 
-async def schedule_section_opening_check_for_user_notification(context: CustomContext, section: str):
-    job_name = f"delayed_section_opening_check:{section}"
+async def schedule_section_opening_check_for_user_notification(
+        context: CustomContext,
+        platform: Platform,
+        category: Category
+):
+    job_name = f"delayed_section_opening_check:{platform.value}:{category.value}"
 
     _schedule_unique_job(
         context=context,
         job_name=job_name,
         callback=scheduled_section_opening_check_for_user_notification,
         when=10,
-        data={"section": section}
+        data={"platform": platform, "category": category}
     )
