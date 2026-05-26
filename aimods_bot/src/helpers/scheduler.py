@@ -7,6 +7,8 @@ from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_request_cooldown, scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.job_names import RequestLimitJobName, RequestCooldownJobName, \
+    DelayedSectionOpeningJobName
 from aimods_bot.src.helpers.utils.time_utils import ensure_utc
 
 log = logger.getChild(__name__)
@@ -43,14 +45,15 @@ def _schedule_unique_job(
 async def schedule_request_limitation_deletion(
         context: CustomContext,
         user_id: int,
-        section: str,
+        platform: Platform,
+        category: Category,
         until: Optional[datetime]
 ):
     if until is None:
         return
 
     until_utc = ensure_utc(until)
-    job_name = f"request_limit:{user_id}:{section}"
+    job_name = str(RequestLimitJobName(user_id=user_id, platform=platform, category=category))
 
     _schedule_unique_job(
         context=context,
@@ -70,7 +73,7 @@ async def schedule_request_limitation_deletion(
 
 async def schedule_request_cooldown_removal(context: CustomContext, user_id: int, until: datetime):
     until_utc = ensure_utc(until)
-    job_name = f"request_cooldown:{user_id}"
+    job_name = str(RequestCooldownJobName(user_id=user_id))
 
     _schedule_unique_job(
         context=context,
@@ -91,7 +94,7 @@ async def schedule_section_opening_check_for_user_notification(
         platform: Platform,
         category: Category
 ):
-    job_name = f"delayed_section_opening_check:{platform.value}:{category.value}"
+    job_name = DelayedSectionOpeningJobName(platform=platform, category=category)
 
     _schedule_unique_job(
         context=context,

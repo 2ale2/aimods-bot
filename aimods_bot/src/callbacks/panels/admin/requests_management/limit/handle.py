@@ -114,9 +114,9 @@ async def handle_limitation_confirmation(
     current_limitations = context.get_user_request_limitations(user_id=user_id)
 
     if current_limitations:
-        new_map = {el.section: {"until": el.until, "reason": el.reasons} for el in new_limitations}
+        new_map = {(el.platform, el.category): {"until": el.until, "reason": el.reasons} for el in new_limitations}
         current_map = {
-            el.section: {"until": el.until, "reason": el.reasons, "updated": False} for el in current_limitations
+            (el.platform, el.category): {"until": el.until, "reason": el.reasons, "updated": False} for el in current_limitations
         }
         for section in new_map:
             if section in current_map:
@@ -183,11 +183,12 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
         until = None
 
     limitations = []
-    for pl in sections:
-        for ca in sections[pl]:
-            if sections[pl][ca]:
+    for platform in sections:
+        for category in sections[platform]:
+            if sections[platform][category]:
                 limitations.append(RequestSectionLimitation(
-                    section=f"{pl}:{ca}",
+                    platform=platform,
+                    category=category,
                     until=until,
                     reasons=[reason],
                     created_by=update.effective_user.id,

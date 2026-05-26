@@ -18,7 +18,6 @@ def prepend_https(value: Any) -> Any:
             return f"https://{value}"
     return value
 
-
 UxHttpUrl = Annotated[HttpUrl, BeforeValidator(prepend_https)]
 
 
