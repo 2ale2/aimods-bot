@@ -9,6 +9,7 @@ from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRe
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
     AdminManageRequestLimitationsRoute
+from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
@@ -106,65 +107,66 @@ async def handle_limitation_confirmation(
         update: Update,
         context: CustomContext,
         user_id: int,
-        reason: str
+        reason: str,
 ):
     await handle_limitation_reason(update=update, context=context, reason=reason)
 
     new_limitations = get_request_limitations(update=update, context=context)
-    current_limitations = context.get_user_request_limitations(user_id=user_id)
+    current_limitations = context.get_user_request_limitations(user_id=user_id) or []
 
-    if current_limitations:
-        new_map = {(el.platform, el.category): {"until": el.until, "reason": el.reasons} for el in new_limitations}
-        current_map = {
-            (el.platform, el.category): {"until": el.until, "reason": el.reasons, "updated": False} for el in current_limitations
-        }
-        for section in new_map:
-            if section in current_map:
-                nu = new_map[section]["until"]
-                cu = current_map[section]["until"]
-                if nu is None or cu is None:
-                    current_map[section]["until"] = None
-                else:
-                    current_map[section]["until"] = cu + (nu - datetime.now(timezone.utc))
-                current_map[section]["reason"].extend(new_map[section]["reason"])
-                current_map[section]["updated"] = True
-            else:
-                current_map[section] = {
-                    "until": new_map[section]["until"],
-                    "reason": new_map[section]["reason"]
-                }
+    admin_id = update.effective_user.id
+    now = datetime.now(timezone.utc)
 
-        total_limitations = []
-        for l in current_limitations:
-            map_item = current_map[l.section]
-            updated = current_map[l.section]["updated"]
-            total_limitations.append(RequestSectionLimitation(
-                section=l.section,
-                until=map_item["until"],
-                reasons=map_item["reason"],
-                created_by=l.created_by if updated else update.effective_user.id,
-                created_at=l.created_at if updated else None,  # default: now(utc)
-                updated_by=update.effective_user.id,
-                updated_at=None  # default: now(utc)
-            ))
-    else:
-        total_limitations = new_limitations
+    current_by_section = {(l.platform, l.category): l for l in current_limitations}
+    new_by_section = {(l.platform, l.category): l for l in new_limitations}
 
-    jobs = context.job_queue.get_jobs_by_name(rf"^request_limit:{user_id}:[^:\s]+$")
+    merged: list[RequestSectionLimitation] = []
 
-    for job in jobs:
+    for key, existing in current_by_section.items():
+        new = new_by_section.get(key)
+
+        if new is None:
+            merged.append(existing)
+            continue
+
+        if existing.until is None or new.until is None:
+            merged_until = None
+        else:
+            merged_until = existing.until + (new.until - now)
+
+        merged.append(RequestSectionLimitation(
+            platform=existing.platform,
+            category=existing.category,
+            until=merged_until,
+            reasons=[*existing.reasons, *new.reasons],
+            created_by=existing.created_by,
+            created_at=existing.created_at,
+            updated_by=admin_id,
+        ))
+
+    for key, new in new_by_section.items():
+        if key not in current_by_section:
+            merged.append(new)
+
+    for job in filter_jobs_by_kind(
+        context.job_queue,
+        RequestLimitJobName,
+        lambda n: n.user_id == user_id,
+    ):
         job.schedule_removal()
 
-    for limitation in total_limitations:
-        if limitation.until is not None:
-            await schedule_request_limitation_deletion(
-                context=context,
-                user_id=user_id,
-                section=limitation.section,
-                until=limitation.until
-            )
+    for limitation in merged:
+        if limitation.until is None:
+            continue
+        await schedule_request_limitation_deletion(
+            context=context,
+            user_id=user_id,
+            platform=limitation.platform,
+            category=limitation.category,
+            until=limitation.until,
+        )
 
-    context.set_user_request_limitations(user_id=user_id, limitations=total_limitations)
+    context.set_user_request_limitations(user_id=user_id, limitations=merged)
 
 
 async def handle_limitation_reason(update: Update, context: CustomContext, reason: str):

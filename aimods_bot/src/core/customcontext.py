@@ -24,6 +24,7 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RI
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
+from aimods_bot.src.helpers.models.section import RequestSection
 
 log = logger.getChild("custom_context")
 
@@ -47,7 +48,7 @@ class AdminLimitingUserRequests(BaseModel):
     user_id: int = Field(default_factory=int, description="User ID of the user to be limited")
     username: Optional[str] = Field(default=None, description="Username of the user to be limited")
     duration: int = Field(default_factory=int, description="Limit duration in seconds (0 if unlimited)")
-    sections: Dict[str, Dict[str, bool]] = Field(
+    sections: Dict[RequestSection, bool] = Field(
         default_factory=dict,
         description="Sections to be limited (True if limited)"
     )
@@ -56,8 +57,9 @@ class AdminLimitingUserRequests(BaseModel):
     def model_post_init(self, __context):
         if not self.sections:
             self.sections = {
-                platform: {category: False for category in categories.keys()}
-                for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
+                RequestSection(platform=pl, category=ca): False
+                for pl, categories in PLATFORM_CATEGORY_REGISTRY.items()
+                for ca in categories
             }
 
 
@@ -261,14 +263,13 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def get_active_category_requests(
             self,
-            platform: Platform,
-            category: Category,
+            section: RequestSection,
             from_user: Optional[bool] = False
     ) -> dict[int, Request]:
         active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in active_requests.items()
-            if r.platform == platform and category == r.category
+            if r.platform == section.platform and category == section.category
         }
 
     def get_user_active_category_requests(

@@ -196,7 +196,7 @@ class MacOsDaw(BaseRequest):
 class CategoryConfig:
     label: str
     icon: str
-    model: type
+    model: type[BaseRequest]
 
 
 PLATFORM_CATEGORY_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
