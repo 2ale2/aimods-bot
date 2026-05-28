@@ -13,9 +13,9 @@ from aimods_bot.src.helpers.constants.conversation_paths.navigation import Globa
     AdminManageRequestLimitationsUtils
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
-from aimods_bot.src.helpers.utils.telegram_utils import resolve_pl_cat
 from aimods_bot.src.core.config_accessor import get_section_config
 
 
@@ -29,19 +29,17 @@ async def route_admin_request_section_configure_selection(
         case []:
             await render_admin_request_section_configure_panel(update=update, context=context, base_path=root)
 
-        case [pl_str]:
+        case [platform] if platform in Platform:
             await render_admin_request_section_configure_platform_panel(
-                update=update, context=context, platform=Platform(pl_str), base_path=root.add(pl_str)
+                update=update, context=context, platform=platform, base_path=root.add(platform)
             )
 
-        case [pl_str, cat_str, *rest]:
-            pl, cat = resolve_pl_cat(pl_str, cat_str)
+        case [platform, category, *rest] if platform in Platform and category in Category:
             await admin_request_section_configure_route(
                 update=update,
                 context=context,
-                platform=pl,
-                category=cat,
-                root=root.add(pl_str, cat_str),
+                section=RequestSection(platform=platform, category=category),
+                root=root.add(platform, category),
                 relative_path=PathBuilder(*rest)
             )
 
@@ -53,16 +51,14 @@ async def admin_request_section_configure_route(
         context: CustomContext,
         root: PathBuilder,
         relative_path: PathBuilder,
-        platform: Platform,
-        category: Category
+        section: RequestSection
 ):
     match relative_path.segments:
         case []:
             await render_admin_request_section_configure_category_panel(
                 update=update,
                 context=context,
-                platform=platform,
-                category=category,
+                section=section,
                 base_path=root
             )
 
@@ -72,14 +68,13 @@ async def admin_request_section_configure_route(
                     await render_admin_request_section_limit_panel(
                         update=update,
                         context=context,
-                        platform=platform,
-                        category=category,
+                        section=section,
                         base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT)
                     )
 
                 case [limit_str]:
                     limit = int(limit_str)
-                    config = get_section_config(context=context, platform=platform, category=category)
+                    config = get_section_config(context=context, section=section)
 
                     # Se il limite è identico o è "nessun limite" (0) ed era già None, ricarica il pannello
                     if config.limit == limit or (config.limit is None and limit == 0):
@@ -87,16 +82,14 @@ async def admin_request_section_configure_route(
                             update=update,
                             context=context,
                             base_path=root,
-                            platform=platform,
-                            category=category
+                            section=section
                         )
                     else:
                         await render_admin_request_section_limit_confirm_panel(
                             update=update,
                             context=context,
                             base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT, limit_str),
-                            platform=platform,
-                            category=category,
+                            section=section,
                             limit=limit
                         )
 
@@ -105,16 +98,14 @@ async def admin_request_section_configure_route(
 
                     await handle_request_section_limit(
                         context=context,
-                        platform=platform,
-                        category=category,
+                        section=section,
                         limit=limit
                     )
                     await render_admin_request_section_limit_confirmed_panel(
                         update=update,
                         context=context,
                         base_path=root.add(limit_str),
-                        platform=platform,
-                        category=category,
+                        section=section,
                         limit=limit
                     )
 
@@ -125,31 +116,27 @@ async def admin_request_section_configure_route(
                         update=update,
                         context=context,
                         base_path=root.add(action),
-                        platform=platform,
-                        category=category,
+                        section=section,
                         action=action
                     )
 
                 case [GlobalAction.YES]:
                     await handle_request_section_toggle(
                         context=context,
-                        platform=platform,
-                        category=category,
+                        section=section,
                         action=action
                     )
 
                     if action == GlobalAction.OPEN:
                         await schedule_section_opening_check_for_user_notification(
                             context=context,
-                            platform=platform,
-                            category=category
+                            section=section
                         )
 
                     await render_admin_request_section_toggled_panel(
                         update=update,
                         context=context,
                         base_path=root.add(action),
-                        platform=platform,
-                        category=category,
+                        section=section,
                         action=action
                     )

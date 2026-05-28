@@ -3,7 +3,7 @@ from typing import Annotated, Literal, Optional, Union, Callable
 from pydantic import BaseModel, Field, ValidationError
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-
+from aimods_bot.src.helpers.models.request_section import RequestSection
 
 _SEPARATOR = ":"
 
@@ -45,15 +45,14 @@ class RemoveInactiveRequestJobName(_BaseJobName):
 class RequestLimitJobName(_BaseJobName):
     name: Literal[JobKind.REQUEST_LIMIT] = JobKind.REQUEST_LIMIT
     user_id: int
-    platform: Platform
-    category: Category
+    section: RequestSection
 
     def to_string(self) -> str:
         return _SEPARATOR.join([
             self.name.value,
             str(self.user_id),
-            self.platform.value,
-            self.category.value,
+            self.section.platform.value,
+            self.section.category.value,
         ])
 
 
@@ -67,8 +66,7 @@ class RequestCooldownJobName(_BaseJobName):
 
 class DelayedSectionOpeningJobName(_BaseJobName):
     name: Literal[JobKind.DELAYED_SECTION_OPENING_CHECK] = JobKind.DELAYED_SECTION_OPENING_CHECK
-    platform: Platform
-    category: Category
+    section: RequestSection
 
     def to_string(self) -> str:
         return _SEPARATOR.join([
