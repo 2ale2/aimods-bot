@@ -3,7 +3,7 @@ from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestStatus, RejectRequestReason
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserManageRequestsRoute, \
     AdminManageRequestLimitationsUtils
@@ -825,8 +825,7 @@ async def render_last_ten_requests_category_panel(
         return await render_last_ten_requests_section_panel(
             update=update,
             context=context,
-            platform=platform,
-            category=next(iter(cats)),
+            section=RequestSection(platform=platform, category=next(iter(cats))),
             base_path=base_path
         )
 
@@ -861,20 +860,21 @@ async def render_last_ten_requests_section_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category
+        section: RequestSection
 ):
     await context.bot.send_chat_action(
         chat_id=update.effective_message.chat_id,
         action=ChatAction.TYPING
     )
-    requests = await get_last_n_requests(n=10, platform=platform, category=category)
-    text = await _get_last_ten_requests_section_text(requests=requests, platform=platform, category=category)
 
-    categories = PLATFORM_CATEGORY_REGISTRY.get(platform)
+    requests = await get_last_n_requests(n=10, platform=section.platform, category=section.category)
+    text = await _get_last_ten_requests_section_text(requests=requests, section=section)
+
+    categories = PLATFORM_CATEGORY_REGISTRY.get(section.platform)
 
     if not categories:
-        raise ValueError(f"Platform {platform.value} not supported!")
+        # RequestSection è valida quindi se succede PLATFORM_CATEGORY_REGISTRY non è completo
+        raise ValueError(f"Platform {section.platform.value} not supported!")
 
     if len(categories) > 1:
         back_button_callback_data = base_path.back()
@@ -905,9 +905,9 @@ async def render_last_ten_requests_section_panel(
     )
 
 
-async def _get_last_ten_requests_section_text(requests: list[BaseRequest], platform: Platform, category: Category) -> str:
-    ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
-    text = _get_header() + f"\n\n      → 🔟 <i>Ultime 10 Richieste</i> – {platform.icon} {ca_label}\n\n"
+async def _get_last_ten_requests_section_text(requests: list[BaseRequest], section: RequestSection) -> str:
+    text = _get_header() + ("\n\n      → 🔟 <i>Ultime 10 Richieste</i> – "
+                            f"{section.platform.icon} {section.category_config.label}\n\n")
     if len(requests) == 0:
         text += ("<blockquote>ℹ Nessuna richiesta ancora formulata per questa sezione.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")

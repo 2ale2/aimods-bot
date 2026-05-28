@@ -4,9 +4,11 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category
+from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
     AdminRoute, AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
@@ -30,8 +32,8 @@ async def render_admin_request_section_configure_panel(update: Update, context: 
     text = _get_admin_request_section_configure_text()
 
     buttons = [
-        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=base_path.add(key))
-        for key, item in PLATFORM_DETAILS.items()
+        ButtonItem(text=f"{key.icon} {key.label}", callback_key=base_path.add(key))
+        for key in PLATFORM_CATEGORY_REGISTRY
     ]
     keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
@@ -58,8 +60,8 @@ async def render_admin_request_section_configure_platform_panel(
     text = _get_admin_request_section_configure_platform_text()
 
     buttons = [
-        ButtonItem(text=f"{item['icon']} {item['label']}", callback_key=base_path.add(key))
-        for key, item in CATEGORY_DETAILS[platform.value].items()
+        ButtonItem(text=f"{cat_config.icon} {cat_config.label}", callback_key=base_path.add(cat))
+        for cat, cat_config in PLATFORM_CATEGORY_REGISTRY[platform].items()
     ]
     keyboard = chunk_buttons(buttons=buttons, size=2)
     keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
@@ -81,12 +83,11 @@ async def render_admin_request_section_configure_category_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category
+        section: RequestSection
 ):
-    config = get_section_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, section=section)
 
-    text = _get_admin_request_section_configure_category_text(config=config, platform=platform, category=category)
+    text = _get_admin_request_section_configure_category_text(config=config, section=section)
     toggle_text = f"{'📬 Apri' if not config.toggle else '📪 Chiudi'}"
     toggle_callback = "open" if not config.toggle else "close"
 
@@ -105,13 +106,12 @@ async def render_admin_request_section_configure_category_panel(
     )
 
 
-def _get_admin_request_section_configure_category_text(config: CategorySetting, platform: Platform, category: Category):
-    ca_item = CATEGORY_DETAILS[platform.value][category.value]
+def _get_admin_request_section_configure_category_text(config: CategorySetting, section: RequestSection):
     status_text = '📬 <i>Aperto</i>' if config.toggle else '📪 <i>Chiuso</i>'
 
     return (
         f"{_get_header()}"
-        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"      {section.category_config.icon} <b>{section.category_config.label}</b>\n"
         f"          🔸 <u>Stato</u> – {status_text}\n"
         f"          🔸 <u>Limite Richieste</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
         f"🔹 Scegli un'opzione."
@@ -122,16 +122,14 @@ async def render_admin_request_section_toggle_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         action: GlobalAction
 ):
     opening = action == "open"
 
     text = _get_admin_request_section_toggle_panel_text(
         context=context,
-        platform=platform,
-        category=category,
+        section=section,
         is_opening=opening
     )
 
@@ -151,18 +149,17 @@ async def render_admin_request_section_toggle_panel(
 
 def _get_admin_request_section_toggle_panel_text(
         context: CustomContext,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         is_opening: bool
 ):
-    config = get_section_config(context=context, platform=platform, category=category)
+    config = get_section_config(context=context, section=section)
 
     text = _get_header(subheader=f"  → <i>{'📬 Apertura' if is_opening else '📪 Chiusura'} Manuale</i>")
     text += (f"<blockquote>ℹ <b>Info</b> – Se {'apri' if is_opening else 'chiudi'} questa sezione, "
              f"gli utenti {'non ' if not is_opening else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
     if is_opening and config.limit is not None:
-        active_requests = len(context.get_active_category_requests(platform=platform, category=category))
+        active_requests = len(context.get_active_category_requests(section=section))
         if active_requests >= config.limit:
             text += (
                 "<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore "
@@ -178,11 +175,10 @@ async def render_admin_request_section_toggled_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         action: GlobalAction
 ):
-    text = _get_admin_request_section_toggled_text(platform=platform, category=category, is_opening=(action == "open"))
+    text = _get_admin_request_section_toggled_text(section=section, is_opening=(action == "open"))
 
     await create_and_render_panel(
         update=update,
@@ -197,16 +193,13 @@ async def render_admin_request_section_toggled_panel(
 
 
 def _get_admin_request_section_toggled_text(
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         is_opening: bool
 ):
-    pl_label = PLATFORM_DETAILS[platform.value]['label']
-    ca_label = CATEGORY_DETAILS[platform.value][category.value]['label']
-
     return (
-        f"✅ <b>Sezione {ca_label} ({pl_label}) {'Aperta' if is_opening else 'Chiusa'}</b>\n\n"
-        f"🔹 Scegli un'opzione."
+        f"✅ <b>Sezione {section.category_config.label} ({section.platform.label}) "
+        f"{'Aperta' if is_opening else 'Chiusa'}</b>\n\n"
+        "🔹 Scegli un'opzione."
     )
 
 
@@ -214,10 +207,9 @@ async def render_admin_request_section_limit_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category
+        section: RequestSection
 ):
-    text = _get_admin_request_section_limit_text(context=context, platform=platform, category=category)
+    text = _get_admin_request_section_limit_text(context=context, section=section)
 
     keyboard = [
         [ButtonItem(text="🆓 Nessun Limite", callback_key=base_path.add("0"))],
@@ -253,13 +245,12 @@ async def render_admin_request_section_limit_panel(
     )
 
 
-def _get_admin_request_section_limit_text(context: CustomContext, platform: Platform, category: Category):
-    ca_item = CATEGORY_DETAILS[platform.value][category.value]
-    config = get_section_config(context=context, platform=platform, category=category)
+def _get_admin_request_section_limit_text(context: CustomContext, section: RequestSection):
+    config = get_section_config(context=context, section=section)
 
     return (
         f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
-        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"      {section.category_config.icon} <b>{section.category_config.label}</b>\n"
         f"        🔸 <u>Limite Attuale</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
         "<blockquote>ℹ Al raggiungimento di questo limite, questa sezione di richieste verrà "
         "chiusa automaticamente.</blockquote>\n\n"
@@ -271,14 +262,12 @@ async def render_admin_request_section_limit_confirm_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         limit: int
 ):
     text = _get_admin_request_section_limit_confirm_text(
         context=context,
-        platform=platform,
-        category=category,
+        section=section,
         limit=limit
     )
 
@@ -298,12 +287,10 @@ async def render_admin_request_section_limit_confirm_panel(
 
 def _get_admin_request_section_limit_confirm_text(
         context: CustomContext,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         limit: int
 ):
-    config = get_section_config(context=context, platform=platform, category=category)
-    ca_item = CATEGORY_DETAILS[platform.value][category.value]
+    config = get_section_config(context=context, section=section)
 
     r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"
 
@@ -316,7 +303,7 @@ def _get_admin_request_section_limit_confirm_text(
 
     return (
         f"{_get_header(subheader='  → 🗂 <i>Imposta Limite</i>')}"
-        f"      {ca_item['icon']} <b>{ca_item['label']}</b>\n"
+        f"      {section.category_config.icon} <b>{section.category_config.label}</b>\n"
         f"            🔸 <u>Limite Attuale</u> – <i>{_format_limit_text(config.limit)}</i>\n\n"
         f"🔹 Stai <b>modificando il limite di richieste</b> per questa sezione a:\n\n"
         f"            <b>{r_text}</b>\n\n"
@@ -329,11 +316,10 @@ async def render_admin_request_section_limit_confirmed_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         limit: int
 ):
-    text = _get_admin_request_section_limit_confirmed_text(platform=platform, category=category, limit=limit)
+    text = _get_admin_request_section_limit_confirmed_text(section=section, limit=limit)
 
     await create_and_render_panel(
         update=update,
@@ -349,16 +335,10 @@ async def render_admin_request_section_limit_confirmed_panel(
     )
 
 
-def _get_admin_request_section_limit_confirmed_text(
-        platform: Platform,
-        category: Category,
-        limit: int
-):
-    p_label = PLATFORM_DETAILS[platform.value]["label"]
-    c_label = CATEGORY_DETAILS[platform.value][category.value]["label"]
+def _get_admin_request_section_limit_confirmed_text(section: RequestSection, limit: int):
     r_text = f"↪️ {pluralize(limit, 'richiesta', 'richieste')}" if limit != 0 else "🆓 Nessun Limite"
     return (
-        f"✅ <b>Limite Richieste {c_label} ({p_label}) Impostato a:</b>\n\n"
+        f"✅ <b>Limite Richieste {section.category_config.icon} ({section.platform.label}) Impostato a:</b>\n\n"
         f"        <i>{r_text}</i>\n\n"
         "🔹 Scegli un'opzione."
     )

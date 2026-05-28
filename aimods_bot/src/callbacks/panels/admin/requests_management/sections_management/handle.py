@@ -1,10 +1,10 @@
 import re
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsRoute, \
     GlobalAction
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 from aimods_bot.src.core.config_accessor import get_section_config
 
@@ -24,43 +24,41 @@ def _remove_limitation_jobs(context: CustomContext, user_id: int, section_patter
 
 async def handle_request_section_toggle(
         context: CustomContext,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         action: GlobalAction
 ):
     is_opening = (action == "open")
-    config = get_section_config(context, platform, category)
+    config = get_section_config(context=context, section=section)
 
     if is_opening and config.limit is not None:
-        active_count = len(context.get_active_category_requests(platform=platform, category=category))
+        active_count = len(context.get_active_category_requests(section=section))
         if active_count >= config.limit:
             config.limit = None
 
     config.toggle = is_opening
     await save_yaml_configuration(context=context)
 
-    log.info(f"Request Section {category.value} ({platform.value}) "
+    log.info(f"Request Section {section.category.value} ({section.platform.value}) "
              f"toggled {'on' if is_opening else 'off'} by {context.user_id}")
 
 
 async def handle_request_section_limit(
         context: CustomContext,
-        platform: Platform,
-        category: Category,
+        section: RequestSection,
         limit: int
 ):
-    config = get_section_config(context, platform, category)
+    config = get_section_config(context=context, section=section)
 
     config.limit = limit if limit != 0 else None
 
     if config.limit is not None:
-        active_count = len(context.get_active_category_requests(platform=platform, category=category))
+        active_count = len(context.get_active_category_requests(section=section))
         if active_count >= config.limit:
             config.toggle = False
 
     await save_yaml_configuration(context=context)
 
-    log.info(f"Request Section {category.value} ({platform.value}) Limit settled to "
+    log.info(f"Request Section {section.category.value} ({section.platform.value}) Limit settled to "
              f"{config.limit if config.limit else 'unlimited'} by {context.user_id}")
 
 

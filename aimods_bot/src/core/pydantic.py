@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serial
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 
 log = logger.getChild(__name__)
@@ -248,8 +249,7 @@ class RequestCooldown(BaseModel):
 
 
 class RequestSectionLimitation(BaseModel):
-    platform: Platform
-    category: Category
+    section: RequestSection
     until: Optional[datetime] = None
     reasons: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

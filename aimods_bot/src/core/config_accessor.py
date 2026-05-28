@@ -1,6 +1,7 @@
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Configuration, CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.models.request_section import RequestSection
 
 
 def get_config(context: CustomContext) -> Configuration:
@@ -27,9 +28,9 @@ def set_value(context, path: str, value):
     setattr(obj, keys[-1], value)
 
 
-def get_section_config(context: CustomContext, platform: Platform, category: Category) -> CategorySetting:
+def get_section_config(context: CustomContext, section: RequestSection) -> CategorySetting:
     """Helper per recuperare la configurazione in modo sicuro e tipizzato."""
     return getattr(
-        getattr(context.pydb.configuration.settings.request, platform.value),
-        category.value
+        getattr(context.pydb.configuration.settings.request, section.platform.value),
+        section.category.value
     )
