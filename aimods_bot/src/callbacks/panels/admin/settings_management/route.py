@@ -77,17 +77,23 @@ async def admin_new_requests_notification_settings_management_route(
         root: PathBuilder,
         relative_path: PathBuilder
 ):
+    from_notification = NotificationAction.FROM_NOTIFICATION in (root + relative_path).segments
+
     match relative_path.segments:
         case []:
             await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
 
         case [data]:
-            await handle_admin_new_requests_notification_toggle(context=context, data=data)
-            await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
-
-        case [data, NotificationAction.FROM_NOTIFICATION]:
-            await handle_admin_new_requests_notification_toggle(context=context, data=data)
-            await render_new_requests_notification_disabled_panel(update=update, context=context, data=data)
+            if from_notification:
+                await handle_admin_new_requests_notification_toggle(context=context, data=data)
+                await render_new_requests_notification_disabled_panel(update=update, context=context, data=data)
+            else:
+                await handle_admin_new_requests_notification_toggle(context=context, data=data)
+                await render_admin_new_requests_notification_settings_panel(
+                    update=update,
+                    context=context,
+                    base_path=root
+                )
 
     return PCS.ADMIN_CONVERSATION
 

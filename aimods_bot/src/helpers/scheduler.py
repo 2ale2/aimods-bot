@@ -3,7 +3,6 @@ from typing import Optional, Any, Callable
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import JobInfo
-from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_request_cooldown, scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.loggers import logger
@@ -27,15 +26,16 @@ def _schedule_unique_job(
     """
     Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo.
     """
-    if context.job_queue is None:
+    job_queue = context.job_queue
+    if job_queue is None:
         raise ValueError("Job Queue must not be None!")
 
-    current_jobs = context.job_queue.get_jobs_by_name(str(job_name))
+    current_jobs = job_queue.get_jobs_by_name(str(job_name))
     for j in current_jobs:
         j.schedule_removal()
         log.debug(f"Job precedente rimosso: {job_name} ({str(job_name)})")
 
-    context.job_queue.run_once(
+    job_queue.run_once(
         callback=callback,
         when=when,
         data=data,
@@ -63,7 +63,7 @@ async def schedule_request_limitation_deletion(
         data={"user_id": user_id, "section": section}
     )
 
-    context.pydb.jobs[job_name] = JobInfo(
+    context.pydb.jobs[str(job_name)] = JobInfo(
         next_date=until_utc,
         executed=False
     )
@@ -73,7 +73,7 @@ async def schedule_request_limitation_deletion(
 
 async def schedule_request_cooldown_removal(context: CustomContext, user_id: int, until: datetime):
     until_utc = ensure_utc(until)
-    job_name = str(RequestCooldownJobName(user_id=user_id))
+    job_name = RequestCooldownJobName(user_id=user_id)
 
     _schedule_unique_job(
         context=context,
@@ -83,7 +83,7 @@ async def schedule_request_cooldown_removal(context: CustomContext, user_id: int
         data={"user_id": user_id}
     )
 
-    context.pydb.jobs[job_name] = JobInfo(
+    context.pydb.jobs[str(job_name)] = JobInfo(
         next_date=until_utc,
         executed=False
     )
@@ -100,5 +100,5 @@ async def schedule_section_opening_check_for_user_notification(
         job_name=job_name,
         callback=scheduled_section_opening_check_for_user_notification,
         when=10,
-        data={"platform": platform, "category": category}
+        data={"platform": section.platform, "category": section.category}
     )

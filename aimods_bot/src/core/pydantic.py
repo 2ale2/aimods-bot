@@ -60,30 +60,30 @@ class CategorySetting(BaseModel):
 
 
 class AndroidRequestCategoryConfig(BaseModel):
-    app: CategorySetting = Field(default_factory=CategorySetting)
+    Category.APP: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class WindowsRequestCategoryConfig(BaseModel):
-    software: CategorySetting = Field(default_factory=CategorySetting)
-    game: CategorySetting = Field(default_factory=CategorySetting)
-    adobe: CategorySetting = Field(default_factory=CategorySetting)
-    daw: CategorySetting = Field(default_factory=CategorySetting)
+    Category.SOFTWARE: CategorySetting = Field(default_factory=CategorySetting)
+    Category.GAME: CategorySetting = Field(default_factory=CategorySetting)
+    Category.ADOBE: CategorySetting = Field(default_factory=CategorySetting)
+    Category.DAW: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class iOSRequestCategoryConfig(BaseModel):
-    app: CategorySetting = Field(default_factory=CategorySetting)
+    Category.APP: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class MacOSRequestCategoryConfig(BaseModel):
-    software: CategorySetting = Field(default_factory=CategorySetting)
-    daw: CategorySetting = Field(default_factory=CategorySetting)
+    Category.SOFTWARE: CategorySetting = Field(default_factory=CategorySetting)
+    Category.DAW: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class RequestConfig(BaseModel):
-    android: AndroidRequestCategoryConfig = Field(default_factory=AndroidRequestCategoryConfig)
-    windows: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
-    ios: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
-    macos: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
+    Platform.ANDROID: AndroidRequestCategoryConfig = Field(default_factory=AndroidRequestCategoryConfig)
+    Platform.WINDOWS: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
+    Platform.IOS: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
+    Platform.MACOS: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
     cancel_timer: int = Field(
         default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
         ge=0,

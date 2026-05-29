@@ -24,9 +24,9 @@ from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RI
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
-from aimods_bot.src.helpers.models.section import RequestSection
+from aimods_bot.src.helpers.models.request_section import RequestSection
 
-log = logger.getChild("custom_context")
+log = logger.getChild(__name__)
 
 
 class UserDataPersistent(BaseModel):
@@ -274,21 +274,19 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def get_user_active_category_requests(
             self,
-            platform: Platform,
-            category: Category
+            section: RequestSection
     ) -> dict[int, Request]:
-        return self.get_active_category_requests(platform=platform, category=category, from_user=True)
+        return self.get_active_category_requests(section=section, from_user=True)
 
     def init_request_wizard_session(
             self,
             user_id: int,
-            platform: Platform,
-            category: Category,
+            section: RequestSection,
             from_notification: bool,
             msg_id: int
     ) -> None:
         config = PLATFORM_CATEGORY_REGISTRY[platform][category]
-        fresh_draft = config.model(user_id=user_id, platform=platform, category=category)
+        fresh_draft = config.model(user_id=user_id, platform=section.platform, category=section.category)
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(
             draft=fresh_draft,
@@ -338,8 +336,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def is_user_request_limited(
             self,
-            platform: Platform,
-            category: Category,
+            section: RequestSection,
             user_id: Optional[int] = None
     ) -> Optional[RequestSectionLimitation]:
         """Esegue il double check e ritorna l'eventuale limitazione, oppure None se l'utente non è limitato."""
@@ -348,9 +345,32 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ul = self.get_user_request_limitations()
         if ul:
             for l in ul:
-                if l.platform == platform and l.category == category:
+                if l.platform == section.platform and l.category == section.category:
                     return l
         return None
+
+    def get_or_create_limitation_wizard(
+            self,
+            initial_section: Optional[RequestSection] = None,
+    ) -> AdminLimitingUserRequests:
+        """
+        Restituisce il wizard di limitazione richieste nella chat corrente,
+        creandolo se non esiste ancora.
+
+        Se `initial_section` è specificata e il wizard viene creato in questo momento,
+        quella sezione viene pre-selezionata (sections[initial_section] = True)
+        """
+        wizard = self.pydc.persistent.limiting_user_requests
+        if wizard is None:
+            wizard = AdminLimitingUserRequests()
+            self.pydc.persistent.limiting_user_requests = wizard
+            if initial_section is not None:
+                wizard.sections[initial_section] = True
+        return wizard
+
+    def clear_limitation_wizard(self) -> None:
+        """Resetta il wizard di limitazione richieste."""
+        self.pydc.persistent.limiting_user_requests = None
 
     def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
         if not self.get_user_limitations():
@@ -406,19 +426,14 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     # ======== SEZIONI RICHIESTE ========
 
-    def is_request_section_open(self, platform: Union[str, Platform], category: [str, Category]) -> bool:
-        if isinstance(platform, Platform):
-            platform = platform.value
-        if isinstance(category, Category):
-            category = category.value
-
+    def is_request_section_open(self, platform: Platform, category: Category) -> bool:
         pl_settings = getattr(self.pydb.configuration.settings.request, platform, None)
         if pl_settings is None:
-            log.error(f"Platform {platform} not found.")
+            log.error(f"Platform {platform} configuration not found.")
             return None
         ca_settings = getattr(pl_settings, category, None)
         if ca_settings is None:
-            log.error(f"Category {category} not found inside {platform}.")
+            log.error(f"Category {category} configuration not found inside {platform}.")
             return None
 
         assert isinstance(ca_settings, CategorySetting)

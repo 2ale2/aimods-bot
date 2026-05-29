@@ -19,6 +19,7 @@ from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS
 )
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
@@ -161,7 +162,8 @@ async def requests_management_route(
                             root.add(category)
                             match PathBuilder(*rest).segments:
                                 case []:
-                                    if not is_category_request_allowed(context, Platform(platform), Category(category)):
+                                    section = RequestSection(platform=platform, category=category)
+                                    if not is_category_request_allowed(context=context, section=section):
                                         message = ("🔐 <b>Richieste Chiuse</b>\n\n"
                                                    "▪️ <b>Non è al momento possibile formulare nuove richieste</b> "
                                                    "per questa categoria, perché <b>ha raggiunto il limite</b> di "
@@ -186,10 +188,7 @@ async def requests_management_route(
                                             base_path=root,
                                         )
                                     else:
-                                        request_limitation = context.is_user_request_limited(
-                                            platform=platform,
-                                            category=category
-                                        )
+                                        request_limitation = context.is_user_request_limited(section=section)
                                         if request_limitation:
                                             if request_limitation.until:
                                                 until = request_limitation.until.replace(
@@ -248,9 +247,9 @@ async def requests_management_route(
     return PCS.USER_CONVERSATION
 
 
-def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
+def is_category_request_allowed(context: CustomContext, section: RequestSection) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
-    platform_settings = getattr(context.pydb.configuration.settings.request, platform.value)
-    category_config = getattr(platform_settings, str(category.value))
+    platform_settings = getattr(context.pydb.configuration.settings.request, section.platform.value)
+    category_config = getattr(platform_settings, section.category.value)
     assert isinstance(category_config, CategorySetting)
     return category_config.toggle

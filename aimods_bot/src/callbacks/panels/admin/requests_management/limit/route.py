@@ -172,7 +172,7 @@ async def route_admin_add_request_limitation_route(
             return PCS.ADMIN_CONVERSATION
 
         case [AdminManageRequestLimitationsRoute.SECTIONS, section_input]:
-            await handle_request_limitation_topic(update=update, context=context, section_input=section_input)
+            await handle_request_limitation_topic(context=context, section_input=section_input)
             await render_admin_add_user_request_limitation_panel(
                 update=update,
                 context=context,

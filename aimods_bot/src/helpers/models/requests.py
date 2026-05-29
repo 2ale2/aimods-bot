@@ -28,8 +28,8 @@ class BaseRequest(BaseModel):
     platform: Platform
     category: Category
 
-    name: str
-    version: str
+    name: str | None = None
+    version: str | None = None
 
     issued_at: datetime | None = None
     status: RequestStatus | None = None

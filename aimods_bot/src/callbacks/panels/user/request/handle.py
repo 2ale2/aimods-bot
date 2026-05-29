@@ -6,19 +6,20 @@ from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
+from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
-from aimods_bot.src.helpers.constants.constants import RequestField, Platform, Category
+from aimods_bot.src.helpers.constants.constants import RequestField
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
-from aimods_bot.src.core.config_accessor import get_section_config
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
     send_section_closing_admin_notification
+from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
 
 log = logger.getChild(__name__)
 
@@ -208,35 +209,39 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                 RETURNING id;
                 """
 
+    effective_user = update.effective_user
+
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user must not be None!")
+
     params = [
         draft.platform.value,
         draft.category.value,
-        update.effective_user.id,
+        effective_user.id,
         request_for_db_str
     ]
 
     result = await fetch_query(query=query_sql, params=params)
 
     if not result:
-        log.error(f"Error while submitting request from user {update.effective_user.id}. See previous logs.")
+        log.error(f"Error while submitting request from user {effective_user.id}. See previous logs.")
         await query.answer("❌ Errore nell'invio della richiesta. Riprova o contatta gli admin.")
         return PCS.USER_REQUEST_WIZARD_SESSION
 
     await query.answer()
-    log.info(f"Request formulated by {update.effective_user.id} submitted")
+    log.info(f"Request formulated by {effective_user.id} submitted")
 
     await _notify_new_request(update=update, context=context, request=wizard.draft)
 
-    platform = wizard.draft.platform
-    category = wizard.draft.category
-    config = get_section_config(context, platform, category)
+    section = RequestSection(platform=wizard.draft.platform, category=wizard.draft.category)
+    config = get_section_config(context=context, section=section)
 
     if config and config.limit:
-        active_requests = context.get_active_category_requests(platform=platform, category=category)
+        active_requests = context.get_active_category_requests(section=section)
         if len(active_requests) >= config.limit:
             config.toggle = False
             await save_yaml_configuration(context=context)
-            await _notify_section_closing(update, context, platform, category)
+            await _notify_section_closing(update=update, context=context, section=section)
 
     if context.pydc.persistent.base_path:
         base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
@@ -286,20 +291,18 @@ async def _notify_new_request(update: Update, context: CustomContext, request: B
     await _notify_admins_generic(context, should_notify, sender)
 
 
-async def _notify_section_closing(update: Update, context: CustomContext, platform: Platform, category: Category):
-    pl_val = platform.value
-    ca_val = str(category.value)
-    section_str = f"{pl_val}:{category.value}"
-
+async def _notify_section_closing(update: Update, context: CustomContext, section: RequestSection):
     def should_notify(data: ChatData) -> bool:
-        return data.persistent.admin_notifications.section_closing_notifications.get(pl_val, {}).get(ca_val, False)
+        return data.persistent.admin_notifications.section_closing_notifications.get(
+            section.platform, {}
+        ).get(section.category, False)
 
     async def sender(admin_id: int):
         await send_section_closing_admin_notification(
             update=update,
             context=context,
             admin_id=admin_id,
-            section=section_str
+            section=section
         )
 
     await _notify_admins_generic(context, should_notify, sender)

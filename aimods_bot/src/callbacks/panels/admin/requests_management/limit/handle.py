@@ -10,6 +10,7 @@ from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
     AdminManageRequestLimitationsRoute
 from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
@@ -18,19 +19,17 @@ from aimods_bot.src.helpers.loggers import logger
 log = logger.getChild(__name__)
 
 
-def set_user_requests_limiting_item(context: CustomContext, set_true_section: Optional[str] = None):
-    """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
-    if context.pydc.persistent.limiting_user_requests is None:
-        context.pydc.persistent.limiting_user_requests = AdminLimitingUserRequests()
+def set_user_requests_limiting_item(
+    context: CustomContext,
+    set_true_section: Optional[RequestSection] = None,
+) -> AdminLimitingUserRequests:
+    wizard = context.pydc.persistent.limiting_user_requests
+    if wizard is None:
+        wizard = AdminLimitingUserRequests()
+        context.pydc.persistent.limiting_user_requests = wizard
         if set_true_section:
-            pl, ca = set_true_section.split(":")
-            platform = context.pydc.persistent.limiting_user_requests.sections.get(pl, None)
-            if ca in platform:
-                context.pydc.persistent.limiting_user_requests.sections[pl][ca] = True
-            else:
-                log.warning(f"Section {set_true_section} not found")
-
-    return context.pydc.persistent.limiting_user_requests
+            wizard.sections[set_true_section] = True
+    return wizard
 
 
 def get_request_limiting_detail(context: CustomContext, what: StrEnum):
@@ -62,8 +61,13 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
 
     parsed = parse_duration(duration_string=duration_input)
 
+    effective_message = update.effective_message
+
+    if not effective_message:
+        raise ValueError("Attribute Update.effective_message cannot be None!")
+
     if not parsed:
-        await update.effective_message.reply_text(
+        await effective_message.reply_text(
             text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE_MENU)]
@@ -76,31 +80,39 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
     return True
 
 
-async def handle_request_limitation_topic(update: Update, context: CustomContext, section_input: str):
+async def handle_request_limitation_topic(
+        context: CustomContext,
+        section_input: AdminManageRequestLimitationsRoute | RequestSection,
+):
     item = context.pydc.persistent.limiting_user_requests
-    sections = item.sections
 
-    if section_input in (AdminManageRequestLimitationsRoute.BLOCK_ALL, AdminManageRequestLimitationsRoute.UNBLOCK_ALL):
-        flag = (section_input == AdminManageRequestLimitationsRoute.BLOCK_ALL)
-        for cats in sections.values():
-            for k in cats:
-                cats[k] = flag
-    else:
-        platform_str, category_str = section_input.split("-")
-        cats = sections.get(platform_str)
-        cats[category_str] = not cats[category_str]
+    if not item:
+        raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
 
-    # opzionale: trigger valida/persistenza
-    item.sections = sections
+    match section_input:
+        case AdminManageRequestLimitationsRoute.BLOCK_ALL:
+            for section in item.sections:
+                item.sections[section] = True
+
+        case AdminManageRequestLimitationsRoute.UNBLOCK_ALL:
+            for section in item.sections:
+                item.sections[section] = False
+
+        case RequestSection() as section:
+            item.sections[section] = not item.sections[section]
+
+        case _:
+            log.warning(f"Unexpected section_input: {section_input}")
 
 
 def all_sections_are(context: CustomContext, what: bool):
-    sections = context.pydc.persistent.limiting_user_requests.sections
-    for platform, categories in sections.items():
-        for category in categories:
-            if sections[platform][category] != what:
-                return False
-    return True
+    item = context.pydc.persistent.limiting_user_requests
+
+    if not item:
+        raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
+
+    sections = item.sections
+    return all(bool_value == what for bool_value in sections.values())
 
 
 async def handle_limitation_confirmation(
@@ -109,16 +121,20 @@ async def handle_limitation_confirmation(
         user_id: int,
         reason: str,
 ):
-    await handle_limitation_reason(update=update, context=context, reason=reason)
+    await handle_limitation_reason(context=context, reason=reason)
 
     new_limitations = get_request_limitations(update=update, context=context)
     current_limitations = context.get_user_request_limitations(user_id=user_id) or []
 
-    admin_id = update.effective_user.id
+    effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user cannot be None here!")
+
+    admin_id = effective_user.id
     now = datetime.now(timezone.utc)
 
-    current_by_section = {(l.platform, l.category): l for l in current_limitations}
-    new_by_section = {(l.platform, l.category): l for l in new_limitations}
+    current_by_section = {l.section: l for l in current_limitations}
+    new_by_section = {l.section: l for l in new_limitations}
 
     merged: list[RequestSectionLimitation] = []
 
@@ -135,13 +151,12 @@ async def handle_limitation_confirmation(
             merged_until = existing.until + (new.until - now)
 
         merged.append(RequestSectionLimitation(
-            platform=existing.platform,
-            category=existing.category,
+            section=existing.section,
             until=merged_until,
             reasons=[*existing.reasons, *new.reasons],
             created_by=existing.created_by,
             created_at=existing.created_at,
-            updated_by=admin_id,
+            updated_by=admin_id
         ))
 
     for key, new in new_by_section.items():
@@ -161,22 +176,22 @@ async def handle_limitation_confirmation(
         await schedule_request_limitation_deletion(
             context=context,
             user_id=user_id,
-            platform=limitation.platform,
-            category=limitation.category,
-            until=limitation.until,
+            section=limitation.section,
+            until=limitation.until
         )
 
     context.set_user_request_limitations(user_id=user_id, limitations=merged)
 
 
-async def handle_limitation_reason(update: Update, context: CustomContext, reason: str):
+async def handle_limitation_reason(context: CustomContext, reason: str):
     set_request_limiting_detail(context=context, what="reason", value=reason)
 
 
 def get_request_limitations(update: Update, context: CustomContext) -> list[RequestSectionLimitation]:
-    sections = get_request_limiting_detail(context=context, what="sections")
-    duration = get_request_limiting_detail(context=context, what="duration")
-    reason = get_request_limiting_detail(context=context, what="reason")
+    wizard = context.get_or_create_limitation_wizard()
+    duration = wizard.duration
+    reason = wizard.reason
+    sections = wizard.sections
 
     if duration:
         duration_delta = timedelta(seconds=duration)
@@ -184,17 +199,20 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
     else:
         until = None
 
+    effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user cannot be None here!")
+
     limitations = []
-    for platform in sections:
-        for category in sections[platform]:
-            if sections[platform][category]:
-                limitations.append(RequestSectionLimitation(
-                    platform=platform,
-                    category=category,
-                    until=until,
-                    reasons=[reason],
-                    created_by=update.effective_user.id,
-                    updated_by=update.effective_user.id
-                ))
+    for section in sections:
+        if sections[section]:
+            limitations.append(RequestSectionLimitation(
+                section=section,
+                until=until,
+                reasons=[reason],
+                created_by=effective_user.id,
+                updated_by=effective_user.id
+            ))
+
 
     return limitations
