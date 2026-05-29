@@ -34,11 +34,11 @@ _STATUS_LATEX_EMOJIS = {
 }
 
 
-async def generate_user_archive_requests_pdf_file(requests: list[BaseRequest], input_path: str) -> str:
+async def generate_user_archive_requests_pdf_file(requests: list[BaseRequest], input_path: str) -> Path:
     input_path = str(Path(input_path).with_suffix(".tex"))
     tex_p = await generate_user_archive_requests_latex_file(requests=requests, out_path=input_path)
     pdf_p = await convert_latex_to_pdf(tex_path=tex_p)
-    return str(pdf_p)
+    return pdf_p
 
 
 async def generate_user_archive_requests_latex_file(requests: list[BaseRequest], out_path: str) -> str:
@@ -54,12 +54,16 @@ async def iter_archive_tex(requests: Iterable[BaseRequest]) -> AsyncIterator[str
 
 
 def render_request_latex_item(request: BaseRequest) -> str:
+    request_item_name = request.name
+    if not request_item_name:
+        raise ValueError("Trying printing to LaTeX a Request without a name!")
+
     lines = [
         rf"\item\begin{{minipage}}[t]{{\linewidth}}\raggedright",
-        rf"\underline{{\textbf{{Nome}}}} — {tex_escape(request.name)} \\"
+        rf"\underline{{\textbf{{Nome}}}} — {tex_escape(request_item_name)} \\"
     ]
 
-    platform = request.platform
+    platform = request.section.platform
 
     if not platform:
         raise ValueError(f"Request {request.id} must have a platform!")

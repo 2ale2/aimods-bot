@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import Annotated, Literal, Optional, Union, Callable
 from pydantic import BaseModel, Field, ValidationError
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.models.request_section import RequestSection
 
 _SEPARATOR = ":"
@@ -71,8 +70,8 @@ class DelayedSectionOpeningJobName(_BaseJobName):
     def to_string(self) -> str:
         return _SEPARATOR.join([
             self.name.value,
-            self.platform.value,
-            self.category.value,
+            self.section.platform.value,
+            self.section.category.value,
         ])
 
 
@@ -118,8 +117,7 @@ def parse_job_name(raw: str) -> Optional[JobName]:
                     return None
                 return RequestLimitJobName(
                     user_id=int(args[0]),
-                    platform=Platform(args[1]),
-                    category=Category(args[2]),
+                    section=RequestSection(platform=args[1], category=args[2])
                 )
 
             case JobKind.REQUEST_COOLDOWN:
@@ -131,8 +129,7 @@ def parse_job_name(raw: str) -> Optional[JobName]:
                 if len(args) != 2:
                     return None
                 return DelayedSectionOpeningJobName(
-                    platform=Platform(args[0]),
-                    category=Category(args[1]),
+                    section=RequestSection(platform=args[0], category=args[1])
                 )
 
     except (ValueError, ValidationError):
@@ -141,14 +138,14 @@ def parse_job_name(raw: str) -> Optional[JobName]:
 
 def filter_jobs_by_kind(
     job_queue,
-    name: type[_BaseJobName],
-    predicate: Callable[_BaseJobName] | bool | None = None,
+    name_type: type[_BaseJobName],
+    predicate: Callable[[_BaseJobName], bool] | None = None,
 ):
     """
-    Ritorna i job APScheduler il cui nome parsato è un'istanza di `name`
+    Ritorna i job APScheduler il cui nome parsato è un'istanza di `name_type`
     e (opzionalmente) soddisfa `predicate`.
     """
     for job in job_queue.jobs():
         parsed = parse_job_name(job.name)
-        if isinstance(parsed, name) and (predicate is None or predicate(parsed)):
+        if isinstance(parsed, name_type) and (predicate is None or predicate(parsed)):
             yield job

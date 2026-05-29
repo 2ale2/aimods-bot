@@ -4,7 +4,7 @@ from typing import Optional, Any, Callable
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
-    scheduled_remove_request_cooldown, scheduled_section_opening_check_for_user_notification
+    scheduled_remove_user_request_cooldown, scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import RequestLimitJobName, RequestCooldownJobName, \
     DelayedSectionOpeningJobName, JobName
@@ -78,7 +78,7 @@ async def schedule_request_cooldown_removal(context: CustomContext, user_id: int
     _schedule_unique_job(
         context=context,
         job_name=job_name,
-        callback=scheduled_remove_request_cooldown,
+        callback=scheduled_remove_user_request_cooldown,
         when=until_utc,
         data={"user_id": user_id}
     )

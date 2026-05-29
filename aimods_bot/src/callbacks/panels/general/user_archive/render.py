@@ -6,8 +6,8 @@ from telegram.constants import ParseMode, ChatAction
 from telegram.error import BadRequest
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import Request
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRoute, UserRoute, GlobalAction
+from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import delete_os_file
@@ -96,7 +96,7 @@ async def render_user_archive_panel(
     )
 
     if file:
-        assert isinstance(file, str)
+        assert isinstance(file, Path)
 
         await context.bot.send_document(
             chat_id=update.effective_chat.id,
@@ -114,8 +114,10 @@ async def render_user_archive_panel(
         await delete_os_file(str(Path(file).with_suffix(".out")))
         await delete_os_file(str(Path(file).with_suffix(".tex")))
 
+        # noinspection PyUnusedLocal,PyShadowingNames
         async def _delete_latex_file(context: CustomContext):
-            await delete_os_file(path=file)
+            if file:
+                await delete_os_file(path=file)
 
         job = context.job_queue.get_jobs_by_name("_delete_latex_file")
         if job:
@@ -123,7 +125,7 @@ async def render_user_archive_panel(
         context.job_queue.run_once(callback=_delete_latex_file, when=600)
 
 
-async def _get_user_request_archive_text(requests: list[Request], requested_from_admin: bool = False) -> str:
+async def _get_user_request_archive_text(requests: list[BaseRequest], requested_from_admin: bool = False) -> str:
     text = "📕 <b>Archivio Richieste</b>\n\n"
 
     if requested_from_admin:
@@ -140,9 +142,9 @@ async def _get_user_request_archive_text(requests: list[Request], requested_from
     return text
 
 
-async def _get_archive_pdf_file(requests: list[Request], user_id: int) -> str:
+async def _get_archive_pdf_file(requests: list[BaseRequest], user_id: int) -> Path:
     if os.path.exists(f"archive_{user_id}_{len(requests)}.pdf"):
-        return f"archive_{user_id}_{len(requests)}.pdf"
+        return Path(f"archive_{user_id}_{len(requests)}.pdf")
 
     file = await generate_user_archive_requests_pdf_file(
         requests=requests,

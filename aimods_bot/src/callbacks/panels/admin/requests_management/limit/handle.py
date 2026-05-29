@@ -164,9 +164,9 @@ async def handle_limitation_confirmation(
             merged.append(new)
 
     for job in filter_jobs_by_kind(
-        context.job_queue,
-        RequestLimitJobName,
-        lambda n: n.user_id == user_id,
+        job_queue=context.job_queue,
+        name_type=RequestLimitJobName,
+        predicate=lambda n: n.user_id == user_id,
     ):
         job.schedule_removal()
 
