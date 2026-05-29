@@ -4,6 +4,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import UserNotifications
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserManageSettingsRoute, GlobalAction
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
@@ -125,10 +126,9 @@ async def render_section_opening_notification_disabled_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        platform: Platform,
-        category: Category
+        section: RequestSection
 ):
-    text = _get_section_opening_notification_disabled_text(platform=platform, category=category)
+    text = _get_section_opening_notification_disabled_text(section=section)
 
     await create_and_render_panel(
         update=update,
@@ -141,11 +141,10 @@ async def render_section_opening_notification_disabled_panel(
     )
 
 
-def _get_section_opening_notification_disabled_text(platform: Platform, category: Category):
-    category = PLATFORM_CATEGORY_REGISTRY[platform][category]
-
+def _get_section_opening_notification_disabled_text(section: RequestSection):
+    cat_config = section.category_config
     text = ("✅ <b>Notifiche Disattivate</b>\n\n"
             "▫ <b>Non riceverai più le notifiche</b> inerenti all'apertura "
-            f"della sezione {category.icon} <b>{category.label} ({platform.label})</b>.")
+            f"della sezione {cat_config.icon} <b>{cat_config.label} ({section.platform.label})</b>.")
 
     return text

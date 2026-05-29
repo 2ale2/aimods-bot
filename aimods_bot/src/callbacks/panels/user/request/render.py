@@ -7,7 +7,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
-    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_ESCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
+    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_EXCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
     EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
@@ -121,7 +121,7 @@ async def render_user_cant_request_panel(update: Update, context: CustomContext,
 def _get_user_cant_request_text(reason: str):
     return (
         f"{EMOJI_WARNING} <b>Nuova Richiesta</b>\n\n"
-        f"{EMOJI_ESCLAMATION_RED} Non puoi effettuare una nuova richiesta al momento.\n\n"
+        f"{EMOJI_EXCLAMATION_RED} Non puoi effettuare una nuova richiesta al momento.\n\n"
         f"▪ <b>Motivo</b> – {reason}"
     )
 
@@ -150,9 +150,9 @@ async def render_global_request_wizard_panel(
 
 def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
     draft = wizard.draft
-    cat_conf = PLATFORM_CATEGORY_REGISTRY[draft.platform][draft.category]
+    cat_conf = draft.section.category_config
 
-    text = f"{draft.platform.icon} <b>Nuova Richiesta – {cat_conf.label}</b>\n\n"
+    text = f"{draft.section.platform.icon} <b>Nuova Richiesta – {cat_conf.label}</b>\n\n"
 
     for flow_el in draft.FLOW:
         field_name = flow_el.value
@@ -172,7 +172,10 @@ def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
         text += f"{EMOJI_DOT_ORANGE} {flow_el.label} – {add_label}\n\n"
 
     if wizard.requesting:
-        text += FIELD_MESSAGES.get(wizard.requesting).get_prompt(draft.category)
+        if wizard.requesting not in FIELD_MESSAGES:
+            raise ValueError(f"{wizard.requesting} is missing in FIELD_MESSAGES!")
+
+        text += FIELD_MESSAGES[wizard.requesting].get_prompt(draft.section.category)
     else:
         text += ("🔹 Verifica i dettagli della tua richiesta. "
                  "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"

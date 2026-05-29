@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Union, Literal, Optional
 
+from pydantic import BaseModel, ConfigDict, Field
 from telegram import InputMedia
 
 from aimods_bot.src.helpers.constants.constants import Category
@@ -21,15 +22,11 @@ class CanUserRequest:
     reason: Optional[str]
 
 
-@dataclass(frozen=True)
-class MessageTemplate:
+class MessageTemplate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     default: str
-    app: str | None = None
-    game: str | None = None
-    software: str | None = None
-    daw: str | None = None
-    adobe: str | None = None
+    overrides: dict[Category, str] = Field(default_factory=dict)
 
     def get_prompt(self, category: Category) -> str:
-        specific_prompt = getattr(self, category.value, None)
-        return specific_prompt or self.default
+        return self.overrides.get(category, self.default)

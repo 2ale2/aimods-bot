@@ -7,12 +7,11 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, NotificationAction, UserRoute, \
     UserManageSettingsRoute, AdminRoute, AdminRequestsRoute, AdminSettingsRoute, AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
+from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
@@ -176,7 +175,7 @@ async def send_new_request_admin_notification(
         request: BaseRequest
 ):
     """Send notification to admin about new request."""
-    text = _get_new_request_admin_notification_text(platform=request.platform, category=request.category)
+    text = _get_new_request_admin_notification_text(section=request.section)
     request_id = request.id
 
     await create_and_render_panel(
@@ -192,11 +191,10 @@ async def send_new_request_admin_notification(
                         AdminRoute.ROOT,
                         AdminRoute.MANAGE_REQUESTS,
                         AdminRequestsRoute.ACTIVE,
-                        request.platform,
-                        request.category,
+                        request.section.platform,
+                        request.section.category,
                         str(request_id)
-                    ),
-                    override_path_generation=True
+                    )
                 ),
                 ButtonItem(
                     text="🗃 Richieste Attive",
@@ -204,10 +202,9 @@ async def send_new_request_admin_notification(
                         AdminRoute.ROOT,
                         AdminRoute.MANAGE_REQUESTS,
                         AdminRequestsRoute.ACTIVE,
-                        request.platform,
-                        request.category
-                    ),
-                    override_path_generation=True
+                        request.section.platform,
+                        request.section.category
+                    )
                 )
             ],
             [
@@ -219,10 +216,9 @@ async def send_new_request_admin_notification(
                         AdminSettingsRoute.NOTIFICATIONS,
                         AdminSettingsNotificationsRoute.NEW_REQUESTS,
                         NotificationAction.FROM_NOTIFICATION,
-                        request.platform,
-                        request.category
-                    ),
-                    override_path_generation=True
+                        request.section.platform,
+                        request.section.category
+                    )
                 )
             ],
             [ButtonItem(text="🚮 Guarda Dopo", callback_key=GlobalAction.CLOSE_MENU)]
@@ -231,11 +227,11 @@ async def send_new_request_admin_notification(
     )
 
 
-def _get_new_request_admin_notification_text(platform: Platform, category: Category) -> str:
-    cat_config = PLATFORM_CATEGORY_REGISTRY[platform][category]
+def _get_new_request_admin_notification_text(section: RequestSection) -> str:
+    cat_config = section.category_config
     text = ("📬 <b>Nuova Richiesta Ricevuta</b>\n\n"
             "▫ È stata appena aggiunta una <b>nuova richiesta</b> per la sezione\n\n"
-            f"            {cat_config.icon} <b>{cat_config.label}</b> ({platform.label})\n\n"
+            f"            {cat_config.icon} <b>{cat_config.label}</b> ({section.platform.label})\n\n"
             "🔹 Scegli un'opzione.")
     return text
 
@@ -258,7 +254,7 @@ async def send_section_closing_admin_notification(
             [
                 ButtonItem(
                     text="🗃 Richieste Attive",
-                    callback_key= PathBuilder(
+                    callback_key=PathBuilder(
                         AdminRoute.ROOT,
                         AdminRoute.MANAGE_REQUESTS,
                         AdminRequestsRoute.ACTIVE,

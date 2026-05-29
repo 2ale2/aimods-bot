@@ -218,16 +218,16 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         self.pydc.persistent.base_path = None
 
     @property
-    def user_active_requests(self) -> dict[int, Request]:
+    def user_active_requests(self) -> dict[int, BaseRequest]:
         return {ix: r for ix, r in self.pydb.active_requests.items() if (r.user_id == self.user_id)}
 
-    def cancellable_requests(self, from_user: Optional[bool] = False) -> dict[int, Request]:
+    def cancellable_requests(self, from_user: Optional[bool] = False) -> dict[int, BaseRequest]:
         timer_sec = self.pydb.configuration.settings.request.cancel_timer
         active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {rid: r for rid, r in active_requests.items() if r.can_be_cancelled(timer_sec)}
 
     @property
-    def user_cancellable_requests(self) -> dict[int, Request]:
+    def user_cancellable_requests(self) -> dict[int, BaseRequest]:
         return self.cancellable_requests(from_user=True)
 
     def get_active_request_by_id(self, ix: int):
@@ -239,7 +239,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             platform: Optional[Platform] = None,
             category: Optional[Category] = None,
             from_user: Optional[bool] = False
-    ) -> dict[int, Request]:
+    ) -> dict[int, BaseRequest]:
         if status == RequestStatus.CANCELLED:
             log.warning("bot_data only contains active requests.")
             return {}
@@ -258,14 +258,14 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             status: RequestStatus,
             platform: Optional[Platform] = None,
             category: Optional[Category] = None
-    ) -> dict[int, Request]:
+    ) -> dict[int, BaseRequest]:
         return self.get_requests_by_status(status=status, platform=platform, category=category, from_user=True)
 
     def get_active_category_requests(
             self,
             section: RequestSection,
             from_user: Optional[bool] = False
-    ) -> dict[int, Request]:
+    ) -> dict[int, BaseRequest]:
         active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in active_requests.items()
@@ -275,7 +275,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def get_user_active_category_requests(
             self,
             section: RequestSection
-    ) -> dict[int, Request]:
+    ) -> dict[int, BaseRequest]:
         return self.get_active_category_requests(section=section, from_user=True)
 
     def init_request_wizard_session(
@@ -286,7 +286,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             msg_id: int
     ) -> None:
         config = PLATFORM_CATEGORY_REGISTRY[platform][category]
-        fresh_draft = config.model(user_id=user_id, platform=section.platform, category=section.category)
+        fresh_draft = config.model(user_id=user_id, section=section)
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(
             draft=fresh_draft,
@@ -426,15 +426,15 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     # ======== SEZIONI RICHIESTE ========
 
-    def is_request_section_open(self, platform: Platform, category: Category) -> bool:
-        pl_settings = getattr(self.pydb.configuration.settings.request, platform, None)
-        if pl_settings is None:
-            log.error(f"Platform {platform} configuration not found.")
+    def is_request_section_open(self, section: RequestSection) -> bool:
+        platform_section_settings = getattr(self.pydb.configuration.settings.request, section.platform, None)
+        if platform_section_settings is None:
+            log.error(f"Platform {section.platform.label} configuration not found.")
             return None
-        ca_settings = getattr(pl_settings, category, None)
-        if ca_settings is None:
-            log.error(f"Category {category} configuration not found inside {platform}.")
+        category_section_settings = getattr(platform_section_settings, category, None)
+        if category_section_settings is None:
+            log.error(f"Category {section.category_config.label} configuration not found inside {platform.label}.")
             return None
 
-        assert isinstance(ca_settings, CategorySetting)
-        return ca_settings.toggle
+        assert isinstance(category_section_settings, CategorySetting)
+        return category_section_settings.toggle

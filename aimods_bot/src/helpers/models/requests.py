@@ -6,6 +6,7 @@ from pydantic import BaseModel, BeforeValidator, HttpUrl
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.utils import MessageTemplate
 
 log = logger.getChild(__name__)
@@ -14,9 +15,11 @@ log = logger.getChild(__name__)
 def prepend_https(value: Any) -> Any:
     if isinstance(value, str):
         value = value.strip()
+        # noinspection HttpUrlsUsage
         if not value.startswith(("http://", "https://")):
             return f"https://{value}"
     return value
+
 
 UxHttpUrl = Annotated[HttpUrl, BeforeValidator(prepend_https)]
 
@@ -25,8 +28,7 @@ class BaseRequest(BaseModel):
     id: int | None = None
     user_id: int
 
-    platform: Platform
-    category: Category
+    section: RequestSection
 
     name: str | None = None
     version: str | None = None
@@ -225,34 +227,44 @@ PLATFORM_CATEGORY_REGISTRY: dict[Platform, dict[Category, CategoryConfig]] = {
 FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
     RequestField.NAME: MessageTemplate(
         default="🔹 Indica il <b>nome</b> di ciò che vorresti richiedere.",
-        app="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
-        daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere.",
-        adobe="🔹 Indica il <b>nome del prodotto Adobe</b> che vorresti richiedere."
+        overrides={
+            Category.APP: "🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
+            Category.GAME: "🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
+            Category.SOFTWARE: "🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
+            Category.DAW: "🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere.",
+            Category.ADOBE: "🔹 Indica il <b>nome del prodotto Adobe</b> che vorresti richiedere."
+        }
     ),
     RequestField.LINK: MessageTemplate(
         default="🔹 Indica il <b>link di riferimento</b>.",
-        app="🔹 Indica il <b>link ufficile dell'app</b>.",
-        game="🔹 Indica il <b>link ufficiale del gioco</b>.",
-        software="🔹 Indica il <b>link ufficiale del software</b>.",
-        daw="🔹 Indica il <b>link ufficiale della DAW o del Plug-In</b>."
+        overrides={
+            Category.APP: "🔹 Indica il <b>link ufficile dell'app</b>.",
+            Category.GAME: "🔹 Indica il <b>link ufficiale del gioco</b>.",
+            Category.SOFTWARE: "🔹 Indica il <b>link ufficiale del software</b>.",
+            Category.DAW: "🔹 Indica il <b>link ufficiale della DAW o del Plug-In</b>."
+        }
     ),
     RequestField.VERSION: MessageTemplate(
         default="🔹 Indica la <b>versione</b> che vorresti richiedere.",
-        app="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
-        daw="🔹 Indica la <b>versione della DAW o del Plug-In</b>.",
-        adobe="🔹 Indica <b>la versione</b> del prodotto Adobe."
+        overrides={
+            Category.APP: "🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
+            Category.GAME: "🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
+            Category.SOFTWARE: "🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
+            Category.DAW: "🔹 Indica la <b>versione della DAW o del Plug-In</b>.",
+            Category.ADOBE: "🔹 Indica <b>la versione</b> del prodotto Adobe."
+        }
     ),
     RequestField.FEATURES: MessageTemplate(
         default="🔹 Indica le <b>funzionalità</b> che vorresti sbloccare.",
-        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare (es. Premium, No Pubblicità).",
-        game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare (es. Gioco Pagato, Monete infinite).",
-        software="🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
-        daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b>.",
-        adobe="🔹 Indica le <b>funzionalità o i filtri aggiuntivi</b> da sbloccare."
+        overrides={
+            Category.APP: "🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare (es. Premium, "
+                          "No Pubblicità).",
+            Category.GAME: "🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare (es. Gioco Pagato, "
+                           "Monete infinite).",
+            Category.SOFTWARE: "🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
+            Category.DAW: "🔹 Indica le <b>funzionalità della DAW o del Plug-In</b>.",
+            Category.ADOBE: "🔹 Indica le <b>funzionalità o i filtri aggiuntivi</b> da sbloccare."
+        }
     ),
     RequestField.STEAMTOOLS: MessageTemplate(
         default="🔹 Accetteresti il titolo con i file <b>SteamTools</b>?"
