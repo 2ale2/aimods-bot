@@ -1,36 +1,26 @@
-import os
 import asyncio
-from typing import Optional, Any, Dict, cast, TypedDict, Literal
+from pathlib import Path
+from typing import Any, Dict
 from uuid import uuid4
 
 import telegram.error
-from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters
+from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters, Message
 from telegram.constants import ChatAction, ParseMode
 
-from aimods_bot.src.helpers.models.job_names import RemoveInactiveRequestJobName
-from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.utils import MediaItem
-from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.core.pydantic import JobInfo
-from aimods_bot.src.helpers.models.jobs import ScheduledJobData, JobData, DeleteMessageJob, SendMessageJob, \
-    EditMessageJob
+from aimods_bot.src.helpers.constants.media import MediaType
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files
+from aimods_bot.src.helpers.models.job_names import RemoveInactiveRequestJobName
+from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
+    RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob
+from aimods_bot.src.helpers.models.utils import MediaItem
+from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
+from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files, delete_os_file
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild(__name__)
-
-
-async def async_remove_file(file_path: str):
-    if os.path.exists(file_path):
-        try:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, os.remove, file_path)
-            log.info(f"File Rimosso: {file_path}")
-        except OSError as e:
-            log.warning(f"Impossibile rimuovere {file_path}: {e}")
 
 
 # ========== JOB: DELETE ==========
@@ -38,21 +28,21 @@ async def async_remove_file(file_path: str):
 async def scheduled_delete_message(context: CustomContext):
     job = context.job
     if not job:
-        raise ValueError("Attribute CustomContext.job must not be None here!")
+        raise ValueError("Job data must not be None here!")
 
     job_data = job.data
     if not isinstance(job_data, DeleteMessageJob):
         raise WrongTypeException(job_data, "job_data", "DeleteMessageJob")
 
     try:
-        await context.bot.delete_message(
+        await context.bot.delete_messages(
             chat_id=job_data.chat_id,
-            message_id=job_data.message_id,
+            message_ids=job_data.message_ids,
         )
-        log.info(f"Message {job_data.message_id} deleted from {job_data.chat_id}")
+        log.info(f"Message {job_data.message_ids} deleted from {job_data.chat_id}")
     except telegram.error.BadRequest as e:
         if "not found" in str(e) or "deleted" in str(e):
-            log.info(f"Message {job_data.message_id} already deleted.")
+            log.info(f"Message {job_data.message_ids} already deleted.")
         else:
             log.warning(f"Delete error (Bad Request): {e}")
     except telegram.error.TelegramError as e:
@@ -64,7 +54,7 @@ async def scheduled_delete_message(context: CustomContext):
 async def scheduled_send_message(context: CustomContext):
     job = context.job
     if not job:
-        raise ValueError("Attribute CustomContext.job must not be None here!")
+        raise ValueError("Job data must not be None here!")
 
     job_name = job.name
     if not job_name:
@@ -88,25 +78,24 @@ async def scheduled_send_message(context: CustomContext):
 
     try:
         if job_data.files:
-            sent_obj = await _send_media_message(context=context, data_model=job_data, kwargs=common_kwargs)
-            sent_messages = sent_obj if isinstance(sent_obj, list) else [sent_obj]
+            sent_messages = await _send_media_message(context=context, job_data=job_data, kwargs=common_kwargs)
         elif job_data.text:
-            msg = await context.bot.send_message(text=job_data.text, **common_kwargs)
-            sent_messages = [msg]
+            sent_messages = [await context.bot.send_message(text=job_data.text, **common_kwargs)]
         else:
-            log.error("Nessun testo né media da inviare.")
+            log.error("No text nor media to send (how did you get here?!)")
             return
 
         if sent_messages and job_data.delete_after:
             job_queue = context.job_queue
             if not job_queue:
-                raise ValueError("Attribute CustomContext.job_queue must not be None here!")
-
-            msg_id = sent_messages[0].message_id
+                raise ValueError("Job queue must not be None here!")
             job_queue.run_once(
                 callback=scheduled_delete_message,
                 when=job_data.delete_after,
-                data=DeleteMessageJob(chat_id=job_data.chat_id, message_id=msg_id),
+                data=DeleteMessageJob(
+                    chat_id=job_data.chat_id,
+                    message_ids=[m.message_id for m in sent_messages],
+                )
             )
 
         context.pydb.jobs.pop(job_name, None)
@@ -119,15 +108,15 @@ async def send_action_message_after(
     update: Update,
     context: CustomContext,
     text: str,
-    recipient_id: Optional[int] = None,
+    recipient_id: int | None = None,
     time: int = 1,
-    files: Optional[list[InputMedia | str]] = None,
+    files: list[InputMedia | str] | None = None,
     send_as_document: bool = False,
     delete_after_sending: bool = False,
-    thread_id: Optional[int] = None,
-    reply_markup: Optional[InlineKeyboardMarkup] = None,
-    reply_parameters: Optional[ReplyParameters] = None,
-    delete_after: Optional[int] = None,
+    thread_id: int | None = None,
+    reply_markup: InlineKeyboardMarkup | None = None,
+    reply_parameters: ReplyParameters | None = None,
+    delete_after: int | None = None,
 ):
     """Invia un messaggio dopo un certo tempo, mostrando prima l'azione di scrittura o upload."""
     recipient = recipient_id or update.effective_chat.id
@@ -177,6 +166,9 @@ async def _send_media_message(
 
     normalized_media = await normalize_files(media_items)
 
+    if not normalized_media:
+        raise RuntimeError(f"No valid media to send (requested: {len(raw_files)})")
+
     try:
         if len(normalized_media) == 1:
             ftype, input_media = normalized_media[0]
@@ -197,7 +189,7 @@ async def _send_media_message(
     finally:
         if job_data.delete_after_sending:
             await asyncio.gather(
-                *(async_remove_file(f) for f in raw_files if isinstance(f, str))
+                *(delete_os_file(f) for f in raw_files if isinstance(f, (str, Path)))
             )
 
     return result_message
@@ -205,52 +197,54 @@ async def _send_media_message(
 
 async def _send_single_media(
         context: CustomContext,
-        item: tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia],
+        item: tuple[MediaType, InputMedia],
         caption: str | None,
         kwargs: Dict[str, Any],
         as_doc: bool
-):
+) -> list[Message]:
     ftype, input_file = item
     media = input_file.media
 
-    local_kwargs = kwargs.copy()
-    local_kwargs['caption'] = caption
+    local_kwargs = {**kwargs, "caption": caption}
 
-    if as_doc or ftype == "document":
-        return await context.bot.send_document(document=media, **local_kwargs)
+    if as_doc:
+        return [await context.bot.send_document(document=media, **local_kwargs)]
 
-    method_map = {
-        "photo": context.bot.send_photo,
-        "audio": context.bot.send_audio,
-        "video": context.bot.send_video,
-        "gif": context.bot.send_animation,
+    senders = {
+        MediaType.PHOTO: lambda: context.bot.send_photo(photo=media, **local_kwargs),
+        MediaType.AUDIO: lambda: context.bot.send_audio(audio=media, **local_kwargs),
+        MediaType.VIDEO: lambda: context.bot.send_video(video=media, **local_kwargs),
+        MediaType.GIF: lambda: context.bot.send_animation(animation=media, **local_kwargs),
+        MediaType.DOCUMENT: lambda: context.bot.send_document(document=media, **local_kwargs)
     }
 
-    method = method_map.get(ftype, context.bot.send_document)
-    param_name = ftype if ftype in ["photo", "audio", "video"] else ("animation" if ftype == "gif" else "document")
-
-    local_kwargs[param_name] = media
-    return await method(**local_kwargs)
+    sender = senders.get(ftype, senders[MediaType.DOCUMENT])
+    return [await sender()]
 
 
 async def _send_media_group(
         context: CustomContext,
-        items: list[tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]],
+        items: list[tuple[MediaType, InputMedia]],
         caption: str | None,
         local_kwargs: Dict[str, Any]
 ):
     local_kwargs.pop("reply_markup", None)
 
-    media_list = [el[1].media for el in items]
+    media_list = [input_media for _, input_media in items]
 
+    # noinspection PyTypeChecker
     messages = await context.bot.send_media_group(media=media_list, caption=caption, **local_kwargs)
 
-    return messages[0]  # send_media_group ritorna sempre una tupla
+    return list(messages)
 
 
 # ========== JOB: EDIT ==========
 
 async def scheduled_edit_message(context: CustomContext):
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
+
     job_data = context.job.data
     if not isinstance(job_data, EditMessageJob):
         raise WrongTypeException(job_data, "job_data", "EditMessageJob")
@@ -270,16 +264,16 @@ async def scheduled_edit_message(context: CustomContext):
         else:
             log.error(f"Edit error (Bad Request): {e}")
     except telegram.error.TelegramError as e:
-        log.error(f"Generic delete error: {e}")
+        log.error(f"Generic edit error: {e}")
 
 
 async def send_temporary_message(
     update: Update,
     context: CustomContext,
     text: str,
-    recipient_id: Optional[int],
-    reply_markup: Optional[InlineKeyboardMarkup] = None,
-    thread_id: Optional[int] = None,
+    recipient_id: int | None = None,
+    reply_markup: InlineKeyboardMarkup | None = None,
+    thread_id: int | None = None,
     delay_before: int = 2,
     delay_delete: int = 10,
 ):
@@ -311,11 +305,15 @@ async def send_temporary_message(
 # ========== JOB: REQUESTS ==========
 
 async def scheduled_remove_completed_requests(context: CustomContext):
-    data = context.job.data
-    if not isinstance(data, dict) or "request_id" not in data:
-        raise JobDataMissingException("Request ID not provided!")
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
 
-    request_id = int(data["request_id"])
+    job_data = context.job.data
+    if not isinstance(job_data, RemoveCompletedRequestJob):
+        raise WrongTypeException(job_data, "job_data", "RemoveCompletedRequestJob")
+
+    request_id = job_data.request_id
     context.remove_from_active_requests(ix=request_id)
 
     job_name = str(RemoveInactiveRequestJobName(request_id=request_id))
@@ -323,51 +321,51 @@ async def scheduled_remove_completed_requests(context: CustomContext):
 
 
 async def scheduled_remove_user_request_cooldown(context: CustomContext):
-    data = context.job.data
-    if not isinstance(data, dict) or "user_id" not in data:
-        raise JobDataMissingException("User ID not provided!")
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
 
-    context.remove_user_request_cooldown(user_id=int(data["user_id"]))
+    job_data = context.job.data
+    if not isinstance(job_data, RemoveRequestCooldownJob):
+        raise WrongTypeException(job_data, "job_data", "RemoveRequestCooldownJob")
+
+    context.remove_user_request_cooldown(user_id=job_data.user_id)
 
 
 # ========== JOB: LIMITATIONS ==========
 
 
-class RemoveLimitJobData(TypedDict):
-    user_id: int
-    section: RequestSection  # es. "windows:game"
-
-
 async def scheduled_remove_user_request_section_limitation(context: CustomContext):
-    """Rimuove la limitazione (utente, sezione) scaduta."""
-    data: RemoveLimitJobData = context.job.data
-    user_id = data["user_id"]
-    section = data["section"]
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
 
-    current = context.get_user_request_limitations(user_id=user_id)
+    job_data = context.job.data
+    if not isinstance(job_data, RemoveSectionLimitationJob):
+        raise WrongTypeException(job_data, "job_data", "RemoveSectionLimitationJob")
+
+    current = context.get_user_request_limitations(user_id=job_data.user_id)
     if not current:
         return
 
     remaining = [
         x for x in current
-        if not (x.section.platform == section.platform and x.section.category == section.category)
+        if not (x.section.platform == job_data.section.platform and x.section.category == job_data.section.category)
     ]
-    context.set_user_request_limitations(user_id=user_id, limitations=remaining)
+    context.set_user_request_limitations(user_id=job_data.user_id, limitations=remaining)
 
 
 # ========== JOB: SECTIONS MANAGEMENT ==========
 
 
-class SectionOpeningCheckJobData(TypedDict):
-    section: RequestSection
-
-
 async def scheduled_section_opening_check_for_user_notification(context: CustomContext):
-    if not context.job or not context.job.data:
-        raise ValueError("Job o job data mancanti!")
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
 
-    data: SectionOpeningCheckJobData = context.job.data
-    section = data["section"]
+    job_data = context.job.data
+    if not isinstance(job_data, SectionOpeningCheckJob):
+        raise WrongTypeException(job_data, "job_data", "SectionOpeningCheckJob")
 
-    if context.is_request_section_open(section=section):
-        await send_opening_notifications(context=context, section=section)
+    if context.is_request_section_open(section=job_data.section):
+        await send_opening_notifications(context=context, section=job_data.section)

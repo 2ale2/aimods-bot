@@ -13,7 +13,7 @@ from yaml import YAMLError
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import YAML_CONFIG_PATH
-from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
+from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES, MediaType
 from aimods_bot.src.helpers.constants.models import MediaItem
 from aimods_bot.src.helpers.loggers import logger
 
@@ -118,53 +118,32 @@ async def set_data_in_json(
         return False
 
 
-def get_file_type(file: Union[str, InputMedia]) -> Literal["document", "photo", "audio", "video", "gif"]:
-    """
-    Determine the file type based on MIME type or InputMedia type.
-
-    Args:
-        file: File path (str) or InputMedia object.
-
-    Returns:
-        File type as a string literal.
-    """
+def get_file_type(file: Union[str, InputMedia]) -> MediaType:
     if isinstance(file, InputMedia):
-        t = file.type.lower() if file.type.lower() in ("photo", "audio", "video", "gif") else "document"
-        return t
+        ft = file.type.lower()
+        return MediaType(ft) if ft in MediaType._value2member_map_ else MediaType.DOCUMENT
 
     mime, _ = mimetypes.guess_type(file)
-
     if mime is None:
-        return "document"
-
+        return MediaType.DOCUMENT
     if mime.startswith("image/"):
-        return "gif" if mime == "image/gif" else "photo"
-    elif mime.startswith("video/"):
-        return "video"
-    elif mime.startswith("audio/"):
-        return "audio"
-    else:
-        return "document"
+        return MediaType.GIF if mime == "image/gif" else MediaType.PHOTO
+    if mime.startswith("video/"):
+        return MediaType.VIDEO
+    if mime.startswith("audio/"):
+        return MediaType.AUDIO
+    return MediaType.DOCUMENT
 
 
 async def normalize_files(
         items: List[MediaItem]
-) -> List[Tuple[Literal["document", "photo", "audio", "video", "gif"], InputMedia]]:
-    """
-    Create InputMedia instances from a list of MediaItems.
-
-    Args:
-        items: List of MediaItem objects to normalize.
-
-    Returns:
-        List of tuples containing (file_type, InputMedia).
-    """
+) -> List[Tuple[MediaType, InputMedia]]:
     output = []
 
     for el in items:
         if isinstance(el.item, InputMedia):
             if el.as_doc:
-                output.append(("document", InputMediaDocument(el.item.media)))
+                output.append((MediaType.DOCUMENT, InputMediaDocument(el.item.media)))
             else:
                 output.append((el.type, el.item))
         else:  # el.item is a string path
@@ -315,35 +294,33 @@ async def convert_latex_to_pdf(tex_path: Union[str, Path], timeout: int = 60) ->
     return pdf_path
 
 
-async def delete_os_file(path: Union[str, Path]) -> bool:
+async def delete_os_file(path: str | Path) -> bool:
     """
-    Delete a file from the filesystem.
-
-    Args:
-        path: Path to the file to delete.
-
-    Returns:
-        True if successful, False otherwise.
+    Cancella un file dal filesystem in modo asincrono.
+    Ritorna True se il file è stato cancellato, False altrimenti
+    (file non trovato, permessi, path traversal, errore I/O).
     """
     try:
         validated_path = _validate_path(str(path))
-        file_path = Path(validated_path)
-
-        if file_path.exists():
-            file_path.unlink()
-            log.info(f"File deleted: {file_path}")
-            return True
-        else:
-            log.warning(f"File not found: {file_path}")
-            return False
-    except PermissionError:
-        log.error(f"Permission denied when deleting {path}")
-        return False
-    except OSError as e:
-        log.error(f"Error deleting file {path}: {e}")
-        return False
     except ValueError as e:
         log.error(f"Invalid path {path}: {e}")
+        return False
+
+    file_path = Path(validated_path)
+    if not file_path.exists():
+        log.warning(f"File not found: {file_path}")
+        return False
+
+    try:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, file_path.unlink)
+        log.info(f"File deleted: {file_path}")
+        return True
+    except PermissionError:
+        log.error(f"Permission denied when deleting {file_path}")
+        return False
+    except OSError as e:
+        log.error(f"Error deleting file {file_path}: {e}")
         return False
 
 

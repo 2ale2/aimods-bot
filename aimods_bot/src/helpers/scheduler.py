@@ -8,6 +8,8 @@ from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_secti
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import RequestLimitJobName, RequestCooldownJobName, \
     DelayedSectionOpeningJobName, JobName
+from aimods_bot.src.helpers.models.jobs import RemoveSectionLimitationJob, RemoveRequestCooldownJob, \
+    SectionOpeningCheckJob
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.utils.time_utils import ensure_utc
 
@@ -17,30 +19,30 @@ log = logger.getChild(__name__)
 # ========== HELPER INTERNI ==========
 
 def _schedule_unique_job(
-    context: CustomContext,
-    job_name: JobName,
-    callback: Callable,
-    when: datetime | float | int,
-    data: Any
+        context: CustomContext,
+        job_name: JobName,
+        callback: Callable,
+        when: datetime | float | int,
+        data: Any,
 ):
-    """
-    Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo.
-    """
+    """Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo."""
     job_queue = context.job_queue
     if job_queue is None:
         raise ValueError("Job Queue must not be None!")
 
-    current_jobs = job_queue.get_jobs_by_name(str(job_name))
-    for j in current_jobs:
-        j.schedule_removal()
-        log.debug(f"Job precedente rimosso: {job_name} ({str(job_name)})")
+    name_str = str(job_name)
 
-    job_queue.run_once(
+    for j in job_queue.get_jobs_by_name(name_str):
+        j.schedule_removal()
+        log.debug(f"Job precedente rimosso: {name_str}")
+
+    job = job_queue.run_once(
         callback=callback,
         when=when,
         data=data,
-        name=str(job_name)
+        name=name_str,
     )
+    return job
 
 
 async def schedule_request_limitation_deletion(
@@ -55,38 +57,34 @@ async def schedule_request_limitation_deletion(
     until_utc = ensure_utc(until)
     job_name = RequestLimitJobName(user_id=user_id, section=section)
 
-    _schedule_unique_job(
+    job = _schedule_unique_job(
         context=context,
         job_name=job_name,
         callback=scheduled_remove_user_request_section_limitation,
         when=until_utc,
-        data={"user_id": user_id, "section": section}
+        data=RemoveSectionLimitationJob(user_id=user_id, section=section),
     )
 
-    context.pydb.jobs[str(job_name)] = JobInfo(
-        next_date=until_utc,
-        executed=False
-    )
+    context.pydb.jobs[str(job_name)] = JobInfo(next_date=job.next_t)
 
-    log.info(f"Scheduled {job_name} for {user_id} section {section}")
+    log.info(f"Scheduled limitation removal for user {user_id} section {section} at {until_utc.isoformat()}")
 
 
 async def schedule_request_cooldown_removal(context: CustomContext, user_id: int, until: datetime):
     until_utc = ensure_utc(until)
     job_name = RequestCooldownJobName(user_id=user_id)
 
-    _schedule_unique_job(
+    job = _schedule_unique_job(
         context=context,
         job_name=job_name,
         callback=scheduled_remove_user_request_cooldown,
         when=until_utc,
-        data={"user_id": user_id}
+        data=RemoveRequestCooldownJob(user_id=user_id),
     )
 
-    context.pydb.jobs[str(job_name)] = JobInfo(
-        next_date=until_utc,
-        executed=False
-    )
+    context.pydb.jobs[str(job_name)] = JobInfo(next_date=job.next_t)
+
+    log.info(f"Scheduled cooldown removal for user {user_id} at {until_utc.isoformat()}")
 
 
 async def schedule_section_opening_check_for_user_notification(
@@ -95,10 +93,12 @@ async def schedule_section_opening_check_for_user_notification(
 ):
     job_name = DelayedSectionOpeningJobName(section=section)
 
-    _schedule_unique_job(
+    job = _schedule_unique_job(
         context=context,
         job_name=job_name,
         callback=scheduled_section_opening_check_for_user_notification,
         when=10,
-        data={"platform": section.platform, "category": section.category}
+        data=SectionOpeningCheckJob(section=section),
     )
+
+    context.pydb.jobs[str(job_name)] = JobInfo(next_date=job.next_t)

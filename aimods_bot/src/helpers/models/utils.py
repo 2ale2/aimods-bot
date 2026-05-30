@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Union, Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from telegram import InputMedia
 
 from aimods_bot.src.helpers.constants.constants import Category
+from aimods_bot.src.helpers.constants.media import MediaType
 
 
 @dataclass
 class MediaItem:
-    item: Union[str, InputMedia]
-    type: Literal["document", "photo", "audio", "video", "gif"]
-    as_doc: bool
+    item: str | InputMedia
+    type: MediaType
+    as_doc: bool = False
 
 
 @dataclass

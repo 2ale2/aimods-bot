@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 
 from telegram import InputMedia, InlineKeyboardMarkup, ReplyParameters
 
+from aimods_bot.src.helpers.models.request_section import RequestSection
+
 
 @dataclass
 class SendMessageJob:
@@ -30,4 +32,26 @@ class EditMessageJob:
 class DeleteMessageJob:
     """Payload per un job di eliminazione messaggio."""
     chat_id: int
-    message_id: int
+    message_ids: list[int]
+
+
+@dataclass
+class RemoveCompletedRequestJob:
+    request_id: int
+
+
+@dataclass
+class RemoveRequestCooldownJob:
+    user_id: int
+
+
+@dataclass
+class RemoveSectionLimitationJob:
+    user_id: int
+    section: RequestSection
+
+
+@dataclass
+class SectionOpeningCheckJob:
+    section: RequestSection
+    
