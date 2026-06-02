@@ -9,14 +9,13 @@ from telegram.helpers import effective_message_type
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
-from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import is_admin
 
-log = logger.getChild("echo")
+log = logger.getChild(__name__)
 
 
 class MsgDict(TypedDict):
@@ -31,19 +30,17 @@ async def echo(update: Update, context: CustomContext, full_command: str):
     """Scrive un messaggio facendo le veci del bot. Gestisce i comandi 'annuncio' e 'echo'."""
     message = update.effective_message
 
+    if message is None:
+        raise ValueError("Effective Message must not be None here!")
+
     if message.media_group_id:
-        log.info("Il messaggio ha più di un allegato. Verrà gestito conseguentemente.")
+        log.debug("Message has more then one attachment (will be managed consequentially).")
         return
 
     await safe_delete(update, context)
-    reply_parameters=_get_reply_parameters(message.reply_to_message)
+    reply_parameters=_get_reply_parameters(reply_message=message.reply_to_message)
     text = _get_echo_text(message)
     attachments = _get_single_attachment(message)
-
-    additional_job_data = JobData(
-        reply_parameters=reply_parameters,
-        thread_id=message.message_thread_id
-    )
 
     if attachments:
         additional_job_data.files = attachments
@@ -52,11 +49,12 @@ async def echo(update: Update, context: CustomContext, full_command: str):
         update=update,
         context=context,
         text=text,
-        additional_job_data=additional_job_data
+        reply_parameters=reply_parameters,
+        thread_id=message.message_thread_id
     )
 
 
-def _get_reply_parameters(reply_message: Optional[Message], allow_sending_without_reply=True):
+def _get_reply_parameters(reply_message: Message | None = None, allow_sending_without_reply: bool = True):
     if not reply_message:
         return None
 
@@ -79,7 +77,7 @@ def _get_reply_quote(quote: Optional[TextQuote]) -> Optional[str]:
         return quote.text
 
 
-def _get_echo_text(message: Union[Message, str]):
+def _get_echo_text(message: Message | str):
     """Ritorna il testo senza '[.!/]annuncio'."""
 
     if isinstance(message, str):
