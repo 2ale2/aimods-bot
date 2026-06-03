@@ -1,7 +1,7 @@
 import asyncio
 import re
 from functools import partial
-from typing import Union, Optional, TypedDict, Literal, cast, List
+from typing import Optional, TypedDict, Literal, cast, List
 
 from telegram import Update, Message, TextQuote, ReplyParameters
 from telegram.constants import ParseMode
@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_argument
 from aimods_bot.src.helpers.utils.user_utils import is_admin
 
 log = logger.getChild(__name__)
@@ -39,7 +39,7 @@ async def echo(update: Update, context: CustomContext, full_command: str):
 
     await safe_delete(update, context)
     reply_parameters=_get_reply_parameters(reply_message=message.reply_to_message)
-    text = _get_echo_text(message)
+    text, entities = split_command_argument(message)
     attachments = _get_single_attachment(message)
 
     if attachments:

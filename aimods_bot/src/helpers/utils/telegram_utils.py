@@ -8,7 +8,8 @@ from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
-                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser)
+                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser, Message,
+                      MessageEntity)
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
@@ -20,6 +21,7 @@ from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.utils.text_utils import u16_len, u16_slice
 
 log = logger.getChild(__name__)
 
@@ -759,17 +761,47 @@ async def render_action_not_permitted_panel(update: Update, context: CustomConte
     text = ("⛔ <b>Azione Vietata</b>\n\n"
             "🔐 Non hai i permessi per eseguire questa azione.")
 
-    keyabord = [
+    keyboard = [
         [
             ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
             ButtonItem(text="🏠 Home", callback_key=PathBuilder(base_path.segments[0]))
         ]
     ]
 
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=base_path,
+        text=text,
+        keyboard=keyboard
+    )
 
-def resolve_pl_cat(pl_str: str, cat_str: str):
-    """Risolve le enum Platform e Category dalle stringhe."""
-    platform = Platform(pl_str)
-    # get_platform_categories restituisce la classe Enum (es. Category), che chiamiamo con la stringa
-    category = get_platform_categories(platform)(cat_str)
-    return platform, category
+
+def split_command_argument(message: Message):
+    text = message.text or message.caption or ""
+    if not text:
+        return "", []
+
+    entities = list(message.entities or [])
+
+    command_token = text.split(maxsplit=1)[0]
+    arg_start = u16_len(command_token)
+
+    while u16_slice(text, arg_start, arg_start + 1).isspace():
+        arg_start += 1
+
+    arg_end = u16_len(text)
+    arg_text = u16_slice(text, arg_start)
+
+    arg_entities = []
+    for e in entities:
+        s = max(e.offset, arg_start)
+        en = min(e.offset + e.length, arg_end)
+        if en <= s:
+            continue
+        arg_entities.append(MessageEntity(
+            type=e.type, offset=s-arg_start, length=en-s,
+            url=e.url, user=e.user, language=e.language,
+            custom_emoji_id=e.custom_emoji_id,
+        ))
+    return arg_text, arg_entities
