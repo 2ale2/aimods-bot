@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from telegram import InputMedia, InlineKeyboardMarkup, ReplyParameters
+from telegram import InputMedia, InlineKeyboardMarkup, ReplyParameters, MessageEntity
 
 from aimods_bot.src.helpers.models.request_section import RequestSection
 
@@ -10,6 +10,7 @@ class SendMessageJob:
     """Payload per un job di invio messaggio."""
     chat_id: int
     text: str | None = None
+    entities: list[MessageEntity] | None = None
     files: list[InputMedia | str] = field(default_factory=list)
     send_as_document: bool = False  # upload non compresso
     delete_after_sending: bool = False  # cancella i file locali dopo l'upload

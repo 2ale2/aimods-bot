@@ -69,10 +69,11 @@ async def scheduled_send_message(context: CustomContext):
 
     common_kwargs = {
         "chat_id": job_data.chat_id,
+        "entities": job_data.entities,
         "reply_parameters": job_data.reply_parameters,
         "message_thread_id": job_data.thread_id,
         "reply_markup": job_data.reply_markup,
-        "parse_mode": ParseMode.HTML,
+        "parse_mode": ParseMode.HTML if not job_data.entities else None,
     }
     common_kwargs = {k: v for k, v in common_kwargs.items() if v is not None}
 

@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_argument
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_and_argument
 from aimods_bot.src.helpers.utils.user_utils import is_admin
 
 log = logger.getChild(__name__)
@@ -38,8 +38,8 @@ async def echo(update: Update, context: CustomContext, full_command: str):
         return
 
     await safe_delete(update, context)
-    reply_parameters=_get_reply_parameters(reply_message=message.reply_to_message)
-    text, entities = split_command_argument(message)
+    reply_parameters = _get_reply_parameters(reply_message=message.reply_to_message)
+    text, entities = split_command_and_argument(message)
     attachments = _get_single_attachment(message)
 
     if attachments:
@@ -49,8 +49,10 @@ async def echo(update: Update, context: CustomContext, full_command: str):
         update=update,
         context=context,
         text=text,
-        reply_parameters=reply_parameters,
-        thread_id=message.message_thread_id
+        entities=entities,  # ← nuovo parametro
+        thread_id=message.message_thread_id,
+        reply_parameters=_get_reply_parameters(message.reply_to_message),
+        files=_get_single_attachment(message),
     )
 
 
@@ -75,23 +77,6 @@ def _get_reply_quote(quote: Optional[TextQuote]) -> Optional[str]:
 
     if quote.is_manual:
         return quote.text
-
-
-def _get_echo_text(message: Message | str):
-    """Ritorna il testo senza '[.!/]annuncio'."""
-
-    if isinstance(message, str):
-        text = message
-    else:
-        text = message.caption_html_urled or message.text_html_urled
-
-    if not text:
-        return None
-
-    s = text.split(None, 1)
-    if s[0].lower().endswith(("annuncio", "announce", "echo")):
-        return s[1] if len(s) > 1 else ""
-    return text
 
 
 def _get_single_attachment(message: Message) -> Optional[List]:

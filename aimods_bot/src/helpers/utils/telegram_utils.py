@@ -777,22 +777,30 @@ async def render_action_not_permitted_panel(update: Update, context: CustomConte
     )
 
 
-def split_command_argument(message: Message):
+def split_command_and_argument(message: Message) -> tuple[str, list[MessageEntity]]:
+    """
+        Separa il comando dal resto del messaggio, ritornando il testo dell'argomento e le entity ri-allineate.
+
+        Gestisce correttamente i caratteri non-BMP (es. emoji) usando offset UTF-16 come da convenzione Telegram.
+    """
     text = message.text or message.caption or ""
     if not text:
         return "", []
 
     entities = list(message.entities or [])
 
+    # Identifica fine del comando (primo token)
     command_token = text.split(maxsplit=1)[0]
     arg_start = u16_len(command_token)
 
+    # Salta whitespace tra comando e argomento
     while u16_slice(text, arg_start, arg_start + 1).isspace():
         arg_start += 1
 
     arg_end = u16_len(text)
     arg_text = u16_slice(text, arg_start)
 
+    # Ri-mappa entity dell'argomento, scartando o ritagliando quelle che cadono nel comando
     arg_entities = []
     for e in entities:
         s = max(e.offset, arg_start)
@@ -800,8 +808,12 @@ def split_command_argument(message: Message):
         if en <= s:
             continue
         arg_entities.append(MessageEntity(
-            type=e.type, offset=s-arg_start, length=en-s,
-            url=e.url, user=e.user, language=e.language,
+            type=e.type,
+            offset=s - arg_start,
+            length=en - s,
+            url=e.url,
+            user=e.user,
+            language=e.language,
             custom_emoji_id=e.custom_emoji_id,
         ))
     return arg_text, arg_entities
