@@ -49,7 +49,7 @@ async def echo(update: Update, context: CustomContext, full_command: str):
         update=update,
         context=context,
         text=text,
-        entities=entities,  # ← nuovo parametro
+        entities=entities if entities is not None else None,
         thread_id=message.message_thread_id,
         reply_parameters=_get_reply_parameters(message.reply_to_message),
         files=_get_single_attachment(message),

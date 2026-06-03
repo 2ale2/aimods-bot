@@ -4,7 +4,7 @@ from typing import Any, Dict
 from uuid import uuid4
 
 import telegram.error
-from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters, Message
+from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters, Message, MessageEntity
 from telegram.constants import ChatAction, ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext
@@ -69,18 +69,28 @@ async def scheduled_send_message(context: CustomContext):
 
     common_kwargs = {
         "chat_id": job_data.chat_id,
-        "entities": job_data.entities,
         "reply_parameters": job_data.reply_parameters,
         "message_thread_id": job_data.thread_id,
         "reply_markup": job_data.reply_markup,
-        "parse_mode": ParseMode.HTML if not job_data.entities else None,
     }
     common_kwargs = {k: v for k, v in common_kwargs.items() if v is not None}
 
     try:
         if job_data.files:
+            if job_data.entities is not None:
+                # noinspection PyTypeChecker
+                common_kwargs["caption_entities"] = job_data.entities
+            else:
+                # noinspection PyTypeChecker
+                common_kwargs["parse_mode"] = ParseMode.HTML
             sent_messages = await _send_media_message(context=context, job_data=job_data, kwargs=common_kwargs)
         elif job_data.text:
+            if job_data.entities is not None:
+                # noinspection PyTypeChecker
+                common_kwargs["entities"] = job_data.entities
+            else:
+                # noinspection PyTypeChecker
+                common_kwargs["parse_mode"] = ParseMode.HTML
             sent_messages = [await context.bot.send_message(text=job_data.text, **common_kwargs)]
         else:
             log.error("No text nor media to send (how did you get here?!)")
@@ -112,6 +122,7 @@ async def send_action_message_after(
     recipient_id: int | None = None,
     time: int = 1,
     files: list[InputMedia | str] | None = None,
+    entities: list[MessageEntity] | None = None,
     send_as_document: bool = False,
     delete_after_sending: bool = False,
     thread_id: int | None = None,
@@ -127,6 +138,7 @@ async def send_action_message_after(
         chat_id=recipient,
         text=text,
         files=files or [],
+        entities=entities,
         send_as_document=send_as_document,
         delete_after_sending=delete_after_sending,
         thread_id=resolved_thread_id,
@@ -178,14 +190,14 @@ async def _send_media_message(
                 item=(ftype, input_media),
                 caption=job_data.text,
                 kwargs=kwargs,
-                as_doc=as_doc,
+                as_doc=as_doc
             )
         else:
             result_message = await _send_media_group(
                 context=context,
                 items=normalized_media,
                 caption=job_data.text,
-                local_kwargs=kwargs,
+                local_kwargs=kwargs
             )
     finally:
         if job_data.delete_after_sending:
