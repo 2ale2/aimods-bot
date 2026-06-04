@@ -1,7 +1,7 @@
 import re
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminManageRequestLimitationsRoute, \
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow, \
     GlobalAction
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -70,7 +70,7 @@ async def handle_remove_user_request_limitation(
     """
     Rimuove le limitazioni dell'utente.
     """
-    if selected_section == AdminManageRequestLimitationsRoute.REMOVE_ALL:
+    if selected_section == LimitationsFlow.REMOVE_ALL:
         _remove_limitation_jobs(context, user_id, section_pattern=r"[^:\s]+")
 
         context.set_user_request_limitations(user_id=user_id, limitations=[])

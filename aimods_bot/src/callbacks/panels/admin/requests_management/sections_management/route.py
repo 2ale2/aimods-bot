@@ -9,8 +9,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
 )
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
-    AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
+    LimitationsOp
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -62,14 +62,14 @@ async def admin_request_section_configure_route(
                 base_path=root
             )
 
-        case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
+        case [LimitationsOp.LIMIT, *rest]:
             match PathBuilder(*rest).segments:
                 case []:
                     await render_admin_request_section_limit_panel(
                         update=update,
                         context=context,
                         section=section,
-                        base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT)
+                        base_path=root.add(LimitationsOp.LIMIT)
                     )
 
                 case [limit_str]:
@@ -88,7 +88,7 @@ async def admin_request_section_configure_route(
                         await render_admin_request_section_limit_confirm_panel(
                             update=update,
                             context=context,
-                            base_path=root.add(AdminManageRequestLimitationsUtils.LIMIT, limit_str),
+                            base_path=root.add(LimitationsOp.LIMIT, limit_str),
                             section=section,
                             limit=limit
                         )

@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import ren
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_route
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, SecurityFiltersRoute, \
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, SecurityFiltersRoute, \
     AntispamRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
@@ -23,25 +23,31 @@ async def antispam_route(update: Update, context: CustomContext, root: PathBuild
     match relative_path.segments:
         case []:
             await render_antispam_panel(update=update, context=context)
+
         case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):
             await toggle_antispam(update=update, context=context)
             await render_antispam_panel(update=update, context=context)
+
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
+            root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
                 setting=SecurityFiltersRoute.ANTISPAM,
-                path=root[1:]
+                root=root,
+                relative_path=PathBuilder(*rest)
             )
+
         case [SecurityFiltersRoute.WHITELIST, *rest]:
+            root.add(SecurityFiltersRoute.WHITELIST)
             return await antispam_whitelist_route(
                 update=update,
                 context=context,
-                root=root[1:],
-                relative_path=None
+                root=root,
+                relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.LINK, *rest]:
-            return await antispam_link_route(update=update, context=context, path=root[1:])
+            return await antispam_link_route(update=update, context=context, root=root[1:])
         case [AntispamRoute.MENTION, *rest]:
             return await antispam_mention_route(update=update, context=context, path=root[1:])
         case [AntispamRoute.FORWARD, *rest]:

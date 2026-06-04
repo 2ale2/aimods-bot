@@ -9,7 +9,7 @@ from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_EXCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
     EMOJI_NUMBER
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem

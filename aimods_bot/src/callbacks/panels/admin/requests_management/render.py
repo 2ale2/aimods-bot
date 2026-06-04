@@ -4,9 +4,9 @@ from telegram.constants import ChatAction
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestManagementRoute, AdminRoute, \
-    AdminRequestsRoute, AdminRequestsLimitationsRoute, GlobalAction, UserRoute, UserManageRequestsRoute, \
-    AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute, AdminRoute, \
+    AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, \
+    LimitationsOp
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -358,7 +358,7 @@ def _get_admin_menage_request_keyboard(
 
     limit_buttons = [ButtonItem(
         text="⛔️ Limita Utente",
-        callback_key=base_path.add(AdminManageRequestLimitationsUtils.LIMIT, str(request.user_id)))
+        callback_key=base_path.add(LimitationsOp.LIMIT, str(request.user_id)))
     ]
     if context.get_user_request_limitations(user_id=request.user_id):
         limit_buttons.append(
@@ -368,7 +368,7 @@ def _get_admin_menage_request_keyboard(
                     AdminRoute.ROOT,
                     AdminRoute.MANAGE_REQUESTS,
                     AdminRequestsRoute.MANAGE_LIMITATIONS,
-                    AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS,
+                    LimitationsAction.REMOVE_LIMITATIONS,
                     str(request.user_id)
                 )
             )

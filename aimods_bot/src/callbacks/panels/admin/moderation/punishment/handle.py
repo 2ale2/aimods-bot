@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel
@@ -5,6 +7,8 @@ from aimods_bot.src.core.config_accessor import set_value, get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.models import JobData
+
+from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
@@ -20,7 +24,9 @@ async def set_as_parent(update: Update, context: CustomContext, setting: str):
     await set_punishment_duration(update=update, context=context, value=d)
 
 
-async def set_punishment_type(context: CustomContext, setting: str, punishment: str):
+async def set_punishment_type(context: CustomContext, setting: str, punishment: StrEnum):
+    if punishment not in (PunishmentRoute.WARN, PunishmentRoute.KICK, PunishmentRoute.MUTE, PunishmentRoute.BAN):
+        raise ValueError(f"Invalid punishment type: {punishment}!")
     set_value(context=context, path=f"moderation.{setting}.punishment.type", value=punishment)
 
 

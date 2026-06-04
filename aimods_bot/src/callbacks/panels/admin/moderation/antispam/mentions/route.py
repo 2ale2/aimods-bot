@@ -25,14 +25,14 @@ async def antispam_mention_route(update: Update, context: CustomContext, path: l
                     update=update,
                     context=context,
                     setting="antispam/mention",
-                    path=path[1:]
+                    relative_path=path[1:]
                 )
             else:
                 await antispam_link_allow_after_route(
                     update=update,
                     context=context,
                     setting="antispam/mention",
-                    path=path[1:]
+                    relative_path=path[1:]
                 )
                 await render_antispam_mention_panel(update=update, context=context)
                 return PCS.ADMIN_CONVERSATION
@@ -64,7 +64,7 @@ async def antispam_mention_category_route(update: Update, context: CustomContext
 
     match path[0]:
         case "punishment":
-            return await punishment_route(update=update, context=context, setting=f"antispam/mention/{category}", path=path[1:])
+            return await punishment_route(update=update, context=context, setting=f"antispam/mention/{category}", root=path[1:])
         case "on":
             await set_moderation_bool_setting(
                 update=update,

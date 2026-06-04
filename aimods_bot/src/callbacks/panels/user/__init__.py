@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user.request.route import requests_management_route
 from aimods_bot.src.callbacks.panels.user.settings_management.route import user_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserRoute
+from aimods_bot.src.helpers.constants.path_navigation import UserRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.user_utils import check_auth

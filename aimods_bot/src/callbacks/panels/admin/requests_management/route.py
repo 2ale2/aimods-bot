@@ -19,8 +19,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsRoute, \
-    AdminManageRequestLimitationsUtils, AdminRequestManagementRoute, GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
+    LimitationsOp, AdminRequestManagementRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -190,12 +190,12 @@ async def admin_manage_request_route(
             )
             return PCS.ADMIN_CONVERSATION
 
-        case [AdminManageRequestLimitationsUtils.LIMIT, *rest]:
+        case [LimitationsOp.LIMIT, *rest]:
             user_id = request.user_id
             return await route_admin_manage_limitations(
                 update=update,
                 context=context,
-                root=root.add(AdminManageRequestLimitationsUtils.LIMIT, user_id),
+                root=root.add(LimitationsOp.LIMIT, user_id),
                 relative_path=PathBuilder(*rest)
             )
 

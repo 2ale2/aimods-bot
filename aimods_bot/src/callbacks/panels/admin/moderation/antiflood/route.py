@@ -19,7 +19,7 @@ async def antiflood_route(update: Update, context: CustomContext, path: list[str
 
     match path[0]:
         case "punishment":
-            return await punishment_route(update=update, context=context, setting="antiflood", path=path[1:])
+            return await punishment_route(update=update, context=context, setting="antiflood", root=path[1:])
         case "message_number":
             await not_implemented_yet(update=update, context=context)
         case "message_time":

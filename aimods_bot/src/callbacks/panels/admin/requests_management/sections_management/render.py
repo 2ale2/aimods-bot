@@ -5,8 +5,8 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
-    AdminRoute, AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
+    AdminRoute, LimitationsOp
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -99,7 +99,7 @@ async def render_admin_request_section_configure_category_panel(
         keyboard=[
             [
                 ButtonItem(text=toggle_text, callback_key=base_path.add(toggle_callback)),
-                ButtonItem(text="🗂 Limite", callback_key=base_path.add(AdminManageRequestLimitationsUtils.LIMIT))
+                ButtonItem(text="🗂 Limite", callback_key=base_path.add(LimitationsOp.LIMIT))
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]

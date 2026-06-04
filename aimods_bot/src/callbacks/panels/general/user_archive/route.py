@@ -3,7 +3,7 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.general.user_archive.render import render_user_archive_request_identifier_panel, \
     render_user_archive_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRoute
+from aimods_bot.src.helpers.constants.path_navigation import AdminRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS

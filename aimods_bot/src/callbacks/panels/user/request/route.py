@@ -14,7 +14,7 @@ from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
     Platform, Category, LOCAL_TZ, DATETIME_FORMAT
 )
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import UserRoute, NotificationAction as NA
+from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA
 from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS
 )

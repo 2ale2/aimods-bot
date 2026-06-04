@@ -31,7 +31,7 @@ async def antispam_forward_category_route(update: Update, context: CustomContext
 
     match path[0]:
         case "punishment":
-            return await punishment_route(update=update, context=context, setting=f'antispam/forward/{category}', path=path[1:])
+            return await punishment_route(update=update, context=context, setting=f'antispam/forward/{category}', root=path[1:])
         case "on":
             await set_moderation_bool_setting(
                 update=update,

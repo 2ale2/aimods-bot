@@ -7,8 +7,8 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, \
-    AdminManageRequestLimitationsRoute
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
+    LimitationsFlow
 from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
@@ -55,7 +55,7 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
 
     item = context.pydc.persistent.limiting_user_requests
 
-    if duration_input == AdminManageRequestLimitationsRoute.DURATION_ENDLESS:
+    if duration_input == LimitationsFlow.DURATION_ENDLESS:
         item.duration = 0
         return True
 
@@ -82,7 +82,7 @@ async def handle_request_limitation_duration(update: Update, context: CustomCont
 
 async def handle_request_limitation_topic(
         context: CustomContext,
-        section_input: AdminManageRequestLimitationsRoute | RequestSection,
+        section_input: LimitationsFlow | RequestSection,
 ):
     item = context.pydc.persistent.limiting_user_requests
 
@@ -90,11 +90,11 @@ async def handle_request_limitation_topic(
         raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
 
     match section_input:
-        case AdminManageRequestLimitationsRoute.BLOCK_ALL:
+        case LimitationsFlow.BLOCK_ALL:
             for section in item.sections:
                 item.sections[section] = True
 
-        case AdminManageRequestLimitationsRoute.UNBLOCK_ALL:
+        case LimitationsFlow.UNBLOCK_ALL:
             for section in item.sections:
                 item.sections[section] = False
 

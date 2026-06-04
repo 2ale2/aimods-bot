@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, NotificationAction, UserRoute, \
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, NotificationAction, UserRoute, \
     UserManageSettingsRoute, AdminRoute, AdminRequestsRoute, AdminSettingsRoute, AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection

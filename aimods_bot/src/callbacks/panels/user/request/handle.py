@@ -9,7 +9,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import render_global_re
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.helpers.constants.constants import RequestField
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger

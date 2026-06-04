@@ -1,7 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import ModerationRoute, SecurityFiltersRoute
+from aimods_bot.src.helpers.constants.path_navigation import ModerationRoute, SecurityFiltersRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
@@ -37,7 +37,7 @@ async def render_security_filters_panel(update: Update, context: CustomContext, 
             [ButtonItem(text="🖊 Parole Bandite", callback_key=SecurityFiltersRoute.FORBIDDEN_WORDS)],
             [ButtonItem(text="👁‍🗨 Controlli", callback_key=SecurityFiltersRoute.CHECKS)],
             [ButtonItem(text="🔞 Contenuti Inappropriati", callback_key=SecurityFiltersRoute.INAPPROPRIATE_CONTENT)],
-            [ButtonItem(text="📏 Lunghezza Messaggi", callback_key=SecurityFiltersRoute.LENGHT)],
+            [ButtonItem(text="📏 Lunghezza Messaggi", callback_key=SecurityFiltersRoute.LENGTH)],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )

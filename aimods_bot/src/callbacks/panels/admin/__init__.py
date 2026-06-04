@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import InvalidCallbackData
 
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRoute, GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, GlobalAction
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_router

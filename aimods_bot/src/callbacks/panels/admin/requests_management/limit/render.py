@@ -8,8 +8,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle impo
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS
-from aimods_bot.src.helpers.constants.conversation_paths.navigation import AdminRequestsLimitationsRoute, \
-    AdminManageRequestLimitationsRoute as AMRLR, GlobalAction, AdminRoute, AdminManageRequestLimitationsUtils
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsAction, \
+    LimitationsFlow as AMRLR, GlobalAction, AdminRoute, LimitationsOp
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -61,17 +61,17 @@ async def render_admin_manage_user_limitations_panel(
             [
                 ButtonItem(
                     text="👁️‍🗨️ Visiona",
-                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.VIEW)
+                    callback_key=base_path.add(LimitationsOp.VIEW)
                 )
             ],
             [
                 ButtonItem(
                     text="➕ Aggiungi",
-                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.ADD)
+                    callback_key=base_path.add(LimitationsOp.ADD)
                 ),
                 ButtonItem(
                     text="➖ Rimuovi",
-                    callback_key=base_path.add(AdminManageRequestLimitationsUtils.REMOVE)
+                    callback_key=base_path.add(LimitationsOp.REMOVE)
                 )
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
@@ -115,11 +115,11 @@ async def render_admin_view_user_request_limitations_panel(
             [
                 ButtonItem(
                     text="➕ Aggiungi",
-                    callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.ADD)
+                    callback_key=base_path.back().add(LimitationsOp.ADD)
                 ),
                 ButtonItem(
                     text="➖ Rimuovi",
-                    callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.REMOVE)
+                    callback_key=base_path.back().add(LimitationsOp.REMOVE)
                 )
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back().back())]
@@ -204,7 +204,7 @@ async def render_admin_add_user_request_limitation_panel(
     if context.get_user_request_limitations(user_id=user_id):
         keyboard.insert(0, [ButtonItem(
             text="👁‍🗨 Visiona Limitazioni",
-            callback_key=base_path.back().add(AdminManageRequestLimitationsUtils.VIEW))
+            callback_key=base_path.back().add(LimitationsOp.VIEW))
         ])
 
     await create_and_render_panel(
@@ -421,7 +421,7 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
-    user_id = get_request_limiting_detail(context=context, what=AdminManageRequestLimitationsUtils.USER_ID)
+    user_id = get_request_limiting_detail(context=context, what=LimitationsOp.USER_ID)
     duration = get_request_limiting_detail(context=context, what=AMRLR.DURATION)
     sections = get_request_limiting_detail(context=context, what=AMRLR.SECTIONS)
 
@@ -474,7 +474,7 @@ async def render_admin_view_user_limitations_panel(
     text = await _get_user_request_limitations_text(context=context, user_id=user_id)
 
     keyboard = [
-        [ButtonItem(text="➕ Aggiungi", callback_key=base_path.add(user_id, AdminManageRequestLimitationsUtils.ADD))],
+        [ButtonItem(text="➕ Aggiungi", callback_key=base_path.add(user_id, LimitationsOp.ADD))],
     ]
 
     limitations = context.get_user_request_limitations(user_id=user_id)
@@ -483,7 +483,7 @@ async def render_admin_view_user_limitations_panel(
         keyboard[0].append(
             ButtonItem(
                 text="➖ Rimuovi",
-                callback_key=base_path.back().add(AdminRequestsLimitationsRoute.REMOVE_LIMITATIONS)
+                callback_key=base_path.back().add(LimitationsAction.REMOVE_LIMITATIONS)
             )
         )
 
