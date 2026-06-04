@@ -26,28 +26,25 @@ async def antispam_links_list_route(
             )
             return PCS.ADMIN_CONVERSATION
         case [ModerationListsRoute.VIEW]:
-            root.add(ModerationListsRoute.VIEW)
             return await view_list(
                 update=update,
                 context=context,
-                base_path=root,
+                base_path=root.add(ModerationListsRoute.VIEW),
                 list_type=list_type
             )
         case [ModerationListsRoute.ADD]:
-            root.add(ModerationListsRoute.ADD)
             return await edit_list(
                 update=update,
                 context=context,
-                base_path=root,
+                base_path=root.add(ModerationListsRoute.ADD),
                 list_type=list_type,
                 action=ModerationListsRoute.ADD
             )
         case [ModerationListsRoute.REMOVE]:
-            root.add(ModerationListsRoute.REMOVE)
             return await edit_list(
                 update=update,
                 context=context,
-                base_path=root,
+                base_path=root.add(ModerationListsRoute.REMOVE),
                 list_type=list_type,
                 action=ModerationListsRoute.REMOVE
             )

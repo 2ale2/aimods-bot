@@ -9,6 +9,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.path_navigation import UserManageSettingsRoute, NotificationAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
 
@@ -25,7 +26,7 @@ async def user_settings_management_route(
             await render_user_settings_management_panel(update=update, context=context, base_path=root)
 
         case [UserManageSettingsRoute.NOTIFICATIONS, *rest]:
-            root.add(UserManageSettingsRoute.NOTIFICATIONS)
+            root = root.add(UserManageSettingsRoute.NOTIFICATIONS)
             match PathBuilder(*rest).segments:
                 case []:
                     await render_user_notification_settings_management_panel(
@@ -35,7 +36,7 @@ async def user_settings_management_route(
                     )
 
                 case [UserManageSettingsRoute.SECTION_OPENING_NOTIFICATIONS, *rest]:
-                    root.add(UserManageSettingsRoute.SECTION_OPENING_NOTIFICATIONS)
+                    root = root.add(UserManageSettingsRoute.SECTION_OPENING_NOTIFICATIONS)
                     match PathBuilder(*rest).segments:
                         case []:
                             await render_user_section_opening_notification_settings_panel(
@@ -43,19 +44,18 @@ async def user_settings_management_route(
                                 context=context,
                                 base_path=root
                             )
-                        case [platform, category] if platform in Platform and category in Category:
+                        case [platform, category]:
+                            section = RequestSection(platform=platform, category=category)
                             await handle_user_section_opening_notification_toggle(
                                 context=context,
-                                platform=platform,
-                                category=category
+                                section=section
                             )
                             if from_notification:
                                 await render_section_opening_notification_disabled_panel(
                                     update=update,
                                     context=context,
                                     base_path=root,
-                                    platform=platform,
-                                    category=category
+                                    section=section
                                 )
                             else:
                                 await render_user_section_opening_notification_settings_panel(

@@ -18,13 +18,13 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
+from aimods_bot.src.helpers.constants.constants import RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
 log = logger.getChild(__name__)
@@ -76,30 +76,28 @@ async def admin_requests_management_route(
             )
 
         case [AdminRequestsRoute.LAST_10, *rest]:
-            full_path_builder = root.add(AdminRequestsRoute.LAST_10, *rest)
+            full_path = root.add(AdminRequestsRoute.LAST_10, *rest)
 
             match PathBuilder(*rest).segments:
                 case []:
                     await render_last_ten_requests_platform_panel(
                         update=update,
                         context=context,
-                        base_path=full_path_builder
+                        base_path=full_path
                     )
                 case [platform]:
                     await render_last_ten_requests_category_panel(
                         update=update,
                         context=context,
-                        base_path=full_path_builder,
-                        platform=Platform(platform)
+                        base_path=full_path,
+                        platform=platform
                     )
                 case [platform, category]:
-                    platform = Platform(platform)
                     await render_last_ten_requests_section_panel(
                         update=update,
                         context=context,
-                        base_path=full_path_builder,
-                        platform=platform,
-                        category=get_platform_categories(platform=platform)(category)
+                        base_path=full_path,
+                        section=RequestSection(platform=platform, category=category)
                     )
             return PCS.ADMIN_CONVERSATION
 
@@ -124,30 +122,28 @@ async def route_admin_active_requests_management(
         case []:
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
-        case [platform_str]:
+        case [platform]:
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
-                base_path=root.add(platform_str),
-                platform=Platform(platform_str)
+                base_path=root.add(platform),
+                platform=platform
             )
 
-        case [platform_str, category_str]:
-            platform = Platform(platform_str)
+        case [platform, category]:
             await render_admin_active_requests_category_panel(
                 update=update,
                 context=context,
-                base_path=root.add(category_str),
-                platform=platform,
-                category=get_platform_categories(platform=platform)(category_str)
+                base_path=root.add(category),
+                section=RequestSection(platform=platform, category=category)
             )
 
-        case [platform_str, category_str, request_id_str, *sub_path]:
+        case [platform, category, request_id_str, *sub_path]:
             if request_id_str.isdigit():
                 return await admin_manage_request_route(
                     update=update,
                     context=context,
-                    root=root.add(platform_str, category_str, request_id_str),
+                    root=root.add(platform, category, request_id_str),
                     relative_path=PathBuilder(*sub_path),
                     ix=int(request_id_str)
                 )
@@ -220,27 +216,23 @@ async def admin_manage_request_route(
 
         case [AdminRequestManagementRoute.CHANGE_STATUS, *rest]:
             if await ensure_active():
-                root.add(AdminRequestManagementRoute.CHANGE_STATUS)
-
                 match PathBuilder(*rest).segments:
                     case []:
                         await render_admin_manage_request_change_status_panel(
                             update=update,
                             context=context,
-                            base_path=root,
+                            base_path=root.add(AdminRequestManagementRoute.CHANGE_STATUS),
                             request=request
                         )
 
                     case [new_status_str, *rest]:
                         new_status = RequestStatus(new_status_str)
-                        root.add(new_status_str)
-
                         match PathBuilder(*rest).segments:
                             case []:
                                 await render_change_request_status_confirmation_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root,
+                                    base_path=root.add(new_status_str),
                                     request=request,
                                     status=new_status
                                 )
@@ -252,7 +244,7 @@ async def admin_manage_request_route(
                                 await render_request_status_changed_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root.back(),
+                                    base_path=root,
                                     request=updated_request
                                 )
                                 if new_status == RequestStatus.COMPLETED:
@@ -262,7 +254,7 @@ async def admin_manage_request_route(
 
         case [AdminRequestManagementRoute.REJECT, *rest]:
             if await ensure_active():
-                root.add(AdminRequestManagementRoute.REJECT)
+                root = root.add(AdminRequestManagementRoute.REJECT)
 
                 match PathBuilder(*rest).segments:
                     case []:

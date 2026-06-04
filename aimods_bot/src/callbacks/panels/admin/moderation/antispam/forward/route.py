@@ -25,12 +25,11 @@ async def antispam_forward_route(
             return PCS.ADMIN_CONVERSATION
 
         case [chat_type, *rest] if chat_type in ChatType:
-            root.add(chat_type)
             return await antispam_forward_category_route(
                 update=update,
                 context=context,
                 category=chat_type,
-                root=root,
+                root=root.add(chat_type),
                 relative_path=PathBuilder(*rest)
             )
 
@@ -55,12 +54,11 @@ async def antispam_forward_category_route(
             return PCS.ADMIN_CONVERSATION
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
-            root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
                 setting=f'{setting}/{category}',
-                root=root,
+                root=root.add(SecurityFiltersRoute.PUNISHMENT),
                 relative_path=PathBuilder(*rest)
             )
 

@@ -21,14 +21,13 @@ async def antispam_mention_route(update: Update, context: CustomContext, root: P
             return PCS.ADMIN_CONVERSATION
 
         case [SecurityFiltersRoute.ALLOW_AFTER, *rest]:
-            root.add(SecurityFiltersRoute.ALLOW_AFTER)
             rest_path = PathBuilder(*rest)
 
             result = await antispam_link_allow_after_route(
                         update=update,
                         context=context,
                         setting="antispam/mention",
-                        root=root,
+                        root=root.add(SecurityFiltersRoute.ALLOW_AFTER),
                         relative_path=rest_path
                     )
 
@@ -40,7 +39,7 @@ async def antispam_mention_route(update: Update, context: CustomContext, root: P
                 context=context,
                 setting="antispam/mention",
                 root=root,
-                relative_path=rest_path
+                relative_path=root + rest_path
             )
             await render_antispam_mention_panel(update=update, context=context, base_path=root + rest_path)
             return PCS.ADMIN_CONVERSATION
@@ -93,13 +92,12 @@ async def antispam_mention_category_route(
             return PCS.ADMIN_CONVERSATION
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
-            root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
                 setting=f"{setting}/{category}",
                 relative_path=PathBuilder(*rest),
-                root=root
+                root=root.add(SecurityFiltersRoute.PUNISHMENT)
             )
 
         case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):

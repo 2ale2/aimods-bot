@@ -44,7 +44,7 @@ async def requests_management_route(
             )
 
         case [UserRoute.ADD_REQUEST, *rest]:
-            root.add(UserRoute.ADD_REQUEST)
+            root = root.add(UserRoute.ADD_REQUEST)
             match PathBuilder(*rest).segments:
                 case []:
                     await render_user_request_platform_panel(
@@ -53,11 +53,10 @@ async def requests_management_route(
                         base_path=root
                     )
 
-                case [NA.FROM_NOTIFICATION, platform, category] if platform in Platform and category in Category:
+                case [NA.FROM_NOTIFICATION, platform, category]:
                     context.init_request_wizard_session(
                         user_id=update.effective_user.id,
-                        platform=Platform(platform),
-                        category=Category(category),
+                        section=RequestSection(platform=platform, category=category),
                         from_notification=True,
                         msg_id=update.effective_message.id
                     )
@@ -65,13 +64,11 @@ async def requests_management_route(
                     await render_global_request_wizard_panel(
                         update=update,
                         context=context,
-                        base_path=root
+                        base_path=root.add(platform, category)
                     )
                     return PCS.USER_REQUEST_WIZARD_SESSION
 
-                case [platform, *rest] if platform in Platform:
-                    root.add(platform)
-
+                case [platform, *rest]:
                     match PathBuilder(*rest).segments:
                         case []:
                             configs_cat = PLATFORM_CATEGORY_REGISTRY[platform]
@@ -79,15 +76,13 @@ async def requests_management_route(
                                 await render_user_request_category_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root,
+                                    base_path=root.add(platform),
                                     platform=platform
                                 )
                             else:
-                                category = list(configs_cat.keys())[0].value()
-                                platform = Platform(platform)
-                                category = Category(category)
-
-                                if not is_category_request_allowed(context, platform, category):
+                                category = list(configs_cat.keys())[0]
+                                section = RequestSection(platform=platform, category=category)
+                                if not is_category_request_allowed(context=context, section=section):
                                     message = ("🔐 <b>Richieste Chiuse</b>\n\n"
                                                "▪️ <b>Non è al momento possibile formulare nuove richieste</b> "
                                                "per questa categoria, perché <b>ha raggiunto il limite</b> di "
@@ -113,10 +108,7 @@ async def requests_management_route(
                                         base_path=root
                                     )
                                 else:
-                                    request_limitation = context.is_user_request_limited(
-                                        platform=platform,
-                                        category=category
-                                    )
+                                    request_limitation = context.is_user_request_limited(section=section)
                                     if request_limitation:
                                         if request_limitation.until:
                                             until = request_limitation.until.replace(tzinfo=ZoneInfo("UTC")).astimezone(LOCAL_TZ)
@@ -146,20 +138,18 @@ async def requests_management_route(
                                     context.pydc.persistent.base_path = root.build()
                                     context.init_request_wizard_session(
                                         user_id=update.effective_user.id,
-                                        platform=Platform(platform),
-                                        category=Category(category),
+                                        section=section,
                                         from_notification=False,
                                         msg_id=update.effective_message.id
                                     )
                                     await render_global_request_wizard_panel(
                                         update=update,
                                         context=context,
-                                        base_path=root
+                                        base_path=root.add(platform, category)
                                     )
                                     return PCS.USER_REQUEST_WIZARD_SESSION
 
-                        case [category, *rest] if category in Category:
-                            root.add(category)
+                        case [category, *rest]:
                             match PathBuilder(*rest).segments:
                                 case []:
                                     section = RequestSection(platform=platform, category=category)
@@ -219,15 +209,14 @@ async def requests_management_route(
                                         context.pydc.persistent.base_path = root.build()
                                         context.init_request_wizard_session(
                                             user_id=update.effective_user.id,
-                                            platform=Platform(platform),
-                                            category=Category(category),
+                                            section=section,
                                             from_notification=False,
                                             msg_id=update.effective_message.id
                                         )
                                         await render_global_request_wizard_panel(
                                             update=update,
                                             context=context,
-                                            base_path=root
+                                            base_path=root.add(category)
                                         )
                                         return PCS.USER_REQUEST_WIZARD_SESSION
 

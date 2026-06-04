@@ -21,12 +21,11 @@ async def antiflood_route(update: Update, context: CustomContext, root: PathBuil
             await render_antiflood_panel(update=update, context=context)
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
-            root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
                 setting="antiflood",
-                root=root,
+                root=root.add(SecurityFiltersRoute.PUNISHMENT),
                 relative_path=PathBuilder(*rest)
             )
 

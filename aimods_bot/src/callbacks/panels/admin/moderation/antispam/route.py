@@ -29,7 +29,7 @@ async def antispam_route(update: Update, context: CustomContext, root: PathBuild
             await render_antispam_panel(update=update, context=context)
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
-            root.add(SecurityFiltersRoute.PUNISHMENT)
+            root = root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
@@ -39,35 +39,31 @@ async def antispam_route(update: Update, context: CustomContext, root: PathBuild
             )
 
         case [SecurityFiltersRoute.WHITELIST, *rest]:
-            root.add(SecurityFiltersRoute.WHITELIST)
             return await antispam_whitelist_route(
                 update=update,
                 context=context,
-                root=root,
+                root=root.add(SecurityFiltersRoute.WHITELIST),
                 relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.LINK, *rest]:
-            root.add(AntispamRoute.LINK)
             return await antispam_link_route(
                 update=update,
                 context=context,
-                root=root,
+                root=root.add(AntispamRoute.LINK),
                 relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.MENTION, *rest]:
-            root.add(AntispamRoute.MENTION)
             return await antispam_mention_route(
                 update=update,
                 context=context,
-                root=root,
+                root=root.add(AntispamRoute.MENTION),
                 relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.FORWARD, *rest]:
-            root.add(AntispamRoute.FORWARD)
             return await antispam_forward_route(
                 update=update,
                 context=context,
-                root=root,
+                root=root.add(AntispamRoute.FORWARD),
                 relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.MEDIA]:

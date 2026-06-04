@@ -18,24 +18,22 @@ async def antispam_link_route(update: Update, context: CustomContext, root: Path
             return PCS.ADMIN_CONVERSATION
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
-            root.add(SecurityFiltersRoute.PUNISHMENT)
             return await punishment_route(
                 update=update,
                 context=context,
                 setting="antispam/link",
-                root=root,
+                root=root.add(SecurityFiltersRoute.PUNISHMENT),
                 relative_path=PathBuilder(*rest)
             )
 
         case [SecurityFiltersRoute.ALLOW_AFTER, *rest]:
-            root.add(SecurityFiltersRoute.ALLOW_AFTER)
             rest_path = PathBuilder(*rest)
 
             route_result = await antispam_link_allow_after_route(
                 update=update,
                 context=context,
                 setting="antispam/link",
-                root=root,
+                root=root.add(SecurityFiltersRoute.ALLOW_AFTER),
                 relative_path=rest_path
             )
 
@@ -50,12 +48,11 @@ async def antispam_link_route(update: Update, context: CustomContext, root: Path
             return PCS.ADMIN_CONVERSATION
 
         case [list_type, *rest] if list_type in ModerationList:
-            root.add(list_type)
             return await antispam_links_list_route(
                 update=update,
                 context=context,
                 list_type=list_type,
-                root=root,
+                root=root.add(list_type),
                 relative_path=PathBuilder(*rest)
             )
 

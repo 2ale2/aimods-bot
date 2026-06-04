@@ -16,11 +16,10 @@ async def moderation_router(update: Update, context: CustomContext, root: PathBu
         case []:
             await render_moderation_panel(update=update, context=context, base_path=root)
         case [ModerationRoute.SECURITY_FILTERS, *rest]:
-            root.add(ModerationRoute.SECURITY_FILTERS)
             return await security_and_filters_router(
                 update=update,
                 context=context,
-                root=root,
+                root=root.add(ModerationRoute.SECURITY_FILTERS),
                 relative_path=PathBuilder(*rest)
             )
         case [ModerationRoute.USER_MODERATION, *rest]:
