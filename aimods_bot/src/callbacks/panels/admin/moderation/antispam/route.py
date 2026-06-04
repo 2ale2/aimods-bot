@@ -47,12 +47,30 @@ async def antispam_route(update: Update, context: CustomContext, root: PathBuild
                 relative_path=PathBuilder(*rest)
             )
         case [AntispamRoute.LINK, *rest]:
-            return await antispam_link_route(update=update, context=context, root=root[1:])
+            root.add(AntispamRoute.LINK)
+            return await antispam_link_route(
+                update=update,
+                context=context,
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
         case [AntispamRoute.MENTION, *rest]:
-            return await antispam_mention_route(update=update, context=context, path=root[1:])
+            root.add(AntispamRoute.MENTION)
+            return await antispam_mention_route(
+                update=update,
+                context=context,
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
         case [AntispamRoute.FORWARD, *rest]:
-            return await antispam_forward_route(update=update, context=context, path=root[1:])
-        case [AntispamRoute.MEDIA, *rest]:
+            root.add(AntispamRoute.FORWARD)
+            return await antispam_forward_route(
+                update=update,
+                context=context,
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
+        case [AntispamRoute.MEDIA]:
             await not_implemented_yet(update=update, context=context)
         case _:
             log.warning(f"Unhandled path in admin_requests_management: {relative_path.build()}")

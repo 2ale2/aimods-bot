@@ -20,7 +20,9 @@ class SecurityFiltersRoute(StrEnum):
 
     PUNISHMENT = "punishment"
     WHITELIST = "whitelist"
+    GREYLIST = "greylist"
     ALLOW_AFTER = "allow_after"
+    IF_NOT_MEMBER = "if_not_member"
 
 
 class ModerationListsRoute(StrEnum):
@@ -35,6 +37,21 @@ class AntispamRoute(StrEnum):
     FORWARD = "forward"
     MEDIA = "media"
 
+    # ANTISPAM MENTION
+    PER_MESSAGE = "per_message"
+
+
+class AntifloodRoute(StrEnum):
+    MESSAGE_NUMBER = "message_number"
+    MESSAGE_TIME = "message_time"
+
+
+class ForwardRoute(StrEnum):
+    TIMESPAN = "timespan"
+    PER_USER = "per_user"
+    PER_CONTENT = "per_content"
+    PER_SOURCE = "per_source"
+
 
 class PunishmentRoute(StrEnum):
     DURATION = "duration"
@@ -44,3 +61,14 @@ class PunishmentRoute(StrEnum):
     KICK = "kick"
     MUTE = "mute"
     BAN = "ban"
+
+
+class AllowafterDurationRoute(StrEnum):
+    MINUTE = "minute"
+    HOUR = "hour"
+    DAY = "day"
+    WEEK = "week"
+    OFF = "off"
+
+    def build(self, value: int):
+        return f"{value}:{self.value}"

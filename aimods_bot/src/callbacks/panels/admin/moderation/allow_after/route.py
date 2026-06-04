@@ -11,12 +11,15 @@ async def antispam_link_allow_after_route(
         update: Update,
         context: CustomContext,
         setting: str,
+        root: PathBuilder,
         relative_path: PathBuilder
 ):
     match relative_path.segments:
         case []:
-            await render_allow_after_panel(update=update, context=context, setting=setting)
+            await render_allow_after_panel(update=update, context=context, setting=setting, base_path=root)
         case [raw_value]:
+            # TODO: il tipo di raw_type deve essere AllowafterDurationRoute: da implementare un modo per verificarlo
+            # TODO: dov'è il render del pannello?
             await set_antispam_link_allow_after(context=context, setting=setting, raw_value=raw_value)
 
     return PCS.ADMIN_CONVERSATION

@@ -259,6 +259,49 @@ class RejectRequestReason(StrEnum):
                 return "Richiesta non chiara"
 
 
+class ModerationList(StrEnum):
+    WHITELIST = "whitelist"
+    GREYLIST = "greylist"
+    BLACKLIST = "blacklist"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case ModerationList.WHITELIST:
+                return "📨"
+            case ModerationList.GREYLIST:
+                return "🧙‍♂️"
+            case ModerationList.BLACKLIST:
+                return "📓"
+
+    @property
+    def description(self) -> str:
+        match self:
+            case ModerationList.WHITELIST:
+                return "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
+            case ModerationList.GREYLIST:
+                return "I link aggiunti a questa lista <b>non verranno puniti</b>."
+            case ModerationList.BLACKLIST:
+                return ("I domini aggiunti a questa lista verranno <b>puniti con il ban, "
+                        "indipendentemente dalla punizione impostata</b>.")
+
+    @property
+    def item_label_singular(self) -> str:
+        match self:
+            case ModerationList.WHITELIST | ModerationList.BLACKLIST:
+                return "dominio"
+            case ModerationList.GREYLIST:
+                return "link"
+
+    @property
+    def item_label_plural(self) -> str:
+        match self:
+            case ModerationList.WHITELIST | ModerationList.BLACKLIST:
+                return "domini"
+            case ModerationList.GREYLIST:
+                return "link"
+
+
 DATETIME_FORMAT = "%d %b %Y alle %H:%M:%S"
 
 EMOJI_HOURGLASS = "⏳"

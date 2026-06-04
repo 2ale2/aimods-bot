@@ -5,83 +5,116 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.forward.render im
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import set_moderation_bool_setting
+from aimods_bot.src.helpers.constants.path_navigation import SecurityFiltersRoute, GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation.moderation import ForwardRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.telegram_utils import set_moderation_bool_setting, not_implemented_yet
 
 
-async def antispam_forward_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_antispam_forward_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+async def antispam_forward_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            await render_antispam_forward_panel(update=update, context=context, base_path=root)
+            return PCS.ADMIN_CONVERSATION
 
-    match path[0]:
-        case "rate_limit":
-            pass
+        case [chat_type, *rest] if chat_type in ChatType:
+            root.add(chat_type)
+            return await antispam_forward_category_route(
+                update=update,
+                context=context,
+                category=chat_type,
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
 
-    # Categoria: 'user', 'group', 'channel' o 'bot'
-    return await antispam_forward_category_route(update=update, context=context, category=path[0], path=path[1:])
 
-
-async def antispam_forward_category_route(update: Update, context: CustomContext, category: str, path: list[str]):
-    if len(path) == 0:
-        await render_antispam_forward_category_panel(update=update, context=context, category=category)
-        return PCS.ADMIN_CONVERSATION
-
+async def antispam_forward_category_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder,
+        category: ChatType
+):
     setting = 'antispam/forward'
 
-    match path[0]:
-        case "punishment":
-            return await punishment_route(update=update, context=context, setting=f'antispam/forward/{category}', root=path[1:])
-        case "on":
+    match relative_path.segments:
+        case []:
+            await render_antispam_forward_category_panel(
+                update=update,
+                context=context,
+                base_path=root,
+                chat_type=category
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [SecurityFiltersRoute.PUNISHMENT, *rest]:
+            root.add(SecurityFiltersRoute.PUNISHMENT)
+            return await punishment_route(
+                update=update,
+                context=context,
+                setting=f'{setting}/{category}',
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
+
+        case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):
             await set_moderation_bool_setting(
                 update=update,
                 context=context,
                 setting=setting,
                 category=category,
                 sub_setting='toggle',
-                value=True
+                value=(toggle == GlobalAction.TOGGLE_ON)
             )
-        case "off":
-            await set_moderation_bool_setting(
-                update=update,
-                context=context,
-                setting=setting,
-                category=category,
-                sub_setting='toggle',
-                value=False
-            )
-        case "if_not_member":
+
+        case [SecurityFiltersRoute.IF_NOT_MEMBER]:
             if_not_member = get_value(context=context, path="moderation.antispam.forward.user.if_not_member")
             await set_moderation_bool_setting(
                 update=update,
                 context=context,
                 setting=setting,
                 category=category,
-                sub_setting='if_not_member',
+                sub_setting=SecurityFiltersRoute.IF_NOT_MEMBER,
                 value=not if_not_member
             )
 
-    await render_antispam_forward_category_panel(update=update, context=context, category=category)
+    await render_antispam_forward_category_panel(update=update, context=context, chat_type=category, base_path=root)
     return PCS.ADMIN_CONVERSATION
 
 
-async def antispam_forward_rate_limit_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        # await render_antispam_forward_rate_limit_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+# noinspection PyUnusedLocal
+async def antispam_forward_rate_limit_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            # await render_antispam_forward_rate_limit_panel(update=update, context=context)
+            await not_implemented_yet(update=update, context=context)
 
-    match path[0]:
-        case "timespan":
+        case [ForwardRoute.TIMESPAN]:
             # Impostazione tempo di controllo
-            pass
-        case "same_user":
+            await not_implemented_yet(update=update, context=context)
+
+        case [ForwardRoute.PER_USER]:
             # Numero inoltri da parte di uno stesso utente nel timespan impostato
-            pass
-        case "same_source":
+            await not_implemented_yet(update=update, context=context)
+
+        case [ForwardRoute.PER_SOURCE]:
             # Numero inoltri dalla stessa fonte nel timespan impostato
-            pass
-        case "same_content":
+            await not_implemented_yet(update=update, context=context)
+
+        case [ForwardRoute.PER_CONTENT]:
             # Numero inoltri dello stesso messaggio (anche da fonti diverse) nel timespan impostato
-            pass
+            await not_implemented_yet(update=update, context=context)
 
     return PCS.ADMIN_CONVERSATION

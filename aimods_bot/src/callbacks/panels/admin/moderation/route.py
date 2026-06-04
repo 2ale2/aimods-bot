@@ -45,7 +45,7 @@ async def security_and_filters_router(
         case [SecurityFiltersRoute.ANTISPAM, *rest]:
             return await antispam_route(update=update, context=context, root=root[1:])
         case [SecurityFiltersRoute.ANTIFLOOD, *rest]:
-            return await antiflood_route(update=update, context=context, path=root[1:])
+            return await antiflood_route(update=update, context=context, root=root[1:])
         case [SecurityFiltersRoute.FORBIDDEN_WORDS, *rest]:
             await not_implemented_yet(update=update, context=context)
         case [SecurityFiltersRoute.LENGTH]:

@@ -2,31 +2,34 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.constants.constants import ChatType
+from aimods_bot.src.helpers.constants.path_navigation import AntispamRoute, GlobalAction, SecurityFiltersRoute
+from aimods_bot.src.helpers.constants.path_navigation.common import DigitRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text, create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text, get_rate_limit_text, pluralize
 
 
-async def render_antispam_mention_panel(update: Update, context: CustomContext):
+async def render_antispam_mention_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = await _build_text(context)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="moderation/security_filters/antispam/mention",
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="⏱️ Rate Limit", callback_key="rate_limit")],
-            [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key="per_message")],
+            [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key=base_path.add(AntispamRoute.PER_MESSAGE))],
             [
-                ButtonItem(text="👤 Utenti", callback_key="user"),
-                ButtonItem(text="👥 Gruppi", callback_key="group"),
+                ButtonItem(text="👤 Utenti", callback_key=base_path.add(ChatType.USER)),
+                ButtonItem(text="👥 Gruppi", callback_key=base_path.add(ChatType.GROUP)),
             ],
             [
-                ButtonItem(text="📢 Canali", callback_key="channel"),
-                ButtonItem(text="🤖 Bot", callback_key="bot")
+                ButtonItem(text="📢 Canali", callback_key=base_path.add(ChatType.CHANNEL)),
+                ButtonItem(text="🤖 Bot", callback_key=base_path.add(ChatType.BOT))
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -65,26 +68,26 @@ async def _build_text(context: CustomContext) -> str:
     return text
 
 
-async def render_antispam_mention_per_message_panel(update: Update, context: CustomContext):
+async def render_antispam_mention_per_message_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _build_per_message_text(context)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="moderation/security_filters/antispam/mention/per_message",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="1 Menzione", callback_key="1"),
-                ButtonItem(text="2 Menzioni", callback_key="2"),
-                ButtonItem(text="3 Menzioni", callback_key="3")
+                ButtonItem(text="1 Menzione", callback_key=base_path.add(DigitRoute.ONE)),
+                ButtonItem(text="2 Menzioni", callback_key=base_path.add(DigitRoute.TWO)),
+                ButtonItem(text="3 Menzioni", callback_key=base_path.add(DigitRoute.THREE))
             ],
             [
-                ButtonItem(text="4 Menzioni", callback_key="4"),
-                ButtonItem(text="5 Menzioni", callback_key="5"),
-                ButtonItem(text="10 Menzioni", callback_key="10")
+                ButtonItem(text="4 Menzioni", callback_key=base_path.add(DigitRoute.FOUR)),
+                ButtonItem(text="5 Menzioni", callback_key=base_path.add(DigitRoute.FIVE)),
+                ButtonItem(text="10 Menzioni", callback_key=base_path.add(DigitRoute.TEN))
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -107,8 +110,13 @@ def _build_per_message_text(context: CustomContext) -> str:
     return text
 
 
-async def render_antispam_mention_category_panel(update: Update, context: CustomContext, category: str):
-    text = _build_mention_category_text(context=context, category=category)
+async def render_antispam_mention_category_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        chat_type: ChatType
+):
+    text = _build_mention_category_text(context=context, chat_type=chat_type)
 
     user_if_not_member = get_value(context, "moderation.antispam.mention.user.if_not_member")
 
@@ -117,44 +125,36 @@ async def render_antispam_mention_category_panel(update: Update, context: Custom
 
     keyboard = [
         [
-            ButtonItem(text="☂️ On", callback_key="on"),
-            ButtonItem(text="🌂 Off", callback_key="off")
+            ButtonItem(text="☂️ On", callback_key=base_path.add(GlobalAction.TOGGLE_ON)),
+            ButtonItem(text="🌂 Off", callback_key=base_path.add(GlobalAction.TOGGLE_OFF))
         ],
-        [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
-        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        [ButtonItem(text="⚖️ Punizione", callback_key=base_path.add(SecurityFiltersRoute.PUNISHMENT))],
+        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
     ]
 
-    if category == "user":
+    if chat_type == ChatType.USER:
         keyboard.insert(1, [
             ButtonItem(
                 text=f"🪪 Solo se non membro {get_toggle_if_not_member()}",
-                callback_key='if_not_member')
+                callback_key=SecurityFiltersRoute.IF_NOT_MEMBER)
         ])
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=f"moderation/security_filters/antispam/mention/{category}",
+        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
 
 
-def _build_mention_category_text(context: CustomContext, category: str) -> str:
-    map_to_word = {
-        "user": "Utenti",
-        "group": "Gruppi",
-        "channel": "Canali",
-        "bot": "Bot"
-    }
-    word = map_to_word[category]
-    toggle = get_value(context=context, path=f"moderation.antispam.mention.{category}.toggle")
+def _build_mention_category_text(context: CustomContext, chat_type: ChatType) -> str:
+    toggle = get_value(context=context, path=f"moderation.antispam.mention.{chat_type}.toggle")
     toggle_text = get_toggle_text(toggle)
 
-    text = ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
-            f"↦ 💬 <i>Blocco Menzioni</i> – <i>Menzioni {word}</i>\n\n"
-            f"▫️ Da qui puoi <b>disattivare completamente il controllo sull'intera categoria <i>{word}</i></b>.\n\n"
+    return ("📨 <b>Impostazioni Anti-Spam</b>\n\n"
+            f"↦ 💬 <i>Blocco Menzioni</i> – <i>Menzioni {chat_type.label}</i>\n\n"
+            "▫️ Da qui puoi <b>disattivare completamente il controllo sull'intera categoria "
+            f"<i>{chat_type.label}</i></b>.\n\n"
             f"🔸 <u>Toggle</u> – {toggle_text}\n\n"
-            f"🔹 Scegli un'opzione.")
-
-    return text
+            "🔹 Scegli un'opzione.")

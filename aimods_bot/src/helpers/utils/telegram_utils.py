@@ -1,27 +1,25 @@
 import re
-from typing import Optional, Any, Union, Dict, List, Literal
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Optional, Any, Union, Dict, List, Literal
 
 import telegram
-from telegram.constants import ParseMode
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
 from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
                       LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser, Message,
                       MessageEntity)
+from telegram.constants import ParseMode
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
-from aimods_bot.src.helpers.utils.text_utils import u16_len, u16_slice
 
 log = logger.getChild(__name__)
 
@@ -614,34 +612,20 @@ async def edit_message_safely(
             return None
 
 
-async def handle_if_not_file(
+async def render_error_panel(
         update: Update,
         context: CustomContext,
-        filename: Optional[str],
-        callback_data: str
-) -> bool:
-    """
-    Gestisce il caso in cui un file non sia stato creato correttamente.
-
-    Returns:
-        bool: True se c'è stato un errore (file mancante), False altrimenti
-    """
-    if not filename:
-        text = "❌ Errore durante la creazione del file di testo. Contatta l'admin."
-        keyboard = [[InlineKeyboardButton(
-            text="🔙 Indietro",
-            callback_data=callback_data)
-        ]]
-
-        await context.bot.edit_message_text(
-            message_id=update.effective_message.message_id,
-            chat_id=update.effective_user.id,
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
+        text: str,
+        chat_id: int | None = None
+):
+    await context.bot.send_message(
+        chat_id=chat_id or update.effective_chat.id,
+        text=text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="📫 Chiudi", callback_data=GlobalAction.CLOSE)]]
         )
-        return True
-    return False
+    )
 
 
 async def wrong_input_message(

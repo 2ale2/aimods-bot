@@ -23,7 +23,9 @@ from .moderation import (
     ModerationRoute,
     SecurityFiltersRoute,
     ModerationListsRoute,
-    AntispamRoute, PunishmentRoute,
+    AntispamRoute,
+    AntifloodRoute,
+    PunishmentRoute,
 )
 
 __all__ = [
@@ -48,5 +50,6 @@ __all__ = [
     "SecurityFiltersRoute",
     "ModerationListsRoute",
     "AntispamRoute",
+    "AntifloodRoute",
     "PunishmentRoute",
 ]
