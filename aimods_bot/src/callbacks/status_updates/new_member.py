@@ -5,9 +5,9 @@ from telegram.ext import ConversationHandler
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.logger import log_join, log_ban
-from aimods_bot.src.helpers.models.jobs import JobData, ScheduledJobData
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message, scheduled_edit_message
+from aimods_bot.src.helpers.models.jobs import EditMessageJob
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
@@ -46,9 +46,9 @@ async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: in
     )
 
     await add_to_table("bans", {
-        "admin": ban_data["admin"],
+        "admin": ban_data.admin,
         "user_id": uid,
-        "reason": ban_data["reason"],
+        "reason": ban_data.reason,
         "expires_at": until_date
     })
 
@@ -58,7 +58,7 @@ async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: in
     else:
         text += "a <b>tempo indeterminato</b>."
 
-    if reason := ban_data["reason"]:
+    if reason := ban_data.reason:
         text += f"\n<b>Motivo</b>: <i>{reason}</i>."
 
     text += "\n\nℹ️ <i>Questo messaggio verrà rimosso in 5 minuti</i>."
@@ -66,7 +66,7 @@ async def _handle_if_blacklisted(update: Update, context: CustomContext, uid: in
     await log_ban(
         update=update,
         context=context,
-        admin_id=ban_data["admin"],
+        admin_id=ban_data.admin,
         user_id=uid,
         until=rome_until, reason="Blacklistato")
 
@@ -122,14 +122,12 @@ async def _send_rules_and_schedule_expiry(update: Update, context: CustomContext
 
     context.job_queue.run_once(
         callback=scheduled_edit_message,
-        data=ScheduledJobData(
+        data=EditMessageJob(
             chat_id=uid,
+            message_id=message.message_id,
             text='⚠️ <b>Non hai completato la verifica</b>.\n\n'
                  'Per ricaricare la doppia verifica, puoi premere il tasto sotto.',
-            additional_data=JobData(
-                reply_markup=timeout_keyboard,
-                message_id=message.message_id
-            )
+            reply_markup=timeout_keyboard
         ),
         when=TIMEOUT_SECONDS,
         name=f'captcha_failed_{uid}'

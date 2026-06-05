@@ -1,6 +1,5 @@
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import Configuration, CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.models.request_section import RequestSection
 
 

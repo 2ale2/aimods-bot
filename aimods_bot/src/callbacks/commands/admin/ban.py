@@ -174,7 +174,7 @@ async def _add_to_blacklist(
         return {"status": "error", "message": ERROR_MESSAGES["unable_to_blacklist"]}
 
     context.pydb.ban_list[member["id"]] = BanListItem(
-        expires_at=until.astimezone(pytz.UTC).isoformat(),
+        expires_at=until.astimezone(pytz.UTC),
         reason=reason,
         admin=admin_id
     )

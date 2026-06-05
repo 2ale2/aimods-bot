@@ -1,7 +1,6 @@
 from urllib.parse import urlparse
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Message
-from telegram.constants import ParseMode
 
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.render import \
     render_antispam_edit_link_list_panel
@@ -14,8 +13,9 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, Moder
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import make_temp_file
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, render_error_panel
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, render_error_panel, create_and_render_panel
 
 log = logger.getChild(__name__)
 
@@ -46,7 +46,7 @@ async def view_list(update: Update, context: CustomContext, base_path: PathBuild
         update=update,
         context=context,
         text=text,
-        files=filename,
+        files=[str(filename)],
         send_as_document=True,
         delete_after_sending=True,
         reply_markup=InlineKeyboardMarkup(
@@ -105,7 +105,8 @@ async def edit_list(
     return PCS.EDIT_ANTISPAM_LINK_LIST
 
 
-async def handle_user_input(update: Update, context: CustomContext):
+# noinspection PyTypeChecker
+async def handle_user_input(update: Update, context: CustomContext, base_path: PathBuilder):
     await safe_delete(update=update, context=context)
 
     # TODO: da tipizzare
@@ -117,28 +118,34 @@ async def handle_user_input(update: Update, context: CustomContext):
     l_conf = _get_list(context=context, list_type=list_type)
 
     uin = update.effective_message
-    if not await _validate_input(uin):
+    if not await _validate_input(uin=uin):
         await _send_validation_error(update=update, context=context, list_type=list_type)
         return PCS.EDIT_ANTISPAM_LINK_LIST
 
-    links = _extract_links(uin, l)
+    links = _extract_links(message=uin, list_type=list_type)
     if not links:
-        await _send_validation_error(update, context, domain_type)
+        await _send_validation_error(update=update, context=context, list_type=list_type)
         return PCS.EDIT_ANTISPAM_LINK_LIST
 
-    text = _get_text_header(list_type=l)
-    new_items = _process_links(links, l_conf, action)
+    text = _get_text_header(list_type=list_type)
+    new_items = _process_links(links=links, l_conf=l_conf, action=action)
 
-    text += _generate_response_message(new_items, domain_type, action, l)
+    text += _generate_response_message(new_items=new_items, action=action, list_type=list_type)
 
-    keyboard = _create_response_keyboard(action, domain_type, l, _get_list(context=context, list_type=l))
+    keyboard = _create_response_keyboard(
+        base_path=base_path,
+        action=action,
+        list_type=list_type,
+        l_conf=_get_list(context=context, list_type=list_type)
+    )
 
-    await context.bot.edit_message_text(
-        message_id=message_id,
-        chat_id=update.effective_chat.id,
+    await create_and_render_panel(
+        update=update,
+        context=context,
         text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=ParseMode.HTML
+        keyboard=keyboard,
+        base_path=base_path,
+        message_id=message_id
     )
 
     try:
@@ -190,39 +197,43 @@ def _process_links(links: list, l_conf: list, action: str) -> list:
     return new_items
 
 
-def _generate_response_message(new_items: list, domain_type: dict, action: str, list_name: str):
+def _generate_response_message(new_items: list, action: ModerationListsRoute, list_type: ModerationList):
     """Genera il messaggio di risposta basato sui risultati"""
     if len(new_items) == 0:
-        if action == 'add':
-            return f"❕ Tutti i {domain_type['plural']} indicati sono <b>già presenti</b> nella {list_name.capitalize()}."
-        else:
-            return f"❕ Tutti i {domain_type['plural']} indicati <b>non sono presenti</b> nella {list_name.capitalize()}."
+        if action == ModerationListsRoute.ADD:
+            return (f"❕ Tutti i {list_type.item_label_plural} indicati "
+                    f"sono <b>già presenti</b> nella {list_type.value.capitalize()}.")
+        else:  # ModerationListsRoute.REMOVE
+            return (f"❕ Tutti i {list_type.item_label_plural} indicati "
+                    f"<b>non sono presenti</b> nella {list_type.value.capitalize()}.")
 
-    action_text = "aggiunto" if action == 'add' else "rimosso"
-    action_text_plural = "aggiunti" if action == 'add' else "rimossi"
+    action_text = "aggiunto" if action == ModerationListsRoute.ADD else "rimosso"
+    action_text_plural = "aggiunti" if action == ModerationListsRoute.ADD else "rimossi"
 
     if len(new_items) == 1:
-        return f"✅ {domain_type['singular'].capitalize()} <code>{new_items[0]}</code> <b>{action_text} correttamente</b>."
+        return (f"✅ {list_type.item_label_singular.capitalize()} "
+                f"<code>{new_items[0]}</code> <b>{action_text} correttamente</b>.")
     else:
         items_formatted = ', '.join(f'<code>{item}</code>' for item in new_items)
-        return f"✅ {domain_type['plural'].capitalize()} {items_formatted} <b>{action_text_plural} correttamente</b>."
+        return (f"✅ {list_type.item_label_plural.capitalize()} {items_formatted} "
+                f"<b>{action_text_plural} correttamente</b>.")
 
 
-def _create_response_keyboard(action: str, domain_type: dict, list_name: str, l_conf: list[str]):
+def _create_response_keyboard(
+        base_path: PathBuilder,
+        action: ModerationListsRoute,
+        list_type: ModerationList,
+        l_conf: list[str]
+):
     """Crea la keyboard per la risposta"""
-
-    keyboard = [
-        [InlineKeyboardButton(
-            text="🔙 Indietro",
-            callback_data=f"moderation/security_filters/antispam/link/{list_name}"
-        )]
-    ]
+    keyboard = [[ButtonItem(text="🔙 Indietro", callback_key=base_path.back(2))]]
 
     if len(l_conf) != 0:
-        button_text = f"{'➖ Rimuovi Altro' if action == 'remove' else '➕ Aggiungi Altro'} {domain_type['singular']}"
-        keyboard.insert(0, [InlineKeyboardButton(
+        button_text = (f"{'➖ Rimuovi Altro' if action == ModerationListsRoute.REMOVE else '➕ Aggiungi Altro'} "
+                       f"{list_type.item_label_singular}")
+        keyboard.insert(0, [ButtonItem(
             text=button_text,
-            callback_data=f"moderation/security_filters/antispam/link/{list_name}/{action}"
+            callback_key=base_path.back()
         )])
 
     return keyboard
@@ -248,7 +259,7 @@ def _get_list(context: CustomContext, list_type: ModerationList) -> list:
     return get_value(context=context, path=f"moderation.antispam.link.{list_type.value}")
 
 
-def _check_list_empty(context: CustomContext, list_type: str) -> bool:
+def _check_list_empty(context: CustomContext, list_type: ModerationList) -> bool:
     l_conf = _get_list(context=context, list_type=list_type)
     return not len(l_conf)
 

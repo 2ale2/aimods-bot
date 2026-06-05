@@ -10,14 +10,14 @@ from aimods_bot.src.helpers.models.job_names import (
     parse_job_name,
 )
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-
+from aimods_bot.src.helpers.models.request_section import RequestSection
 
 SAMPLES = [
     AutoRecapJobName(),
     RemoveInactiveRequestJobName(request_id=42),
-    RequestLimitJobName(user_id=123, platform=Platform.ANDROID, category=Category.APP),
+    RequestLimitJobName(user_id=123, section=RequestSection(platform=Platform.ANDROID, category=Category.APP)),
     RequestCooldownJobName(user_id=999),
-    DelayedSectionOpeningJobName(platform=Platform.WINDOWS, category=Category.GAME),
+    DelayedSectionOpeningJobName(section=RequestSection(platform=Platform.WINDOWS, category=Category.GAME)),
 ]
 
 

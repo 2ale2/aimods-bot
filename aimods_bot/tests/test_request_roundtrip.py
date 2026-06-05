@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 
 from pydantic import HttpUrl
 
+from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import (
     AndroidApp, WindowsGame, WindowsAdobe, WindowsDaw, WindowsSoftware, IosApp, MacOsDaw, MacOsSoftware,
 )
@@ -16,6 +18,7 @@ SAMPLES = [
         version="8.9.0",
         link=HttpUrl("https://spotify.com"),
         features="Premium",
+        section=RequestSection(platform=Platform.ANDROID, category=Category.APP)
     ),
     WindowsGame(
         user_id=123,
@@ -25,6 +28,7 @@ SAMPLES = [
         features="DLC inclusi",
         steamtools=True,
         hypervisor=False,
+        section=RequestSection(platform=Platform.WINDOWS, category=Category.GAME)
     ),
     WindowsAdobe(
         user_id=123,
@@ -32,12 +36,14 @@ SAMPLES = [
         version="25.0",
         features="Generative Fill",
         arch_arm=False,
+        section=RequestSection(platform=Platform.WINDOWS, category=Category.ADOBE)
     ),
     WindowsDaw(
         user_id=123,
         name="Ableton Live",
         version="12.0",
         link=HttpUrl("https://ableton.com"),
+        section=RequestSection(platform=Platform.WINDOWS, category=Category.DAW)
     ),
     WindowsSoftware(
         user_id=123,
@@ -45,6 +51,7 @@ SAMPLES = [
         version="8.4",
         link=HttpUrl("https://hex-rays.com"),
         features="Decompiler",
+        section=RequestSection(platform=Platform.WINDOWS, category=Category.SOFTWARE)
     ),
     IosApp(
         user_id=123,
@@ -52,6 +59,7 @@ SAMPLES = [
         version="5.3",
         link=HttpUrl("https://procreate.com"),
         features="Tutto sbloccato",
+        section=RequestSection(platform=Platform.IOS, category=Category.APP)
     ),
     MacOsDaw(
         user_id=123,
@@ -60,6 +68,7 @@ SAMPLES = [
         link=HttpUrl("https://apple.com/logic"),
         mac_os_version="Sonoma 14.5",
         arch_arm=True,
+        section=RequestSection(platform=Platform.MACOS, category=Category.DAW)
     ),
     MacOsSoftware(
         user_id=123,
@@ -69,6 +78,7 @@ SAMPLES = [
         features="Tutto sbloccato",
         mac_os_version="Sonoma 14.5",
         arch_arm=True,
+        section=RequestSection(platform=Platform.MACOS, category=Category.SOFTWARE)
     ),
 ]
 

@@ -38,12 +38,7 @@ async def echo(update: Update, context: CustomContext, full_command: str):
         return
 
     await safe_delete(update, context)
-    reply_parameters = _get_reply_parameters(reply_message=message.reply_to_message)
     text, entities = split_command_and_argument(message)
-    attachments = _get_single_attachment(message)
-
-    if attachments:
-        additional_job_data.files = attachments
 
     await send_action_message_after(
         update=update,
@@ -99,7 +94,7 @@ async def multimedia_echo(update: Update, context: CustomContext):
         log.info("Nessun comando tipo 'echo' presente nel media group.")
         return
 
-    text = _get_echo_text(echo_element["caption"])
+    text, entities = split_command_and_argument(echo_element["caption"])
 
     for el in job_data:
         await safe_delete(update=update, context=context, message_id=el["post_id"])
@@ -124,17 +119,13 @@ async def multimedia_echo(update: Update, context: CustomContext):
     if not media:
         return
 
-    additional_job_data = JobData(
-        thread_id=echo_element["thread_id"],
-        files=media,
-        send_as_document=False
-    )
-
     await send_action_message_after(
         update=update,
         context=context,
         text=text,
-        additional_job_data=additional_job_data
+        thread_id=echo_element["thread_id"],
+        files=media,
+        send_as_document=False
     )
 
 

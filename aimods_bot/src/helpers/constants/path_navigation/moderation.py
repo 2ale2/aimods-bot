@@ -46,6 +46,22 @@ class AntifloodRoute(StrEnum):
     MESSAGE_TIME = "message_time"
 
 
+class ModerationSettingRoute(StrEnum):
+    TOGGLE = "toggle"
+    TIME = "time"
+    MENTION = "mention"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case ModerationSettingRoute.TIME:
+                return "Tempo"
+            case ModerationSettingRoute.MENTION:
+                return "Numero Menzioni"
+            case ModerationSettingRoute.TOGGLE:
+                return "Toggle"
+
+
 class ForwardRoute(StrEnum):
     TIMESPAN = "timespan"
     PER_USER = "per_user"
@@ -63,7 +79,7 @@ class PunishmentRoute(StrEnum):
     BAN = "ban"
 
 
-class AllowafterDurationRoute(StrEnum):
+class AllowAfterDurationRoute(StrEnum):
     MINUTE = "minute"
     HOUR = "hour"
     DAY = "day"
@@ -72,3 +88,18 @@ class AllowafterDurationRoute(StrEnum):
 
     def build(self, value: int):
         return f"{value}:{self.value}"
+
+
+class RateLimitTimeRoute(StrEnum):
+    SEC_5   = "5"
+    SEC_10  = "10"
+    SEC_30  = "30"
+    MIN_1   = "60"
+    MIN_2   = "120"
+    MIN_3   = "180"
+    MIN_5   = "300"
+    MIN_7   = "420"
+    MIN_10  = "600"
+    MIN_20  = "1200"
+    HOUR_1  = "3600"
+    HOUR_12 = "43200"

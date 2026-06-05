@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
@@ -90,6 +91,9 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     if user_id is None:
         raise ValueError(f"Request {raw_id}: missing user_id!")
 
+    if (isinstance(user_id, str) and not user_id.isnumeric()) and not isinstance(user_id, int):
+        raise ValueError(f"User id {user_id} is not numeric!")
+
     if not raw_platform or not raw_category:
         raise ValueError(
             f"Request {raw_id}: missing platform or category (platform={raw_platform!r}, category={raw_category!r})!"
@@ -142,9 +146,8 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     try:
         return model_cls(
             id=raw_id,
-            user_id=user_id,
-            platform=platform,
-            category=category,
+            user_id=int(user_id),
+            section=RequestSection(platform=platform, category=category),
             status=status,
             issued_at=issued_at,
             rejection_reason=rejection_reason,

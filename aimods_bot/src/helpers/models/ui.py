@@ -22,9 +22,6 @@ class ButtonItem:
     override_path_generation: bool = False
 
 
-BACK_BUTTON = ButtonItem(text="🔙 Indietro", callback_key=None)
-
-
 @dataclass
 class PanelConfig:
     base_path: PathBuilder

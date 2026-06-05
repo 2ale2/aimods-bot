@@ -15,11 +15,11 @@ import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.helpers.utils.text_utils import utf16_len, utf16_slice
 
 log = logger.getChild(__name__)
 
@@ -112,8 +112,8 @@ async def safe_delete_wrapper(update: Update, context: CustomContext):
 async def safe_delete(
         update: Update,
         context: CustomContext,
-        message: telegram.Message = None,
-        message_id: int = None
+        message: telegram.Message | None = None,
+        message_id: int | None = None
 ) -> bool:
     """
     Tenta di eliminare un messaggio Telegram in modo sicuro.
@@ -423,23 +423,23 @@ async def resolve_chat_member(
     if cached_result is not None:
         return cached_result
 
-    pyro_result = await _try_pyrogram_chat_member_resolve(chat_id, user_identifier)
+    pyro_result = await _try_pyrogram_chat_member_resolve(chat_id=chat_id, user_identifier=user_identifier)
 
     if pyro_result["status"] == "success" or pyro_result["error"] == "username_404":
-        _set_in_cache(cache_key, pyro_result)
+        _set_in_cache(cache_key=cache_key, result=pyro_result)
         return pyro_result
 
     user_id_str = str(user_identifier)
-    if is_user_id(user_id_str):
+    if is_user_id(string=user_id_str):
         resolved_id = user_id_str
     else:
         user_obj = await _try_pyrogram_user_resolve(user_identifier)
         resolved_id = user_obj.id if user_obj else None
 
     if resolved_id:
-        ptb_result = await _try_ptb_resolve(context, chat_id, resolved_id)
+        ptb_result = await _try_ptb_resolve(context=context, chat_id=chat_id, user_identifier=resolved_id)
         if ptb_result["status"] == "success":
-            _set_in_cache(cache_key, ptb_result)
+            _set_in_cache(cache_key=cache_key, result=ptb_result)
             return ptb_result
 
     log.debug(f"Impossibile risolvere ChatMember per {user_identifier}")
@@ -490,8 +490,8 @@ async def resolve_user(identifier: Union[int, str]) -> Dict[str, Any]:
 
 
 async def _try_pyrogram_chat_member_resolve(
-        chat_id: Union[int, str],
-        user_identifier: Union[int, str]
+        chat_id: int | str,
+        user_identifier: int | str,
 ) -> Dict[str, Any]:
     """Tenta di risolvere un ChatMember usando pyrogram"""
     try:
@@ -733,9 +733,9 @@ def get_banned_panel() -> Panel:
     """Restituisce il pannello per utenti bannati"""
     return Panel(
         PanelConfig(
-            base_path="banned",
+            base_path=PathBuilder(UserRoute.ROOT),
             text="❌ Sei stato bannato/a. Non potrai usare il bot.",
-            keyboard=[[ButtonItem(text="🗑️ Chiudi", callback_key="close_menu")]]
+            keyboard=[[ButtonItem(text="🗑️ Chiudi", callback_key=GlobalAction.CLOSE)]]
         ),
         send=True
     )
@@ -761,28 +761,28 @@ async def render_action_not_permitted_panel(update: Update, context: CustomConte
     )
 
 
-def split_command_and_argument(message: Message) -> tuple[str, list[MessageEntity]]:
+def split_command_and_argument(message: Message | str) -> tuple[str, list[MessageEntity]]:
     """
         Separa il comando dal resto del messaggio, ritornando il testo dell'argomento e le entity ri-allineate.
 
         Gestisce correttamente i caratteri non-BMP (es. emoji) usando offset UTF-16 come da convenzione Telegram.
     """
-    text = message.text or message.caption or ""
+    text = message.text or message.caption if isinstance(message, Message) else message
     if not text:
         return "", []
 
-    entities = list(message.entities or [])
+    entities = (list(message.entities) or []) if isinstance(message, Message) else []
 
     # Identifica fine del comando (primo token)
     command_token = text.split(maxsplit=1)[0]
-    arg_start = u16_len(command_token)
+    arg_start = utf16_len(command_token)
 
     # Salta whitespace tra comando e argomento
-    while u16_slice(text, arg_start, arg_start + 1).isspace():
+    while utf16_slice(text, arg_start, arg_start + 1).isspace():
         arg_start += 1
 
-    arg_end = u16_len(text)
-    arg_text = u16_slice(text, arg_start)
+    arg_end = utf16_len(text)
+    arg_text = utf16_slice(text, arg_start)
 
     # Ri-mappa entity dell'argomento, scartando o ritagliando quelle che cadono nel comando
     arg_entities = []

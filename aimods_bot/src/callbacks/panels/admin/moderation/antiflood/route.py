@@ -13,12 +13,12 @@ from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 async def antiflood_route(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):
     match relative_path.segments:
         case []:
-            await render_antiflood_panel(update=update, context=context)
+            await render_antiflood_panel(update=update, context=context, base_path=root)
             return PCS.ADMIN_CONVERSATION
 
         case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):
             await toggle_antiflood(update=update, context=context)
-            await render_antiflood_panel(update=update, context=context)
+            await render_antiflood_panel(update=update, context=context, base_path=root)
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
             return await punishment_route(

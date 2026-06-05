@@ -22,7 +22,7 @@ async def moderation_router(update: Update, context: CustomContext, root: PathBu
                 root=root.add(ModerationRoute.SECURITY_FILTERS),
                 relative_path=PathBuilder(*rest)
             )
-        case [ModerationRoute.USER_MODERATION, *rest]:
+        case [ModerationRoute.USER_MODERATION]:
             await not_implemented_yet(update=update, context=context)
         case [ModerationRoute.MEDIA_CONTENT]:
             await not_implemented_yet(update=update, context=context)
@@ -42,10 +42,12 @@ async def security_and_filters_router(
         case []:
             await render_security_filters_panel(update=update, context=context, base_path=root)
         case [SecurityFiltersRoute.ANTISPAM, *rest]:
-            return await antispam_route(update=update, context=context, root=root[1:])
+            root = root.add(SecurityFiltersRoute.ANTISPAM)
+            return await antispam_route(update=update, context=context, root=root, relative_path=PathBuilder(*rest))
         case [SecurityFiltersRoute.ANTIFLOOD, *rest]:
-            return await antiflood_route(update=update, context=context, root=root[1:])
-        case [SecurityFiltersRoute.FORBIDDEN_WORDS, *rest]:
+            root = root.add(SecurityFiltersRoute.ANTIFLOOD)
+            return await antiflood_route(update=update, context=context, root=root, relative_path=PathBuilder(*rest))
+        case [SecurityFiltersRoute.FORBIDDEN_WORDS]:
             await not_implemented_yet(update=update, context=context)
         case [SecurityFiltersRoute.LENGTH]:
             await not_implemented_yet(update=update, context=context)

@@ -22,11 +22,11 @@ log = logger.getChild(__name__)
 async def antispam_route(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):
     match relative_path.segments:
         case []:
-            await render_antispam_panel(update=update, context=context)
+            await render_antispam_panel(update=update, context=context, base_path=root)
 
         case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):
             await toggle_antispam(update=update, context=context)
-            await render_antispam_panel(update=update, context=context)
+            await render_antispam_panel(update=update, context=context, base_path=root)
 
         case [SecurityFiltersRoute.PUNISHMENT, *rest]:
             root = root.add(SecurityFiltersRoute.PUNISHMENT)

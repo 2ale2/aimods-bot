@@ -228,6 +228,19 @@ class ChatType(StrEnum):
                 return "Bot"
 
     @property
+    def label_with_article(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "gli utenti"
+            case ChatType.GROUP:
+                return "i gruppi"
+            case ChatType.CHANNEL:
+                return "i canali"
+            case ChatType.BOT:
+                return "i bot"
+
+
+    @property
     def icon(self) -> str:
         match self:
             case ChatType.USER:

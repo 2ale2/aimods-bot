@@ -1,4 +1,4 @@
-from telegram.ext import ConversationHandler, PrefixHandler, CallbackQueryHandler
+from telegram.ext import ConversationHandler, PrefixHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router

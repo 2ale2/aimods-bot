@@ -1,13 +1,17 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.constants.constants import ChatType
+from aimods_bot.src.helpers.constants.path_navigation import ModerationListsRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 
 
 async def render_antispam_whitelist_panel(
         update: Update,
         context: CustomContext,
+        base_path: PathBuilder,
         send: bool = False
 ):
     text = _build_whitelist_text()
@@ -15,15 +19,15 @@ async def render_antispam_whitelist_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="moderation/security_filters/antispam/whitelist",
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="👁 Visiona Whitelist", callback_key="view")],
+            [ButtonItem(text="👁 Visiona Whitelist", callback_key=base_path.add(ModerationListsRoute.VIEW))],
             [
-                ButtonItem(text="➕ Aggiungi Elemento", callback_key="add"),
-                ButtonItem(text="➖ Rimuovi Elemento", callback_key="remove")
+                ButtonItem(text="➕ Aggiungi Elemento", callback_key=base_path.add(ModerationListsRoute.ADD)),
+                ButtonItem(text="➖ Rimuovi Elemento", callback_key=base_path.add(ModerationListsRoute.REMOVE))
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ],
         send=send
     )
@@ -40,24 +44,24 @@ def _build_whitelist_text() -> str:
     return text
 
 
-async def render_antispam_whitelist_view_panel(update: Update, context: CustomContext):
+async def render_antispam_whitelist_view_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = _build_whitelist_view_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="moderation/security_filters/antispam/whitelist/view",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="👤 Utenti", callback_key="user"),
-                ButtonItem(text="👥 Gruppi", callback_key="group"),
+                ButtonItem(text="👤 Utenti", callback_key=base_path.add(ChatType.USER)),
+                ButtonItem(text="👥 Gruppi", callback_key=base_path.add(ChatType.GROUP)),
             ],
             [
-                ButtonItem(text="📢 Canali", callback_key="channel"),
-                ButtonItem(text="🤖 Bot", callback_key="bot")
+                ButtonItem(text="📢 Canali", callback_key=base_path.add(ChatType.CHANNEL)),
+                ButtonItem(text="🤖 Bot", callback_key=base_path.add(ChatType.BOT)),
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 

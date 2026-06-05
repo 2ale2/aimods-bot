@@ -6,7 +6,6 @@ from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import r
 from aimods_bot.src.core.config_accessor import set_value, get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.models import JobData
 
 from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
 from aimods_bot.src.helpers.job_queue import send_action_message_after
@@ -30,7 +29,7 @@ async def set_punishment_type(context: CustomContext, setting: str, punishment: 
     set_value(context=context, path=f"moderation.{setting}.punishment.type", value=punishment)
 
 
-async def set_punishment_duration(update: Update, context: CustomContext, value: int = None):
+async def set_punishment_duration(update: Update, context: CustomContext, value: int | None = None):
     """
         Gestisce i messaggi per l'impostazione della durata di una punizione,
         in accordo con le impostazioni di moderazione.
@@ -54,7 +53,7 @@ async def set_punishment_duration(update: Update, context: CustomContext, value:
     else:
         await safe_delete(update=update, context=context)
 
-        parsed_duration = parse_duration(update.effective_message.text)
+        parsed_duration = parse_duration(duration_string=update.effective_message.text)
         if not parsed_duration:
             await send_action_message_after(
                 update=update,
@@ -64,12 +63,7 @@ async def set_punishment_duration(update: Update, context: CustomContext, value:
                      "<code>3 giorni 4 ore 32 minuti 10 secondi</code>\n\t"
                      "<code>1 giorno 2 minuti 32 ore</code>\n\t"
                      "<code>4 ore 1 giorno 2 ore 1 minuto</code>",
-                additional_job_data=JobData(
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
-                        text="🚮 Chiudi",
-                        callback_data="close_menu")]]
-                    )
-                )
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
             )
 
             return PCS.SET_PUNISHMENT_DURATION

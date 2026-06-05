@@ -1,58 +1,60 @@
 import random
-from typing import Literal, List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, KeyboardButtonRequestUsers, \
     KeyboardButtonRequestChat, ReplyKeyboardMarkup
 from telegram.constants import ParseMode
 
 from aimods_bot.src.core.config_accessor import get_value, set_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import JobData
-from aimods_bot.src.helpers.job_queue import send_action_message_after
-from aimods_bot.src.helpers.utils.file_utils import make_temp_file
-from aimods_bot.src.helpers.utils.telegram_utils import handle_if_not_file, safe_delete
+from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, ModerationListsRoute
+from aimods_bot.src.helpers.job_queue import send_action_message_after
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.helpers.utils.file_utils import make_temp_file
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, chunk_buttons, render_error_panel, \
+    create_and_render_panel
 
 BASE_TEXT = "📨 <b>Impostazioni Anti-Spam</b>\n\n↦ 💬 <i>Gestione Whitelist</i>"
-
-CategoryType = Literal["user", "group", "channel", "bot"]
-ActionType = Literal["add", "remove"]
 
 
 class WhitelistManager:
     """Gestione centralizzata delle operazioni sulla whitelist"""
 
     @staticmethod
-    def get_whitelist(context: CustomContext, category: CategoryType) -> List[int]:
+    def get_whitelist(context: CustomContext, chat_type: ChatType) -> List[int]:
         """Recupera la whitelist per una categoria"""
-        return get_value(context=context, path=f'moderation.antispam.whitelist.{category}') or []
+        return get_value(context=context, path=f'moderation.antispam.whitelist.{chat_type}') or []
 
     @staticmethod
-    def save_whitelist(context: CustomContext, category: CategoryType, whitelist: List[int]) -> None:
+    def save_whitelist(context: CustomContext, chat_type: ChatType, whitelist: List[int]) -> None:
         """Salva la whitelist per una categoria"""
-        set_value(context=context, path=f"moderation.antispam.whitelist.{category}", value=whitelist)
+        set_value(context=context, path=f"moderation.antispam.whitelist.{chat_type}", value=whitelist)
 
     @staticmethod
-    def add_to_whitelist(context: CustomContext, category: CategoryType, items: List[int]) -> List[int]:
+    def add_to_whitelist(context: CustomContext, chat_type: ChatType, items: List[int]) -> List[int]:
         """Aggiunge elementi alla whitelist e restituisce quelli effettivamente aggiunti"""
-        whitelist = WhitelistManager.get_whitelist(context, category)
+        whitelist = WhitelistManager.get_whitelist(context, chat_type)
         added = [item for item in items if item not in whitelist]
 
         if added:
             whitelist.extend(added)
-            WhitelistManager.save_whitelist(context, category, whitelist)
+            WhitelistManager.save_whitelist(context=context, chat_type=chat_type, whitelist=whitelist)
 
         return added
 
     @staticmethod
-    def remove_from_whitelist(context: CustomContext, category: CategoryType, items: List[int]) -> List[int]:
+    def remove_from_whitelist(context: CustomContext, chat_type: ChatType, items: List[int]) -> List[int]:
         """Rimuove elementi dalla whitelist e restituisce quelli effettivamente rimossi"""
-        whitelist = WhitelistManager.get_whitelist(context, category)
+        whitelist = WhitelistManager.get_whitelist(context, chat_type)
         removed = [item for item in items if item in whitelist]
 
         if removed:
             for item in removed:
                 whitelist.remove(item)
-            WhitelistManager.save_whitelist(context, category, whitelist)
+            WhitelistManager.save_whitelist(context=context, chat_type=chat_type, whitelist=whitelist)
 
         return removed
 
@@ -79,17 +81,15 @@ class MessageBuilder:
                 f"<b>{verb_final} {preposition} Whitelist</b>.")
 
     @staticmethod
-    def build_empty_list_message(category: CategoryType) -> str:
+    def build_empty_list_message(chat_type: ChatType) -> str:
         """Costruisce messaggio per lista vuota"""
-        word = CATEGORY_LABELS[category]
-        return (MessageBuilder.build_base_text(f"Whitelist Menzione {word}") +
+        return (MessageBuilder.build_base_text(f"Whitelist Menzione {chat_type.label}") +
                 "0️⃣ <b>La Whitelist è attualmente vuota</b>.")
 
     @staticmethod
-    def build_removal_list_message(category: CategoryType, whitelist: List[int]) -> str:
+    def build_removal_list_message(chat_type: ChatType, whitelist: List[int]) -> str:
         """Costruisce messaggio per la rimozione con lista elementi"""
-        word = CATEGORY_LABELS[category]
-        text = MessageBuilder.build_base_text(f"Rimuovi da Whitelist {word}")
+        text = MessageBuilder.build_base_text(f"Rimuovi da Whitelist {chat_type.label}")
 
         for item in whitelist:
             text += f"     ▪<code>{item}</code>\n"
@@ -102,47 +102,38 @@ class KeyboardBuilder:
     """Costruzione centralizzata delle tastiere"""
 
     @staticmethod
-    def build_category_inline_keyboard(base_path: str, back_callback: str) -> InlineKeyboardMarkup:
+    def build_category_inline_keyboard(base_path: PathBuilder, back_callback: PathBuilder) -> list[list[ButtonItem]]:
         """Costruisce tastiera inline per selezione categoria"""
-        keyboard = [
-            [
-                InlineKeyboardButton(text=f"{CATEGORY_EMOJI['user']} {CATEGORY_LABELS['user']}",
-                                     callback_data=f"{base_path}user"),
-                InlineKeyboardButton(text=f"{CATEGORY_EMOJI['group']} {CATEGORY_LABELS['group']}",
-                                     callback_data=f"{base_path}group")
-            ],
-            [
-                InlineKeyboardButton(text=f"{CATEGORY_EMOJI['channel']} {CATEGORY_LABELS['channel']}",
-                                     callback_data=f"{base_path}channel"),
-                InlineKeyboardButton(text=f"{CATEGORY_EMOJI['bot']} {CATEGORY_LABELS['bot']}",
-                                     callback_data=f"{base_path}bot")
-            ],
-            [InlineKeyboardButton(text="🔙 Indietro", callback_data=back_callback)]
+        buttons = [
+            ButtonItem(
+                text=f"{chat_type.icon} {chat_type.label}",
+                callback_key=base_path.add(chat_type)) for chat_type in ChatType
         ]
-        return InlineKeyboardMarkup(keyboard)
+        buttons.append(ButtonItem(text="🔙 Indietro", callback_key=back_callback))
+        return chunk_buttons(buttons=buttons, size=2)
 
     @staticmethod
     def build_add_keyboard() -> tuple[ReplyKeyboardMarkup, dict]:
         """Costruisce tastiera per aggiunta elementi"""
         rid_mapping = {
-            random.randint(100, 200): "user",
-            random.randint(201, 300): "group",
-            random.randint(301, 400): "channel",
-            random.randint(401, 500): "bot"
+            random.randint(100, 200): ChatType.USER,
+            random.randint(201, 300): ChatType.GROUP,
+            random.randint(301, 400): ChatType.CHANNEL,
+            random.randint(401, 500): ChatType.BOT
         }
 
         rids = list(rid_mapping.keys())
         keyboard = [
             [
-                KeyboardButton(text=f"{CATEGORY_EMOJI['user']} {CATEGORY_LABELS['user']}",
+                KeyboardButton(text=f"{ChatType.USER.icon} {ChatType.USER.label}",
                                request_users=KeyboardButtonRequestUsers(request_id=rids[0])),
-                KeyboardButton(text=f"{CATEGORY_EMOJI['group']} {CATEGORY_LABELS['group']}",
+                KeyboardButton(text=f"{ChatType.GROUP.icon} {ChatType.GROUP.label}",
                                request_chat=KeyboardButtonRequestChat(request_id=rids[1], chat_is_channel=False))
             ],
             [
-                KeyboardButton(text=f"{CATEGORY_EMOJI['channel']} {CATEGORY_LABELS['channel']}",
+                KeyboardButton(text=f"{ChatType.CHANNEL.icon} {ChatType.CHANNEL.label}",
                                request_chat=KeyboardButtonRequestChat(request_id=rids[2], chat_is_channel=True)),
-                KeyboardButton(text=f"{CATEGORY_EMOJI['bot']} {CATEGORY_LABELS['bot']}",
+                KeyboardButton(text=f"{ChatType.BOT.icon} {ChatType.BOT.label}",
                                request_users=KeyboardButtonRequestUsers(request_id=rids[3], user_is_bot=True))
             ],
             [KeyboardButton(text="🔙 Indietro")]
@@ -152,110 +143,126 @@ class KeyboardBuilder:
 
 
 # Funzioni principali refactored
-async def view_whitelist(update: Update, context: CustomContext, category: CategoryType, from_category: bool = False):
+async def view_whitelist(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        chat_type: ChatType,
+        from_category: bool = False
+):
     """Visualizza la whitelist per una categoria"""
-    whitelist = WhitelistManager.get_whitelist(context, category)
-    word = CATEGORY_LABELS[category]
+    whitelist = WhitelistManager.get_whitelist(context=context, chat_type=chat_type)
 
     if not whitelist:
-        await _send_empty_list_message(update=update, category=category, from_category=from_category)
+        await _send_empty_list_message(
+            update=update,
+            chat_type=chat_type,
+            base_path=base_path,
+            from_category=from_category
+        )
         return PCS.ADMIN_CONVERSATION
 
-    if not from_category:
-        callback_data = "moderation/security_filters/antispam/whitelist/view"
-    else:
-        callback_data = f"moderation/security_filters/antispam/{category}"
-
-    filename = await make_temp_file(whitelist, filename=f"whitelist_{category}")
-    if await handle_if_not_file(
+    filename = await make_temp_file(whitelist, filename=f"whitelist_{chat_type}")
+    if not filename:
+        await render_error_panel(
             update=update,
             context=context,
-            filename=filename,
-            callback_data=callback_data
-    ):
+            text="❌ Errore durante la creazione del file di testo. Contatta l'admin."
+        )
         return PCS.ADMIN_CONVERSATION
 
     await send_action_message_after(
         update=update,
         context=context,
         text=f"📄 Ecco la lista di identificativi aggiunti alla Whitelist per "
-             f"{'gli' if category == 'user' else 'i'} {word}.",
-        additional_job_data=JobData(
-            files=filename,
-            send_as_document=True,
-            delete_after_sending=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]])
-        )
+             f"{chat_type.label_with_article}.",
+        files=[str(filename)],
+        send_as_document=True,
+        delete_after_sending=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE)]])
     )
 
     return PCS.ADMIN_CONVERSATION
 
 
-async def edit_whitelist_pre_step(update: Update, context: CustomContext, action: ActionType):
+async def edit_whitelist_pre_step(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        action: ModerationListsRoute
+):
     """Preparazione per aggiunta o rimozione dalla whitelist"""
-    sub_text = 'Aggiungi ad una' if action == "add" else 'Rimuovi da una'
+    if action == ModerationListsRoute.VIEW:
+        raise ValueError(f"Whitelist edit action cannot be {action}!")
+    sub_text = 'Aggiungi ad una' if action == ModerationListsRoute.ADD else 'Rimuovi da una'
     text = MessageBuilder.build_base_text(f"{sub_text} Whitelist")
 
-    if action == "add":
-        return await _handle_add_preparation(update, context, text)
+    if action == ModerationListsRoute.ADD:
+        return await _handle_add_preparation(update=update, context=context, text=text)
     else:
-        return await _handle_remove_preparation(update=update, text=text)
+        return await _handle_remove_preparation(update=update, context=context, base_path=base_path, text=text)
 
 
-async def remove_from_whitelist(update: Update, context: CustomContext, category: CategoryType):
+async def remove_from_whitelist(update: Update, context: CustomContext, base_path: PathBuilder, chat_type: ChatType):
     """Gestisce la rimozione da una categoria specifica"""
-    whitelist = WhitelistManager.get_whitelist(context, category)
+    whitelist = WhitelistManager.get_whitelist(context, chat_type)
 
     if not whitelist:
-        await _send_empty_list_message(update, category)
+        await _send_empty_list_message(update=update, chat_type=chat_type, base_path=base_path)
         return PCS.ADMIN_CONVERSATION
 
-    text = MessageBuilder.build_removal_list_message(category, whitelist)
+    text = MessageBuilder.build_removal_list_message(chat_type=chat_type, whitelist=whitelist)
 
     await update.effective_message.edit_text(
         text=text,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
             text="🔙 Indietro",
-            callback_data="moderation/security_filters/antispam/whitelist/remove"
+            callback_data=base_path.back()
         )]]),
         parse_mode=ParseMode.HTML
     )
 
     context.chat_data["editing_antispam_whitelist"] = {
-        "action": "remove",
+        "action": ModerationListsRoute.REMOVE,
         "message_id": update.effective_message.id,
-        "category": category
+        "chat_type": chat_type
     }
 
     return PCS.REMOVE_ANTISPAM_MENTION_WHITELIST
 
 
-async def handle_user_input_antispam_whitelist(update: Update, context: CustomContext):
+async def handle_user_input_antispam_whitelist(update: Update, context: CustomContext, base_path: PathBuilder):
     """Gestisce l'input dell'utente per aggiunta/rimozione"""
     data = context.chat_data.get("editing_antispam_whitelist", {})
     action = data.get("action")
     message_id = data.get("message_id")
-    category = data.get("category")
+    chat_type = data.get("chat_type")
 
-    if not all([action, message_id, category]):
+    if not all([action, message_id, chat_type]):
         return PCS.ADMIN_CONVERSATION
 
     await safe_delete(update=update, context=context, message_id=message_id)
     await safe_delete(update=update, context=context)
 
-    if action == "add":
-        return await _handle_add_action(update, context, data)
+    if action == ModerationListsRoute.REMOVE:
+        return await _handle_add_action(update=update, context=context, base_path=base_path, data=data)
     else:
-        return await _handle_remove_action(update, context, data)
+        return await _handle_remove_action(update=update, context=context, base_path=base_path, data=data)
 
 
-async def _send_empty_list_message(update: Update, category: CategoryType, from_category: bool = False):
+async def _send_empty_list_message(
+        update: Update,
+        chat_type: ChatType,
+        base_path: PathBuilder,
+        from_category: bool = False
+):
     """Invia messaggio per lista vuota"""
-    text = MessageBuilder.build_empty_list_message(category)
+    text = MessageBuilder.build_empty_list_message(chat_type)
     if not from_category:
-        callback_data = "moderation/security_filters/antispam/whitelist/view"
+        callback_data = base_path.back()
     else:
-        callback_data = f"moderation/security_filters/antispam/{category}"
+        callback_data = base_path.back(2)
+
     keyboard = [[InlineKeyboardButton(
         text="🔙 Indietro",
         callback_data=callback_data
@@ -282,31 +289,33 @@ async def _handle_add_preparation(update: Update, context: CustomContext, text: 
     )
 
     context.chat_data["editing_antispam_whitelist"] = {
-        "action": "add",
+        "action": ModerationListsRoute.ADD,
         "message_id": message.id,
-        "category": rid_mapping
+        "chat_type": rid_mapping
     }
 
     return PCS.ADD_ANTISPAM_MENTION_WHITELIST
 
 
-async def _handle_remove_preparation(update: Update, text: str):
+async def _handle_remove_preparation(update: Update, context: CustomContext, base_path: PathBuilder, text: str):
     """Gestisce la preparazione per la rimozione"""
     keyboard = KeyboardBuilder.build_category_inline_keyboard(
-        "moderation/security_filters/antispam/whitelist/remove/",
-        "moderation/security_filters/antispam/whitelist"
+        base_path=base_path,
+        back_callback=base_path.back()
     )
 
-    await update.effective_message.edit_text(
+    await create_and_render_panel(
+        update=update,
+        context=context,
         text=text + "🔹 Scegli la categoria da cui rimuovere gli elementi.",
-        reply_markup=keyboard,
-        parse_mode=ParseMode.HTML,
+        keyboard=keyboard,
+        base_path=base_path
     )
 
     return PCS.ADMIN_CONVERSATION
 
 
-async def _handle_add_action(update: Update, context: CustomContext, data: Dict[str, Any]):
+async def _handle_add_action(update: Update, context: CustomContext, base_path: PathBuilder, data: Dict[str, Any]):
     """Gestisce l'azione di aggiunta"""
     ureq = update.effective_message.users_shared
     creq = update.effective_message.chat_shared
@@ -315,17 +324,16 @@ async def _handle_add_action(update: Update, context: CustomContext, data: Dict[
         return PCS.ADMIN_CONVERSATION
 
     req_id = ureq.request_id if ureq else creq.request_id
-    category = data["category"].get(req_id)
+    chat_type = data["chat_type"].get(req_id)
 
-    if not category:
+    if not chat_type:
         return PCS.ADMIN_CONVERSATION
 
-    word = CATEGORY_LABELS[category]
-    text = MessageBuilder.build_base_text(f"Aggiunta ID Whitelist {word}")
+    text = MessageBuilder.build_base_text(f"Aggiunta ID Whitelist {chat_type.label}")
 
     if ureq:
         user_ids = [user.user_id for user in ureq.users]
-        added = WhitelistManager.add_to_whitelist(context, category, user_ids)
+        added = WhitelistManager.add_to_whitelist(context, chat_type, user_ids)
 
         if not added:
             text += "ℹ Tutti gli elementi indicati sono già presenti in Whitelist."
@@ -333,50 +341,57 @@ async def _handle_add_action(update: Update, context: CustomContext, data: Dict[
             text += MessageBuilder.build_success_message("add", [str(eid) for eid in added])
     else:  # creq
         chat_id = creq.chat_id
-        added = WhitelistManager.add_to_whitelist(context, category, [chat_id])
+        added = WhitelistManager.add_to_whitelist(context, chat_type, [chat_id])
 
         if not added:
             text += f"ℹ L'elemento <code>{chat_id}</code> è già presente in Whitelist."
         else:
             text += f"✅ L'elemento <code>{chat_id}</code> è stato <b>aggiunto alla Whitelist</b>."
 
-    keyboard = _build_post_action_keyboard("add", None)
+    keyboard = _build_post_action_keyboard(action=ModerationListsRoute.ADD, base_path=base_path, chat_type=None)
 
-    await context.bot.send_message(
-        chat_id=update.effective_user.id,
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        base_path=base_path,
         text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=ParseMode.HTML
+        keyboard=keyboard,
     )
 
     return PCS.ADMIN_CONVERSATION
 
-
-async def _handle_remove_action(update: Update, context: CustomContext, data: Dict[str, Any]):
+# noinspection PyTypeChecker
+async def _handle_remove_action(update: Update, context: CustomContext, base_path: PathBuilder, data: Dict[str, Any]):
     """Gestisce l'azione di rimozione"""
-    category = data.get("category")
-    if not category:
+    chat_type = data.get("chat_type")
+    if not chat_type:
         return PCS.ADMIN_CONVERSATION
 
-    word = CATEGORY_LABELS[category]
-
-    input_ids = _parse_ids_from_input(update.effective_message.text)
-    removed = WhitelistManager.remove_from_whitelist(context, category, input_ids)
+    input_ids = _parse_ids_from_input(text=update.effective_message.text)
+    removed = WhitelistManager.remove_from_whitelist(context=context, chat_type=chat_type, items=input_ids)
 
     if not removed:
-        text = (MessageBuilder.build_base_text(f"Rimozione ID Whitelist {word}") +
+        text = (MessageBuilder.build_base_text(subtitle=f"Rimozione ID Whitelist {chat_type.label}") +
                 "ℹ Nessun elemento indicato è presente in Whitelist.")
     else:
-        text = (MessageBuilder.build_base_text(f"Rimozione ID Whitelist {word}") +
-                MessageBuilder.build_success_message("remove", [str(eid) for eid in removed]))
+        text = (MessageBuilder.build_base_text(subtitle=f"Rimozione ID Whitelist {chat_type.label}") +
+                MessageBuilder.build_success_message(
+                    action=ModerationListsRoute.REMOVE,
+                    items=[str(eid) for eid in removed])
+                )
 
-    keyboard = _build_post_action_keyboard("remove", category)
+    keyboard = _build_post_action_keyboard(
+        action=ModerationListsRoute.REMOVE,
+        chat_type=chat_type,
+        base_path=base_path
+    )
 
-    await context.bot.send_message(
-        chat_id=update.effective_user.id,
+    await create_and_render_panel(
+        update=update,
+        context=context,
         text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=ParseMode.HTML
+        keyboard=keyboard,
+        base_path=base_path
     )
 
     return PCS.ADMIN_CONVERSATION
@@ -394,38 +409,41 @@ def _parse_ids_from_input(text: str) -> List[int]:
     return ids
 
 
-def _build_post_action_keyboard(action: ActionType, category: Optional[CategoryType]) -> List[
-    List[InlineKeyboardButton]]:
+def _build_post_action_keyboard(
+        action: ModerationListsRoute,
+        base_path: PathBuilder,
+        chat_type: Optional[ChatType]) -> List[List[ButtonItem]]:
     """Costruisce la tastiera post-azione"""
-    if action == "add":
+    if action == ModerationListsRoute.ADD:
         return [
-            [InlineKeyboardButton(
+            [ButtonItem(
                 text="➕ Aggiungi Altri Elementi",
-                callback_data="moderation/security_filters/antispam/whitelist/add/"
+                callback_key=base_path
             )],
-            [InlineKeyboardButton(
+            [ButtonItem(
                 text="🔙 Indietro",
-                callback_data="moderation/security_filters/antispam/whitelist"
+                callback_key=base_path.back()
             )]
         ]
-    else:  # remove
+    elif action == ModerationListsRoute.REMOVE:
         return [
-            [InlineKeyboardButton(
+            [ButtonItem(
                 text="➖ Rimuovi Altro Elemento",
-                callback_data=f"moderation/security_filters/antispam/whitelist/remove/{category}"
+                callback_key=base_path
             )],
-            [InlineKeyboardButton(
+            [ButtonItem(
                 text="🔙 Indietro",
-                callback_data="moderation/security_filters/antispam/whitelist"
+                callback_key=base_path.back()
             )]
         ]
+    else:
+        raise ValueError("Invalid whitelist editing action!")
 
 
-async def _handle_if_list_empty(update: Update, category: str, l: List) -> bool:
+async def _handle_if_list_empty(update: Update, base_path: PathBuilder, chat_type: str, l: List) -> bool:
     """Funzione di compatibilità - usa _send_empty_list_message"""
     if not l:
         # noinspection PyTypeChecker
-        await _send_empty_list_message(update, category)
+        await _send_empty_list_message(update=update, chat_type=chat_type, base_path=base_path)
         return True
     return False
-

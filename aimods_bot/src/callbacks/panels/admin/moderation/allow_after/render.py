@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation.moderation import AllowafterDurationRoute
+from aimods_bot.src.helpers.constants.path_navigation.moderation import AllowAfterDurationRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
@@ -20,26 +20,26 @@ async def render_allow_after_panel(update: Update, context: CustomContext, base_
         base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="🆓 Nessun Limite", callback_key=base_path.add(AllowafterDurationRoute.OFF))],
+            [ButtonItem(text="🆓 Nessun Limite", callback_key=base_path.add(AllowAfterDurationRoute.OFF))],
             [
-                ButtonItem(text="1 Minuto", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(1))),
-                ButtonItem(text="2 Minuti", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(2))),
-                ButtonItem(text="️3 Minuti", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(3)))
+                ButtonItem(text="1 Minuto", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(1))),
+                ButtonItem(text="2 Minuti", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(2))),
+                ButtonItem(text="️3 Minuti", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(3)))
             ],
             [
-                ButtonItem(text="️5 Minuti", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(5))),
-                ButtonItem(text="10 Minuti", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(10))),
-                ButtonItem(text="30 Minuti", callback_key=base_path.add(AllowafterDurationRoute.MINUTE.build(30)))
+                ButtonItem(text="️5 Minuti", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(5))),
+                ButtonItem(text="10 Minuti", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(10))),
+                ButtonItem(text="30 Minuti", callback_key=base_path.add(AllowAfterDurationRoute.MINUTE.build(30)))
             ],
             [
-                ButtonItem(text="1 Ora", callback_key=base_path.add(AllowafterDurationRoute.HOUR.build(1))),
-                ButtonItem(text="5 Ore", callback_key=base_path.add(AllowafterDurationRoute.HOUR.build(5))),
-                ButtonItem(text="12 Ore", callback_key=base_path.add(AllowafterDurationRoute.HOUR.build(12)))
+                ButtonItem(text="1 Ora", callback_key=base_path.add(AllowAfterDurationRoute.HOUR.build(1))),
+                ButtonItem(text="5 Ore", callback_key=base_path.add(AllowAfterDurationRoute.HOUR.build(5))),
+                ButtonItem(text="12 Ore", callback_key=base_path.add(AllowAfterDurationRoute.HOUR.build(12)))
             ],
             [
-                ButtonItem(text="1 Giorno", callback_key=base_path.add(AllowafterDurationRoute.DAY.build(1))),
-                ButtonItem(text="5 Giorni", callback_key=base_path.add(AllowafterDurationRoute.DAY.build(5))),
-                ButtonItem(text="1 Settimana", callback_key=base_path.add(AllowafterDurationRoute.WEEK.build(1)))
+                ButtonItem(text="1 Giorno", callback_key=base_path.add(AllowAfterDurationRoute.DAY.build(1))),
+                ButtonItem(text="5 Giorni", callback_key=base_path.add(AllowAfterDurationRoute.DAY.build(5))),
+                ButtonItem(text="1 Settimana", callback_key=base_path.add(AllowAfterDurationRoute.WEEK.build(1)))
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]

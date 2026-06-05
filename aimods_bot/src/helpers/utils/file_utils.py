@@ -4,7 +4,7 @@ import mimetypes
 import os
 import re
 from pathlib import Path
-from typing import Any, List, Literal, Union, Tuple, Optional, AsyncIterator
+from typing import Any, List, Union, Tuple, Optional, AsyncIterator
 
 import aiofiles
 import yaml
@@ -14,8 +14,8 @@ from yaml import YAMLError
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import YAML_CONFIG_PATH
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES, MediaType
-from aimods_bot.src.helpers.constants.models import MediaItem
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.utils import MediaItem
 
 SEM = asyncio.Semaphore(2)
 

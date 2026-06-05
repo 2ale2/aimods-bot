@@ -2,29 +2,31 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.models import ButtonItem
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, SecurityFiltersRoute, AntifloodRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, sec_value_limited
 
 
-async def render_antiflood_panel(update: Update, context: CustomContext):
+async def render_antiflood_panel(update: Update, context: CustomContext, base_path: PathBuilder):
     text = await _build_text(context=context)
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="moderation/security_filters/antiflood",
+        base_path=base_path,
         text=text,
         keyboard=[
             [
-                ButtonItem(text="On ☂️", callback_key="toggle_on"),
-                ButtonItem(text="Off 🌂", callback_key="toggle_off")
+                ButtonItem(text="On ☂️", callback_key=base_path.add(GlobalAction.TOGGLE_ON)),
+                ButtonItem(text="Off 🌂", callback_key=base_path.add(GlobalAction.TOGGLE_OFF))
             ],
-            [ButtonItem(text="⚖️ Punizione", callback_key="punishment")],
-            [ButtonItem(text="💬 Numero Messaggi", callback_key="message_number")],
-            [ButtonItem(text="🕔 Tempo Messaggi", callback_key="message_time")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="⚖️ Punizione", callback_key=base_path.add(SecurityFiltersRoute.PUNISHMENT))],
+            [ButtonItem(text="💬 Numero Messaggi", callback_key=base_path.add(AntifloodRoute.MESSAGE_NUMBER))],
+            [ButtonItem(text="🕔 Tempo Messaggi", callback_key=base_path.add(AntifloodRoute.MESSAGE_TIME))],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -62,4 +64,3 @@ async def _build_text(context: CustomContext):
 
     text += "🔹 Scegli un'opzione."
     return text
-

@@ -26,7 +26,7 @@ class PathBuilder:
 
     def pop(self, segment: int | str) -> PathBuilder:
         if not self.segments:
-            return PathBuilder(*self.segments)
+            return self.back()
         if isinstance(segment, int):
             remaining = list(self.segments)
             del remaining[segment]
