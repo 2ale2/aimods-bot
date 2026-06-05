@@ -33,12 +33,8 @@ async def _build_request_panel_preamble(
     include_details: bool = True,
 ) -> str:
     if include_platform_category:
-        platform = request.platform
-        category = request.category
-        if not platform or not category:
-            raise ValueError("Platform and category must not be None!")
-        ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
-        subtitle = f"{title} {platform.label} – {ca_label}"
+        ca_label = PLATFORM_CATEGORY_REGISTRY[request.section.platform][request.section.category].label
+        subtitle = f"{title} {request.section.platform.label} – {ca_label}"
     else:
         subtitle = title
 
@@ -773,12 +769,8 @@ async def send_user_request_status_changed_notification(
 
 
 def _get_user_request_status_changed_notification_text(request: BaseRequest):
-    platform = request.platform
-    category = request.category
-
-    if not platform or not category:
-        raise ValueError("Platform and category must not be None!")
-
+    platform = request.section.platform
+    category = request.section.category
     text = (f"🆙 <b>Aggiornamento Richiesta <code>{request.id}</code></b>\n\n"
             f"▫ La tua richiesta (<b>{PLATFORM_CATEGORY_REGISTRY[platform][category].label} {platform.label}</b>) "
             "ha appena ricevuto il suo <b>esito</b>!")

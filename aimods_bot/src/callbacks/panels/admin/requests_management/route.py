@@ -18,7 +18,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import RequestStatus, RejectRequestReason
+from aimods_bot.src.helpers.constants.constants import RequestStatus, RejectRequestReason, Platform, Category
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
@@ -85,14 +85,17 @@ async def admin_requests_management_route(
                         context=context,
                         base_path=full_path
                     )
-                case [platform]:
+                case [platform_str] if platform_str in Platform:
+                    platform = Platform(platform_str)
                     await render_last_ten_requests_category_panel(
                         update=update,
                         context=context,
                         base_path=full_path,
                         platform=platform
                     )
-                case [platform, category]:
+                case [platform_str, category_str] if platform_str in Platform and category_str in Category:
+                    platform = Platform(platform_str)
+                    category = Category(category_str)
                     await render_last_ten_requests_section_panel(
                         update=update,
                         context=context,
@@ -122,7 +125,8 @@ async def route_admin_active_requests_management(
         case []:
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
-        case [platform]:
+        case [platform_str] if platform_str in Platform:
+            platform = Platform(platform_str)
             await render_admin_active_requests_category_selector_panel(
                 update=update,
                 context=context,
@@ -130,7 +134,9 @@ async def route_admin_active_requests_management(
                 platform=platform
             )
 
-        case [platform, category]:
+        case [platform_str, category_str] if platform_str in Platform and category_str in Category:
+            platform = Platform(platform_str)
+            category = Category(category_str)
             await render_admin_active_requests_category_panel(
                 update=update,
                 context=context,
@@ -138,7 +144,9 @@ async def route_admin_active_requests_management(
                 section=RequestSection(platform=platform, category=category)
             )
 
-        case [platform, category, request_id_str, *sub_path]:
+        case [platform_str, category_str, request_id_str, *sub_path] if platform_str in Platform and category_str in Category:
+            platform = Platform(platform_str)
+            category = Category(category_str)
             if request_id_str.isdigit():
                 return await admin_manage_request_route(
                     update=update,

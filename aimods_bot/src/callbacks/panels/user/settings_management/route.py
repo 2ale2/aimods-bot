@@ -44,7 +44,9 @@ async def user_settings_management_route(
                                 context=context,
                                 base_path=root
                             )
-                        case [platform, category]:
+                        case [platform_str, category_str] if platform_str in Platform and category_str in Category:
+                            platform = Platform(platform_str)
+                            category = Category(category_str)
                             section = RequestSection(platform=platform, category=category)
                             await handle_user_section_opening_notification_toggle(
                                 context=context,

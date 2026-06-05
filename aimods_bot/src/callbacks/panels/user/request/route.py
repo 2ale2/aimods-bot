@@ -12,12 +12,12 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
-    Platform, Category, LOCAL_TZ, DATETIME_FORMAT
+    Platform, LOCAL_TZ, DATETIME_FORMAT
 )
-from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA
 from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS
 )
+from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
@@ -68,7 +68,8 @@ async def requests_management_route(
                     )
                     return PCS.USER_REQUEST_WIZARD_SESSION
 
-                case [platform, *rest]:
+                case [platform_str, *rest] if platform_str in Platform:
+                    platform = Platform(platform_str)
                     match PathBuilder(*rest).segments:
                         case []:
                             configs_cat = PLATFORM_CATEGORY_REGISTRY[platform]
@@ -111,7 +112,9 @@ async def requests_management_route(
                                     request_limitation = context.is_user_request_limited(section=section)
                                     if request_limitation:
                                         if request_limitation.until:
-                                            until = request_limitation.until.replace(tzinfo=ZoneInfo("UTC")).astimezone(LOCAL_TZ)
+                                            until = request_limitation.until.replace(
+                                                tzinfo=ZoneInfo("UTC")
+                                            ).astimezone(LOCAL_TZ)
                                             until_str = until.strftime(f"fino al {DATETIME_FORMAT}")
                                         else:
                                             until_str = "a tempo indeterminato"

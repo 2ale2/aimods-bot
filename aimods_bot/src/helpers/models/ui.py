@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import List
 
 from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPreviewOptions

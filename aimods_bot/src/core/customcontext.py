@@ -236,9 +236,9 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def get_requests_by_status(
             self,
             status: RequestStatus,
-            platform: Optional[Platform] = None,
-            category: Optional[Category] = None,
-            from_user: Optional[bool] = False
+            platform: Platform | None = None,
+            category: Category | None = None,
+            from_user: bool | False = False
     ) -> dict[int, BaseRequest]:
         if status == RequestStatus.CANCELLED:
             log.warning("bot_data only contains active requests.")
@@ -256,8 +256,8 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def get_user_requests_by_status(
             self,
             status: RequestStatus,
-            platform: Optional[Platform] = None,
-            category: Optional[Category] = None
+            platform: Platform | None = None,
+            category: Category | None = None
     ) -> dict[int, BaseRequest]:
         return self.get_requests_by_status(status=status, platform=platform, category=category, from_user=True)
 
@@ -285,7 +285,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             from_notification: bool,
             msg_id: int
     ) -> None:
-        config = PLATFORM_CATEGORY_REGISTRY[platform][category]
+        config = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category]
         fresh_draft = config.model(user_id=user_id, section=section)
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(
