@@ -16,6 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, NotificationAction, \
     AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
 
@@ -83,12 +84,13 @@ async def admin_new_requests_notification_settings_management_route(
         case []:
             await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
 
-        case [data]:
+        case [section_str]:
+            section = RequestSection.from_string(section_str)
             if from_notification:
-                await handle_admin_new_requests_notification_toggle(context=context, data=data)
-                await render_new_requests_notification_disabled_panel(update=update, context=context, data=data)
+                await handle_admin_new_requests_notification_toggle(context=context, section=section)
+                await render_new_requests_notification_disabled_panel(update=update, context=context, data=section)
             else:
-                await handle_admin_new_requests_notification_toggle(context=context, data=data)
+                await handle_admin_new_requests_notification_toggle(context=context, section=section)
                 await render_admin_new_requests_notification_settings_panel(
                     update=update,
                     context=context,
@@ -113,16 +115,18 @@ async def admin_closing_section_notification_settings_management_route(
                 base_path=root
             )
 
-        case [data]:
-            await handle_admin_section_closing_notification_toggle(context=context, data=data)
+        case [section_str]:
+            section = RequestSection.from_string(section_str)
+            await handle_admin_section_closing_notification_toggle(context=context, section=section)
             await render_admin_section_closing_notification_settings_panel(
                 update=update,
                 context=context,
                 base_path=root
             )
 
-        case [data, NotificationAction.FROM_NOTIFICATION]:
-            await handle_admin_section_closing_notification_toggle(context=context, data=data)
-            await render_section_closure_notification_disabled_panel(update=update, context=context, data=data)
+        case [section_str, NotificationAction.FROM_NOTIFICATION]:
+            section = RequestSection.from_string(section_str)
+            await handle_admin_section_closing_notification_toggle(context=context, section=section)
+            await render_section_closure_notification_disabled_panel(update=update, context=context, data=section)
 
     return PCS.ADMIN_CONVERSATION

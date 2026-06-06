@@ -30,7 +30,7 @@ async def admin_main_router(update: Update, context: CustomContext):
 
     try:
         match path.segments:
-            case [AdminRoute.MODERATION, *sub_path]:
+            case [AdminRoute.MODERATION]:
                 return await not_implemented_yet(update=update, context=context)
                 # return await moderation_router(update=update, context=context, path=s[1:])
             case [AdminRoute.MANAGE_SETTINGS, *sub_path]:
