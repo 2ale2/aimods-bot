@@ -19,7 +19,6 @@ log = logger.getChild(__name__)
 class ButtonItem:
     text: str
     callback_key: PathBuilder | str
-    override_path_generation: bool = False
 
 
 @dataclass
@@ -48,10 +47,11 @@ class Panel:
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
+                key = button.callback_key
                 subkeyboard.append(
                     InlineKeyboardButton(
                         text=button.text,
-                        callback_data=button.callback_key.build()
+                        callback_data=key.build() if isinstance(key, PathBuilder) else str(key)
                     )
                 )
             keyboard.append(subkeyboard)
