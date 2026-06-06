@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -49,3 +50,6 @@ class RequestSection(BaseModel):
     @property
     def request_model(self) -> type[BaseRequest]:
         return self.category_config.model
+
+    def __eq__(self, other: RequestSection) -> bool:
+        return self.platform == other.platform and self.category == other.category

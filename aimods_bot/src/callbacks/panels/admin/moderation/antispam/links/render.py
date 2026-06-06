@@ -22,10 +22,10 @@ async def render_antispam_links_panel(update: Update, context: CustomContext, ba
             [ButtonItem(text="⚖️ Punizione", callback_key=base_path.add(SecurityFiltersRoute.PUNISHMENT))],
             [ButtonItem(text="⌛️ Consenti Dopo", callback_key=base_path.add(SecurityFiltersRoute.ALLOW_AFTER))],
             [
-                ButtonItem(text="📄 Whitelist", callback_key=base_path.add(SecurityFiltersRoute.WHITELIST)),
-                ButtonItem(text="📓 Blacklist", callback_key=base_path.add(SecurityFiltersRoute))
+                ButtonItem(text="📄 Whitelist", callback_key=base_path.add(ModerationList.WHITELIST)),
+                ButtonItem(text="📓 Blacklist", callback_key=base_path.add(ModerationList.BLACKLIST))
             ],
-            [ButtonItem(text="🧙‍♂️ Greylist", callback_key=base_path.add(SecurityFiltersRoute.GREYLIST))],
+            [ButtonItem(text="🧙‍♂️ Greylist", callback_key=base_path.add(ModerationList.GREYLIST))],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )

@@ -61,7 +61,8 @@ async def antispam_mention_route(update: Update, context: CustomContext, root: P
                     )
             return PCS.ADMIN_CONVERSATION
 
-        case [chat_type, *rest] if chat_type in ChatType:
+        case [chat_type_str, *rest] if chat_type_str in ChatType:
+            chat_type = ChatType(chat_type_str)
             return await antispam_mention_category_route(
                 update=update,
                 context=context,

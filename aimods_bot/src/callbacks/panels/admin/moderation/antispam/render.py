@@ -32,7 +32,7 @@ async def render_antispam_panel(update: Update, context: CustomContext, base_pat
                 ButtonItem(text="💬 Blocco Menzioni", callback_key=base_path.add(AntispamRoute.MENTION))
             ],
             [
-                ButtonItem(text="👥 Blocco Inoltro", callback_key=base_path.add(AntispamRoute.MENTION)),
+                ButtonItem(text="👥 Blocco Inoltro", callback_key=base_path.add(AntispamRoute.FORWARD)),
                 ButtonItem(text="🎞 Blocco Media", callback_key=base_path.add(AntispamRoute.MEDIA))
             ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]

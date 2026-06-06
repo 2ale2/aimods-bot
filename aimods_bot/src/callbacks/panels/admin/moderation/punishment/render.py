@@ -2,37 +2,28 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
 
 
-async def render_punishment_panel(update: Update, context: CustomContext, setting: str):
+async def render_punishment_panel(update: Update, context: CustomContext, base_path: PathBuilder, setting: str):
     text = await _build_punishment_text(context=context, setting=setting)
 
-    if update.callback_query:
-        raw_data = update.callback_query.data
-        p = raw_data.split("/")
-        if "punishment" in p:
-            idx = p.index("punishment")
-            data = "/".join(p[:idx + 1])
-        else:
-            data = raw_data
-    else:
-        data = f"moderation/security_filters/{setting}/punishment"
-
     keyboard = [
-        [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key="duration")],
+        [ButtonItem(text="⏳ Imposta Durata Punizione", callback_key=base_path.add(PunishmentRoute.DURATION))],
         [
-            ButtonItem(text="🚫 Ban", callback_key="ban"),
-            ButtonItem(text="🥊 Kick", callback_key="kick")
+            ButtonItem(text="🚫 Ban", callback_key=base_path.add(PunishmentRoute.BAN)),
+            ButtonItem(text="🥊 Kick", callback_key=base_path.add(PunishmentRoute.KICK))
         ],
         [
-            ButtonItem(text="🔒 Mute", callback_key="mute"),
-            ButtonItem(text="⚠️ Warn", callback_key="warn")
+            ButtonItem(text="🔒 Mute", callback_key=base_path.add(PunishmentRoute.MUTE)),
+            ButtonItem(text="⚠️ Warn", callback_key=base_path.add(PunishmentRoute.WARN))
         ],
-        [ButtonItem(text="🔙 Indietro", callback_key=None)]
+        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
     ]
 
     s = setting.split("/")
@@ -50,14 +41,19 @@ async def render_punishment_panel(update: Update, context: CustomContext, settin
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=data,
+        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=message_id
     )
 
 
-async def render_punishment_duration_panel(update: Update, context: CustomContext, setting: str):
+async def render_punishment_duration_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        setting: str
+):
     text = _build_punishment_duration_text(setting=setting)
 
     context.chat_data['setting_duration'] = {'setting': setting, 'message_id': update.effective_message.message_id}
@@ -65,11 +61,11 @@ async def render_punishment_duration_panel(update: Update, context: CustomContex
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=update.callback_query.data,
+        base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="♾️ Tempo Indeterminato", callback_key="endless")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="♾️ Tempo Indeterminato", callback_key=base_path.add(PunishmentRoute.DURATION_ENDLESS))],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 

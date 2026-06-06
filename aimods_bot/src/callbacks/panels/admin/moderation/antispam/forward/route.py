@@ -24,7 +24,8 @@ async def antispam_forward_route(
             await render_antispam_forward_panel(update=update, context=context, base_path=root)
             return PCS.ADMIN_CONVERSATION
 
-        case [chat_type, *rest] if chat_type in ChatType:
+        case [chat_type_str, *rest] if chat_type_str in ChatType:
+            chat_type = ChatType(chat_type_str)
             return await antispam_forward_category_route(
                 update=update,
                 context=context,

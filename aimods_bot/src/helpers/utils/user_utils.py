@@ -302,7 +302,7 @@ def check_auth(n: int = 5, bypass_count: bool = False):
     return decorator
 
 
-async def resolve_user_from_identifier(identifier: str):
+async def resolve_user_from_identifier(identifier: int | str):
     response = await resolve_user(identifier=identifier)
 
     if response["status"] != "success":

@@ -47,7 +47,8 @@ async def antispam_link_route(update: Update, context: CustomContext, root: Path
             )
             return PCS.ADMIN_CONVERSATION
 
-        case [list_type, *rest] if list_type in ModerationList:
+        case [list_type_str, *rest] if list_type_str in ModerationList:
+            list_type = ModerationList(list_type_str)
             return await antispam_links_list_route(
                 update=update,
                 context=context,

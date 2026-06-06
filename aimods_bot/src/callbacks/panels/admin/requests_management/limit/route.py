@@ -16,9 +16,9 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, \
-    LimitationsFlow, GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, LimitationsFlow, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, is_user_id
 from aimods_bot.src.helpers.utils.user_utils import is_admin, resolve_user_from_identifier
@@ -36,7 +36,10 @@ async def route_admin_manage_limitations(
             return PCS.SET_REQUEST_LIMITATION_USER
 
         case [identifier, *rest]:
-            pre_resolved_user = context.pydc.ephemeral.resolved_users.get(identifier, None)
+            if isinstance(identifier, int):
+                pre_resolved_user = context.pydc.ephemeral.resolved_users.get(identifier, None)
+            else:
+                pre_resolved_user = None
 
             if pre_resolved_user is None and is_user_id(identifier):
                 pre_resolved_user = int(identifier)
@@ -69,7 +72,7 @@ async def route_admin_manage_limitations(
                         return PCS.SET_REQUEST_LIMITATION_USER
 
                     # nel path sempre uno user id
-                    relative_path.change(identifier, str(user_id))
+                    relative_path.change(str(identifier), str(user_id))
 
                     limiting_user.user_id = user_id
 
@@ -171,7 +174,7 @@ async def route_admin_add_request_limitation_route(
             )
             return PCS.ADMIN_CONVERSATION
 
-        case [LimitationsFlow.SECTIONS, section_input]:
+        case [LimitationsFlow.SECTIONS, section_input] if isinstance(section_input, (LimitationsFlow, RequestSection)):
             await handle_request_limitation_topic(context=context, section_input=section_input)
             await render_admin_add_user_request_limitation_panel(
                 update=update,
@@ -222,17 +225,17 @@ async def route_admin_remove_request_limitation_route(
                 pre_resolved_user=pre_resolved_user
             )
 
-        case [selected_section]:
+        case [selected_section] if isinstance(selected_section, (LimitationsFlow, RequestSection)):
             remove_all_selected = (selected_section == LimitationsFlow.REMOVE_ALL)
             limitation = None
 
             if not remove_all_selected:
+                assert isinstance(selected_section, RequestSection)
                 user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
-                selected_section_list = selected_section.split(":")
                 limitation = next((
                     lim for lim in context.get_user_request_limitations(user_id=user_id)
-                    if lim.section.split(":") == selected_section_list),
+                    if lim.section == selected_section),
                     None
                 )
 
@@ -250,7 +253,7 @@ async def route_admin_remove_request_limitation_route(
             await render_admin_remove_user_limitation_confirmation_panel(
                 update=update,
                 context=context,
-                base_path=root.add(selected_section),
+                base_path=root.add(str(selected_section)),
                 pre_resolved_user=pre_resolved_user,
                 limitation=limitation,
                 remove_all=remove_all_selected

@@ -248,8 +248,8 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             ix: r for ix, r in requests.items()
             if (
                     r.status == status and
-                    (platform is None or r.platform == platform) and
-                    (category is None or r.category == category)
+                    (platform is None or r.section.platform == platform) and
+                    (category is None or r.section.category == category)
             )
         }
 
@@ -269,7 +269,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in active_requests.items()
-            if r.platform == section.platform and category == section.category
+            if r.section.platform == section.platform and category == section.category
         }
 
     def get_user_active_category_requests(
@@ -345,7 +345,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ul = self.get_user_request_limitations()
         if ul:
             for l in ul:
-                if l.platform == section.platform and l.category == section.category:
+                if l.section.platform == section.platform and l.section.category == section.category:
                     return l
         return None
 
