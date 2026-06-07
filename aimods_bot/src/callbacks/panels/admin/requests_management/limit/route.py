@@ -58,7 +58,7 @@ async def route_admin_manage_limitations(
 
                         return PCS.SET_REQUEST_LIMITATION_USER
 
-                    limiting_user = context.pydu.persistent.limiting_user_requests
+                    limiting_user = context.pydc.persistent.limiting_user_requests
 
                     user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
@@ -71,7 +71,6 @@ async def route_admin_manage_limitations(
                         )
                         return PCS.SET_REQUEST_LIMITATION_USER
 
-                    # nel path sempre uno user id
                     relative_path.change(str(identifier), str(user_id))
 
                     limiting_user.user_id = user_id
@@ -225,13 +224,14 @@ async def route_admin_remove_request_limitation_route(
                 pre_resolved_user=pre_resolved_user
             )
 
-        case [selected_section] if isinstance(selected_section, (LimitationsFlow, str)):
+        case [section_obj]:
+            selected_section = (section_obj if section_obj in LimitationsFlow
+                           else RequestSection.from_string(section_obj))
+
             remove_all_selected = (selected_section == LimitationsFlow.REMOVE_ALL)
             limitation = None
 
             if not remove_all_selected:
-                if selected_section not in LimitationsFlow:
-                    selected_section = RequestSection.from_string(selected_section)
                 user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
                 limitation = next((
@@ -250,6 +250,7 @@ async def route_admin_remove_request_limitation_route(
                             )
                         ]])
                     )
+                    return PCS.ADMIN_CONVERSATION
 
             await render_admin_remove_user_limitation_confirmation_panel(
                 update=update,
@@ -260,7 +261,9 @@ async def route_admin_remove_request_limitation_route(
                 remove_all=remove_all_selected
             )
 
-        case [selected_section, GlobalAction.CONFIRM]:
+        case [section_obj, GlobalAction.CONFIRM]:
+            selected_section = RequestSection.from_string(section_obj)
+
             await handle_remove_user_request_limitation(
                 context=context,
                 user_id=pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id,

@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 from typing import Union, Optional
 
 from telegram import Update
@@ -126,6 +127,10 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
     recap_topics = (await get_data_from_json("forum_topics"))["recap"]
     sticker_id = None
 
+    group_id = bot_data.group_chat_id
+    if group_id is None:
+        raise ValueError("Group ID must not be None here!")
+
     for el in recap_topics:
         if recap_topics[el]["name"] in not_sending:
             continue
@@ -146,7 +151,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
 
         if text:
             await context.bot.send_message(
-                chat_id=bot_data.group_chat_id,
+                chat_id=group_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 text=text,
                 disable_web_page_preview=True,
@@ -154,7 +159,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
             )
 
             sticker_message = await context.bot.send_sticker(
-                chat_id=bot_data.group_chat_id,
+                chat_id=group_id,
                 message_thread_id=int(recap_topics[el]["id"]),
                 sticker=sticker_id or "aimods_bot/misc/images/official_stickers/sticker.webp"
             )
@@ -162,7 +167,7 @@ async def create_and_send_recaps(context: Union[CustomContext, Application], **k
             if not sticker_id:
                 sticker_id = sticker_message.sticker.file_id
 
-    # noinspection SqlWithoutWhere
-    query = "DELETE FROM recap_posts"
-
+    query = "TRUNCATE TABLE recap_posts"
     await execute_query(query=query)
+
+    context.bot_data.last_auto_recap = datetime.now(timezone.utc)

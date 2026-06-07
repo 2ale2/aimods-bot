@@ -125,7 +125,7 @@ async def render_admin_request_section_toggle_panel(
         section: RequestSection,
         action: GlobalAction
 ):
-    opening = action == "open"
+    opening = (action == GlobalAction.OPEN)
 
     text = _get_admin_request_section_toggle_panel_text(
         context=context,
@@ -178,7 +178,7 @@ async def render_admin_request_section_toggled_panel(
         section: RequestSection,
         action: GlobalAction
 ):
-    text = _get_admin_request_section_toggled_text(section=section, is_opening=(action == "open"))
+    text = _get_admin_request_section_toggled_text(section=section, is_opening=(action == GlobalAction.OPEN))
 
     await create_and_render_panel(
         update=update,

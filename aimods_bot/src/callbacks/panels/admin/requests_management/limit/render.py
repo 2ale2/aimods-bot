@@ -10,6 +10,7 @@ from aimods_bot.src.helpers.constants.path_navigation import LimitationsAction, 
     LimitationsFlow as AMRLR, GlobalAction, AdminRoute, LimitationsOp, ModerationListsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
@@ -472,7 +473,7 @@ async def render_admin_view_user_limitations_panel(
     text = await _get_user_request_limitations_text(context=context, pre_resolved_user=user_id)
 
     keyboard = [
-        [ButtonItem(text="➕ Aggiungi", callback_key=base_path.add(user_id, LimitationsOp.ADD))],
+        [ButtonItem(text="➕ Aggiungi", callback_key=base_path.add(str(user_id), LimitationsOp.ADD))],
     ]
 
     limitations = context.get_user_request_limitations(user_id=user_id)
@@ -675,7 +676,7 @@ async def render_admin_user_limitation_removed_panel(
         context: CustomContext,
         base_path: PathBuilder,
         pre_resolved_user: int | PyroUser | PTBUser,
-        section: str
+        section: RequestSection
 ):
     user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
@@ -699,21 +700,20 @@ async def render_admin_user_limitation_removed_panel(
     )
 
 
-def _get_admin_user_limitation_removed_text(user_id: int, section: str, remove_all: bool = False) -> str:
+def _get_admin_user_limitation_removed_text(user_id: int, section: RequestSection, remove_all: bool = False) -> str:
     if remove_all:
         text = ("✅ <b>Tutte le Limitazioni Rimosse</b>\n\n"
                 f"<blockquote>Ora l'utente <code>{user_id}</code> non ha più limitazioni.</blockquote>\n\n"
                 f"🔹 Scegli un'opzione.")
         return text
 
-    pl, ca = section.split(":")
-    plaform = Platform(pl)
-    category = Category(ca)
-    ca_label = PLATFORM_CATEGORY_REGISTRY[plaform][category].label
+    platform = section.platform
+    category = section.category
+    ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
 
     text = (f"✅ <b>Limitazione per <code>{user_id}</code> Rimossa</b>\n\n"
             "<blockquote>L'utente potrà nuovamente <b>formulare richieste</b> nella sezione "
-            f"<b>{ca_label} ({plaform.label})</b>.</blockquote>\n\n"
+            f"<b>{ca_label} ({platform.label})</b>.</blockquote>\n\n"
             "🔹 Scegli un'opzione.")
 
     return text
@@ -766,6 +766,9 @@ async def handle_limitation_identifier(update: Update, context: CustomContext, b
 
     action = context.pydc.ephemeral.action
     identifier = update.message.text
+
+    if identifier is None:
+        raise ValueError("User input must not be None here!")
 
     if not identifier.isnumeric():
         identifier = await username_to_id(username=identifier)
