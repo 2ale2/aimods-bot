@@ -9,8 +9,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
 )
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
-    LimitationsOp
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, LimitationsOp
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -29,12 +28,15 @@ async def route_admin_request_section_configure_selection(
         case []:
             await render_admin_request_section_configure_panel(update=update, context=context, base_path=root)
 
-        case [platform] if platform in Platform:
+        case [platform_str] if platform_str in Platform:
+            platform = Platform(platform_str)
             await render_admin_request_section_configure_platform_panel(
                 update=update, context=context, platform=platform, base_path=root.add(platform)
             )
 
-        case [platform, category, *rest] if platform in Platform and category in Category:
+        case [platform_str, category_str, *rest] if platform_str in Platform and category_str in Category:
+            platform = Platform(platform_str)
+            category = Category(category_str)
             await admin_request_section_configure_route(
                 update=update,
                 context=context,
@@ -72,7 +74,7 @@ async def admin_request_section_configure_route(
                         base_path=root.add(LimitationsOp.LIMIT)
                     )
 
-                case [limit_str]:
+                case [limit_str] if limit_str.isnumeric():
                     limit = int(limit_str)
                     config = get_section_config(context=context, section=section)
 
@@ -93,7 +95,7 @@ async def admin_request_section_configure_route(
                             limit=limit
                         )
 
-                case [limit_str, GlobalAction.YES]:
+                case [limit_str, GlobalAction.YES] if limit_str.isnumeric():
                     limit = int(limit_str)
 
                     await handle_request_section_limit(

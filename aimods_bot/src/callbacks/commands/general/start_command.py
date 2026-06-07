@@ -11,7 +11,7 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, get_banned_panel
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
-log = logger.getChild("start_command")
+log = logger.getChild(__name__)
 
 
 async def get_panel(update: Update, context: CustomContext, admin: bool, banned: bool):

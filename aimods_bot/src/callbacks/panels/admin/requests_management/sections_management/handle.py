@@ -1,5 +1,3 @@
-import re
-
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow, \
     GlobalAction
@@ -27,7 +25,7 @@ async def handle_request_section_toggle(
         section: RequestSection,
         action: GlobalAction
 ):
-    is_opening = (action == "open")
+    is_opening = (action == GlobalAction.OPEN)
     config = get_section_config(context=context, section=section)
 
     if is_opening and config.limit is not None:
@@ -65,11 +63,9 @@ async def handle_request_section_limit(
 async def handle_remove_user_request_limitation(
         context: CustomContext,
         user_id: int,
-        selected_section: str
+        selected_section: LimitationsFlow | RequestSection
 ):
-    """
-    Rimuove le limitazioni dell'utente.
-    """
+    """Rimuove le limitazioni dell'utente."""
     if selected_section == LimitationsFlow.REMOVE_ALL:
         _remove_limitation_jobs(context, user_id, section_pattern=r"[^:\s]+")
 
@@ -90,7 +86,6 @@ async def handle_remove_user_request_limitation(
 
     context.set_user_request_limitations(user_id=user_id, limitations=new_limitations)
 
-    safe_section = re.escape(selected_section)
-    _remove_limitation_jobs(context, user_id, section_pattern=safe_section)
+    _remove_limitation_jobs(context, user_id, section_pattern=str(selected_section))
 
     log.info(f"Admin {context.user_id} removed {selected_section} section limitations from {user_id}")

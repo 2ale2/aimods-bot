@@ -5,8 +5,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute, AdminRoute, \
-    AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, \
-    LimitationsOp
+    AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -281,8 +280,8 @@ async def render_admin_manage_request_panel(
         request: BaseRequest,
         base_path: PathBuilder
 ):
-    platform = request.platform
-    category = request.category
+    platform = request.section.platform
+    category = request.section.category
 
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
@@ -387,8 +386,8 @@ async def render_change_request_status_confirmation_panel(
         request: BaseRequest,
         status: RequestStatus
 ):
-    platform = request.platform
-    category = request.category
+    platform = request.section.platform
+    category = request.section.category
 
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
@@ -427,8 +426,8 @@ async def render_request_status_changed_panel(
         base_path: PathBuilder,
         request: BaseRequest
 ):
-    platform = request.platform
-    category = request.category
+    platform = request.section.platform
+    category = request.section.category
 
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
@@ -480,8 +479,8 @@ async def render_admin_manage_request_remove_confirmation_panel(
         base_path: PathBuilder,
         request: BaseRequest
 ):
-    platform = request.platform
-    category = request.category
+    platform = request.section.platform
+    category = request.section.category
 
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
@@ -615,7 +614,9 @@ async def render_admin_reject_request_panel(
             [
                 ButtonItem(
                     text="🔙 Indietro",
-                    callback_key=base_path.back())]
+                    callback_key=base_path.back()
+                )
+            ]
         ]
     )
 

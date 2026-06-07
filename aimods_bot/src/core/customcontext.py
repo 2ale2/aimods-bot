@@ -269,7 +269,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         active_requests = self.pydb.active_requests if not from_user else self.user_active_requests
         return {
             ix: r for ix, r in active_requests.items()
-            if r.section.platform == section.platform and category == section.category
+            if r.section == section
         }
 
     def get_user_active_category_requests(
@@ -345,7 +345,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         ul = self.get_user_request_limitations()
         if ul:
             for l in ul:
-                if l.section.platform == section.platform and l.section.category == section.category:
+                if l.section == section:
                     return l
         return None
 
@@ -427,13 +427,16 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     # ======== SEZIONI RICHIESTE ========
 
     def is_request_section_open(self, section: RequestSection) -> bool:
-        platform_section_settings = getattr(self.pydb.configuration.settings.request, section.platform, None)
+        platform = section.platform
+        category = section.category
+        category_config = PLATFORM_CATEGORY_REGISTRY[platform][category]
+        platform_section_settings = getattr(self.pydb.configuration.settings.request, platform, None)
         if platform_section_settings is None:
-            log.error(f"Platform {section.platform.label} configuration not found.")
+            log.error(f"Platform {platform.label} configuration not found.")
             return None
         category_section_settings = getattr(platform_section_settings, category, None)
         if category_section_settings is None:
-            log.error(f"Category {section.category_config.label} configuration not found inside {platform.label}.")
+            log.error(f"Category {category_config.label} configuration not found inside {platform.label}.")
             return None
 
         assert isinstance(category_section_settings, CategorySetting)

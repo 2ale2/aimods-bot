@@ -225,12 +225,13 @@ async def route_admin_remove_request_limitation_route(
                 pre_resolved_user=pre_resolved_user
             )
 
-        case [selected_section] if isinstance(selected_section, (LimitationsFlow, RequestSection)):
+        case [selected_section] if isinstance(selected_section, (LimitationsFlow, str)):
             remove_all_selected = (selected_section == LimitationsFlow.REMOVE_ALL)
             limitation = None
 
             if not remove_all_selected:
-                assert isinstance(selected_section, RequestSection)
+                if selected_section not in LimitationsFlow:
+                    selected_section = RequestSection.from_string(selected_section)
                 user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
                 limitation = next((
