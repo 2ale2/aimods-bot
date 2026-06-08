@@ -12,7 +12,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import (
-    Platform, LOCAL_TZ, DATETIME_FORMAT
+    Platform, LOCAL_TZ, DATETIME_FORMAT, Category
 )
 from aimods_bot.src.helpers.constants.conversation_states import (
     PrivateConversationState as PCS
@@ -53,7 +53,9 @@ async def requests_management_route(
                         base_path=root
                     )
 
-                case [NA.FROM_NOTIFICATION, platform, category]:
+                case [NA.FROM_NOTIFICATION, platform_str, category_str] if platform_str in Platform and category_str in Category:
+                    platform = Platform(platform_str)
+                    category = Category(category_str)
                     context.init_request_wizard_session(
                         user_id=update.effective_user.id,
                         section=RequestSection(platform=platform, category=category),

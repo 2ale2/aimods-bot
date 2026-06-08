@@ -161,7 +161,7 @@ def _reschedule_persisted_jobs(application: Application, bot_data: BotData) -> N
         match parsed:
             case AutoRecapJobName():
                 # Gestito interamente in _setup_auto_recap
-                continue
+                surviving[name] = info
 
             case RemoveInactiveRequestJobName() as p:
                 kept = _reschedule_remove_inactive(application, bot_data, p, info, now)

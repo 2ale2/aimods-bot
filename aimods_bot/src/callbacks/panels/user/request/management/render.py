@@ -113,7 +113,7 @@ async def render_manage_selected_request_panel(
     ]
 
     timer_sec = context.pydb.configuration.settings.request.cancel_timer
-    if request.can_be_cancelled(timer_sec):
+    if request.can_be_cancelled(cancel_time_sec=timer_sec):
         keyboard.insert(0, [
             ButtonItem(
                 text="🗑 Annulla Richiesta",
@@ -191,7 +191,8 @@ async def _get_confirm_cancel_text(request: BaseRequest) -> str:
     text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
             "→ 🗑 <b>Cancellazione</b>\n\n")
     text += details_text
-    text += "\n\n🔹 Confermi di voler <b>cancellare</b> questa richiesta?"
+    text += ("\n\n<tg-emoji emoji-id=\"5368324170671202286\">👍</tg-emoji>"
+             "🔹 Confermi di voler <b>cancellare</b> questa richiesta?")
 
     return text
 

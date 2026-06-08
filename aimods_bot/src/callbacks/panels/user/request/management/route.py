@@ -6,6 +6,7 @@ from aimods_bot.src.callbacks.panels.user.request.management.render import \
     render_manage_selected_request_panel, render_user_request_management_panel, \
     render_user_manage_active_requests_panel, render_confirm_cancel_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.constants import RequestStatus
 from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
@@ -24,6 +25,7 @@ async def user_request_management_route(
         case []:
             await render_user_request_management_panel(update=update, context=context, base_path=root)
             return PCS.USER_CONVERSATION
+
         case [UserManageRequestsRoute.ACTIVE, *rest]:
             return await user_active_requests_management_route(
                 update=update,
@@ -51,12 +53,19 @@ async def user_active_requests_management_route(
         case []:
             await render_user_manage_active_requests_panel(update=update, context=context, base_path=root)
 
-        case [request_id, *rest]:
+        case [request_id, *rest] if request_id.isnumeric():
             request = context.get_active_request_by_id(ix=int(request_id))
+
             match PathBuilder(*rest).segments:
                 case []:
                     if not request:
                         log.warning(f"Active request {request_id} from user {update.effective_user.id} not found")
+                        await update.callback_query.answer(
+                            text="⚠️ Attenzione\n\n"
+                                 "Questa richiesta non è stata trovata. Non dovrebbe accadere, quindi informa un admin "
+                                 "di questo problema. Grazie mille.",
+                            show_alert=True
+                        )
                         await render_user_manage_active_requests_panel(update=update, context=context, base_path=root)
                     else:
                         await render_manage_selected_request_panel(
@@ -87,6 +96,7 @@ async def user_active_requests_management_route(
                     )
 
                 case [UserManageRequestsRoute.CANCEL, GlobalAction.YES]:
+                    await context.edit_request_status(ix=request.id, status=RequestStatus.CANCELLED)
                     await render_request_cancelled_panel(
                         update=update,
                         context=context,

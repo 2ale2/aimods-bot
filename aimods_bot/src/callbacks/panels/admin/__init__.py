@@ -20,6 +20,9 @@ async def admin_main_router(update: Update, context: CustomContext):
     if isinstance(c_data, InvalidCallbackData):
         return await start(update=update, context=context)
 
+    if c_data is None:
+        raise ValueError("Callback data must not be None!")
+
     path = PathBuilder.from_string(c_data)
 
     # Expected "admin/<path>"

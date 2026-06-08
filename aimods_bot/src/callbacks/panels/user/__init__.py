@@ -36,6 +36,9 @@ async def user_main_router(update: Update, context: CustomContext):
                     f"I'll restart the conversation.")
         return await start(update=update, context=context)
 
+    if c_data is None:
+        raise ValueError("Callback data must not be None!")
+
     path = PathBuilder.from_string(c_data)
 
     if len(path) == 1:
@@ -48,8 +51,9 @@ async def user_main_router(update: Update, context: CustomContext):
                 return await requests_management_route(
                     update=update,
                     context=context,
-                    root=PathBuilder(main_route_el),
-                    relative_path=PathBuilder(*sub_path))
+                    root=PathBuilder(UserRoute.ROOT),
+                    relative_path=PathBuilder(main_route_el, *sub_path)
+                )
             case [UserRoute.MANAGE_SETTINGS, *sub_path]:
                 return await user_settings_management_route(
                     update=update,
