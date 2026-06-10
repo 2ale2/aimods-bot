@@ -15,9 +15,6 @@ log = logger.getChild(__name__)
 
 @check_auth()
 async def user_main_router(update: Update, context: CustomContext):
-    if not update.callback_query:
-        raise ValueError("No callback query in Update!")
-
     c_data = update.callback_query.data
     # log.info(f"{c_data} (user: {update.effective_user.id})")
 

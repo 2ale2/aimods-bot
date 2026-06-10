@@ -7,7 +7,7 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
 from aimods_bot.src.core.config_accessor import get_section_config
-from aimods_bot.src.core.customcontext import CustomContext, ChatData
+from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
 from aimods_bot.src.helpers.constants.constants import RequestField
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
@@ -24,7 +24,7 @@ from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input
 log = logger.getChild(__name__)
 
 
-def _advance_or_finish_wizard(wizard) -> None:
+def _advance_or_finish_wizard(wizard: RequestWizardSession) -> None:
     draft = wizard.draft
 
     # Se eravamo in modalità modifica, abbiamo finito la correzione. Torniamo al riepilogo.
@@ -34,10 +34,10 @@ def _advance_or_finish_wizard(wizard) -> None:
         return
 
     # Flusso normale: cerchiamo la prossima domanda vuota
-    draft.requesting = None
+    wizard.requesting = None
     for field in draft.FLOW:
         if field.value not in draft.model_fields_set:
-            draft.requesting = field
+            wizard.requesting = field
             break
 
 
@@ -91,7 +91,7 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
             )
         return PCS.USER_REQUEST_WIZARD_SESSION
 
-    _advance_or_finish_wizard(wizard)
+    _advance_or_finish_wizard(wizard=wizard)
 
     if context.pydc.persistent.base_path:
         base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
@@ -124,9 +124,9 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
         bool_value = (query.data == GlobalAction.YES)
         setattr(wizard.draft, wizard.requesting.value, bool_value)
 
-        _advance_or_finish_wizard(wizard)
+        _advance_or_finish_wizard(wizard=wizard)
 
-    elif isinstance(query.data, RequestField):
+    elif query.data in RequestField:
         wizard.requesting = query.data
         wizard.editing = True
 
@@ -173,7 +173,7 @@ async def handle_wizard_back(update: Update, context: CustomContext):
             prev_field = flow_list[current_index - 1]
 
         wizard.requesting = prev_field
-        setattr(draft, prev_field.value, None)
+        draft.model_fields_set.discard(prev_field.value)
 
     if context.pydc.persistent.base_path:
         base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
@@ -197,6 +197,9 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     if not wizard:
         raise ValueError("No wizard to process!")
 
+    if wizard.requesting is not None:
+        raise ValueError("Request draft is not complete yet!")
+
     draft = wizard.draft
 
     request_for_db_str = draft.model_dump_json(
@@ -215,8 +218,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         raise ValueError("Attribute Update.effective_user must not be None!")
 
     params = [
-        draft.platform.value,
-        draft.category.value,
+        draft.section.platform.value,
+        draft.section.category.value,
         effective_user.id,
         request_for_db_str
     ]
@@ -233,7 +236,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     await _notify_new_request(update=update, context=context, request=wizard.draft)
 
-    section = RequestSection(platform=wizard.draft.platform, category=wizard.draft.category)
+    section = RequestSection(platform=wizard.draft.section.platform, category=wizard.draft.section.category)
     config = get_section_config(context=context, section=section)
 
     if config and config.limit:
@@ -279,11 +282,13 @@ async def _notify_admins_generic(
 
 
 async def _notify_new_request(update: Update, context: CustomContext, request: BaseRequest):
-    pl_val = str(request.platform.value)
-    ca_val = str(request.category.value)
+    platform = request.section.platform.value
+    category = request.section.category.value
 
     def should_notify(data: ChatData) -> bool:
-        return data.persistent.admin_notifications.new_requests_notifications.get(pl_val, {}).get(ca_val, False)
+        return data.persistent.admin_notifications.new_requests_notifications.get(
+            platform, {}
+        ).get(category, False)
 
     async def sender(admin_id: int):
         await send_new_request_admin_notification(update=update, context=context, admin_id=admin_id, request=request)

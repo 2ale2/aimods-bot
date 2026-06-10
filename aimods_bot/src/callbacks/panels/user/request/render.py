@@ -85,9 +85,9 @@ async def render_user_request_category_panel(
     buttons = [
         ButtonItem(
             text=f"{config.icon} {config.label}",
-            callback_key=cat_enum.value
+            callback_key=base_path.add(cat)
         )
-        for cat_enum, config in PLATFORM_CATEGORY_REGISTRY[platform]
+        for cat, config in PLATFORM_CATEGORY_REGISTRY[platform].items()
     ]
 
     await create_and_render_panel(

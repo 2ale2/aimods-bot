@@ -292,6 +292,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(
             draft=fresh_draft,
+            requesting=fresh_draft.FLOW[0],
             from_notification=from_notification,
             request_msg_id=msg_id
         )
