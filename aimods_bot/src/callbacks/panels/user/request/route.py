@@ -49,10 +49,16 @@ async def requests_management_route(
                         base_path=root
                     )
 
-                case [NA.FROM_NOTIFICATION, platform_str,
-                      category_str] if platform_str in Platform and category_str in Category:
+                case [
+                    NA.FROM_NOTIFICATION,
+                    platform_str,
+                    category_str
+                ] if platform_str in Platform and category_str in Category:
                     platform = Platform(platform_str)
                     category = Category(category_str)
+
+                    root = root.add(platform, category)
+
                     context.init_request_wizard_session(
                         user_id=update.effective_user.id,
                         section=RequestSection(platform=platform, category=category),
@@ -60,10 +66,11 @@ async def requests_management_route(
                         msg_id=update.effective_message.id
                     )
                     context.pydc.persistent.base_path = root.build()
+
                     await render_global_request_wizard_panel(
                         update=update,
                         context=context,
-                        base_path=root.add(platform, category)
+                        base_path=root
                     )
                     return PCS.USER_REQUEST_WIZARD_SESSION
 

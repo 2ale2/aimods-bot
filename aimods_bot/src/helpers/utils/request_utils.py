@@ -60,8 +60,8 @@ def request_to_record(request: BaseRequest) -> dict[str, Any]:
     return {
         "id": request.id,
         "user_id": request.user_id,
-        "platform": request.platform.value,
-        "category": request.category.value,
+        "platform": request.section.platform.value,
+        "category": request.section.category.value,
         "status": request.status.value if request.status else None,
         "issued_at": request.issued_at.isoformat() if request.issued_at else None,
         "rejection_reason": request.rejection_reason,
@@ -103,6 +103,9 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
         raise ValueError(
             f"Request {raw_id}: issued_at must be datetime or ISO string, found {type(issued_at).__name__}"
         )
+
+    if isinstance(issued_at, str):
+        issued_at = datetime.fromisoformat(issued_at)
 
     try:
         platform = Platform(raw_platform)
@@ -167,8 +170,8 @@ def get_requests_summary(requests: list[BaseRequest], with_authors: bool = False
 
     for n, request in enumerate(requests):
         status = request.status
-        platform = request.platform
-        category = request.category
+        platform = request.section.platform
+        category = request.section.category
 
         if not status:
             raise ValueError(f"Request {request.id}: status must not be None!")
@@ -203,8 +206,8 @@ def get_request_details(request: BaseRequest, admin: bool = False) -> str:
     Ritorna i dettagli di una richiesta.
     """
 
-    platform = request.platform
-    category = request.category
+    platform = request.section.platform
+    category = request.section.category
 
     if not category or not platform:
         raise ValueError(
