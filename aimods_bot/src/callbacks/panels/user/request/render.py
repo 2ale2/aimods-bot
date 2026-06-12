@@ -7,8 +7,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
-    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_WARNING, EMOJI_EXCLAMATION_RED, EMOJI_DOT_BLUE, Platform, \
-    EMOJI_NUMBER
+    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -102,27 +101,7 @@ async def render_user_request_category_panel(
 def _get_user_request_category_text(platform: Platform):
     return (
         f"{platform.icon} <b>Nuova Richiesta</b>\n\n"
-        f"{EMOJI_DOT_BLUE} Per <b>quale piattaforma</b> vorresti formulare la richiesta?"
-    )
-
-
-async def render_user_cant_request_panel(update: Update, context: CustomContext, reason: str):
-    await create_and_render_panel(
-        update=update,
-        context=context,
-        base_path="user/view_requests",
-        text=_get_user_cant_request_text(reason),
-        keyboard=[
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
-        ]
-    )
-
-
-def _get_user_cant_request_text(reason: str):
-    return (
-        f"{EMOJI_WARNING} <b>Nuova Richiesta</b>\n\n"
-        f"{EMOJI_EXCLAMATION_RED} Non puoi effettuare una nuova richiesta al momento.\n\n"
-        f"▪ <b>Motivo</b> – {reason}"
+        f"{EMOJI_DOT_BLUE} Per <b>quale categoria</b> vorresti formulare la richiesta?"
     )
 
 
