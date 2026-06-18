@@ -232,9 +232,9 @@ def render_request_latex_item(r: Request) -> str:
     if r.link:
         lines.append(rf"\textbf{{Link}} – \href{{{r.link}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}} \\")
     if r.version:
-        lines.append(rf"\textbf{{Versione}} – \texttt{{{r.version}}} \\")
+        lines.append(rf"\textbf{{Versione}} – \texttt{{{tex_escape(r.version)}}} \\")
     if r.functionalities:
-        lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
+        lines.append(rf"\textbf{{Funzionalità}} – \textit{{{tex_escape(r.functionalities)}}} \\")
     if r.issued_at:
         s = format_time_as_rome(until=datetime.fromisoformat(r.issued_at)).replace("<b>", "").replace("</b>", "")
         lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
@@ -245,7 +245,7 @@ def render_request_latex_item(r: Request) -> str:
         lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
 
     if r.rejection_reason:
-        rejection_text = rf"\textbf{{Motivo}} – \textit{{{r.rejection_reason}}}"
+        rejection_text = rf"\textbf{{Motivo}} – \textit{{{tex_escape(r.rejection_reason)}}}"
     else:
         rejection_text = rf"\textbf{{Motivo}} – \texttt{{None}}"
     lines.append(rf"{rejection_text} \\")
