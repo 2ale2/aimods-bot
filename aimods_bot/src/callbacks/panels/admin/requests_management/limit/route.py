@@ -58,7 +58,7 @@ async def route_admin_manage_limitations(
 
                         return PCS.SET_REQUEST_LIMITATION_USER
 
-                    limiting_user = context.pydc.persistent.limiting_user_requests
+                    limiting_user = context.get_or_create_limitation_wizard()
 
                     user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
@@ -71,13 +71,13 @@ async def route_admin_manage_limitations(
                         )
                         return PCS.SET_REQUEST_LIMITATION_USER
 
-                    relative_path.change(str(identifier), str(user_id))
-
                     limiting_user.user_id = user_id
 
                     if not isinstance(resolved_user, int):
                         limiting_user.username = resolved_user.username
                         context.pydc.ephemeral.resolved_users[resolved_user.id] = resolved_user
+
+                    root = root + relative_path.change(str(identifier), str(user_id))
 
                     await render_admin_manage_user_limitations_panel(
                         update=update,
@@ -123,13 +123,15 @@ async def route_admin_add_request_limitation_route(
         relative_path: PathBuilder,
         pre_resolved_user: Union[int, PTBUser, PyroUser]
 ):
+    limitation_wizard = context.get_or_create_limitation_wizard()
     match relative_path.segments:
         case []:
             await render_admin_add_user_request_limitation_panel(
                 update=update,
                 context=context,
                 base_path=root,
-                pre_resolved_user=pre_resolved_user
+                pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard
             )
             return PCS.ADMIN_CONVERSATION
 
@@ -140,7 +142,8 @@ async def route_admin_add_request_limitation_route(
                 update=update,
                 context=context,
                 base_path=root.add(LimitationsFlow.DURATION),
-                pre_resolved_user=pre_resolved_user
+                pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard
             )
             return PCS.SET_REQUEST_LIMITATION_DURATION
 
@@ -160,6 +163,7 @@ async def route_admin_add_request_limitation_route(
                 context=context,
                 base_path=root,
                 pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard,
                 message_id=message_id
             )
             return PCS.ADMIN_CONVERSATION
@@ -169,7 +173,8 @@ async def route_admin_add_request_limitation_route(
                 update=update,
                 context=context,
                 base_path=root.add(LimitationsFlow.SECTIONS),
-                pre_resolved_user=pre_resolved_user
+                pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard
             )
             return PCS.ADMIN_CONVERSATION
 
@@ -179,7 +184,8 @@ async def route_admin_add_request_limitation_route(
                 update=update,
                 context=context,
                 base_path=root,
-                pre_resolved_user=pre_resolved_user
+                pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard
             )
             return PCS.ADMIN_CONVERSATION
 
@@ -188,7 +194,8 @@ async def route_admin_add_request_limitation_route(
                     update=update,
                     context=context,
                     base_path=root.add(GlobalAction.CONFIRM),
-                    pre_resolved_user=pre_resolved_user
+                    pre_resolved_user=pre_resolved_user,
+                limitation_wizard=limitation_wizard
             ):
                 return PCS.ADMIN_CONVERSATION
             return PCS.SET_REQUEST_LIMITATION_REASON
@@ -225,8 +232,9 @@ async def route_admin_remove_request_limitation_route(
             )
 
         case [section_obj]:
-            selected_section = (section_obj if section_obj in LimitationsFlow
-                           else RequestSection.from_string(section_obj))
+            selected_section = (
+                section_obj if section_obj in LimitationsFlow else RequestSection.from_string(section_obj)
+            )
 
             remove_all_selected = (selected_section == LimitationsFlow.REMOVE_ALL)
             limitation = None
@@ -234,11 +242,15 @@ async def route_admin_remove_request_limitation_route(
             if not remove_all_selected:
                 user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
-                limitation = next((
-                    lim for lim in context.get_user_request_limitations(user_id=user_id)
-                    if lim.section == selected_section),
-                    None
-                )
+                request_limitations = context.get_user_request_limitations(user_id=user_id)
+                limitation = None
+
+                if request_limitations:
+                    limitation = next((
+                        lim for lim in request_limitations
+                        if lim.section == selected_section),
+                        None
+                    )
 
                 if not limitation:
                     await update.effective_message.edit_text(
@@ -246,7 +258,7 @@ async def route_admin_remove_request_limitation_route(
                         reply_markup=InlineKeyboardMarkup([[
                             InlineKeyboardButton(
                                 text="🔙 Indietro",
-                                callback_data=relative_path.back()
+                                callback_data=root.build()
                             )
                         ]])
                     )

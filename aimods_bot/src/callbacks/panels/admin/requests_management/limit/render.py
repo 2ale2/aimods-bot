@@ -1,14 +1,13 @@
 from pyrogram.types import User as PyroUser
 from telegram import User as PTBUser, Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import set_user_requests_limiting_item, \
-    get_request_limiting_detail, all_sections_are
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import all_sections_are
+from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import LimitationsAction, \
     LimitationsFlow as AMRLR, GlobalAction, AdminRoute, LimitationsOp, ModerationListsRoute
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
@@ -179,16 +178,16 @@ async def render_admin_add_user_request_limitation_panel(
         context: CustomContext,
         base_path: PathBuilder,
         pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests,
         message_id: int | None = None
 ):
     user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
-    item = context.pydc.persistent.limiting_user_requests
-    if not item or item.user_id != user_id:
-        set_user_requests_limiting_item(context=context)
-        context.pydc.persistent.limiting_user_requests.user_id = user_id
-
-    text = await _get_admin_limit_user_text(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_admin_limit_user_text(
+        context=context,
+        pre_resolved_user=pre_resolved_user,
+        limitation_wizard=limitation_wizard
+    )
 
     keyboard = [
         [
@@ -218,8 +217,8 @@ async def render_admin_add_user_request_limitation_panel(
 
 
 async def _get_header(
-        context: CustomContext,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
     if isinstance(pre_resolved_user, int):
         user_id = pre_resolved_user
@@ -234,18 +233,13 @@ async def _get_header(
 
     text += await get_member_details_text(user=user, user_identifier=user_id)
 
-    item = context.pydc.persistent.limiting_user_requests
-    if not item:
-        set_user_requests_limiting_item(context=context)
-        item.user_id = user_id
-
-    total_sec = item.duration
+    total_sec = limitation_wizard.duration
     if total_sec is not None and total_sec == 0:
         duration_text = "♾ A Tempo Indeterminato"
     else:
         duration_text = get_duration_text(seconds=total_sec)
 
-    sections = item.sections
+    sections = limitation_wizard.sections
     section_text = ""
     for section in sections:
         platform = section.platform
@@ -264,9 +258,10 @@ async def _get_header(
 
 async def _get_admin_limit_user_text(
         context: CustomContext,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
-    text = await _get_header(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_header(pre_resolved_user=pre_resolved_user, limitation_wizard=limitation_wizard)
     user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
     if context.get_user_request_limitations(user_id=user_id):
@@ -282,10 +277,11 @@ async def render_admin_limit_user_request_duration_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
     text = await _get_admin_limit_user_request_duration_text(
-        context=context,
+        limitation_wizard=limitation_wizard,
         pre_resolved_user=pre_resolved_user
     )
 
@@ -302,10 +298,10 @@ async def render_admin_limit_user_request_duration_panel(
 
 
 async def _get_admin_limit_user_request_duration_text(
-        context: CustomContext,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
-    text = await _get_header(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_header(pre_resolved_user=pre_resolved_user, limitation_wizard=limitation_wizard)
     text += ("\n🔹 Indica la durata della limitazione.\n\n"
              "<blockquote><b>Esempio</b> – <i>100 giorni 24 ore 1 minuto 1 secondo</i></blockquote>")
 
@@ -316,12 +312,11 @@ async def render_admin_limit_user_request_sections_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
-    user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
-
     text = await _get_admin_limit_user_request_sections_text(
-        context=context,
+        limitation_wizard=limitation_wizard,
         pre_resolved_user=pre_resolved_user
     )
     keyboard = _get_admin_limit_user_request_sections_keyboard(context=context, base_path=base_path)
@@ -336,10 +331,10 @@ async def render_admin_limit_user_request_sections_panel(
 
 
 async def _get_admin_limit_user_request_sections_text(
-        context: CustomContext,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
-    text = await _get_header(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_header(pre_resolved_user=pre_resolved_user, limitation_wizard=limitation_wizard)
 
     text += "\n🔹 Scegli i topic da bloccare per l'utente."
 
@@ -375,7 +370,8 @@ async def render_admin_user_limitation_reason_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ) -> bool:
     """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
     context.pydc.persistent.bot_message_id = update.effective_message.id
@@ -383,7 +379,7 @@ async def render_admin_user_limitation_reason_panel(
     all_sections_false = all_sections_are(context=context, what=False)
 
     text = await _get_admin_user_limitation_reason_text(
-        context=context,
+        limitation_wizard=limitation_wizard,
         pre_resolved_user=pre_resolved_user,
         all_sections_false=all_sections_false
     )
@@ -400,11 +396,11 @@ async def render_admin_user_limitation_reason_panel(
 
 
 async def _get_admin_user_limitation_reason_text(
-        context: CustomContext,
         all_sections_false: bool,
-        pre_resolved_user: int | PyroUser | PTBUser
+        pre_resolved_user: int | PyroUser | PTBUser,
+        limitation_wizard: AdminLimitingUserRequests
 ):
-    text = await _get_header(context=context, pre_resolved_user=pre_resolved_user)
+    text = await _get_header(pre_resolved_user=pre_resolved_user, limitation_wizard=limitation_wizard)
 
     if all_sections_false:
         text += "\n<blockquote>⚠️ <b>Non hai selezionato alcuna sezione da limitare</b>.</blockquote>"
@@ -419,11 +415,13 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
 
-    user_id = get_request_limiting_detail(context=context, what=LimitationsOp.USER_ID)
-    duration = get_request_limiting_detail(context=context, what=AMRLR.DURATION)
-    sections = get_request_limiting_detail(context=context, what=AMRLR.SECTIONS)
+    limitation = context.get_or_create_limitation_wizard()
 
-    text = _get_admin_user_limitation_confirmed_text(user_id=user_id, duration=duration, sections=sections)
+    text = _get_admin_user_limitation_confirmed_text(
+        user_id=limitation.user_id,
+        duration=limitation.duration,
+        sections=limitation.sections
+    )
 
     context.pydc.persistent.limiting_user_requests = None
 

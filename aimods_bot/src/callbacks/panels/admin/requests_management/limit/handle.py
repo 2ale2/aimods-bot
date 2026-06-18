@@ -1,40 +1,21 @@
 from datetime import timedelta, datetime, timezone
-from enum import StrEnum
-from typing import Literal, Union, Optional
+from typing import Literal, Union
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 
-from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
     LimitationsFlow
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
-from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
-
-
-def set_user_requests_limiting_item(
-    context: CustomContext,
-    set_true_section: Optional[RequestSection] = None,
-) -> AdminLimitingUserRequests:
-    wizard = context.pydc.persistent.limiting_user_requests
-    if wizard is None:
-        wizard = AdminLimitingUserRequests()
-        context.pydc.persistent.limiting_user_requests = wizard
-        if set_true_section:
-            wizard.sections[set_true_section] = True
-    return wizard
-
-
-def get_request_limiting_detail(context: CustomContext, what: StrEnum):
-    limiting_item = set_user_requests_limiting_item(context=context)
-    return getattr(limiting_item, str(what))
 
 
 def set_request_limiting_detail(

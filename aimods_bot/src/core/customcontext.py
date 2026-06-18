@@ -429,7 +429,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     # ======== SEZIONI RICHIESTE ========
 
-    def is_request_section_open(self, section: RequestSection) -> bool:
+    def is_request_section_open(self, section: RequestSection) -> bool | None:
         platform = section.platform
         category = section.category
         category_config = PLATFORM_CATEGORY_REGISTRY[platform][category]
