@@ -191,10 +191,10 @@ async def route_admin_add_request_limitation_route(
 
         case [GlobalAction.CONFIRM]:
             if await render_admin_user_limitation_reason_panel(
-                    update=update,
-                    context=context,
-                    base_path=root.add(GlobalAction.CONFIRM),
-                    pre_resolved_user=pre_resolved_user,
+                update=update,
+                context=context,
+                base_path=root.add(GlobalAction.CONFIRM),
+                pre_resolved_user=pre_resolved_user,
                 limitation_wizard=limitation_wizard
             ):
                 return PCS.ADMIN_CONVERSATION
