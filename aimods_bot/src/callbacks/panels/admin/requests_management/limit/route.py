@@ -274,7 +274,10 @@ async def route_admin_remove_request_limitation_route(
             )
 
         case [section_obj, GlobalAction.CONFIRM]:
-            selected_section = RequestSection.from_string(section_obj)
+            if section_obj in LimitationsFlow:
+                selected_section = LimitationsFlow(section_obj)
+            else:
+                selected_section = RequestSection.from_string(section_obj)
 
             await handle_remove_user_request_limitation(
                 context=context,

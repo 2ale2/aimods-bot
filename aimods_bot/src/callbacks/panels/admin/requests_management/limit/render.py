@@ -5,9 +5,9 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle impo
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.path_navigation import (LimitationsAction, LimitationsFlow, GlobalAction,
+                                                              AdminRoute, LimitationsOp, ModerationListsRoute)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import LimitationsAction, \
-    LimitationsFlow as AMRLR, GlobalAction, AdminRoute, LimitationsOp, ModerationListsRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
@@ -191,8 +191,8 @@ async def render_admin_add_user_request_limitation_panel(
 
     keyboard = [
         [
-            ButtonItem(text="⏳ Durata", callback_key=base_path.add(AMRLR.DURATION)),
-            ButtonItem(text="🗄 Sezioni", callback_key=base_path.add(AMRLR.SECTIONS))
+            ButtonItem(text="⏳ Durata", callback_key=base_path.add(LimitationsFlow.DURATION)),
+            ButtonItem(text="🗄 Sezioni", callback_key=base_path.add(LimitationsFlow.SECTIONS))
         ],
         [
             ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.CONFIRM)),
@@ -291,7 +291,7 @@ async def render_admin_limit_user_request_duration_panel(
         base_path=base_path,
         text=text,
         keyboard=[
-            [ButtonItem(text="♾ A tempo indeterminato", callback_key=base_path.add(AMRLR.DURATION_ENDLESS))],
+            [ButtonItem(text="♾ A tempo indeterminato", callback_key=base_path.add(LimitationsFlow.DURATION_ENDLESS))],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
@@ -354,7 +354,7 @@ def _get_admin_limit_user_request_sections_keyboard(context: CustomContext, base
     keyboard = chunk_buttons(buttons, 3)
     is_all_blocked = all_sections_are(context=context, what=True)
 
-    callback_key = base_path.add(AMRLR.UNBLOCK_ALL) if is_all_blocked else base_path.add(AMRLR.BLOCK_ALL)
+    callback_key = base_path.add(LimitationsFlow.UNBLOCK_ALL) if is_all_blocked else base_path.add(LimitationsFlow.BLOCK_ALL)
 
     toggle_all_btn = ButtonItem(text="🆓 Sblocca Tutti" if is_all_blocked else "🚫 Blocca Tutti",
                                 callback_key=callback_key)
@@ -571,7 +571,7 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
 
         keyboard = chunk_buttons(buttons, 4)
         keyboard.extend([
-            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key=AMRLR.REMOVE_ALL)],
+            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key=LimitationsFlow.REMOVE_ALL)],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ])
 
@@ -674,14 +674,14 @@ async def render_admin_user_limitation_removed_panel(
         context: CustomContext,
         base_path: PathBuilder,
         pre_resolved_user: int | PyroUser | PTBUser,
-        section: RequestSection
+        section: RequestSection | LimitationsFlow
 ):
     user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
     text = _get_admin_user_limitation_removed_text(
         user_id=user_id,
         section=section,
-        remove_all=(section == AMRLR.REMOVE_ALL)
+        remove_all=(section == LimitationsFlow.REMOVE_ALL)
     )
 
     await create_and_render_panel(
