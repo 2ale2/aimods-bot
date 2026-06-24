@@ -88,7 +88,7 @@ async def admin_new_requests_notification_settings_management_route(
             section = RequestSection.from_string(section_str)
             if from_notification:
                 await handle_admin_new_requests_notification_toggle(context=context, section=section)
-                await render_new_requests_notification_disabled_panel(update=update, context=context, data=section)
+                await render_new_requests_notification_disabled_panel(update=update, context=context, section=section)
             else:
                 await handle_admin_new_requests_notification_toggle(context=context, section=section)
                 await render_admin_new_requests_notification_settings_panel(

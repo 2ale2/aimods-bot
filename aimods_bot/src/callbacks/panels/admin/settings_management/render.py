@@ -1,7 +1,9 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
+from aimods_bot.src.helpers.constants.constants import Platform
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.ui import ButtonItem
 
 from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
@@ -31,18 +33,21 @@ def _build_notification_ui(
 
     buttons = []
 
-    for pl, pl_data in PLATFORM_DETAILS.items():
-        text_parts.append(f"              {pl_data['icon']} <b>{pl_data['label']}</b>\n")
+    for pl in Platform:
+        text_parts.append(f"              {pl.icon} <b>{pl.label}</b>\n")
 
-        categories = CATEGORY_DETAILS.get(pl, {})
-        for ca, ca_data in categories.items():
+        categories = PLATFORM_CATEGORY_REGISTRY.get(pl, None)
+        if categories is None:
+            raise ValueError(f"Invalid Platform: {pl}")
+
+        for ca, ca_config in categories.items():
             is_active = settings_dict[pl][ca]
             status_icon = '🔔' if is_active else '🔕'
-            text_parts.append(f"                   🔸 <i>{ca_data['label']}</i> – {status_icon}\n")
+            text_parts.append(f"                   🔸 <i>{ca_config.label}</i> – {status_icon}\n")
 
             buttons.append(ButtonItem(
-                text=f"{pl_data['icon']} {ca_data['label']}",
-                callback_key=base_path.add(f"{pl}:{ca}"))
+                text=f"{pl.icon} {ca_config.label}",
+                callback_key=base_path.add(RequestSection(platform=pl, category=ca)))
             )
 
     keyboard = chunk_buttons(buttons=buttons, size=4)
@@ -54,17 +59,14 @@ def _build_notification_ui(
     return "".join(text_parts), keyboard
 
 
-def _get_disabled_panel_text(data: str, context_topic: str) -> str:
+def _get_disabled_panel_text(section: RequestSection, context_topic: str) -> str:
     """Genera il testo per i pannelli di conferma disabilitazione."""
-    pl, ca = data.split(":")
-    pl_label = PLATFORM_DETAILS[pl]["label"]
-    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-    ca_icon = CATEGORY_DETAILS[pl][ca]["icon"]
+    cat_config = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category]
 
     return (
         "✅ <b>Notifiche Disattivate</b>\n\n"
         f"▫ <b>Non riceverai più le notifiche</b> inerenti {context_topic} "
-        f"per la sezione {ca_icon} <b>{ca_label} ({pl_label})</b>."
+        f"per la sezione {cat_config.icon} <b>{cat_config.label} ({section.platform.label})</b>."
     )
 
 
@@ -157,8 +159,12 @@ async def render_admin_new_requests_notification_settings_panel(
     )
 
 
-async def render_new_requests_notification_disabled_panel(update: Update, context: CustomContext, data: str):
-    text = _get_disabled_panel_text(data, "alle nuove richieste")
+async def render_new_requests_notification_disabled_panel(
+        update: Update,
+        context: CustomContext,
+        section: RequestSection):
+
+    text = _get_disabled_panel_text(section=section, context_topic="alle nuove richieste")
 
     await create_and_render_panel(
         update=update,

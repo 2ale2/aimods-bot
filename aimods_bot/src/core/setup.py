@@ -104,7 +104,7 @@ def _apply_configuration(bot_data: BotData) -> bool:
 async def _sync_group_and_admins(application: Application, bot_data: BotData) -> None:
     group_id_env = os.getenv("GROUP_CHAT_ID")
 
-    if group_id_env is None or not group_id_env.isnumeric():
+    if group_id_env is None or not group_id_env.replace("-", "").isnumeric():
         raise ValueError(f"GROUP_CHAT_ID env variable not found or not numeric ({group_id_env})!")
 
     group_chat_id = int(group_id_env)
@@ -275,15 +275,16 @@ def _setup_auto_recap(application: Application, bot_data: BotData) -> None:
         bot_data.last_auto_recap = datetime.now(timezone.utc)
 
     time_until_next_recap = get_time_until_next_recap()
+    next_run = datetime.now(timezone.utc) + time_until_next_recap
     job = application.job_queue.run_repeating(
         callback=create_and_send_recaps,
         interval=timedelta(days=7),
         first=time_until_next_recap,
         name=job_name,
     )
-    log.info(f"Next recap settled at {job.next_t}")
+    log.info(f"Next recap settled at {next_run}")
 
-    bot_data.jobs[job_name] = JobInfo(next_date=job.next_t, executed=False)
+    bot_data.jobs[job_name] = JobInfo(next_date=next_run, executed=False)
 
 
 # ============================================================================

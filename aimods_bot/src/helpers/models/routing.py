@@ -20,7 +20,7 @@ class PathBuilder:
         return PathBuilder(*self.segments, *new_segments)
 
     def back(self, steps: int = 1) -> PathBuilder:
-        if steps <= 0 or len(self.segments) <= steps:
+        if steps <= 0 or len(self.segments) < steps:
             return PathBuilder(*self.segments)
         return PathBuilder(*self.segments[:-steps])
 

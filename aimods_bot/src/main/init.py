@@ -1,12 +1,12 @@
-import asyncio
 import os
 import locale
 import sys
 from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
-from aimods_bot.src.core.setup import set_application_data, get_handlers
+from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
+from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
@@ -48,7 +48,7 @@ def main():
         .build()
     )
 
-    handlers = asyncio.run(get_handlers())
+    handlers = [main_private_conversation_handler]
     application.add_handlers(handlers)
 
     try:

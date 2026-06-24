@@ -6,7 +6,7 @@ from typing import List, Optional, Literal, Dict, Union, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.helpers.constants.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
@@ -60,30 +60,30 @@ class CategorySetting(BaseModel):
 
 
 class AndroidRequestCategoryConfig(BaseModel):
-    Category.APP: CategorySetting = Field(default_factory=CategorySetting)
+    app: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class WindowsRequestCategoryConfig(BaseModel):
-    Category.SOFTWARE: CategorySetting = Field(default_factory=CategorySetting)
-    Category.GAME: CategorySetting = Field(default_factory=CategorySetting)
-    Category.ADOBE: CategorySetting = Field(default_factory=CategorySetting)
-    Category.DAW: CategorySetting = Field(default_factory=CategorySetting)
+    software: CategorySetting = Field(default_factory=CategorySetting)
+    game: CategorySetting = Field(default_factory=CategorySetting)
+    adobe: CategorySetting = Field(default_factory=CategorySetting)
+    daw: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class iOSRequestCategoryConfig(BaseModel):
-    Category.APP: CategorySetting = Field(default_factory=CategorySetting)
+    app: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class MacOSRequestCategoryConfig(BaseModel):
-    Category.SOFTWARE: CategorySetting = Field(default_factory=CategorySetting)
-    Category.DAW: CategorySetting = Field(default_factory=CategorySetting)
+    software: CategorySetting = Field(default_factory=CategorySetting)
+    daw: CategorySetting = Field(default_factory=CategorySetting)
 
 
 class RequestConfig(BaseModel):
-    Platform.ANDROID: AndroidRequestCategoryConfig = Field(default_factory=AndroidRequestCategoryConfig)
-    Platform.WINDOWS: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
-    Platform.IOS: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
-    Platform.MACOS: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
+    android: AndroidRequestCategoryConfig = Field(default_factory=AndroidRequestCategoryConfig)
+    windows: WindowsRequestCategoryConfig = Field(default_factory=WindowsRequestCategoryConfig)
+    ios: iOSRequestCategoryConfig = Field(default_factory=iOSRequestCategoryConfig)
+    macos: MacOSRequestCategoryConfig = Field(default_factory=MacOSRequestCategoryConfig)
     cancel_timer: int = Field(
         default=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE,
         ge=0,

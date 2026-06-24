@@ -1,9 +1,10 @@
-from typing import Self
-
+from __future__ import annotations
+from typing import Self, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, CategoryConfig, BaseRequest
+if TYPE_CHECKING:
+    from aimods_bot.src.helpers.models.requests import CategoryConfig, BaseRequest
 
 
 _SEPARATOR = ":"
@@ -18,6 +19,8 @@ class RequestSection(BaseModel):
 
     @model_validator(mode="after")
     def _validate_combination(self) -> Self:
+        from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
+
         categories = PLATFORM_CATEGORY_REGISTRY.get(self.platform)
         if categories is None:
             raise ValueError(f"Platform {self.platform.value} not in registry.")
@@ -44,6 +47,7 @@ class RequestSection(BaseModel):
 
     @property
     def category_config(self) -> CategoryConfig:
+        from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
         return PLATFORM_CATEGORY_REGISTRY[self.platform][self.category]
 
     @property

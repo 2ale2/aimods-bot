@@ -652,7 +652,7 @@ async def not_implemented_yet(update: Update, context: CustomContext) -> None:
         chat_id=update.effective_chat.id,
         text="⚠️ Funzionalità non ancora implementata.",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data="close_menu")]]
+            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
         )
     )
 

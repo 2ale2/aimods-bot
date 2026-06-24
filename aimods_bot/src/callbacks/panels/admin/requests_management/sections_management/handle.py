@@ -70,7 +70,7 @@ async def handle_remove_user_request_limitation(
         _remove_limitation_jobs(context, user_id, section_pattern=r"[^:\s]+")
 
         context.set_user_request_limitations(user_id=user_id, limitations=[])
-        log.info(f"Admin {context.user_id} removed all section limitations from {user_id}")
+        log.info(f"Admin {context.user_id} removed all section limitations for {user_id}")
         return
 
     current_limitations = context.get_user_request_limitations(user_id=user_id)

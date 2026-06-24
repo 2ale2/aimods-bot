@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Union, Optional
 
 from telegram import Update
+from telegram.constants import ParseMode
+from telegram.error import TelegramError
 from telegram.ext import Application
 
 from aimods_bot.src.core.customcontext import CustomContext
@@ -78,96 +80,74 @@ def check_post_timestamp(update: Update) -> Optional[bool]:
 
 
 async def create_and_send_recaps(context: Union[CustomContext, Application], **kwargs):
-    if isinstance(context, CustomContext):
-        bot_data = context.pydb
-    else:
-        bot_data = context.bot_data
+    bot_data = context.pydb if isinstance(context, CustomContext) else context.bot_data
 
-    query = "SELECT * FROM recap_posts"
-    res = await fetch_query(query=query)
+    res = await fetch_query(query="SELECT * FROM recap_posts")
     if res is None:
         log.warning("Not able to create recaps due to database error: check logs.")
         return
 
-    l = [dict(el) for el in res]
+    posts = [dict(el) for el in res]
 
-    android_recap_text = "📝 <b>Android – Recap Settimanale</b>\n"
-    windows_recap_text = "📝 <b>Windows – Recap Settimanale</b>\n"
-    ios_recap_text = "📝 <b>iOS – Recap Settimanale</b>\n"
-    macos_recap_text = "📝 <b>MacOS – Recap Settimanale</b>\n"
-
-    send = {
-        "Android": False,
-        "Windows": False,
-        "iOS": False,
-        "MacOS": False
+    recap_texts = {
+        "Android": "📝 <b>Android – Recap Settimanale</b>\n",
+        "Windows": "📝 <b>Windows – Recap Settimanale</b>\n",
+        "iOS": "📝 <b>iOS – Recap Settimanale</b>\n",
+        "MacOS": "📝 <b>MacOS – Recap Settimanale</b>\n",
     }
+    send = {key: False for key in recap_texts}
 
-    for el in l:
+    for el in posts:
         platforms = el["platforms"]
         new_item = (f"\n🔸 <b>{el['software_name']}</b>\n"
                     f"🔗 <a href=\"{el['link']}\">Link</a>")
-        if "Android" in platforms:
-            android_recap_text += new_item
-            send["Android"] = True
-        if "Windows" in platforms:
-            windows_recap_text += new_item
-            send["Windows"] = True
-        if "iOS" in platforms:
-            ios_recap_text += new_item
-            send["iOS"] = True
-        if "MacOS" in platforms:
-            macos_recap_text += new_item
-            send["MacOS"] = True
+        for platform in recap_texts:
+            if platform in platforms:
+                recap_texts[platform] += new_item
+                send[platform] = True
 
-    not_sending = [key for key in send.keys() if not send[key]]
+    not_sending = [key for key, will_send in send.items() if not will_send]
     if not_sending:
         log.info(f"Not sending recap for {', '.join(not_sending)} since I have no posts this time.")
-
-    recap_topics = (await get_data_from_json("forum_topics"))["recap"]
-    sticker_id = None
 
     group_id = bot_data.group_chat_id
     if group_id is None:
         raise ValueError("Group ID must not be None here!")
 
+    recap_topics = (await get_data_from_json("forum_topics"))["recap"]
+    sticker_id = None
+    sent_any = False
+
     for el in recap_topics:
-        if recap_topics[el]["name"] in not_sending:
+        topic_name = recap_topics[el]["name"]
+        if topic_name in not_sending:
             continue
 
-        text = ""
+        text = recap_texts.get(topic_name)
+        if not text:
+            continue
 
-        if recap_topics[el]["name"] == "Android":
-            text = android_recap_text
-
-        elif recap_topics[el]["name"] == "Windows":
-            text = windows_recap_text
-
-        elif recap_topics[el]["name"] == "iOS":
-            text = ios_recap_text
-
-        elif recap_topics[el]["name"] == "MacOS":
-            text = macos_recap_text
-
-        if text:
+        thread_id = int(recap_topics[el]["id"])
+        try:
             await context.bot.send_message(
                 chat_id=group_id,
-                message_thread_id=int(recap_topics[el]["id"]),
+                message_thread_id=thread_id,
                 text=text,
                 disable_web_page_preview=True,
-                parse_mode="HTML"
+                parse_mode=ParseMode.HTML,
             )
-
             sticker_message = await context.bot.send_sticker(
                 chat_id=group_id,
-                message_thread_id=int(recap_topics[el]["id"]),
-                sticker=sticker_id or "aimods_bot/misc/images/official_stickers/sticker.webp"
+                message_thread_id=thread_id,
+                sticker=sticker_id or "aimods_bot/misc/images/official_stickers/sticker.webp",
             )
-
             if not sticker_id:
                 sticker_id = sticker_message.sticker.file_id
+            sent_any = True
+        except TelegramError as e:
+            log.error(f"Failed to send recap for topic '{topic_name}' (thread {thread_id}): {e}")
 
-    query = "TRUNCATE TABLE recap_posts"
-    await execute_query(query=query)
-
-    context.bot_data.last_auto_recap = datetime.now(timezone.utc)
+    if sent_any or not posts:
+        bot_data.last_auto_recap = datetime.now(timezone.utc)
+        if posts:
+            await execute_query(query="TRUNCATE TABLE recap_posts")
