@@ -195,5 +195,4 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
                 updated_by=effective_user.id
             ))
 
-
     return limitations

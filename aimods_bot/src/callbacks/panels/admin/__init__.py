@@ -27,11 +27,11 @@ async def admin_main_router(update: Update, context: CustomContext):
     path = PathBuilder.from_string(c_data)
 
     # Expected "admin/<path>"
-    if path.segments[0] == AdminRoute.ROOT:
-        if len(path) == 1:
-            return await start(update=update, context=context)
-        else:
-            path = path.pop(0)
+    if path.segments and path.segments[0] == AdminRoute.ROOT:
+        path = path.pop(0)
+
+    if not len(path):
+        return await start(update=update, context=context)
 
     try:
         match path.segments:
