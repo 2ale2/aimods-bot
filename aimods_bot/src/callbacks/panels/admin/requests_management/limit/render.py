@@ -241,13 +241,12 @@ async def _get_header(
 
     sections = limitation_wizard.sections
     section_text = ""
-    for section in sections:
-        platform = section.platform
+    for platform in Platform:
         categories = PLATFORM_CATEGORY_REGISTRY[platform]
         section_text += f"           {platform.icon} <b>{platform.label}</b>\n"
         for category in categories:
-            ct_item = PLATFORM_CATEGORY_REGISTRY[platform][category]
-            value = categories[category]
+            ct_item = categories[category]
+            value = limitation_wizard.sections[RequestSection(platform=platform, category=category)]
             section_text += f"                 🔸 <i>{ct_item.label}</i> – {'🔐' if value else '🔓'}\n"
 
     text += f"\n     🗄 <b>Sezioni</b>\n{section_text}"
@@ -348,7 +347,7 @@ def _get_admin_limit_user_request_sections_keyboard(context: CustomContext, base
             ct_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
             buttons.append(ButtonItem(
                 text=f"{platform.icon} – {ct_label}",
-                callback_key=base_path.add(f"{platform}-{category}")
+                callback_key=base_path.add(f"{RequestSection(platform=platform, category=category)}")
             ))
 
     keyboard = chunk_buttons(buttons, 3)
