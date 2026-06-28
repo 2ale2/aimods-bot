@@ -5,6 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route impor
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
 )
+from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_callback_input, handle_wizard_back, \
     handle_wizard_text_input
@@ -38,6 +39,10 @@ main_private_conversation_handler = ConversationHandler(
         ],
         PCS.SET_REQUEST_LIMITATION_REASON: [
             MessageHandler(filters=filters.TEXT, callback=handle_limitation_reason),
+            CallbackQueryHandler(callback=admin_main_router)
+        ],
+        PCS.SET_USER_FOR_REQUEST_ARCHIVE: [
+            MessageHandler(filters=filters.TEXT, callback=handle_user_archive_user_input),
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },

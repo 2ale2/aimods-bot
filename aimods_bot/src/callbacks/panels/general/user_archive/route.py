@@ -3,14 +3,12 @@ from telegram import Update
 from aimods_bot.src.callbacks.panels.general.user_archive.render import render_user_archive_request_identifier_panel, \
     render_user_archive_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import AdminRoute
-from aimods_bot.src.helpers.models.routing import PathBuilder
-
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, render_action_not_permitted_panel
-from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
 from aimods_bot.src.helpers.loggers import logger
-
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, render_action_not_permitted_panel, \
+    safe_delete, is_user_id
+from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier, is_admin
 
 log = logger.getChild(__name__)
 
@@ -18,7 +16,7 @@ log = logger.getChild(__name__)
 async def route_user_archive(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):
     match relative_path.segments:
         case []:
-            if root.segments[0] == AdminRoute.ROOT:
+            if await is_admin(user_id=update.effective_chat.id, context=context):
                 context.pydc.persistent.bot_message_id = update.effective_message.message_id
                 await render_user_archive_request_identifier_panel(
                     update=update,
@@ -26,7 +24,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                     base_path=root
                 )
                 return PCS.SET_USER_FOR_REQUEST_ARCHIVE
-            else:  # root.segments[0] == UserRoute.ROOT
+            else:
                 await render_user_archive_panel(
                     update=update,
                     context=context,
@@ -37,8 +35,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                 return PCS.USER_CONVERSATION
 
         case [identifier]:
-            if root.segments[0] != AdminRoute.ROOT:
-                # lo user non è admin (non dovrebbe finire qua)
+            if not await is_admin(user_id=update.effective_chat.id, context=context):
                 await render_action_not_permitted_panel(
                     update=update,
                     context=context,
@@ -60,10 +57,10 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                 )
                 return PCS.SET_USER_FOR_REQUEST_ARCHIVE
 
-            user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
+            if isinstance(resolved_user, str) and is_user_id(resolved_user):
+                resolved_user = int(resolved_user)
 
-            # nel path sempre uno user id
-            relative_path.change(identifier, str(user_id))
+            user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
             await render_user_archive_panel(
                 update=update,
@@ -73,3 +70,18 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                 requested_by_admin=True
             )
             return PCS.ADMIN_CONVERSATION
+
+
+async def handle_user_archive_user_input(update: Update, context: CustomContext):
+    await safe_delete(update=update, context=context, message_id=update.message.message_id)
+
+    identifier = update.message.text
+    base = PathBuilder.from_string(context.pydc.persistent.root_path)
+    context.clear_saved_path(clear_relative=False)
+
+    return await route_user_archive(
+        update=update,
+        context=context,
+        root=base,
+        relative_path=PathBuilder(identifier)
+    )

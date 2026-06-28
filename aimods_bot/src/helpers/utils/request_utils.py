@@ -30,7 +30,7 @@ _COMMON_REQUEST_TABLE_COLUMNS: set[str] = {
 async def get_user_requests_archive(user_id: int) -> list[BaseRequest]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
     query = """SELECT * \
-               FROM requests \
+               FROM requests_test \
                WHERE user_id = $1 \
                ORDER BY issued_at DESC"""
     response = await fetch_query(query=query, params=[user_id])
@@ -39,7 +39,6 @@ async def get_user_requests_archive(user_id: int) -> list[BaseRequest]:
         return []
 
     return [request_from_record(dict(el)) for el in response]
-
 
 
 def request_to_record(request: BaseRequest) -> dict[str, Any]:
@@ -145,6 +144,10 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
         raise ValueError(
             f"Request {raw_id}: unexpected content type {type(raw_content).__name__}!"
         )
+
+    if isinstance(content_dict, dict):
+        content_dict.pop('rejection_reason', None)
+        content_dict.pop('status_change_notifications', None)
 
     try:
         return model_cls(

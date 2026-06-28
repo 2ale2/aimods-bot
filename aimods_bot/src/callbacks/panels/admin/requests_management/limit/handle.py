@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime, timezone
-from typing import Literal, Union
 
 from telegram import Update
 
@@ -13,19 +12,6 @@ from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletio
 from aimods_bot.src.helpers.utils.telegram_utils import render_error_panel
 
 log = logger.getChild(__name__)
-
-
-def set_request_limiting_detail(
-        context: CustomContext,
-        what: Literal["user_id", "duration", "sections", "reason"],
-        value: Union[str, int, dict]
-):
-    item = context.pydc.persistent.limiting_user_requests
-    if item is None:
-        log.warning("Key 'limit_user_requests' was not initialized.")
-        return False
-
-    setattr(item, what, value)
 
 
 async def handle_request_limitation_topic(
