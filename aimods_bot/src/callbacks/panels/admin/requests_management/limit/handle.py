@@ -1,19 +1,15 @@
 from datetime import timedelta, datetime, timezone
 from typing import Literal, Union
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ParseMode
+from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
-    LimitationsFlow
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
-from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 
 log = logger.getChild(__name__)
 
@@ -31,41 +27,11 @@ def set_request_limiting_detail(
     setattr(item, what, value)
 
 
-async def handle_request_limitation_duration(update: Update, context: CustomContext, duration_input: str):
-    await safe_delete(update=update, context=context)
-
-    item = context.pydc.persistent.limiting_user_requests
-
-    if duration_input == LimitationsFlow.DURATION_ENDLESS:
-        item.duration = 0
-        return True
-
-    parsed = parse_duration(duration_string=duration_input)
-
-    effective_message = update.effective_message
-
-    if not effective_message:
-        raise ValueError("Attribute Update.effective_message cannot be None!")
-
-    if not parsed:
-        await effective_message.reply_text(
-            text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE_MENU)]
-            ]),
-            parse_mode=ParseMode.HTML
-        )
-        return False
-
-    item.duration = timedelta_to_seconds(parsed)
-    return True
-
-
 async def handle_request_limitation_topic(
         context: CustomContext,
         section_input: LimitationsFlow | RequestSection,
 ):
-    item = context.pydc.persistent.limiting_user_requests
+    item = context.get_or_create_limitation_wizard()
 
     if not item:
         raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
@@ -99,11 +65,8 @@ def all_sections_are(context: CustomContext, what: bool):
 async def handle_limitation_confirmation(
         update: Update,
         context: CustomContext,
-        user_id: int,
-        reason: str,
+        user_id: int
 ):
-    await handle_limitation_reason(context=context, reason=reason)
-
     new_limitations = get_request_limitations(update=update, context=context)
     current_limitations = context.get_user_request_limitations(user_id=user_id) or []
 
@@ -162,10 +125,6 @@ async def handle_limitation_confirmation(
         )
 
     context.set_user_request_limitations(user_id=user_id, limitations=merged)
-
-
-async def handle_limitation_reason(context: CustomContext, reason: str):
-    set_request_limiting_detail(context=context, what="reason", value=reason)
 
 
 def get_request_limitations(update: Update, context: CustomContext) -> list[RequestSectionLimitation]:

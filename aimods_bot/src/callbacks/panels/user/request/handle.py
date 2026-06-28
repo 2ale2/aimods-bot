@@ -93,8 +93,8 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
 
     _advance_or_finish_wizard(wizard=wizard)
 
-    if context.pydc.persistent.base_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    if context.pydc.persistent.root_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
     else:
         base_path = PathBuilder(UserRoute.ROOT)
 
@@ -130,8 +130,8 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
         wizard.requesting = query.data
         wizard.editing = True
 
-    if context.pydc.persistent.base_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    if context.pydc.persistent.root_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
     else:
         base_path = PathBuilder(UserRoute.ROOT)
 
@@ -175,8 +175,8 @@ async def handle_wizard_back(update: Update, context: CustomContext):
         wizard.requesting = prev_field
         draft.model_fields_set.discard(prev_field.value)
 
-    if context.pydc.persistent.base_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    if context.pydc.persistent.root_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
     else:
         base_path = PathBuilder(UserRoute.ROOT)
 
@@ -246,8 +246,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
             await save_yaml_configuration(context=context)
             await _notify_section_closing(update=update, context=context, section=section)
 
-    if context.pydc.persistent.base_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.base_path)
+    if context.pydc.persistent.root_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
     else:
         base_path = PathBuilder(UserRoute.ROOT)
 

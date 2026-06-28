@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Optional, Union, Callable, Awaitable, Any
+from typing import Callable, Awaitable, Any
 
 from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as PyroChatPermissions, User as PyroUser
 from telegram import ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions, User as PTBUser
@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user, \
     get_banned_panel, safe_delete
 
-log = logger.getChild("user_utils")
+log = logger.getChild(__name__)
 
 _member_cache = {}
 _cache_ttl = timedelta(minutes=5)
@@ -23,13 +23,14 @@ _cache_ttl = timedelta(minutes=5)
 
 async def get_globally_cached_member(context: CustomContext, user_id: int, chat_id: int = None):
     """Cache i membri per ridurre chiamate API ripetute"""
-    cache_key = f"{chat_id}:{user_id}"
-    cached = _member_cache.get(cache_key)
+    cache_key = f"{chat_id}:{user_id}" if chat_id else f"{user_id}"
+    cached = _member_cache.get(cache_key, {})
 
-    if cached and datetime.now() - cached['timestamp'] < _cache_ttl:
-        return cached['data']
-    else:
-        del _member_cache[cache_key]
+    if cached:
+        if datetime.now() - cached['timestamp'] < _cache_ttl:
+            return cached['data']
+        else:
+            del _member_cache[cache_key]
 
     response = await resolve_chat_member(context=context, user_identifier=user_id, chat_id=chat_id)
 
@@ -41,7 +42,7 @@ async def get_globally_cached_member(context: CustomContext, user_id: int, chat_
     return response
 
 
-async def get_or_resolve_user(context: CustomContext, identifier: Union[str, int]):
+async def get_or_resolve_user(context: CustomContext, identifier: str | int):
     """
     Tenta di recuperare un oggetto utente (ChatMember/User) dato un ID o Username.
     Gestisce automaticamente la cache 'ephemeral.resolved_users'.
@@ -96,7 +97,7 @@ async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None
         return False
 
 
-async def user_is_banned(context: CustomContext, user_id: Union[int, str], chat_id: int = None) -> bool:
+async def user_is_banned(context: CustomContext, user_id: int | str, chat_id: int = None) -> bool:
     """
     Verifica se l'utente è bannato (o presente in una lista ban).
     Ritorna False in caso di errore.
@@ -163,7 +164,7 @@ async def get_user_warnings_count(user_id: int) -> int:
         return 0
 
 
-async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
+async def erase_user_warnings(user_id: int) -> list[str] | None:
     """
     Cancella tutti i warning attivi per un utente.
     Usa una singola query batch invece di N query separate.
@@ -195,8 +196,8 @@ async def erase_user_warnings(user_id: int) -> Optional[list[str]]:
 
 async def get_member_permissions(
         context: CustomContext,
-        chat_member: Union[PyroChatMember, PTBChatMember],
-) -> Union[PTBChatPermissions, PyroChatPermissions]:
+        chat_member: PyroChatMember | PTBChatMember,
+) -> PTBChatPermissions | PyroChatPermissions:
     """
     Ottiene i permessi effettivi di un membro.
     """
@@ -222,9 +223,9 @@ async def get_member_permissions(
 
 
 async def get_member_details_text(
-        context: Optional[CustomContext] = None,
-        user_identifier: Optional[Union[int, str]] = None,
-        user: Optional[Union[PTBChatMember, PyroChatMember, PyroUser, PTBUser]] = None
+        context: CustomContext | None = None,
+        user_identifier: int | str | None = None,
+        user: PTBChatMember | PyroChatMember | PyroUser | PTBUser | None = None
 ) -> str:
     if not user_identifier and not user:
         raise MissingParameterException("You must provide at least 'user' or 'user_identifier'.")
@@ -239,7 +240,7 @@ async def get_member_details_text(
                 resolved[str(user_identifier)] = user
 
     if user:
-        if isinstance(user, Union[PTBChatMember, PyroChatMember]):
+        if isinstance(user, (PTBChatMember, PyroChatMember)):
             user = user.user
         text = (f"     🆔 <b>User ID</b> – <code>{user.id}</code>\n"
                 f"     🪪 <b>Nome</b> – {user.first_name}\n")

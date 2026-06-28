@@ -4,16 +4,25 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.handle import con
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
-from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_request_management_panel, \
-    render_admin_active_requests_management_panel, render_admin_active_requests_category_selector_panel, \
-    render_admin_active_requests_category_panel, render_admin_manage_request_panel, \
-    render_change_request_status_confirmation_panel, render_request_status_changed_panel, \
-    render_admin_manage_request_remove_confirmation_panel, render_admin_manage_request_removed_panel, \
-    render_admin_manage_request_change_status_panel, render_admin_reject_request_panel, \
-    render_admin_confirm_rejection_panel, render_admin_rejection_confirmed_panel, \
-    send_user_request_status_changed_notification, \
-    render_last_ten_requests_platform_panel, render_last_ten_requests_category_panel, \
+from aimods_bot.src.callbacks.panels.admin.requests_management.render import (
+    render_admin_request_management_panel,
+    render_admin_active_requests_management_panel,
+    render_admin_active_requests_category_selector_panel,
+    render_admin_active_requests_category_panel,
+    render_admin_manage_request_panel,
+    render_change_request_status_confirmation_panel,
+    render_request_status_changed_panel,
+    render_admin_manage_request_remove_confirmation_panel,
+    render_admin_manage_request_removed_panel,
+    render_admin_manage_request_change_status_panel,
+    render_admin_reject_request_panel,
+    render_admin_confirm_rejection_panel,
+    render_admin_rejection_confirmed_panel,
+    send_user_request_status_changed_notification,
+    render_last_ten_requests_platform_panel,
+    render_last_ten_requests_category_panel,
     render_last_ten_requests_section_panel
+)
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
@@ -58,8 +67,10 @@ async def admin_requests_management_route(
             )
 
         case [AdminRequestsRoute.MANAGE_LIMITATIONS, *rest]:
-            context.free_base_path()
-            context.pydc.persistent.limiting_user_requests = None
+            if not rest:
+                context.free_base_path()
+                context.clear_limitation_wizard()
+
             return await route_admin_manage_limitations(
                 update=update,
                 context=context,
@@ -115,7 +126,7 @@ async def route_admin_active_requests_management(
         root: PathBuilder,
         relative_path: PathBuilder
 ):
-    if update.callback_query and update.callback_query.data == context.pydc.persistent.base_path:
+    if update.callback_query and update.callback_query.data == context.pydc.persistent.root_path:
         #  Se la path è uguale a quella salvata, significa che sono tornato da una funzionalità secondaria
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
@@ -144,7 +155,8 @@ async def route_admin_active_requests_management(
                 section=RequestSection(platform=platform, category=category)
             )
 
-        case [platform_str, category_str, request_id_str, *sub_path] if platform_str in Platform and category_str in Category:
+        case [platform_str, category_str, request_id_str,
+              *sub_path] if platform_str in Platform and category_str in Category:
             platform = Platform(platform_str)
             category = Category(category_str)
             if request_id_str.isdigit():

@@ -110,9 +110,13 @@ class ChatDataPersistent(BaseModel):
         default=None,
         description="Active Request compiling session. If None, the user is not formulating a Request."
     )
-    base_path: str | None = Field(
+    root_path: str | None = Field(
         default_factory=str,
-        description="Base path for saving ring strategy path management"
+        description="For saving root path"
+    )
+    relative_path: str | None = Field(
+        default_factory=str,
+        description="For saving relative path"
     )
 
 
@@ -214,10 +218,10 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def set_base_path(self, base_path: str):
         """Strategia del path ad anello mononodo: salvo il path base per costruire il secondario."""
-        self.pydc.persistent.base_path = base_path
+        self.pydc.persistent.root_path = base_path
 
     def free_base_path(self):
-        self.pydc.persistent.base_path = None
+        self.pydc.persistent.root_path = None
 
     @property
     def user_active_requests(self) -> dict[int, BaseRequest]:
@@ -374,6 +378,11 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def clear_limitation_wizard(self) -> None:
         """Resetta il wizard di limitazione richieste."""
         self.pydc.persistent.limiting_user_requests = None
+
+    def clear_saved_path(self, clear_relative: bool = True) -> None:
+        self.pydc.persistent.root_path = None
+        if clear_relative:
+            self.pydc.persistent.relative_path = None
 
     def set_user_request_limitations(self, user_id: int, limitations: list[RequestSectionLimitation]):
         if not self.get_user_limitations():

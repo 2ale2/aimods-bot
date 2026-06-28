@@ -1,10 +1,12 @@
+import os
 from typing import Union
 
 from pyrogram.types import User as PyroUser
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, User as PTBUser
+from telegram.constants import ParseMode
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import handle_request_limitation_topic, \
-    handle_request_limitation_duration, handle_limitation_confirmation
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import (handle_request_limitation_topic,
+                                                                                    handle_limitation_confirmation)
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import (
     render_admin_add_user_request_limitation_panel, render_admin_limit_user_request_duration_panel,
     render_admin_limit_user_request_sections_panel,
@@ -16,13 +18,14 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, LimitationsFlow, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, LimitationsFlow, GlobalAction
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, is_user_id, safe_delete
+from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.utils.user_utils import is_admin, resolve_user_from_identifier
-from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
 
@@ -36,7 +39,7 @@ async def route_admin_manage_limitations(
     match relative_path.segments:
         case []:
             context.pydc.persistent.bot_message_id = update.effective_message.id
-            context.pydc.persistent.base_path = root.build()
+            context.pydc.persistent.root_path = root.build()
             await render_admin_manage_limitations_panel(update=update, context=context, base_path=root)
             return PCS.SET_REQUEST_LIMITATION_USER
 
@@ -103,10 +106,10 @@ async def route_admin_manage_limitations(
                     return PCS.ADMIN_CONVERSATION
 
                 case [LimitationsOp.ADD, *rest]:
-                    return await route_admin_add_request_limitation_route(
+                    return await route_admin_add_request_limitation(
                         update=update,
                         context=context,
-                        root=root + relative_path,
+                        root=root.add(identifier, LimitationsOp.ADD),
                         relative_path=PathBuilder(*rest),
                         pre_resolved_user=pre_resolved_user
                     )
@@ -115,17 +118,19 @@ async def route_admin_manage_limitations(
                     return await route_admin_remove_request_limitation_route(
                         update=update,
                         context=context,
-                        root=root + relative_path,
+                        root=root.add(identifier, LimitationsOp.REMOVE),
                         relative_path=PathBuilder(*rest),
                         pre_resolved_user=pre_resolved_user
                     )
 
 
 async def handle_limitation_user_input(update: Update, context: CustomContext):
-    identifier = update.message.text
     await safe_delete(update=update, context=context, message_id=update.message.message_id)
-    base = PathBuilder.from_string(context.pydc.persistent.base_path)
-    context.pydc.persistent.base_path = None
+
+    identifier = update.message.text
+    base = PathBuilder.from_string(context.pydc.persistent.root_path)
+    context.clear_saved_path(clear_relative=False)
+
     return await route_admin_manage_limitations(
         update=update,
         context=context,
@@ -134,7 +139,7 @@ async def handle_limitation_user_input(update: Update, context: CustomContext):
     )
 
 
-async def route_admin_add_request_limitation_route(
+async def route_admin_add_request_limitation(
         update: Update,
         context: CustomContext,
         root: PathBuilder,
@@ -157,6 +162,8 @@ async def route_admin_add_request_limitation_route(
             match PathBuilder(*rest).segments:
                 case []:
                     context.pydc.persistent.bot_message_id = update.effective_message.id
+                    context.pydc.persistent.root_path = root.build()
+                    # Non cambio root e non salvo relative perché dopo l'input torno al pannello precedente
 
                     await render_admin_limit_user_request_duration_panel(
                         update=update,
@@ -167,34 +174,27 @@ async def route_admin_add_request_limitation_route(
                     )
                     return PCS.SET_REQUEST_LIMITATION_DURATION
 
-                case [duration_input]:
-                    if not await handle_request_limitation_duration(
-                            update=update,
-                            context=context,
-                            duration_input=duration_input
-                    ):
-                        return PCS.SET_REQUEST_LIMITATION_DURATION
-
-                    message_id = context.pydc.persistent.bot_message_id
-                    context.pydc.persistent.bot_message_id = None
+                case [LimitationsFlow.DURATION_ENDLESS]:
+                    limitation_wizard.duration = 0
 
                     await render_admin_add_user_request_limitation_panel(
                         update=update,
                         context=context,
                         base_path=root,
                         pre_resolved_user=pre_resolved_user,
-                        limitation_wizard=limitation_wizard,
-                        message_id=message_id
+                        limitation_wizard=limitation_wizard
                     )
+
                     return PCS.ADMIN_CONVERSATION
 
         case [LimitationsFlow.SECTIONS, *rest]:
+            root = root.add(LimitationsFlow.SECTIONS)
             match PathBuilder(*rest).segments:
                 case []:
                     await render_admin_limit_user_request_sections_panel(
                         update=update,
                         context=context,
-                        base_path=root.add(LimitationsFlow.SECTIONS),
+                        base_path=root,
                         pre_resolved_user=pre_resolved_user,
                         limitation_wizard=limitation_wizard
                     )
@@ -206,7 +206,7 @@ async def route_admin_add_request_limitation_route(
                         log.warning(f"Unhandled SECTIONS subpath: {relative_path.build()}")
                         return PCS.ADMIN_CONVERSATION
                     await handle_request_limitation_topic(context=context, section_input=selected)
-                    await render_admin_add_user_request_limitation_panel(
+                    await render_admin_limit_user_request_sections_panel(
                         update=update,
                         context=context,
                         base_path=root,
@@ -219,21 +219,21 @@ async def route_admin_add_request_limitation_route(
             match PathBuilder(*rest).segments:
                 case []:
                     if await render_admin_user_limitation_reason_panel(
-                        update=update,
-                        context=context,
-                        base_path=root.add(GlobalAction.CONFIRM),
-                        pre_resolved_user=pre_resolved_user,
-                        limitation_wizard=limitation_wizard
+                            update=update,
+                            context=context,
+                            base_path=root.add(GlobalAction.CONFIRM),
+                            pre_resolved_user=pre_resolved_user,
+                            limitation_wizard=limitation_wizard
                     ):
-                        return PCS.ADMIN_CONVERSATION
-                    return PCS.SET_REQUEST_LIMITATION_REASON
+                        context.pydc.persistent.root_path = root.build()
+                        return PCS.SET_REQUEST_LIMITATION_REASON
+                    return PCS.ADMIN_CONVERSATION
 
-                case [reason_input]:
+                case [LimitationsFlow.REASON]:
                     await handle_limitation_confirmation(
                         update=update,
                         context=context,
-                        user_id=pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id,
-                        reason=reason_input
+                        user_id=limitation_wizard.user_id
                     )
                     await render_admin_user_limitation_confirmed_panel(
                         update=update,
@@ -241,6 +241,64 @@ async def route_admin_add_request_limitation_route(
                         base_path=root
                     )
                     return PCS.ADMIN_CONVERSATION
+
+                case _:
+                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
+
+async def handle_limitation_duration(update: Update, context: CustomContext):
+    duration_input = update.effective_message.text
+    wizard = context.get_or_create_limitation_wizard()
+
+    root = PathBuilder.from_string(context.pydc.persistent.root_path)
+    context.clear_saved_path(clear_relative=False)
+
+    await safe_delete(update=update, context=context)
+
+    parsed = parse_duration(duration_string=duration_input)
+    effective_message = update.effective_message
+
+    if not effective_message:
+        raise ValueError("Attribute Update.effective_message cannot be None!")
+
+    if not parsed:
+        await effective_message.reply_text(
+            text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE_MENU)]
+            ]),
+            parse_mode=ParseMode.HTML
+        )
+        return PCS.SET_REQUEST_LIMITATION_DURATION
+
+    wizard.duration = timedelta_to_seconds(parsed)
+    return await route_admin_add_request_limitation(
+        update=update,
+        context=context,
+        root=root,
+        relative_path=PathBuilder(),
+        pre_resolved_user=wizard.user_id
+    )
+
+
+async def handle_limitation_reason(update: Update, context: CustomContext):
+    reason_input = update.effective_message.text
+    limitation_wizard = context.get_or_create_limitation_wizard()
+    limitation_wizard.reason = reason_input
+
+    await safe_delete(update=update, context=context)
+
+    root = PathBuilder.from_string(context.pydc.persistent.root_path)
+    context.clear_saved_path(clear_relative=False)
+
+    return await route_admin_add_request_limitation(
+        update=update,
+        context=context,
+        root=root,
+        # I add LimitationFlow.REASON to make the router route to the corrrect branch
+        relative_path=PathBuilder(GlobalAction.CONFIRM, LimitationsFlow.REASON),
+        pre_resolved_user=limitation_wizard.user_id
+    )
 
 
 async def route_admin_remove_request_limitation_route(
@@ -319,7 +377,7 @@ async def route_admin_remove_request_limitation_route(
 
 
 def _parse_section_segment(seg: str) -> LimitationsFlow | RequestSection | None:
-    if seg in LimitationsFlow:        # BLOCK_ALL / UNBLOCK_ALL
+    if seg in LimitationsFlow:  # BLOCK_ALL / UNBLOCK_ALL
         return LimitationsFlow(seg)
     try:
         return RequestSection.from_string(seg)

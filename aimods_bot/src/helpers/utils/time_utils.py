@@ -15,9 +15,9 @@ _DURATION_PATTERN = re.compile(
 )
 
 
-def pluralize(value: int, singular: str, plural: str) -> str:
+def pluralize(value: int, singular: str, plural: str, with_value: bool = True) -> str:
     """Restituisce il testo al singolare o plurale in base al valore."""
-    return f"{value} {singular if value == 1 else plural}"
+    return f"{str(value) + ' ' if with_value else ''}{singular if value == 1 else plural}"
 
 
 def _format_time_unit(value: int, singular: str, plural: str) -> Optional[str]:

@@ -178,8 +178,7 @@ async def render_admin_add_user_request_limitation_panel(
         context: CustomContext,
         base_path: PathBuilder,
         pre_resolved_user: int | PyroUser | PTBUser,
-        limitation_wizard: AdminLimitingUserRequests,
-        message_id: int | None = None
+        limitation_wizard: AdminLimitingUserRequests
 ):
     user_id = pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id
 
@@ -205,6 +204,9 @@ async def render_admin_add_user_request_limitation_panel(
             text="👁‍🗨 Visiona Limitazioni",
             callback_key=base_path.back().add(LimitationsOp.VIEW))
         ])
+
+    message_id = context.pydc.persistent.bot_message_id
+    context.pydc.persistent.bot_message_id = None
 
     await create_and_render_panel(
         update=update,
@@ -375,12 +377,12 @@ async def render_admin_user_limitation_reason_panel(
     """Torna un booleano che indica se l'utente ha scelto almeno una sezione da limitare."""
     context.pydc.persistent.bot_message_id = update.effective_message.id
 
-    all_sections_false = all_sections_are(context=context, what=False)
+    at_least_one_true = not all_sections_are(context=context, what=False)
 
     text = await _get_admin_user_limitation_reason_text(
         limitation_wizard=limitation_wizard,
         pre_resolved_user=pre_resolved_user,
-        all_sections_false=all_sections_false
+        at_least_one_true=at_least_one_true
     )
 
     await create_and_render_panel(
@@ -391,17 +393,17 @@ async def render_admin_user_limitation_reason_panel(
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
 
-    return not all_sections_false
+    return at_least_one_true
 
 
 async def _get_admin_user_limitation_reason_text(
-        all_sections_false: bool,
+        at_least_one_true: bool,
         pre_resolved_user: int | PyroUser | PTBUser,
         limitation_wizard: AdminLimitingUserRequests
 ):
     text = await _get_header(pre_resolved_user=pre_resolved_user, limitation_wizard=limitation_wizard)
 
-    if all_sections_false:
+    if not at_least_one_true:
         text += "\n<blockquote>⚠️ <b>Non hai selezionato alcuna sezione da limitare</b>.</blockquote>"
     else:
         text += "\n✍ <b>Fornisci una motivazione</b>."
@@ -446,14 +448,13 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
 
 
 def _get_admin_user_limitation_confirmed_text(user_id: int,  sections: dict, duration: int | None = None):
-    sections_text = pluralize(len(sections), "alla sezione ", "alle sezioni ")
-    for pl in sections:
-        platform = Platform(pl)
-        for ca in sections[pl]:
-            category = Category(ca)
-            if sections[pl][ca]:
-                ca_label = PLATFORM_CATEGORY_REGISTRY[platform][category].label
-                sections_text += f"<b>{ca_label}</b> (<b>{platform.label})</b>, "
+    sections_number = [section for section in sections if sections[section]]
+    sections_text = pluralize(len(sections_number), singular="alla sezione ", plural="alle sezioni ", with_value=False)
+    for section in sections:
+        if sections[section]:
+            ca_label = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category].label
+            sections_text += f"<b>{ca_label}</b> (<b>{section.platform.label})</b>, "
+
     text = (f"✅ <b>Utente <code>{user_id}</code> Limitato</b>\n\n"
             f"🔹 Hai aggiunto <b>{get_duration_text(duration) if duration else "♾ tempo illimitato"}</b> "
             f"{sections_text.removesuffix(', ')}.")

@@ -65,7 +65,7 @@ async def requests_management_route(
                         from_notification=True,
                         msg_id=update.effective_message.id
                     )
-                    context.pydc.persistent.base_path = root.build()
+                    context.pydc.persistent.root_path = root.build()
 
                     await render_global_request_wizard_panel(
                         update=update,
@@ -183,7 +183,7 @@ async def _enter_wizard_or_explain(update: Update, context: CustomContext, secti
         )
         return PCS.USER_CONVERSATION
 
-    context.pydc.persistent.base_path = root.build()
+    context.pydc.persistent.root_path = root.build()
     context.init_request_wizard_session(
         user_id=update.effective_user.id,
         section=section,
