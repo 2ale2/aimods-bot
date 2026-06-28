@@ -551,7 +551,7 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
 
     text += await get_member_details_text(
         context=context,
-        user=pre_resolved_user if pre_resolved_user_is_int else None,
+        user=pre_resolved_user if not pre_resolved_user_is_int else None,
         user_identifier=pre_resolved_user if pre_resolved_user_is_int else pre_resolved_user.id
     ) + "\n"
 
@@ -571,7 +571,7 @@ async def _get_admin_remove_user_limitation_text_and_keyboard(
 
         keyboard = chunk_buttons(buttons, 4)
         keyboard.extend([
-            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key=LimitationsFlow.REMOVE_ALL)],
+            [ButtonItem(text="🆓 Rimuovi Tutte", callback_key=base_path.add(LimitationsFlow.REMOVE_ALL))],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ])
 
@@ -627,7 +627,7 @@ async def _get_admin_remove_user_limitation_confirmation(
 
     text += await get_member_details_text(
         context=context,
-        user=pre_resolved_user if pre_resolved_user_is_int else None,
+        user=pre_resolved_user if not pre_resolved_user_is_int else None,
         user_identifier=pre_resolved_user if pre_resolved_user_is_int else pre_resolved_user.id
     ) + "\n"
 

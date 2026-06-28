@@ -5,8 +5,11 @@ from pyrogram.types import User as PyroUser
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, User as PTBUser
 from telegram.constants import ParseMode
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import (handle_request_limitation_topic,
-                                                                                    handle_limitation_confirmation)
+from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import (
+    handle_request_limitation_topic,
+    handle_limitation_confirmation,
+    handle_remove_user_request_limitation
+)
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import (
     render_admin_add_user_request_limitation_panel, render_admin_limit_user_request_duration_panel,
     render_admin_limit_user_request_sections_panel,
@@ -15,8 +18,6 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
     render_admin_remove_user_limitation_confirmation_panel,
     render_admin_user_limitation_removed_panel, render_admin_remove_user_limitation_panel,
     render_admin_user_limitation_confirmed_panel, render_admin_view_user_request_limitations_panel)
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
-    handle_remove_user_request_limitation
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, LimitationsFlow, GlobalAction
@@ -361,6 +362,7 @@ async def route_admin_remove_request_limitation_route(
 
                 case [GlobalAction.CONFIRM]:
                     await handle_remove_user_request_limitation(
+                        update=update,
                         context=context,
                         user_id=pre_resolved_user if isinstance(pre_resolved_user, int) else pre_resolved_user.id,
                         selected_section=selected_section

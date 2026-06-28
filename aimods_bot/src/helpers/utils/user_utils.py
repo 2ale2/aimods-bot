@@ -54,7 +54,7 @@ async def get_or_resolve_user(context: CustomContext, identifier: str | int):
     str_id = str(identifier)
     cache = context.pydc.ephemeral.resolved_users
 
-    if str_id in cache:
+    if cache and str_id in cache:
         res = cache[str_id]
         if isinstance(res, dict) and "user" in res:
             return res["user"]
@@ -62,7 +62,8 @@ async def get_or_resolve_user(context: CustomContext, identifier: str | int):
 
     user_response = await resolve_user(identifier=identifier)
 
-    context.pydc.ephemeral.resolved_users[str_id] = user_response
+    if cache:
+        cache[str_id] = user_response
 
     if user_response["status"] == "success":
         return user_response["user"]
