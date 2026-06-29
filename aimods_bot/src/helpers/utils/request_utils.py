@@ -287,7 +287,7 @@ async def get_last_n_requests(
     if not isinstance(n, int) or n <= 0:
         raise ValueError(f"Invalid request number: {n}!")
 
-    query = "SELECT * FROM requests"
+    query = "SELECT * FROM requests_test"
     params = []
     conditions = []
 

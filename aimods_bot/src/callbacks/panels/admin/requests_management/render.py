@@ -912,7 +912,7 @@ async def _get_last_ten_requests_section_text(requests: list[BaseRequest], secti
             requests_dict[request.id] = request
 
         text += get_requests_summary(requests=requests, with_authors=True)
-        text += ("\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori "
+        text += ("\n\n<blockquote>🔍 <b>Maggiori Informazioni</b> – Visiona l'archivio di un utente per maggiori "
                  "informazioni su una richiesta, o contatta Layton.</blockquote>\n\n"
                  "🔹 Scegli un'opzione.")
 

@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import InvalidCallbackData
+from telegram.ext import InvalidCallbackData, ConversationHandler
 
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState
 from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, GlobalAction
@@ -54,6 +54,7 @@ async def admin_main_router(update: Update, context: CustomContext):
                 )
             case [close_action] if close_action in (GlobalAction.CLOSE_MENU, GlobalAction.CLOSE):
                 await safe_delete(update=update, context=context)
+                return ConversationHandler.END
 
         return PrivateConversationState.ADMIN_CONVERSATION
     finally:
