@@ -146,8 +146,8 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
         )
 
     if isinstance(content_dict, dict):
-        content_dict.pop('rejection_reason', None)
-        content_dict.pop('status_change_notifications', None)
+        for col in _COMMON_REQUEST_TABLE_COLUMNS:
+            content_dict.pop(col, None)
 
     try:
         return model_cls(

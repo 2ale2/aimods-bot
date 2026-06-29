@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import get_args, Callable, Awaitable
 
 from pydantic import ValidationError
@@ -19,6 +20,7 @@ from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
     send_section_closing_admin_notification
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
+from aimods_bot.src.helpers.utils.request_utils import request_to_record
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
 
 log = logger.getChild(__name__)
@@ -202,9 +204,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     draft = wizard.draft
 
-    request_for_db_str = draft.model_dump_json(
-        exclude={"platform", "category", "status", "requesting", "editing", "id", "user_id", "issued_at"}
-    )
+    record = request_to_record(draft)
+    content_json = json.dumps(record["content"])
 
     query_sql = """
                 INSERT INTO requests_test (platform, category, user_id, content)
@@ -221,7 +222,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         draft.section.platform.value,
         draft.section.category.value,
         effective_user.id,
-        request_for_db_str
+        content_json
     ]
 
     result = await fetch_query(query=query_sql, params=params)
