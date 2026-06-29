@@ -77,7 +77,10 @@ def render_request_latex_item(request: BaseRequest) -> str:
         value = getattr(request, field.value, None)
         if value is None or value == "":
             continue
-        rendered = _render_field_value_latex(value, field.format)
+        if value == "unknown":
+            rendered = r"\texttt{unknown}"
+        else:
+            rendered = _render_field_value_latex(value, field.format)
         lines.append(rf"\textbf{{{field.label}}} — {rendered} \\")
 
     if request.issued_at:

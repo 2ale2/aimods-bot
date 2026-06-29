@@ -16,6 +16,8 @@ log = logger.getChild(__name__)
 
 # Contiene tutte le colonne in comune tra le richieste (che corrispondono ai campi di BaseRequest, meno name e version)
 _COMMON_REQUEST_TABLE_COLUMNS: set[str] = {
+    "name",
+    "version",
     "id",
     "user_id",
     "platform",
@@ -78,6 +80,8 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     Solleva ValueError per dati mancanti, malformati o combinazioni platform/category non registrate.
     """
     raw_id = row.get("id")
+    raw_name = row.get("name")
+    raw_version = row.get("version")
     raw_platform = row.get("platform")
     raw_category = row.get("category")
     raw_status = row.get("status")
@@ -90,7 +94,7 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     if user_id is None:
         raise ValueError(f"Request {raw_id}: missing user_id!")
 
-    if (isinstance(user_id, str) and not user_id.isnumeric()) and not isinstance(user_id, int):
+    if isinstance(user_id, str) and not user_id.isnumeric():
         raise ValueError(f"User id {user_id} is not numeric!")
 
     if not raw_platform or not raw_category:
@@ -150,15 +154,18 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
             content_dict.pop(col, None)
 
     try:
+        # noinspection PyArgumentList
         return model_cls(
             id=raw_id,
+            name=raw_name,
+            version=raw_version,
             user_id=int(user_id),
             section=RequestSection(platform=platform, category=category),
             status=status,
             issued_at=issued_at,
             rejection_reason=rejection_reason,
             status_change_notifications=status_change_notifications,
-            **content_dict,
+            **content_dict
         )
     except ValidationError as e:
         log.error(f"Request {raw_id}: validation failed for {model_cls.__name__}: {e}")

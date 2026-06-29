@@ -10,6 +10,8 @@ YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 CHANNEL_JOIN_LINK = "https://t.me/+YmSMpGvSrlphYjJk"
 GROUP_JOIN_LINK = "https://t.me/+s3kZBM549qE1ZTU8"
 
+UNKNOWN_FIELD_SENTINEL = "unknown"
+
 LOCAL_TZ = pytz.timezone('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
@@ -238,7 +240,6 @@ class ChatType(StrEnum):
                 return "i canali"
             case ChatType.BOT:
                 return "i bot"
-
 
     @property
     def icon(self) -> str:
