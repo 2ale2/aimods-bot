@@ -266,7 +266,7 @@ FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
         default="🔹 Indica le <b>funzionalità</b> che vorresti sbloccare.",
         overrides={
             Category.APP: "🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare (es. Premium, "
-                          "No Pubblicità).",
+                          "No Pubblicità, ...).",
             Category.GAME: "🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare (es. Gioco Pagato, "
                            "Monete infinite).",
             Category.SOFTWARE: "🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",

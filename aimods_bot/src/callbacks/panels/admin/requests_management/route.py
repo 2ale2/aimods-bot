@@ -234,6 +234,9 @@ async def admin_manage_request_route(
                     )
             return PCS.ADMIN_CONVERSATION
 
+        case [new_status_str, *rest] if new_status_str in RequestStatus:
+            pass  # QUI
+
         case [AdminRequestManagementRoute.CHANGE_STATUS, *rest]:
             if await ensure_active():
                 match PathBuilder(*rest).segments:
@@ -245,7 +248,7 @@ async def admin_manage_request_route(
                             request=request
                         )
 
-                    case [new_status_str, *rest]:
+                    case [new_status_str, *rest] if new_status_str in RequestStatus:
                         new_status = RequestStatus(new_status_str)
                         match PathBuilder(*rest).segments:
                             case []:

@@ -89,16 +89,11 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
             await wrong_input_message(
                 update=update,
                 context=context,
-                correct_message="Input non valido, riprova o contatta un amministratore."
+                correct_message="<b>Input non valido</b>, riprova o contatta il gruppo per assistenza."
             )
         return PCS.USER_REQUEST_WIZARD_SESSION
 
     _advance_or_finish_wizard(wizard=wizard)
-
-    if context.pydc.persistent.root_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
-    else:
-        base_path = PathBuilder(UserRoute.ROOT)
 
     await render_global_request_wizard_panel(
         update=update,
@@ -128,13 +123,8 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
         _advance_or_finish_wizard(wizard=wizard)
 
     elif query.data in RequestField:
-        wizard.requesting = query.data
+        wizard.requesting = RequestField(query.data)
         wizard.editing = True
-
-    if context.pydc.persistent.root_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
-    else:
-        base_path = PathBuilder(UserRoute.ROOT)
 
     await render_global_request_wizard_panel(
         update=update,
@@ -201,7 +191,6 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         raise ValueError("Request draft is not complete yet!")
 
     draft = wizard.draft
-
     try:
         validated = type(draft).model_validate(draft.model_dump())
     except ValidationError as e:
@@ -209,6 +198,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         await query.answer("❌ La richiesta è incompleta o non valida. Controlla i dati e riprova "
                            "o contatta un admin.")
         return PCS.USER_REQUEST_WIZARD_SESSION
+
+    context.submit_request(validated)
 
     record = request_to_record(validated)
     content_json = json.dumps(record["content"])

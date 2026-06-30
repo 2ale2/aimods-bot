@@ -8,10 +8,11 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route impor
 from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_callback_input, handle_wizard_back, \
-    handle_wizard_text_input
+    handle_wizard_text_input, handle_wizard_confirm
 from aimods_bot.src.helpers.constants.constants import COMMAND_PREFIX
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper
 
 main_private_conversation_handler = ConversationHandler(
     entry_points=[
@@ -27,6 +28,8 @@ main_private_conversation_handler = ConversationHandler(
         PCS.USER_REQUEST_WIZARD_SESSION: [
             MessageHandler(filters=filters.TEXT, callback=handle_wizard_text_input),
             CallbackQueryHandler(pattern=GlobalAction.REQUEST_WIZARD_BACK, callback=handle_wizard_back),
+            CallbackQueryHandler(pattern=GlobalAction.CONFIRM, callback=handle_wizard_confirm),
+            CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper),
             CallbackQueryHandler(callback=handle_wizard_callback_input)
         ],
         PCS.SET_REQUEST_LIMITATION_USER: [
@@ -46,5 +49,5 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },
-    fallbacks=[]
+    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper)]
 )

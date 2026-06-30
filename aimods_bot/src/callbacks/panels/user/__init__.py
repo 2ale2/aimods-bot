@@ -1,14 +1,15 @@
 from telegram import Update
-from telegram.ext import InvalidCallbackData
+from telegram.ext import InvalidCallbackData, ConversationHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user.request.route import user_requests_management_route
 from aimods_bot.src.callbacks.panels.user.settings_management.route import user_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import UserRoute
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState
+from aimods_bot.src.helpers.constants.path_navigation import UserRoute, GlobalAction
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils import user_utils
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import check_auth
 
 log = logger.getChild(__name__)
@@ -35,9 +36,6 @@ async def user_main_router(update: Update, context: CustomContext):
     if not len(path):
         return await start(update=update, context=context)
 
-    # try: match case path.segments...
-
-    path.pop(0)
     try:
         match path.segments:
             case [main_route_el, *rest] if main_route_el in (UserRoute.ADD_REQUEST, UserRoute.VIEW_REQUESTS):
@@ -54,9 +52,11 @@ async def user_main_router(update: Update, context: CustomContext):
                     root=PathBuilder(UserRoute.MANAGE_SETTINGS),
                     relative_path=PathBuilder(*rest)
                 )
+
+            case [close_action] if close_action in (GlobalAction.CLOSE_MENU, GlobalAction.CLOSE):
+                await safe_delete(update=update, context=context)
+                if close_action == GlobalAction.CLOSE_MENU:
+                    return ConversationHandler.END
+                return PrivateConversationState.USER_CONVERSATION
     finally:
-        try:
-            await update.callback_query.answer()
-            context.drop_callback_data(update.callback_query)
-        except Exception:
-            pass
+        await update.callback_query.answer()

@@ -301,6 +301,9 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             request_msg_id=msg_id
         )
 
+    def submit_request(self, request: BaseRequest):
+        self.pydb.active_requests[request.id] = request
+
     def user_request_cooldown(self, user_id: int | None = None) -> RequestCooldown | None:
         user_id = user_id or self.user_id
         cooldown = self.pydb.user_request_cooldowns.get(user_id, None)

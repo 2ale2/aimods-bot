@@ -155,8 +155,8 @@ def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
     else:
         text += ("🔹 Verifica i dettagli della tua richiesta. "
                  "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"
-                 "<blockquote>⚠️ Assicurati che i dettagli siano chiari, "
-                 "altrimenti la tua richiesta sarà bocciata.</blockquote>")
+                 "<blockquote>⚠️ <b>Assicurati che i dettagli siano chiari</b>, "
+                 "altrimenti la tua richiesta sarà <b>bocciata</b>.</blockquote>")
 
     return text
 
@@ -206,8 +206,8 @@ async def render_request_wizard_confirmation_panel(
 
 def _get_request_wizard_confirmation_text():
     return ("✅ <b>Richiesta Inviata Correttamente!</b>\n\n"
-            "🔹 Puoi monitorare lo stato di avanzamento in tempo reale dal tuo pannello di controllo. "
-            "Riceverai una notifica quando la tua richiesta verrà chiusa.\n\n"
+            "🔹 Puoi monitorare lo stato di <b>avanzamento in tempo reale</b> dal tuo pannello di controllo. "
+            "<b>Riceverai una notifica</b> quando la tua richiesta verrà chiusa.\n\n"
             "ℹ️ Puoi disattivare le notifiche dalle impostazioni.")
 
 
