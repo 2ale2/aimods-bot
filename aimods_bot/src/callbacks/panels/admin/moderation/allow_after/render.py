@@ -17,7 +17,6 @@ async def render_allow_after_panel(update: Update, context: CustomContext, base_
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🆓 Nessun Limite", callback_key=base_path.add(AllowAfterDurationRoute.OFF))],

@@ -19,7 +19,6 @@ async def render_antispam_mentions_rate_limit_panel(update: Update, context: Cus
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -109,7 +108,6 @@ async def render_antispam_mentions_rate_limit_setting_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )

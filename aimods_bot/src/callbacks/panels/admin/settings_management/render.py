@@ -2,13 +2,12 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import Platform
+from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
+    AdminSettingsNotificationsRoute, GlobalAction
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
-from aimods_bot.src.helpers.models.ui import ButtonItem
-
-from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
-    AdminSettingsNotificationsRoute, AdminRoute, GlobalAction
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
 
 
@@ -82,7 +81,6 @@ async def render_admin_settings_management_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🔔 Notifiche", callback_key=base_path.add(AdminSettingsRoute.NOTIFICATIONS))],
@@ -107,7 +105,6 @@ async def render_admin_notification_settings_management_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -153,7 +150,6 @@ async def render_admin_new_requests_notification_settings_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -169,7 +165,6 @@ async def render_new_requests_notification_disabled_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
         keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )
@@ -197,7 +192,6 @@ async def render_admin_section_closing_notification_settings_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -209,7 +203,6 @@ async def render_section_closure_notification_disabled_panel(update: Update, con
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
         keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )

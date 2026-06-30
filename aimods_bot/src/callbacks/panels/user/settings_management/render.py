@@ -21,7 +21,6 @@ async def render_user_settings_management_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🔔 Notifiche", callback_key=base_path.add(UserManageSettingsRoute.NOTIFICATIONS))],
@@ -50,7 +49,6 @@ async def render_user_notification_settings_management_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -85,7 +83,6 @@ async def render_user_section_opening_notification_settings_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -125,7 +122,6 @@ def _get_user_section_opening_notification_settings_text_keyboard(settings: User
 async def render_section_opening_notification_disabled_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
         section: RequestSection
 ):
     text = _get_section_opening_notification_disabled_text(section=section)
@@ -133,7 +129,6 @@ async def render_section_opening_notification_disabled_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)]

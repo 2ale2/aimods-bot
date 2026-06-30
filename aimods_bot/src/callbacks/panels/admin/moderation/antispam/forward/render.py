@@ -17,7 +17,6 @@ async def render_antispam_forward_panel(update: Update, context: CustomContext, 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -98,7 +97,6 @@ async def render_antispam_forward_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -124,7 +122,6 @@ async def render_antispam_forward_rate_limit_panel(update: Update, context: Cust
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

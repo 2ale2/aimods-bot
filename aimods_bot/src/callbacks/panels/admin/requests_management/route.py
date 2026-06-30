@@ -303,7 +303,6 @@ async def admin_manage_request_route(
                         await render_admin_rejection_confirmed_panel(
                             update=update,
                             context=context,
-                            base_path=root,
                             ix=ix,
                             reason=reason_str
                         )

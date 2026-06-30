@@ -28,7 +28,6 @@ async def render_user_archive_request_identifier_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -81,7 +80,6 @@ async def render_user_archive_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

@@ -16,7 +16,6 @@ async def render_antispam_links_panel(update: Update, context: CustomContext, ba
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="⚖️ Punizione", callback_key=base_path.add(SecurityFiltersRoute.PUNISHMENT))],
@@ -59,7 +58,6 @@ async def render_empty_list_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )

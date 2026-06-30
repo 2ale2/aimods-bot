@@ -23,7 +23,6 @@ class ButtonItem:
 
 @dataclass
 class PanelConfig:
-    base_path: PathBuilder
     text: str
     keyboard: List[List[ButtonItem]]
 
@@ -32,7 +31,6 @@ class Panel:
     """Classe base per generare pannelli di menu con testo e tastiera inline."""
 
     def __init__(self, config: PanelConfig, send=False):
-        self.base_path = config.base_path
         self.text = config.text
         self.keyboard = config.keyboard
         self.send = send

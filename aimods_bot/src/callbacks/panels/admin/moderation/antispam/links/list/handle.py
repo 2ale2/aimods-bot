@@ -144,7 +144,6 @@ async def handle_user_input(update: Update, context: CustomContext, base_path: P
         context=context,
         text=text,
         keyboard=keyboard,
-        base_path=base_path,
         message_id=message_id
     )
 

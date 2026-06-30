@@ -9,6 +9,7 @@ from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
@@ -19,7 +20,7 @@ from aimods_bot.src.helpers.utils.time_utils import get_duration_text
 async def render_user_has_cooldown_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
+        back_callback: PathBuilder,
         rc: RequestCooldown
 ):
     cooldown_secs = int(context.pydb.configuration.settings.request.cooldown.total_seconds())
@@ -29,9 +30,9 @@ async def render_user_has_cooldown_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
+        # va bene anche back_callback, perché non ho tasti per avanzare
         text=_get_user_has_cooldown_panel_text(cooldown_end, cooldown_text),
-        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
+        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=back_callback)]]
     )
 
 
@@ -52,7 +53,6 @@ async def render_user_request_platform_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=_get_user_request_platform_text(),
         keyboard=[
             [
@@ -92,7 +92,6 @@ async def render_user_request_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=_get_user_request_category_text(platform=platform),
         keyboard=chunk_buttons(buttons=buttons, size=2)
     )
@@ -107,8 +106,7 @@ def _get_user_request_category_text(platform: Platform):
 
 async def render_global_request_wizard_panel(
         update: Update,
-        context: CustomContext,
-        base_path: PathBuilder
+        context: CustomContext
 ):
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
@@ -120,7 +118,6 @@ async def render_global_request_wizard_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=wizard.request_msg_id
@@ -148,7 +145,7 @@ def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
         else:
             add_label = f"{cat_conf.icon}"
 
-        text += f"{EMOJI_DOT_ORANGE} {flow_el.label} – {add_label}\n\n"
+        text += f"{EMOJI_DOT_ORANGE} <b><i>{flow_el.label}</i></b> – {add_label}\n\n"
 
     if wizard.requesting:
         if wizard.requesting not in FIELD_MESSAGES:
@@ -197,13 +194,11 @@ def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list
 async def render_request_wizard_confirmation_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
         from_notification: bool
 ):
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=_get_request_wizard_confirmation_text(),
         keyboard=_get_request_wizard_confirmation_keyboard(from_notification=from_notification)
     )
@@ -240,13 +235,40 @@ def _get_request_wizard_confirmation_keyboard(from_notification: bool):
 async def render_cant_request_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
-        message: str
+        back_callback: PathBuilder,
+        message: str,
+        kayboard: list[list[ButtonItem]] | None = None
 ):
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=message,
-        keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
+        keyboard=kayboard or [[ButtonItem(text="🔙 Indietro", callback_key=back_callback)]]
+    )
+
+
+async def render_section_notification_activated_panel(
+        update: Update,
+        context: CustomContext,
+        section: RequestSection
+):
+    cat_conf = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category]
+    text = ("✅ <b>Notifiche Sezione Attivate</b>\n\n"
+            "🔹 Hai attivato le notifiche per la sezione "
+            f"{cat_conf.icon} <b>{section.platform.label} ({cat_conf.label})</b>. "
+            "Riceverai un messaggio da me quando questa sezione verrà riaperta.")
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=[
+            [
+                ButtonItem(
+                    text="❔ Formula Richiesta",
+                    callback_key=PathBuilder(UserRoute.ROOT, UserRoute.ADD_REQUEST)
+                ),
+                ButtonItem(text="🏠 Home", callback_key=PathBuilder(UserRoute.ROOT))
+            ]
+        ]
     )

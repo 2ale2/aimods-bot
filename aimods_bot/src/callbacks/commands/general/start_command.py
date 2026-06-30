@@ -23,7 +23,6 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
 
         return Panel(
             PanelConfig(
-                base_path=path,
                 text=("🎛 <b>Pannello di Controllo</b>\n\n"
                       f"▫️ Ciao {fn}! Questo è il pannello di controllo "
                       f"per l'amministrazione del canale e del gruppo.\n\n"
@@ -45,7 +44,6 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
 
         return Panel(
             PanelConfig(
-                base_path=path,
                 text=("🌍 <b>Pannello Utente</b>\n\n"
                       f"▫️ Ciao {fn}! Questo è il tuo pannello utente. Qui potrai gestire le tue richieste.\n\n"
                       "➕ <u>In futuro tante altre funzionalità</u>.\n\n"

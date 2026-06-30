@@ -17,7 +17,6 @@ async def render_antispam_mention_panel(update: Update, context: CustomContext, 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="#️⃣ Menzioni per Messaggio", callback_key=base_path.add(AntispamRoute.PER_MESSAGE))],
@@ -74,7 +73,6 @@ async def render_antispam_mention_per_message_panel(update: Update, context: Cus
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -142,7 +140,6 @@ async def render_antispam_mention_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )

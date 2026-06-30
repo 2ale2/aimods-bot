@@ -24,6 +24,8 @@ class UserManageRequestsRoute(StrEnum):
     DETAILS = "details"
     CANCEL = "cancel"
 
+    ENABLE_SECTION_NOTIFICATIONS = "enable_section_notifications"
+
     ENABLE_STATUS_NOTIFICATION = "enable_notification"
     DISABLE_STATUS_NOTIFICATION = "disable_notification"
 

@@ -27,7 +27,6 @@ async def render_admin_manage_limitations_panel(update: Update, context: CustomC
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
@@ -54,7 +53,6 @@ async def render_admin_manage_user_limitations_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -108,7 +106,6 @@ async def render_admin_view_user_request_limitations_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -211,7 +208,6 @@ async def render_admin_add_user_request_limitation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=message_id
@@ -289,7 +285,6 @@ async def render_admin_limit_user_request_duration_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="♾ A tempo indeterminato", callback_key=base_path.add(LimitationsFlow.DURATION_ENDLESS))],
@@ -325,7 +320,6 @@ async def render_admin_limit_user_request_sections_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -388,7 +382,6 @@ async def render_admin_user_limitation_reason_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
@@ -411,7 +404,7 @@ async def _get_admin_user_limitation_reason_text(
     return text
 
 
-async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext, base_path: PathBuilder):
+async def render_admin_user_limitation_confirmed_panel(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
     message_id = context.pydc.persistent.bot_message_id
     context.pydc.persistent.bot_message_id = None
@@ -429,7 +422,6 @@ async def render_admin_user_limitation_confirmed_panel(update: Update, context: 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -492,7 +484,6 @@ async def render_admin_view_user_limitations_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=message_id
@@ -505,7 +496,6 @@ async def render_admin_remove_limitations_panel(update: Update, context: CustomC
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
@@ -532,7 +522,6 @@ async def render_admin_remove_user_limitation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -605,7 +594,6 @@ async def render_admin_remove_user_limitation_confirmation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[
             ButtonItem(text="✅ Confermo", callback_key=base_path.add(GlobalAction.CONFIRM)),
@@ -687,7 +675,6 @@ async def render_admin_user_limitation_removed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -724,7 +711,6 @@ async def render_request_deleted_panel(update: Update, context: CustomContext):
         update=update,
         context=context,
         text=text,
-        base_path=PathBuilder(AdminRoute.ROOT),
         keyboard=[[ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))]]
     )
 
@@ -745,7 +731,6 @@ async def render_request_inactive_panel(update: Update, context: CustomContext):
         update=update,
         context=context,
         text=text,
-        base_path=PathBuilder(AdminRoute.ROOT),
         keyboard=[[ButtonItem(text="🏠 Home", callback_key=PathBuilder(AdminRoute.ROOT))]]
     )
 

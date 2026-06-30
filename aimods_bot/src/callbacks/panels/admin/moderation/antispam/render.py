@@ -16,7 +16,6 @@ async def render_antispam_panel(update: Update, context: CustomContext, base_pat
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

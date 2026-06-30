@@ -15,7 +15,7 @@ import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
@@ -664,7 +664,6 @@ async def not_implemented_yet(update: Update, context: CustomContext) -> None:
 async def create_and_render_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
         text: str,
         keyboard: List[List[ButtonItem]],
         message_id: Optional[int] = None,
@@ -677,7 +676,6 @@ async def create_and_render_panel(
     Args:
         update: Update object
         context: CustomContext
-        base_path: Path base per il pannello
         text: Testo del pannello
         keyboard: Layout tastiera
         message_id: ID messaggio da modificare (opzionale)
@@ -685,7 +683,7 @@ async def create_and_render_panel(
         send: Se True, invia nuovo messaggio invece di modificare
     """
     panel = Panel(
-        PanelConfig(base_path=base_path, text=text, keyboard=keyboard)
+        PanelConfig(text=text, keyboard=keyboard)
     )
 
     await panel.render(
@@ -733,7 +731,6 @@ def get_banned_panel() -> Panel:
     """Restituisce il pannello per utenti bannati"""
     return Panel(
         PanelConfig(
-            base_path=PathBuilder(UserRoute.ROOT),
             text="❌ Sei stato bannato/a. Non potrai usare il bot.",
             keyboard=[[ButtonItem(text="🗑️ Chiudi", callback_key=GlobalAction.CLOSE)]]
         ),
@@ -755,7 +752,6 @@ async def render_action_not_permitted_panel(update: Update, context: CustomConte
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )

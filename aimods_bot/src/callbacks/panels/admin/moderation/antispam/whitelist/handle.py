@@ -308,8 +308,7 @@ async def _handle_remove_preparation(update: Update, context: CustomContext, bas
         update=update,
         context=context,
         text=text + "🔹 Scegli la categoria da cui rimuovere gli elementi.",
-        keyboard=keyboard,
-        base_path=base_path
+        keyboard=keyboard
     )
 
     return PCS.ADMIN_CONVERSATION
@@ -353,7 +352,6 @@ async def _handle_add_action(update: Update, context: CustomContext, base_path: 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard,
     )
@@ -390,8 +388,7 @@ async def _handle_remove_action(update: Update, context: CustomContext, base_pat
         update=update,
         context=context,
         text=text,
-        keyboard=keyboard,
-        base_path=base_path
+        keyboard=keyboard
     )
 
     return PCS.ADMIN_CONVERSATION

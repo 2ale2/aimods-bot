@@ -19,7 +19,6 @@ async def render_antispam_whitelist_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="👁 Visiona Whitelist", callback_key=base_path.add(ModerationListsRoute.VIEW))],
@@ -50,7 +49,6 @@ async def render_antispam_whitelist_view_panel(update: Update, context: CustomCo
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

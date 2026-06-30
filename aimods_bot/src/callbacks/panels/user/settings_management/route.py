@@ -56,7 +56,6 @@ async def user_settings_management_route(
                                 await render_section_opening_notification_disabled_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root,
                                     section=section
                                 )
                             else:

@@ -19,7 +19,6 @@ async def render_antispam_links_list_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -46,7 +45,6 @@ async def render_antispam_edit_link_list_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )

@@ -238,8 +238,7 @@ async def route_admin_add_request_limitation(
                     )
                     await render_admin_user_limitation_confirmed_panel(
                         update=update,
-                        context=context,
-                        base_path=root
+                        context=context
                     )
                     return PCS.ADMIN_CONVERSATION
 

@@ -291,8 +291,8 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             from_notification: bool,
             msg_id: int
     ) -> None:
-        config = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category]
-        fresh_draft = config.model(user_id=user_id, section=section)
+        model = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category].model
+        fresh_draft = model.model_construct(user_id=user_id, section=section)  # model_construct: bypass check pydantic
 
         self.pydc.persistent.active_request_wizard = RequestWizardSession(
             draft=fresh_draft,

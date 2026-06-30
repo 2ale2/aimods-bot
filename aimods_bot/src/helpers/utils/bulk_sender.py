@@ -181,7 +181,6 @@ async def send_new_request_admin_notification(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
         keyboard=[
             [
@@ -248,7 +247,6 @@ async def send_section_closing_admin_notification(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=PathBuilder(AdminRoute.ROOT),
         text=text,
         keyboard=[
             [

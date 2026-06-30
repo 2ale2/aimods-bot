@@ -41,7 +41,6 @@ async def render_admin_request_section_configure_panel(update: Update, context: 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -69,7 +68,6 @@ async def render_admin_request_section_configure_platform_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -94,7 +92,6 @@ async def render_admin_request_section_configure_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -136,7 +133,6 @@ async def render_admin_request_section_toggle_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -183,7 +179,6 @@ async def render_admin_request_section_toggled_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[
             ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
@@ -239,7 +234,6 @@ async def render_admin_request_section_limit_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -274,7 +268,6 @@ async def render_admin_request_section_limit_confirm_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -324,7 +317,6 @@ async def render_admin_request_section_limit_confirmed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

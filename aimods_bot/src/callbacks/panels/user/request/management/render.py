@@ -19,7 +19,6 @@ async def render_user_request_management_panel(update: Update, context: CustomCo
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -60,7 +59,6 @@ async def render_user_manage_active_requests_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -138,7 +136,6 @@ async def render_manage_selected_request_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -180,7 +177,6 @@ async def render_confirm_cancel_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -212,7 +208,6 @@ async def render_request_cancelled_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )

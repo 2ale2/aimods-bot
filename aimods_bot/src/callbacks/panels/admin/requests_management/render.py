@@ -53,7 +53,6 @@ async def render_admin_request_management_panel(update: Update, context: CustomC
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -113,7 +112,6 @@ async def render_admin_active_requests_management_panel(update: Update, context:
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -160,7 +158,6 @@ async def render_admin_active_requests_category_selector_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -237,7 +234,6 @@ async def render_admin_active_requests_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -297,7 +293,6 @@ async def render_admin_manage_request_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -397,7 +392,6 @@ async def render_change_request_status_confirmation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -454,7 +448,6 @@ async def render_request_status_changed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -490,7 +483,6 @@ async def render_admin_manage_request_remove_confirmation_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -517,7 +509,6 @@ async def render_admin_manage_request_removed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
@@ -558,7 +549,6 @@ async def render_admin_manage_request_change_status_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -584,7 +574,6 @@ async def render_admin_reject_request_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -644,7 +633,6 @@ async def render_admin_confirm_rejection_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -674,7 +662,6 @@ async def _get_admin_confirm_rejection_text(request: BaseRequest, rejection_reas
 async def render_admin_rejection_confirmed_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder,
         ix: int,
         reason: str
 ):
@@ -683,7 +670,6 @@ async def render_admin_rejection_confirmed_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -721,7 +707,6 @@ async def render_admin_user_requests_archive_panel(update: Update, context: Cust
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[[ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]]
     )
@@ -749,7 +734,6 @@ async def send_user_request_status_changed_notification(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [
@@ -792,7 +776,6 @@ async def render_last_ten_requests_platform_panel(update: Update, context: Custo
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -834,7 +817,6 @@ async def render_last_ten_requests_category_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard
     )
@@ -879,7 +861,6 @@ async def render_last_ten_requests_section_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [

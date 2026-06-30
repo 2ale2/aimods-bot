@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal, Annotated, Any, ClassVar
 
-from pydantic import BaseModel, BeforeValidator, HttpUrl
+from pydantic import BaseModel, BeforeValidator, HttpUrl, ConfigDict, AfterValidator
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus
 from aimods_bot.src.helpers.loggers import logger
@@ -21,10 +21,18 @@ def prepend_https(value: Any) -> Any:
     return value
 
 
-UxHttpUrl = Annotated[HttpUrl, BeforeValidator(prepend_https)]
+def require_tld(url: HttpUrl) -> HttpUrl:
+    if not url.host or "." not in url.host:
+        raise ValueError("URL must have a valid domain")
+    return url
+
+
+UxHttpUrl = Annotated[HttpUrl, BeforeValidator(prepend_https), AfterValidator(require_tld)]
 
 
 class BaseRequest(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
     id: int | None = None
     user_id: int
 

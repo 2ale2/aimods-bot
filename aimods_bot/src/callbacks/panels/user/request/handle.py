@@ -102,8 +102,7 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
 
     await render_global_request_wizard_panel(
         update=update,
-        context=context,
-        base_path=base_path
+        context=context
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -139,8 +138,7 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
 
     await render_global_request_wizard_panel(
         update=update,
-        context=context,
-        base_path=base_path
+        context=context
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
@@ -184,13 +182,13 @@ async def handle_wizard_back(update: Update, context: CustomContext):
 
     await render_global_request_wizard_panel(
         update=update,
-        context=context,
-        base_path=base_path
+        context=context
     )
     return PCS.USER_REQUEST_WIZARD_SESSION
 
 
 async def handle_wizard_confirm(update: Update, context: CustomContext):
+    effective_user = update.effective_user
     query = update.callback_query
     if not query:
         raise ValueError("No query inside Update!")
@@ -204,7 +202,15 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     draft = wizard.draft
 
-    record = request_to_record(draft)
+    try:
+        validated = type(draft).model_validate(draft.model_dump())
+    except ValidationError as e:
+        log.error(f"Draft validation failed at confirm for user {effective_user.id}: {e}")
+        await query.answer("❌ La richiesta è incompleta o non valida. Controlla i dati e riprova "
+                           "o contatta un admin.")
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    record = request_to_record(validated)
     content_json = json.dumps(record["content"])
 
     query_sql = """
@@ -212,8 +218,6 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                 VALUES ($1, $2, $3, $4)
                 RETURNING id;
                 """
-
-    effective_user = update.effective_user
 
     if not effective_user:
         raise ValueError("Attribute Update.effective_user must not be None!")
@@ -247,15 +251,9 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
             await save_yaml_configuration(context=context)
             await _notify_section_closing(update=update, context=context, section=section)
 
-    if context.pydc.persistent.root_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
-    else:
-        base_path = PathBuilder(UserRoute.ROOT)
-
     await render_request_wizard_confirmation_panel(
         update=update,
         context=context,
-        base_path=base_path,
         from_notification=wizard.from_notification
     )
 

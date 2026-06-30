@@ -11,7 +11,6 @@ async def render_moderation_panel(update: Update, context: CustomContext, base_p
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=("♟ <b>Impostazioni – Moderazione Gruppo e Canale</b>\n\n"
               "▫️ Da questo menù puoi regolare le impostazioni di moderazione del gruppo e del canale di "
               "<i>AIMods</i>.\n\n🔹 Scegli un'opzione."),
@@ -29,7 +28,6 @@ async def render_security_filters_panel(update: Update, context: CustomContext, 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text="<b>🔐 Sicurezza e Filtri</b>\n\n🔹 Scegli un'opzione.",
         keyboard=[
             [ButtonItem(text="📨 Anti-Spam", callback_key=base_path.add(SecurityFiltersRoute.ANTISPAM))],

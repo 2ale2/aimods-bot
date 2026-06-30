@@ -41,7 +41,6 @@ async def render_punishment_panel(update: Update, context: CustomContext, base_p
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=keyboard,
         message_id=message_id
@@ -61,7 +60,6 @@ async def render_punishment_duration_panel(
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path=base_path,
         text=text,
         keyboard=[
             [ButtonItem(text="♾️ Tempo Indeterminato", callback_key=base_path.add(PunishmentRoute.DURATION_ENDLESS))],
