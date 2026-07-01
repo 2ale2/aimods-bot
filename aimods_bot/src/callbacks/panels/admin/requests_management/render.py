@@ -177,29 +177,15 @@ async def render_admin_active_requests_category_panel(
         base_path: PathBuilder,
         section: RequestSection
 ):
-    requests = context.get_active_category_requests(section=section)
+    requests = context.get_section_active_requests(section=section)
 
     categories = PLATFORM_CATEGORY_REGISTRY.get(section.platform)
-    if not categories:
-        raise ValueError(f"Platform {section.platform.value} not recognized!")
-
     if len(categories) > 1:
         back_button_callback_key = base_path.back()
     else:
         back_button_callback_key = base_path.back(2)
 
-    if len(requests) == 1:
-        ix = next(iter(requests))
-        request_data = context.get_active_request_by_id(ix=ix)
-
-        return await render_admin_manage_request_panel(
-            update=update,
-            context=context,
-            request=request_data,
-            base_path=base_path
-        )
-
-    text = _get_active_requests_category_text(context=context, section=section, requests=requests)
+    text = _get_section_active_requests_text(context=context, section=section, requests=requests)
 
     keyboard = [[
         ButtonItem(
@@ -239,7 +225,7 @@ async def render_admin_active_requests_category_panel(
     )
 
 
-def _get_active_requests_category_text(
+def _get_section_active_requests_text(
         context: CustomContext,
         section: RequestSection,
         requests: dict[int, BaseRequest]
@@ -265,7 +251,7 @@ def _get_active_requests_category_text(
         text += "ℹ️ Non ci sono richieste attive per questa categoria."
     else:
         text += get_requests_summary(requests=list(requests.values()))
-        text += "\n🔹 Scegli la richiesta da gestire."
+        text += "\n\n🔹 Scegli la richiesta da gestire."
 
     return text
 
@@ -325,12 +311,12 @@ def _get_admin_menage_request_keyboard(
         if next_status_button:
             keyboard[0].insert(0, ButtonItem(
                 text=f"{next_status_button.icon} {next_status_button.label}",
-                callback_key=base_path.add(next_status_button))
+                callback_key=base_path.add(AdminRequestManagementRoute.CHANGE_STATUS, next_status_button))
             )
         if previous_status_button:
             keyboard[0].insert(0, ButtonItem(
                 text=f"{previous_status_button.icon} {previous_status_button.label}",
-                callback_key=base_path.add(previous_status_button))
+                callback_key=base_path.add(AdminRequestManagementRoute.CHANGE_STATUS, previous_status_button))
             )
 
         keyboard.extend([

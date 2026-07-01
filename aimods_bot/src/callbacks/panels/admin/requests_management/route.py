@@ -33,6 +33,7 @@ from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute,
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
@@ -136,43 +137,90 @@ async def route_admin_active_requests_management(
         case []:
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
 
-        case [platform_str] if platform_str in Platform:
+        case [platform_str, *rest] if platform_str in Platform:
             platform = Platform(platform_str)
-            await render_admin_active_requests_category_selector_panel(
-                update=update,
-                context=context,
-                base_path=root.add(platform),
-                platform=platform
-            )
+            root = root.add(platform)
 
-        case [platform_str, category_str] if platform_str in Platform and category_str in Category:
-            platform = Platform(platform_str)
-            category = Category(category_str)
-            await render_admin_active_requests_category_panel(
-                update=update,
-                context=context,
-                base_path=root.add(category),
-                section=RequestSection(platform=platform, category=category)
-            )
+            match PathBuilder(*rest).segments:
+                case []:
+                    categories = PLATFORM_CATEGORY_REGISTRY.get(platform, None)
+                    if not categories:
+                        raise ValueError(f"Platform {platform.value} not recognized!")
 
-        case [platform_str, category_str, request_id_str,
-              *sub_path] if platform_str in Platform and category_str in Category:
-            platform = Platform(platform_str)
-            category = Category(category_str)
-            if request_id_str.isdigit():
-                return await admin_manage_request_route(
-                    update=update,
-                    context=context,
-                    root=root.add(platform, category, request_id_str),
-                    relative_path=PathBuilder(*sub_path),
-                    ix=int(request_id_str)
-                )
-            else:
-                log.warning(f"Invalid request ID received: {request_id_str}")
+                    if len(categories) == 1:
+                        category = next(iter(categories))
+                        root = root.add(category)
+                        section = RequestSection(platform=platform, category=category)
+
+                        return await _enter_category_panel_or_list(
+                            update=update,
+                            context=context,
+                            root=root,
+                            section=section
+                        )
+                    else:
+                        await render_admin_active_requests_category_selector_panel(
+                            update=update,
+                            context=context,
+                            base_path=root,
+                            platform=platform
+                        )
+
+                case [category_str, *rest] if category_str in Category:
+                    category = Category(category_str)
+                    section = RequestSection(platform=platform, category=category)
+
+                    match PathBuilder(*rest).segments:
+                        case []:
+                            return await _enter_category_panel_or_list(
+                                update=update,
+                                context=context,
+                                root=root,
+                                section=section
+                            )
+
+                        case [request_id_str, *rest] if request_id_str.isnumeric():
+                            return await admin_manage_request_route(
+                                update=update,
+                                context=context,
+                                root=root.add(platform, category, request_id_str),
+                                relative_path=PathBuilder(*rest),
+                                ix=int(request_id_str)
+                            )
+
+                        case _:
+                            log.warning(f"Unhandled path in {__name__}: {relative_path.build()}")
+
+                case _:
+                    log.warning(f"Unhandled path in {__name__}: {relative_path.build()}")
 
         case _:
-            log.warning(f"Unhandled path structure in active requests: {relative_path}")
+            log.warning(f"Unhandled path in {__name__}: {relative_path.build()}")
 
+    return PCS.ADMIN_CONVERSATION
+
+
+async def _enter_category_panel_or_list(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        section: RequestSection
+):
+    requests = context.get_section_active_requests(section=section)
+    if len(requests) == 1:
+        ix = next(iter(requests))
+        return await admin_manage_request_route(
+            update=update, context=context,
+            root=root.add(ix),
+            relative_path=PathBuilder(),
+            ix=ix,
+        )
+    await render_admin_active_requests_category_panel(
+        update=update,
+        context=context,
+        base_path=root,
+        section=section
+    )
     return PCS.ADMIN_CONVERSATION
 
 
@@ -233,9 +281,6 @@ async def admin_manage_request_route(
                         base_path=root.back(2)
                     )
             return PCS.ADMIN_CONVERSATION
-
-        case [new_status_str, *rest] if new_status_str in RequestStatus:
-            pass  # QUI
 
         case [AdminRequestManagementRoute.CHANGE_STATUS, *rest]:
             if await ensure_active():

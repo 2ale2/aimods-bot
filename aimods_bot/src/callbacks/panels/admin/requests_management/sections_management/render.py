@@ -155,7 +155,7 @@ def _get_admin_request_section_toggle_panel_text(
              f"gli utenti {'non ' if not is_opening else ''}potranno formulare altre richieste.</blockquote>\n\n")
 
     if is_opening and config.limit is not None:
-        active_requests = len(context.get_active_category_requests(section=section))
+        active_requests = len(context.get_section_active_requests(section=section))
         if active_requests >= config.limit:
             text += (
                 "<blockquote>⚠️ <b>Attenzione</b> – Hai un numero di richieste attive <b>pari o superiore "

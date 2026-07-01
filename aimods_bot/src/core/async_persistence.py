@@ -306,7 +306,8 @@ def migrate_bot_data(raw: Dict[str, Any]) -> BotData:
             ta = field.annotation
             from pydantic import TypeAdapter
             partial[name] = TypeAdapter(ta).validate_python(value)
-        except Exception:
+        except Exception as e:
+            log.warning(f"migrate_bot_data: campo '{name}' scartato: {e}")
             continue
 
     bd = BotData(**partial)

@@ -17,7 +17,7 @@ async def handle_request_section_toggle(
     config = get_section_config(context=context, section=section)
 
     if is_opening and config.limit is not None:
-        active_count = len(context.get_active_category_requests(section=section))
+        active_count = len(context.get_section_active_requests(section=section))
         if active_count >= config.limit:
             config.limit = None
 
@@ -38,7 +38,7 @@ async def handle_request_section_limit(
     config.limit = limit if limit != 0 else None
 
     if config.limit is not None:
-        active_count = len(context.get_active_category_requests(section=section))
+        active_count = len(context.get_section_active_requests(section=section))
         if active_count >= config.limit:
             config.toggle = False
 

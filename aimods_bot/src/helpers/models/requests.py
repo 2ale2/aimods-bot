@@ -246,7 +246,7 @@ FIELD_MESSAGES: dict[RequestField, MessageTemplate] = {
     RequestField.LINK: MessageTemplate(
         default="🔹 Indica il <b>link di riferimento</b>.",
         overrides={
-            Category.APP: "🔹 Indica il <b>link ufficile dell'app</b>.",
+            Category.APP: "🔹 Indica il <b>link ufficiale dell'app</b>.",
             Category.GAME: "🔹 Indica il <b>link ufficiale del gioco</b>.",
             Category.SOFTWARE: "🔹 Indica il <b>link ufficiale del software</b>.",
             Category.DAW: "🔹 Indica il <b>link ufficiale della DAW o del Plug-In</b>."

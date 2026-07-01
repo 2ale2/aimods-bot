@@ -267,7 +267,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     ) -> dict[int, BaseRequest]:
         return self.get_requests_by_status(status=status, platform=platform, category=category, from_user=True)
 
-    def get_active_category_requests(
+    def get_section_active_requests(
             self,
             section: RequestSection,
             from_user: bool = False
@@ -282,7 +282,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             self,
             section: RequestSection
     ) -> dict[int, BaseRequest]:
-        return self.get_active_category_requests(section=section, from_user=True)
+        return self.get_section_active_requests(section=section, from_user=True)
 
     def init_request_wizard_session(
             self,

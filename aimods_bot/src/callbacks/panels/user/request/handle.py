@@ -9,7 +9,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import render_global_re
     render_request_wizard_confirmation_panel
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
-from aimods_bot.src.helpers.constants.constants import RequestField
+from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
@@ -179,6 +179,9 @@ async def handle_wizard_back(update: Update, context: CustomContext):
 
 async def handle_wizard_confirm(update: Update, context: CustomContext):
     effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user must not be None!")
+
     query = update.callback_query
     if not query:
         raise ValueError("No query inside Update!")
@@ -191,6 +194,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         raise ValueError("Request draft is not complete yet!")
 
     draft = wizard.draft
+    draft.status = RequestStatus.PENDING
     try:
         validated = type(draft).model_validate(draft.model_dump())
     except ValidationError as e:
@@ -198,8 +202,6 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         await query.answer("❌ La richiesta è incompleta o non valida. Controlla i dati e riprova "
                            "o contatta un admin.")
         return PCS.USER_REQUEST_WIZARD_SESSION
-
-    context.submit_request(validated)
 
     record = request_to_record(validated)
     content_json = json.dumps(record["content"])
@@ -209,9 +211,6 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                 VALUES ($1, $2, $3, $4)
                 RETURNING id;
                 """
-
-    if not effective_user:
-        raise ValueError("Attribute Update.effective_user must not be None!")
 
     params = [
         draft.section.platform.value,
@@ -227,6 +226,9 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         await query.answer("❌ Errore nell'invio della richiesta. Riprova o contatta gli admin.")
         return PCS.USER_REQUEST_WIZARD_SESSION
 
+    validated.id = dict(result[0]).get('id')
+    context.submit_request(validated)
+
     await query.answer()
     log.info(f"Request formulated by {effective_user.id} submitted")
 
@@ -236,7 +238,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     config = get_section_config(context=context, section=section)
 
     if config and config.limit:
-        active_requests = context.get_active_category_requests(section=section)
+        active_requests = context.get_section_active_requests(section=section)
         if len(active_requests) >= config.limit:
             config.toggle = False
             await save_yaml_configuration(context=context)
