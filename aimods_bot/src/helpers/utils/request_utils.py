@@ -24,6 +24,7 @@ _COMMON_REQUEST_TABLE_COLUMNS: set[str] = {
     "category",
     "status",
     "issued_at",
+    "closed_at",
     "rejection_reason",
     "status_change_notifications",
 }
@@ -48,13 +49,14 @@ def request_to_record(request: BaseRequest) -> dict[str, Any]:
     Converte un'istanza di BaseRequest (o sottoclasse) in un dict pronto per
     l'inserimento/aggiornamento nella tabella `requests`.
 
-    La chiave `content` contiene un dict JSON-serializzabile con tutti i campi
-    specifici della sottoclasse. Le chiavi top-level corrispondono alle colonne
-    della tabella.
+    La chiave `content` contiene un dict JSON-serializzabile (via model_dump
+    mode="json") con tutti i campi specifici della sottoclasse. Le altre chiavi
+    top-level corrispondono a colonne tipizzate.
 
-    Nota: `issued_at` viene serializzato a ISO string. Il dict risultante è
-    interamente JSON-safe; asyncpg accetta sia stringhe ISO che datetime nativi
-    per colonne timestamptz.
+    Nota: `issued_at`/`closed_at` restano `datetime` nativi (tz-aware): asyncpg
+    li lega direttamente alle colonne `timestamptz`. NON serializzarli a ISO
+    string — un parametro `$n` su timestamptz senza cast esplicito richiede un
+    datetime.datetime nativo, non una stringa.
     """
     content = request.model_dump(mode="json", exclude=_COMMON_REQUEST_TABLE_COLUMNS)
 
@@ -64,7 +66,8 @@ def request_to_record(request: BaseRequest) -> dict[str, Any]:
         "platform": request.section.platform.value,
         "category": request.section.category.value,
         "status": request.status.value if request.status else None,
-        "issued_at": request.issued_at.isoformat() if request.issued_at else None,
+        "issued_at": request.issued_at,
+        "closed_at": request.closed_at,
         "rejection_reason": request.rejection_reason,
         "status_change_notifications": request.status_change_notifications,
         "content": content,
@@ -87,6 +90,7 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     raw_status = row.get("status")
     raw_content = row.get("content")
     issued_at = row.get("issued_at")
+    closed_at = row.get("closed_at")
     user_id = row.get("user_id")
     rejection_reason = row.get("rejection_reason")
     status_change_notifications = row.get("status_change_notifications", True)
@@ -109,6 +113,14 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
 
     if isinstance(issued_at, str):
         issued_at = datetime.fromisoformat(issued_at)
+
+    if closed_at is not None and not isinstance(closed_at, (str, datetime)):
+        raise ValueError(
+            f"Request {raw_id}: closed_at must be datetime or ISO string, found {type(closed_at).__name__}"
+        )
+
+    if isinstance(closed_at, str):
+        closed_at = datetime.fromisoformat(closed_at)
 
     try:
         platform = Platform(raw_platform)
@@ -163,6 +175,7 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
             section=RequestSection(platform=platform, category=category),
             status=status,
             issued_at=issued_at,
+            closed_at=closed_at,
             rejection_reason=rejection_reason,
             status_change_notifications=status_change_notifications,
             **content_dict

@@ -66,9 +66,14 @@ class BaseRequest(BaseModel):
         delta = datetime.now(timezone.utc) - self.issued_at
         return delta.total_seconds() < cancel_time_sec
 
-    def edit_status(self, status: RequestStatus, rejection_reason: str | None = None) -> None:
+    def edit_status(
+        self,
+        status: RequestStatus,
+        rejection_reason: str | None = None,
+        closed_at: datetime | None = None,
+    ) -> None:
         if status in (RequestStatus.REJECTED, RequestStatus.COMPLETED, RequestStatus.CANCELLED):
-            self.closed_at = datetime.now(timezone.utc)
+            self.closed_at = closed_at if closed_at is not None else datetime.now(timezone.utc)
         if status == RequestStatus.REJECTED:
             if not rejection_reason or not rejection_reason.strip():
                 raise ValueError("A rejection reason must be provided.")

@@ -409,6 +409,10 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     async def edit_request_status(self, ix: int, status: RequestStatus, rejection_reason: str | None = None):
         status_value = status.value
+        is_closing = status in (
+            RequestStatus.CANCELLED, RequestStatus.REJECTED, RequestStatus.COMPLETED
+        )
+        closed_at = datetime.now(timezone.utc) if is_closing else None
         query = """UPDATE requests_test SET status = $1, rejection_reason = $2, closed_at = $3 WHERE id = $4"""
 
         res = await execute_query(
@@ -416,15 +420,19 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             params=[
                 status_value,
                 rejection_reason,
-                datetime.now(timezone.utc) if status in (
-                    RequestStatus.CANCELLED, RequestStatus.REJECTED, RequestStatus.COMPLETED
-                ) else None,
+                closed_at,
                 int(ix)
             ]
         )
         if not res:
             log.error(f"Failed to update request {ix} status to '{status}'")
             return
+
+        request = self.pydb.active_requests.get(ix, None)
+        if request:
+            request.edit_status(status=status, rejection_reason=rejection_reason, closed_at=closed_at)
+        else:
+            log.warning(f"Request {ix} not found in active request cache.")
 
         if status == RequestStatus.CANCELLED:
             self.remove_from_active_requests(ix=ix)
@@ -441,12 +449,6 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
                 next_date=job.next_t,
                 executed=False
             )
-
-        request = self.pydb.active_requests.get(ix, None)
-        if request:
-            request.edit_status(status=status, rejection_reason=rejection_reason)
-        else:
-            log.warning(f"Request {ix} not found in active request cache.")
 
         log.info(f"Updated request {ix} status to '{status}'")
 

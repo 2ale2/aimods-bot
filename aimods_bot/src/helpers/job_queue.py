@@ -1,4 +1,4 @@
-import asyncio
+t import asyncio
 from pathlib import Path
 from typing import Any, Dict
 from uuid import uuid4
@@ -12,7 +12,6 @@ from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeExc
 from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.constants.media import MediaType
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.job_names import RemoveInactiveRequestJobName
 from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
     RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob
 from aimods_bot.src.helpers.models.utils import MediaItem
@@ -328,9 +327,6 @@ async def scheduled_remove_completed_requests(context: CustomContext):
 
     request_id = job_data.request_id
     context.remove_from_active_requests(ix=request_id)
-
-    job_name = str(RemoveInactiveRequestJobName(request_id=request_id))
-    context.pydb.jobs.pop(job_name, None)
 
 
 async def scheduled_remove_user_request_cooldown(context: CustomContext):

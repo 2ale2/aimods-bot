@@ -59,6 +59,7 @@ async def set_application_data(application: Application) -> None:
     application.bot_data.base_path = None
 
     _reschedule_persisted_jobs(application, bot_data)
+    _reschedule_remove_inactive(application, bot_data)
     _setup_auto_recap(application, bot_data)
 
     await _init_pyrogram()
@@ -106,9 +107,23 @@ async def _load_active_requests(bot_data: BotData) -> None:
         RequestStatus.REJECTED.value,
         RequestStatus.CANCELLED.value
     ]
+    lingering_statuses = [
+        RequestStatus.COMPLETED.value,
+        RequestStatus.REJECTED.value,
+    ]
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        seconds=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+    )
 
-    query = "SELECT * FROM requests WHERE status != ALL($1)"
-    rows = await fetch_query(query=query, params=[inactive_request_statuses])
+    query = """
+        SELECT * FROM requests_test
+        WHERE status != ALL($1)
+           OR (status = ANY($2) AND closed_at IS NOT NULL AND closed_at > $3)
+    """
+    rows = await fetch_query(
+        query=query,
+        params=[inactive_request_statuses, lingering_statuses, cutoff]
+    )
     if not rows:
         bot_data.active_requests = {}
         return
@@ -194,9 +209,9 @@ def _reschedule_persisted_jobs(application: Application, bot_data: BotData) -> N
                 surviving[name] = info
 
             case RemoveInactiveRequestJobName() as p:
-                kept = _reschedule_remove_inactive(application, bot_data, p, info, now)
-                if kept is not None:
-                    surviving[name] = kept
+                # Non più persistiti: rigenerati al boot da closed_at
+                # (vedi _reschedule_remove_inactive). Scarto le voci legacy.
+                continue
 
             case RequestLimitJobName() as p:
                 kept = _reschedule_request_limit(application, bot_data, p, info, now)
@@ -211,28 +226,21 @@ def _reschedule_persisted_jobs(application: Application, bot_data: BotData) -> N
 
 
 # noinspection PyUnresolvedReferences
-def _reschedule_remove_inactive(
-        application: Application,
-        bot_data: BotData,
-        parsed: RemoveInactiveRequestJobName,
-        info: JobInfo,
-        now: datetime,
-) -> JobInfo | None:
-    if not info or info.executed or not info.next_date:
-        return None
+def _reschedule_remove_inactive(application: Application, bot_data: BotData) -> None:
+    window = timedelta(seconds=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE)
 
-    if info.next_date <= now:
-        # Scaduto mentre il bot era offline: rimuovo la richiesta.
-        bot_data.active_requests.pop(parsed.request_id, None)
-        return None
+    for req in bot_data.active_requests.values():
+        if req.status not in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
+            continue
+        if req.closed_at is None or req.id is None:
+            continue
 
-    application.job_queue.run_once(
-        callback=scheduled_remove_completed_requests,
-        when=info.next_date,
-        data=RemoveCompletedRequestJob(request_id=parsed.request_id),
-        name=str(parsed),
-    )
-    return info
+        application.job_queue.run_once(
+            callback=scheduled_remove_completed_requests,
+            when=req.closed_at + window,
+            data=RemoveCompletedRequestJob(request_id=req.id),
+            name=str(RemoveInactiveRequestJobName(request_id=req.id)),
+        )
 
 
 # noinspection PyUnresolvedReferences
