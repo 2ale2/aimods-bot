@@ -11,8 +11,9 @@ from aimods_bot.src.core.config_loader import load_configuration
 from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, CommandConfig
 from aimods_bot.src.helpers.constants.constants import (
-    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK
+    SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK, RequestStatus
 )
+from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.job_queue import (
     scheduled_remove_user_request_section_limitation,
     scheduled_remove_completed_requests,
@@ -26,6 +27,7 @@ from aimods_bot.src.helpers.models.job_names import (
 )
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
+from aimods_bot.src.helpers.utils.request_utils import request_from_record
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap, get_last_monday_midnight
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
 
@@ -48,6 +50,7 @@ async def set_application_data(application: Application) -> None:
     if not _apply_configuration(bot_data):
         return
 
+    await _load_active_requests(bot_data)
     await _sync_group_and_admins(application, bot_data)
     await _sync_static_texts(bot_data)
     await _sync_commands(bot_data)
@@ -95,6 +98,33 @@ def _apply_configuration(bot_data: BotData) -> bool:
 
     bot_data.configuration = validated_config
     return True
+
+
+async def _load_active_requests(bot_data: BotData) -> None:
+    inactive_request_statuses = [
+        RequestStatus.COMPLETED.value,
+        RequestStatus.REJECTED.value,
+        RequestStatus.CANCELLED.value
+    ]
+
+    query = "SELECT * FROM requests WHERE status != ALL($1)"
+    rows = await fetch_query(query=query, params=[inactive_request_statuses])
+    if not rows:
+        bot_data.active_requests = {}
+        return
+
+    loaded = {}
+    for row in rows:
+        try:
+            req = request_from_record(dict(row))
+        except Exception as e:
+            log.error(f"Skipping malformed active request during load: {e}")
+            continue
+        if req.id is not None:
+            loaded[req.id] = req
+
+    bot_data.active_requests = loaded
+    log.info(f"Loaded {len(loaded)} active requests from DB.")
 
 
 # ============================================================================

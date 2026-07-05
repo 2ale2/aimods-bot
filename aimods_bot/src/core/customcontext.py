@@ -166,7 +166,7 @@ class BotData(BaseModel):
     channel_join_link: str = ""
     group_join_link: str = "https://example.com"
 
-    active_requests: Dict[int, BaseRequest] = Field(default_factory=dict)
+    active_requests: Dict[int, BaseRequest] = Field(default_factory=dict, exclude=True)
     jobs: Dict[str, JobInfo] = Field(default_factory=dict)
     last_auto_recap: datetime | None = None
     restart: RestartData = Field(default_factory=RestartData)
@@ -408,6 +408,24 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         return bool(self.pydb.active_requests.pop(ix, None))
 
     async def edit_request_status(self, ix: int, status: RequestStatus, rejection_reason: str | None = None):
+        status_value = status.value
+        query = """UPDATE requests_test SET status = $1, rejection_reason = $2, closed_at = $3 WHERE id = $4"""
+
+        res = await execute_query(
+            query=query,
+            params=[
+                status_value,
+                rejection_reason,
+                datetime.now(timezone.utc) if status in (
+                    RequestStatus.CANCELLED, RequestStatus.REJECTED, RequestStatus.COMPLETED
+                ) else None,
+                int(ix)
+            ]
+        )
+        if not res:
+            log.error(f"Failed to update request {ix} status to '{status}'")
+            return
+
         if status == RequestStatus.CANCELLED:
             self.remove_from_active_requests(ix=ix)
         elif status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
@@ -420,7 +438,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
                 name=job_name
             )
             self.pydb.jobs[job_name] = JobInfo(
-                next_date=job.next_t.strftime("%d_%m_%Y_%H_%M_%S"),
+                next_date=job.next_t,
                 executed=False
             )
 
@@ -428,16 +446,9 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         if request:
             request.edit_status(status=status, rejection_reason=rejection_reason)
         else:
-            log.warning(f"Request {ix} not found.")
+            log.warning(f"Request {ix} not found in active request cache.")
 
-        status_value = status.value
-        query = """UPDATE requests_test SET status = $1, rejection_reason = $2 WHERE id = $3"""
-
-        res = await execute_query(query=query, params=[status_value, rejection_reason, int(ix)])
-        if not res:
-            log.error(f"Failed to update request {ix} status to '{status}'")
-        else:
-            log.info(f"Updated request {ix} status to '{status}'")
+        log.info(f"Updated request {ix} status to '{status}'")
 
     # ======== SEZIONI RICHIESTE ========
 
