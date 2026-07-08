@@ -207,8 +207,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     content_json = json.dumps(record["content"])
 
     query_sql = """
-                INSERT INTO requests_test (platform, category, user_id, content)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO requests_test (platform, category, user_id, name, version, content)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id;
                 """
 
@@ -216,6 +216,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         draft.section.platform.value,
         draft.section.category.value,
         effective_user.id,
+        validated.name,
+        validated.version,
         content_json
     ]
 

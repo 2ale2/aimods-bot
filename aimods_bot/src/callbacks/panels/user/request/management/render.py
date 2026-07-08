@@ -75,7 +75,7 @@ def _get_user_manage_active_requests_main_panel(requests: dict[int, BaseRequest]
 
     text += get_requests_summary(requests=requests)
 
-    text += "\n🔹 Scegli quale richiesta gestire."
+    text += "\n\n🔹 Scegli quale richiesta gestire."
 
     return text
 

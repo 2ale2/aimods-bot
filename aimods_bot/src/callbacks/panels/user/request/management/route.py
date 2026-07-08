@@ -33,7 +33,7 @@ async def user_request_management_route(
                 root=root.add(UserManageRequestsRoute.ACTIVE),
                 relative_path=PathBuilder(*rest)
             )
-        case UserManageRequestsRoute.REQUEST_ARCHIVE:
+        case [UserManageRequestsRoute.REQUEST_ARCHIVE]:
             await route_user_archive(
                 update=update,
                 context=context,

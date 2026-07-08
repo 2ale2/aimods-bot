@@ -38,7 +38,7 @@ async def user_requests_management_route(
             return await user_request_management_route(
                 update=update,
                 context=context,
-                root=root.add(UserRoute.VIEW_REQUESTS),
+                root=root,
                 relative_path=relative_path
             )
 

@@ -15,13 +15,14 @@ log = logger.getChild(__name__)
 
 
 # Contiene tutte le colonne in comune tra le richieste (che corrispondono ai campi di BaseRequest, meno name e version)
-_COMMON_REQUEST_TABLE_COLUMNS: set[str] = {
+_CONTENT_EXCLUDED_FIELDS: set[str] = {
     "name",
     "version",
     "id",
     "user_id",
     "platform",
     "category",
+    "section",
     "status",
     "issued_at",
     "closed_at",
@@ -54,17 +55,17 @@ def request_to_record(request: BaseRequest) -> dict[str, Any]:
     top-level corrispondono a colonne tipizzate.
 
     Nota: `issued_at`/`closed_at` restano `datetime` nativi (tz-aware): asyncpg
-    li lega direttamente alle colonne `timestamptz`. NON serializzarli a ISO
-    string — un parametro `$n` su timestamptz senza cast esplicito richiede un
-    datetime.datetime nativo, non una stringa.
+    li lega direttamente alle colonne `timestamptz`.
     """
-    content = request.model_dump(mode="json", exclude=_COMMON_REQUEST_TABLE_COLUMNS)
+    content = request.model_dump(mode="json", exclude=_CONTENT_EXCLUDED_FIELDS)
 
     return {
         "id": request.id,
         "user_id": request.user_id,
         "platform": request.section.platform.value,
         "category": request.section.category.value,
+        "name": request.name,
+        "version": request.version,
         "status": request.status.value if request.status else None,
         "issued_at": request.issued_at,
         "closed_at": request.closed_at,
@@ -162,7 +163,7 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
         )
 
     if isinstance(content_dict, dict):
-        for col in _COMMON_REQUEST_TABLE_COLUMNS:
+        for col in _CONTENT_EXCLUDED_FIELDS:
             content_dict.pop(col, None)
 
     try:
@@ -190,6 +191,9 @@ def get_requests_summary(requests: list[BaseRequest], with_authors: bool = False
     Ritorna il sommario delle richieste nel dizionario.
     """
     parts = []
+
+    if isinstance(requests, dict):
+        requests = requests.values()
 
     for n, request in enumerate(requests):
         status = request.status

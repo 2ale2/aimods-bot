@@ -98,8 +98,6 @@ def render_request_latex_item(request: BaseRequest) -> str:
 
     if request.rejection_reason:
         lines.append(rf"\textbf{{Motivo}} — \textit{{{tex_escape(request.rejection_reason)}}} \\")
-    else:
-        lines.append(r"\textbf{Motivo} — \texttt{None} \\")
 
     lines.append(rf"\end{{minipage}}")
     return "".join(lines)
