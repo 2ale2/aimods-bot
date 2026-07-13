@@ -8,7 +8,7 @@ from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSessio
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -271,4 +271,38 @@ async def render_section_notification_activated_panel(
                 ButtonItem(text="🏠 Home", callback_key=PathBuilder(UserRoute.ROOT))
             ]
         ]
+    )
+
+
+async def render_user_has_an_active_request_wizard_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        section: RequestSection
+):
+    text = ("❔ Risulta che stai già facendo un'altra richiesta per la sezione\n\n"
+            f"        {section.platform.icon} <b>{section.category_config.label}</b>\n\n"
+            "🔸 Vuoi riprenderla oppure formularne un'altra?\n\n"
+            "<blockquote>⚠️ Se ne formuli una nuova, <b>i dettagli già forniti dell'altra richiesta "
+            "in fase di formulazione andranno persi</b>.</blockquote>")
+
+    kayboard = [
+        [
+            ButtonItem(
+                text="✏️ Continuo la Precedente",
+                callback_key=base_path.add(UserManageRequestsRoute.CONTINUE_REQUEST)
+            )
+        ],
+        [
+            ButtonItem(
+                text="➕ Ne formulo un'altra.",
+                callback_key=base_path.add(UserManageRequestsRoute.DISMISS_REQUEST))
+        ]
+    ]
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=kayboard
     )

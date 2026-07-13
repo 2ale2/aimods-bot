@@ -18,6 +18,8 @@ SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
 pyro_instance = None
 
+DEFAULT_SECTION_OPENING_NOTIFICATION = True
+
 ERROR_MESSAGES = {
     "command_syntax_error": "⚠️ Warning\n\n▪️ Sintassi del comando non corretta.",
     "no_user_provided": "⚠️ Warning\n\n▪️ Se non rispondi ad un messaggio, devi indicare un utente.",

@@ -1,3 +1,6 @@
+import os
+
+from pydantic import ValidationError
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.settings_management.handle import \
@@ -6,11 +9,13 @@ from aimods_bot.src.callbacks.panels.user.settings_management.render import rend
     render_user_notification_settings_management_panel, render_user_section_opening_notification_settings_panel, \
     render_section_opening_notification_disabled_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import Platform, Category
-from aimods_bot.src.helpers.constants.path_navigation import UserManageSettingsRoute, NotificationAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import UserManageSettingsRoute, NotificationAction
+from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
+
+log = logger.getChild(__name__)
 
 
 async def user_settings_management_route(
@@ -44,10 +49,13 @@ async def user_settings_management_route(
                                 context=context,
                                 base_path=root
                             )
-                        case [platform_str, category_str] if platform_str in Platform and category_str in Category:
-                            platform = Platform(platform_str)
-                            category = Category(category_str)
-                            section = RequestSection(platform=platform, category=category)
+                        case [section_str]:
+                            try:
+                                section = RequestSection.from_string(section_str)
+                            except (ValueError, ValidationError):
+                                log.warning(f"Invalid section string: {section_str}")
+                                return PCS.USER_CONVERSATION
+
                             await handle_user_section_opening_notification_toggle(
                                 context=context,
                                 section=section
@@ -64,5 +72,13 @@ async def user_settings_management_route(
                                     context=context,
                                     base_path=root
                                 )
+                        case _:
+                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
+                case _:
+                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
+        case _:
+            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
     return PCS.USER_CONVERSATION

@@ -1,6 +1,7 @@
 import os
 from zoneinfo import ZoneInfo
 
+from pydantic import ValidationError
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
@@ -8,7 +9,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_has_cooldown_panel,
     render_user_request_platform_panel,
     render_user_request_category_panel, render_global_request_wizard_panel, render_cant_request_panel,
-    render_section_notification_activated_panel
+    render_section_notification_activated_panel, render_user_has_an_active_request_wizard_panel
 )
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
@@ -51,20 +52,47 @@ async def user_requests_management_route(
                         base_path=root
                     )
 
-                case [
-                    NA.FROM_NOTIFICATION, platform_str, category_str
-                ] if platform_str in Platform and category_str in Category:
-                    platform = Platform(platform_str)
-                    category = Category(category_str)
+                case [NA.FROM_NOTIFICATION, section_str, *rest]:
+                    try:
+                        section = RequestSection.from_string(section_str)
+                    except (ValueError, ValidationError):
+                        log.warning(f"Invalid Section input: {section_str}")
+                        return PCS.USER_CONVERSATION
 
-                    root = root.add(platform, category)
+                    root = root.add(section.platform, section.category)
 
-                    context.init_request_wizard_session(
-                        user_id=update.effective_user.id,
-                        section=RequestSection(platform=platform, category=category),
-                        from_notification=True,
-                        msg_id=update.effective_message.id
-                    )
+                    wizard = context.pydc.persistent.active_request_wizard
+
+                    rest_path = PathBuilder(*rest)
+                    match rest_path.segments:
+                        case []:
+                            if wizard:
+                                await render_user_has_an_active_request_wizard_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root.add(NA.FROM_NOTIFICATION, section_str),
+                                    section=wizard.draft.section
+                                )
+                                return PCS.USER_CONVERSATION
+                            else:
+                                context.init_request_wizard_session(
+                                    user_id=update.effective_user.id,
+                                    section=section,
+                                    from_notification=True,
+                                    msg_id=update.effective_message.id
+                                )
+                        case [UserManageRequestsRoute.DISMISS_REQUEST]:
+                            context.init_request_wizard_session(
+                                user_id=update.effective_user.id,
+                                section=section,
+                                from_notification=True,
+                                msg_id=update.effective_message.id
+                            )
+                        case [UserManageRequestsRoute.CONTINUE_REQUEST]:
+                            pass  # proseguo la richiesta precedente
+                        case _:
+                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
                     context.pydc.persistent.root_path = root.build()
 
                     await render_global_request_wizard_panel(

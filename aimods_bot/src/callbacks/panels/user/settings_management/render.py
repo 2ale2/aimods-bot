@@ -106,7 +106,7 @@ def _get_user_section_opening_notification_settings_text_keyboard(settings: User
             buttons.append(
                 ButtonItem(
                     text=f"{platform.icon} {cat_conf.label}",
-                    callback_key=f"{platform.value}:{cat.value}")
+                    callback_key=base_path.add(RequestSection(platform=platform, category=cat)))
             )
 
     keyboard = chunk_buttons(buttons=buttons, size=4)

@@ -29,3 +29,6 @@ class UserManageRequestsRoute(StrEnum):
     ENABLE_STATUS_NOTIFICATION = "enable_notification"
     DISABLE_STATUS_NOTIFICATION = "disable_notification"
 
+    CONTINUE_REQUEST = "continue_request"
+    DISMISS_REQUEST = "dismiss_request"
+

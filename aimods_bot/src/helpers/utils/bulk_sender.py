@@ -52,9 +52,8 @@ async def _send_single_opening_notification(
                             UserRoute.ROOT,
                             UserRoute.VIEW_REQUESTS,
                             NotificationAction.FROM_NOTIFICATION,
-                            section.platform,
-                            section.category
-                        )
+                            RequestSection(platform=section.platform, category=section.category)
+                        ).build()
                     ),
                 ],
                 [
@@ -66,9 +65,8 @@ async def _send_single_opening_notification(
                             UserManageSettingsRoute.NOTIFICATIONS,
                             UserManageSettingsRoute.SECTION_OPENING_NOTIFICATIONS,
                             NotificationAction.FROM_NOTIFICATION,
-                            section.platform,
-                            section.category
-                        )
+                            section
+                        ).build()
                     )
                 ],
                 [
