@@ -50,7 +50,7 @@ async def _send_single_opening_notification(
                         text=f"{cat_config.icon} Formula Richiesta",
                         callback_data=PathBuilder(
                             UserRoute.ROOT,
-                            UserRoute.VIEW_REQUESTS,
+                            UserRoute.ADD_REQUEST,
                             NotificationAction.FROM_NOTIFICATION,
                             RequestSection(platform=section.platform, category=section.category)
                         ).build()

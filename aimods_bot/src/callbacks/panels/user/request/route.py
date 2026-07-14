@@ -52,7 +52,7 @@ async def user_requests_management_route(
                         base_path=root
                     )
 
-                case [NA.FROM_NOTIFICATION, section_str, *rest]:
+                case [NA.FROM_NOTIFICATION, section_str]:
                     try:
                         section = RequestSection.from_string(section_str)
                     except (ValueError, ValidationError):
@@ -60,46 +60,15 @@ async def user_requests_management_route(
                         return PCS.USER_CONVERSATION
 
                     root = root.add(section.platform, section.category)
+                    if await _guard_existing_wizard(update=update, context=context, section=section, base_path=root):
+                        return PCS.USER_CONVERSATION
 
-                    wizard = context.pydc.persistent.active_request_wizard
-
-                    rest_path = PathBuilder(*rest)
-                    match rest_path.segments:
-                        case []:
-                            if wizard:
-                                await render_user_has_an_active_request_wizard_panel(
-                                    update=update,
-                                    context=context,
-                                    base_path=root.add(NA.FROM_NOTIFICATION, section_str),
-                                    section=wizard.draft.section
-                                )
-                                return PCS.USER_CONVERSATION
-                            else:
-                                context.init_request_wizard_session(
-                                    user_id=update.effective_user.id,
-                                    section=section,
-                                    from_notification=True,
-                                    msg_id=update.effective_message.id
-                                )
-                        case [UserManageRequestsRoute.DISMISS_REQUEST]:
-                            context.init_request_wizard_session(
-                                user_id=update.effective_user.id,
-                                section=section,
-                                from_notification=True,
-                                msg_id=update.effective_message.id
-                            )
-                        case [UserManageRequestsRoute.CONTINUE_REQUEST]:
-                            pass  # proseguo la richiesta precedente
-                        case _:
-                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
-
-                    context.pydc.persistent.root_path = root.build()
-
-                    await render_global_request_wizard_panel(
+                    return await _enter_wizard_or_explain(
                         update=update,
-                        context=context
+                        context=context,
+                        section=section,
+                        base_path=root
                     )
-                    return PCS.USER_REQUEST_WIZARD_SESSION
 
                 case [platform_str, *rest] if platform_str in Platform:
                     platform = Platform(platform_str)
@@ -132,11 +101,31 @@ async def user_requests_management_route(
                             section = RequestSection(platform=platform, category=category)
                             match PathBuilder(*rest).segments:
                                 case []:
+                                    if await _guard_existing_wizard(
+                                            update=update,
+                                            context=context,
+                                            section=section,
+                                            base_path=root
+                                    ):
+                                        return PCS.USER_CONVERSATION
+
+                                    return await _enter_wizard_or_explain(
+                                        update=update,
+                                        context=context,
+                                        section=section,
+                                        base_path=root
+                                    )
+
+                                case [user_had_wizard] if user_had_wizard in (
+                                    UserManageRequestsRoute.CONTINUE_REQUEST,
+                                    UserManageRequestsRoute.DISMISS_REQUEST
+                                ):
                                     return await _enter_wizard_or_explain(
                                         update=update,
                                         context=context,
                                         base_path=root,
-                                        section=section
+                                        section=section,
+                                        new_wizard=(user_had_wizard == UserManageRequestsRoute.DISMISS_REQUEST)
                                     )
 
                                 case [UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS]:
@@ -204,7 +193,8 @@ async def _enter_wizard_or_explain(
         update: Update,
         context: CustomContext,
         section: RequestSection,
-        base_path: PathBuilder
+        base_path: PathBuilder,
+        new_wizard: bool = True
 ):
     cat_num = len(PLATFORM_CATEGORY_REGISTRY[section.platform])
     back_callback = base_path.back(2) if cat_num == 1 else base_path.back()
@@ -252,11 +242,33 @@ async def _enter_wizard_or_explain(
         return PCS.USER_CONVERSATION
 
     context.pydc.persistent.root_path = base_path.build()
-    context.init_request_wizard_session(
-        user_id=update.effective_user.id,
-        section=section,
-        from_notification=False,
-        msg_id=update.effective_message.id,
-    )
+    if new_wizard:
+        context.init_request_wizard_session(
+            user_id=update.effective_user.id,
+            section=section,
+            from_notification=False,
+            msg_id=update.effective_message.id,
+        )
     await render_global_request_wizard_panel(update=update, context=context)
     return PCS.USER_REQUEST_WIZARD_SESSION
+
+
+async def _guard_existing_wizard(
+        update: Update,
+        context: CustomContext,
+        section: RequestSection,
+        base_path: PathBuilder,
+) -> bool:
+    """
+    Se esiste già un wizard attivo, mostra il pannello di scelta continua/ricomincia
+    e ritorna True (il chiamante deve fermarsi). Altrimenti ritorna False (procedi).
+    """
+    if context.pydc.persistent.active_request_wizard is not None:
+        await render_user_has_an_active_request_wizard_panel(
+            update=update,
+            context=context,
+            base_path=base_path,
+            section=section,
+        )
+        return True
+    return False

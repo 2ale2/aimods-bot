@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict, Any, Union
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from telegram.ext import CallbackContext, ExtBot, Application
 from telegram import User as PTBUser, ChatMember as PTBChatMember
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
@@ -90,6 +90,38 @@ class RequestWizardSession(BaseModel):
         default=None,
         description="The bot message containing the wizard."
     )
+
+    @field_validator("draft", mode="before")
+    @classmethod
+    def _rebuild_draft_subclass(cls, v):
+        if isinstance(v, BaseRequest) and type(v) is not BaseRequest:
+            return v
+
+        if isinstance(v, BaseRequest):
+            data = v.model_dump()
+        elif isinstance(v, dict):
+            data = v
+        else:
+            return v
+
+        section_data = data.get("section")
+        if section_data is None:
+            return v
+
+        if isinstance(section_data, RequestSection):
+            platform, category = section_data.platform, section_data.category
+        elif isinstance(section_data, dict):
+            platform = Platform(section_data["platform"])
+            category = Category(section_data["category"])
+        else:
+            return v
+
+        try:
+            model_cls = PLATFORM_CATEGORY_REGISTRY[platform][category].model
+        except KeyError:
+            return v
+
+        return model_cls.model_construct(**data)
 
 
 class ChatDataPersistent(BaseModel):

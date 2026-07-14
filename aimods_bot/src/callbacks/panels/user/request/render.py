@@ -295,8 +295,9 @@ async def render_user_has_an_active_request_wizard_panel(
         ],
         [
             ButtonItem(
-                text="➕ Ne formulo un'altra.",
-                callback_key=base_path.add(UserManageRequestsRoute.DISMISS_REQUEST))
+                text="➕ Ne formulo un'altra",
+                callback_key=base_path.add(UserManageRequestsRoute.DISMISS_REQUEST)
+            )
         ]
     ]
 
