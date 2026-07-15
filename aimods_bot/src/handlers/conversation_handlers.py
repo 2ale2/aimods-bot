@@ -5,6 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route impor
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
 )
+from aimods_bot.src.callbacks.panels.general.router import general_router
 from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_callback_input, handle_wizard_back, \
@@ -20,7 +21,8 @@ main_private_conversation_handler = ConversationHandler(
             prefix=COMMAND_PREFIX,
             command="start",
             callback=start
-        )
+        ),
+        CallbackQueryHandler(callback=general_router)
     ],
     states={
         PCS.USER_CONVERSATION: [CallbackQueryHandler(callback=user_main_router)],
@@ -49,5 +51,7 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },
-    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper)]
+    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper)],
+    persistent=True,
+    name="main_private_conversation_handler"
 )
