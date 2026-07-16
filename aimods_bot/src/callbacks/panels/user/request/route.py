@@ -22,6 +22,7 @@ from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 log = logger.getChild(__name__)
 
@@ -60,7 +61,7 @@ async def user_requests_management_route(
                         return PCS.USER_CONVERSATION
 
                     root = root.add(section.platform, section.category)
-                    if await _guard_existing_wizard(update=update, context=context, section=section, base_path=root):
+                    if await _guard_existing_wizard(update=update, context=context, base_path=root):
                         return PCS.USER_CONVERSATION
 
                     return await _enter_wizard_or_explain(
@@ -104,7 +105,6 @@ async def user_requests_management_route(
                                     if await _guard_existing_wizard(
                                             update=update,
                                             context=context,
-                                            section=section,
                                             base_path=root
                                     ):
                                         return PCS.USER_CONVERSATION
@@ -120,6 +120,9 @@ async def user_requests_management_route(
                                     UserManageRequestsRoute.CONTINUE_REQUEST,
                                     UserManageRequestsRoute.DISMISS_REQUEST
                                 ):
+                                    if user_had_wizard == UserManageRequestsRoute.CONTINUE_REQUEST:
+                                        await safe_delete(update=update, context=context)
+
                                     return await _enter_wizard_or_explain(
                                         update=update,
                                         context=context,
@@ -256,19 +259,19 @@ async def _enter_wizard_or_explain(
 async def _guard_existing_wizard(
         update: Update,
         context: CustomContext,
-        section: RequestSection,
         base_path: PathBuilder,
 ) -> bool:
     """
     Se esiste già un wizard attivo, mostra il pannello di scelta continua/ricomincia
     e ritorna True (il chiamante deve fermarsi). Altrimenti ritorna False (procedi).
     """
-    if context.pydc.persistent.active_request_wizard is not None:
+    wizard = context.pydc.persistent.active_request_wizard
+    if wizard is not None:
         await render_user_has_an_active_request_wizard_panel(
             update=update,
             context=context,
             base_path=base_path,
-            section=section,
+            section=wizard.draft.section,
         )
         return True
     return False

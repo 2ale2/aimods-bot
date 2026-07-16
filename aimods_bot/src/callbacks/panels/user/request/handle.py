@@ -4,7 +4,9 @@ from typing import get_args, Callable, Awaitable
 
 from pydantic import ValidationError
 from telegram import Update
+from telegram.ext import ConversationHandler
 
+from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
 from aimods_bot.src.core.config_accessor import get_section_config
@@ -106,7 +108,6 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
     query = update.callback_query
     if not query:
         raise ValueError("No query inside Update!")
-    await query.answer()
 
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
@@ -126,6 +127,17 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
         wizard.requesting = RequestField(query.data)
         wizard.editing = True
 
+    elif query.data == UserRoute.ROOT:
+        await start(update=update, context=context)
+        return ConversationHandler.END
+
+    else:
+        await query.answer(text="⚠️ Non puoi eseguire questa azione ora.\n\n"
+                                "💡 Per annullare la formulazione di una richiesta, "
+                                "premi 🔙 Home.", show_alert=True)
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    await query.answer()
     await render_global_request_wizard_panel(
         update=update,
         context=context

@@ -90,7 +90,12 @@ class Panel:
 
         if text_changed:
             success = await self._try_edit_text(
-                context, update, text, reply_markup, preview_options, message_id
+                context=context,
+                update=update,
+                text=text,
+                reply_markup=reply_markup,
+                preview_options=preview_options,
+                message_id=message_id
             )
             if success:
                 return

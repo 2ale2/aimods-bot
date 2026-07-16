@@ -167,7 +167,7 @@ def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list
     if from_notification:
         cancel_button = ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)
     else:
-        cancel_button = ButtonItem(text="🔙 Home", callback_key=PathBuilder(UserRoute.ROOT))
+        cancel_button = ButtonItem(text="🔙 Home", callback_key=UserRoute.ROOT)
 
     if wizard.requesting:
         keyboard = []
