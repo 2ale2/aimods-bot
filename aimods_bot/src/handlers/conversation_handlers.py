@@ -51,7 +51,7 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ]
     },
-    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper)],
+    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE_MENU, callback=safe_delete_wrapper)],
     persistent=True,
     name="main_private_conversation_handler"
 )

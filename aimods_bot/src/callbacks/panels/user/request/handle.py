@@ -168,7 +168,6 @@ async def handle_wizard_back(update: Update, context: CustomContext):
         else:
             current_index = flow_list.index(wizard.requesting)
             if current_index == 0:
-                context.pydc.persistent.active_request_wizard = None
                 # TODO: await user_main_route, funzione da modificare
                 return PCS.USER_CONVERSATION
 

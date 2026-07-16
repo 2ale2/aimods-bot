@@ -10,6 +10,7 @@ from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup,
                       LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser, Message,
                       MessageEntity)
 from telegram.constants import ParseMode
+from telegram.ext import ConversationHandler
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_accessor import set_value
@@ -107,6 +108,7 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
 async def safe_delete_wrapper(update: Update, context: CustomContext):
     """Wrapper per safe_delete usando il messaggio corrente"""
     await safe_delete(update, context, update.effective_message)
+    return ConversationHandler.END
 
 
 async def safe_delete(

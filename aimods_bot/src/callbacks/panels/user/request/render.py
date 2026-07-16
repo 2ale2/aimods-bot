@@ -164,6 +164,7 @@ def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:
 def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list[list[ButtonItem]]:
     draft = wizard.draft
     from_notification = wizard.from_notification
+    first_requesting = (wizard.requesting == draft.FLOW[0])
     if from_notification:
         cancel_button = ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)
     else:
@@ -179,7 +180,12 @@ def _get_request_wizard_step_text_keyboard(wizard: RequestWizardSession) -> list
                 ButtonItem(text="✅ Sì", callback_key=GlobalAction.YES),
                 ButtonItem(text="❌ No", callback_key=GlobalAction.NO)
             ])
-        keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=GlobalAction.REQUEST_WIZARD_BACK), cancel_button])
+        show_back = not (from_notification and first_requesting)
+        service_buttons = []
+        if show_back:
+            service_buttons.append(ButtonItem(text="🔙 Indietro", callback_key=GlobalAction.REQUEST_WIZARD_BACK))
+        service_buttons.append(cancel_button)
+        keyboard.append(service_buttons)
         return keyboard
     else:
         buttons = []
@@ -213,7 +219,7 @@ def _get_request_wizard_confirmation_text():
 
 def _get_request_wizard_confirmation_keyboard(from_notification: bool):
     if from_notification:
-        back_button = ButtonItem(text="📪 Chiudi", callback_key=GlobalAction.CLOSE)
+        back_button = ButtonItem(text="📪 Chiudi", callback_key=GlobalAction.CLOSE_MENU)
     else:
         back_button = ButtonItem(text="🏠 Torna alla Home", callback_key=PathBuilder(UserRoute.ROOT))
 

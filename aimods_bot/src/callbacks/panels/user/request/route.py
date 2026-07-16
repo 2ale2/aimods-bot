@@ -62,13 +62,15 @@ async def user_requests_management_route(
 
                     root = root.add(section.platform, section.category)
                     if await _guard_existing_wizard(update=update, context=context, base_path=root):
+                        context.pydc.persistent.active_request_wizard.from_notification = True
                         return PCS.USER_CONVERSATION
 
                     return await _enter_wizard_or_explain(
                         update=update,
                         context=context,
                         section=section,
-                        base_path=root
+                        base_path=root,
+                        from_notification=True
                     )
 
                 case [platform_str, *rest] if platform_str in Platform:
@@ -107,6 +109,7 @@ async def user_requests_management_route(
                                             context=context,
                                             base_path=root
                                     ):
+                                        context.pydc.persistent.active_request_wizard.from_notification = False
                                         return PCS.USER_CONVERSATION
 
                                     return await _enter_wizard_or_explain(
@@ -128,7 +131,8 @@ async def user_requests_management_route(
                                         context=context,
                                         base_path=root,
                                         section=section,
-                                        new_wizard=(user_had_wizard == UserManageRequestsRoute.DISMISS_REQUEST)
+                                        new_wizard=(user_had_wizard == UserManageRequestsRoute.DISMISS_REQUEST),
+                                        from_notification=context.pydc.persistent.active_request_wizard.from_notification
                                     )
 
                                 case [UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS]:
@@ -197,7 +201,8 @@ async def _enter_wizard_or_explain(
         context: CustomContext,
         section: RequestSection,
         base_path: PathBuilder,
-        new_wizard: bool = True
+        new_wizard: bool = True,
+        from_notification: bool = False
 ):
     cat_num = len(PLATFORM_CATEGORY_REGISTRY[section.platform])
     back_callback = base_path.back(2) if cat_num == 1 else base_path.back()
@@ -249,7 +254,7 @@ async def _enter_wizard_or_explain(
         context.init_request_wizard_session(
             user_id=update.effective_user.id,
             section=section,
-            from_notification=False,
+            from_notification=from_notification,
             msg_id=update.effective_message.id,
         )
     await render_global_request_wizard_panel(update=update, context=context)
