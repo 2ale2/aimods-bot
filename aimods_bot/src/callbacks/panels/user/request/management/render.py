@@ -187,8 +187,7 @@ async def _get_confirm_cancel_text(request: BaseRequest) -> str:
     text = ("👁‍🗨 <b>Gestione Richieste Attive</b>\n\n"
             "→ 🗑 <b>Cancellazione</b>\n\n")
     text += details_text
-    text += ("\n\n<tg-emoji emoji-id=\"5368324170671202286\">👍</tg-emoji>"
-             "🔹 Confermi di voler <b>cancellare</b> questa richiesta?")
+    text += ("\n\n🔹 Confermi di voler <b>cancellare</b> questa richiesta?")
 
     return text
 

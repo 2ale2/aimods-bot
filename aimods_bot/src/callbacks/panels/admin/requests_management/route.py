@@ -26,11 +26,11 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import (
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
-from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import RequestStatus, RejectRequestReason, Platform, Category
+from aimods_bot.src.core.customcontext import CustomContext, RequestRejectionSession
+from aimods_bot.src.helpers.constants.constants import RequestStatus, Platform, Category
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
@@ -168,6 +168,7 @@ async def route_admin_active_requests_management(
 
                 case [category_str, *rest] if category_str in Category:
                     category = Category(category_str)
+                    root = root.add(category)
                     section = RequestSection(platform=platform, category=category)
 
                     match PathBuilder(*rest).segments:
@@ -183,7 +184,7 @@ async def route_admin_active_requests_management(
                             return await admin_manage_request_route(
                                 update=update,
                                 context=context,
-                                root=root.add(platform, category, request_id_str),
+                                root=root.add(request_id_str),
                                 relative_path=PathBuilder(*rest),
                                 ix=int(request_id_str)
                             )
@@ -255,11 +256,10 @@ async def admin_manage_request_route(
             return PCS.ADMIN_CONVERSATION
 
         case [LimitationsOp.LIMIT, *rest]:
-            user_id = request.user_id
             return await route_admin_manage_limitations(
                 update=update,
                 context=context,
-                root=root.add(LimitationsOp.LIMIT, user_id),
+                root=root.add(LimitationsOp.LIMIT),
                 relative_path=PathBuilder(*rest)
             )
 
@@ -322,13 +322,15 @@ async def admin_manage_request_route(
 
         case [AdminRequestManagementRoute.REJECT, *rest]:
             if await ensure_active():
-                root = root.add(AdminRequestManagementRoute.REJECT)
-
                 match PathBuilder(*rest).segments:
                     case []:
-                        # non salvo la richiesta nella persistenza per evitare problemi di concorrenza
-                        # verifico a ogni pressione se la richiesta è ancora attiva
-                        context.pydc.persistent.bot_message_id = update.effective_message.id
+                        context.pydc.ephemeral.active_rejection_session = RequestRejectionSession(
+                            bot_msg_id=update.effective_message.id,
+                            request_id=request.id
+                        )
+                        context.pydc.persistent.root_path = root.build()
+                        context.pydc.persistent.relative_path = relative_path.build()
+
                         await render_admin_reject_request_panel(
                             update=update,
                             context=context,
@@ -336,25 +338,42 @@ async def admin_manage_request_route(
                             request=request
                         )
                         return PCS.SET_REQUEST_REJECTION_REASON
-                    case [reason_str]:
-                        reason = RejectRequestReason(reason_str) if reason_str in RejectRequestReason else reason_str
+                    case [AdminRequestManagementRoute.REJECT_REASON_SET]:
+                        rejection_session = context.pydc.ephemeral.active_rejection_session
+                        if rejection_session is None:
+                            raise ValueError("Rejection session not found.")
+
+                        reason = rejection_session.reason
+                        if reason is None:
+                            raise ValueError("Rejection reason not specified.")
+
                         await render_admin_confirm_rejection_panel(
                             update=update,
                             context=context,
-                            base_path=root.add(reason_str),
+                            base_path=root,
                             request=request,
                             reason=reason
                         )
                         return PCS.ADMIN_CONVERSATION
-                    case [reason_str, GlobalAction.YES]:
-                        await confirm_rejection(context, ix=ix, reason=reason_str)
+                    case [AdminRequestManagementRoute.REJECT_REASON_SET, GlobalAction.YES]:
+                        rejection_session = context.pydc.ephemeral.active_rejection_session
+                        if rejection_session is None:
+                            raise ValueError("Rejection session not found.")
+                        request_id = rejection_session.request_id
+                        rejection_reason = rejection_session.reason
+
+                        await confirm_rejection(
+                            context=context,
+                            ix=request_id,
+                            reason=rejection_reason
+                        )
                         await render_admin_rejection_confirmed_panel(
                             update=update,
                             context=context,
-                            ix=ix,
-                            reason=reason_str
+                            ix=request_id,
+                            reason=rejection_reason
                         )
-                        await _notify_user_safe(update, context, request)
+                        await _notify_user_safe(update=update, context=context, request=request)
                         return PCS.ADMIN_CONVERSATION
 
         case _:

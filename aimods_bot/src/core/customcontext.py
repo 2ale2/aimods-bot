@@ -124,6 +124,12 @@ class RequestWizardSession(BaseModel):
         return model_cls.model_construct(**data)
 
 
+class RequestRejectionSession(BaseModel):
+    request_id: int = Field(description="ID of the request to be rejected")
+    reason: str | None = Field(default=None, description="Rejection reason")
+    bot_msg_id: int | None = Field(default=None)
+
+
 class ChatDataPersistent(BaseModel):
     # ======== Both Admins & Users ========
     bot_message_id: int | None = Field(
@@ -171,6 +177,10 @@ class ChatDataEphemeral(BaseModel):
     resolved_users: Dict[int, Union[PTBUser, PyroUser]] | None = Field(
         default_factory=dict,
         description="Users cache to avoid flood limit while resolving. Must be not in persistence."
+    )
+    active_rejection_session: RequestRejectionSession | None = Field(
+        default=None,
+        description="Request rejection session"
     )
     # ======== Users ========
 

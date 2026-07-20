@@ -34,6 +34,7 @@ class AdminRequestManagementRoute(StrEnum):
     REMOVE = "remove"
     REJECT = "reject"
     CHANGE_STATUS = "change_status"
+    REJECT_REASON_SET = "reject_reason_set"
 
 
 class LimitationsAction(StrEnum):

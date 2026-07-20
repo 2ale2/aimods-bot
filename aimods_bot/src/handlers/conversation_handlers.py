@@ -49,6 +49,9 @@ main_private_conversation_handler = ConversationHandler(
         PCS.SET_USER_FOR_REQUEST_ARCHIVE: [
             MessageHandler(filters=filters.TEXT, callback=handle_user_archive_user_input),
             CallbackQueryHandler(callback=admin_main_router)
+        ],
+        PCS.SET_REQUEST_REJECTION_REASON: [
+
         ]
     },
     fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE_MENU, callback=safe_delete_wrapper)],
