@@ -1,6 +1,5 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import confirm_rejection
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
@@ -284,35 +283,36 @@ async def admin_manage_request_route(
 
         case [AdminRequestManagementRoute.CHANGE_STATUS, *rest]:
             if await ensure_active():
+                root = root.add(AdminRequestManagementRoute.CHANGE_STATUS)
                 match PathBuilder(*rest).segments:
                     case []:
                         await render_admin_manage_request_change_status_panel(
                             update=update,
                             context=context,
-                            base_path=root.add(AdminRequestManagementRoute.CHANGE_STATUS),
+                            base_path=root,
                             request=request
                         )
 
                     case [new_status_str, *rest] if new_status_str in RequestStatus:
+                        root = root.add(new_status_str)
                         new_status = RequestStatus(new_status_str)
                         match PathBuilder(*rest).segments:
                             case []:
                                 await render_change_request_status_confirmation_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root.add(new_status_str),
+                                    base_path=root,
                                     request=request,
                                     status=new_status
                                 )
                             case [GlobalAction.YES]:
-                                new_status = RequestStatus(new_status_str)
                                 await context.edit_request_status(ix=ix, status=new_status)
 
                                 updated_request = context.get_active_request_by_id(ix=ix)
                                 await render_request_status_changed_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root,
+                                    base_path=root.back(2),
                                     request=updated_request
                                 )
                                 if new_status == RequestStatus.COMPLETED:
@@ -330,6 +330,7 @@ async def admin_manage_request_route(
                         )
                         context.pydc.persistent.root_path = root.build()
                         context.pydc.persistent.relative_path = relative_path.build()
+                        context.pydc.persistent.bot_message_id = update.effective_message.id
 
                         await render_admin_reject_request_panel(
                             update=update,
@@ -338,44 +339,46 @@ async def admin_manage_request_route(
                             request=request
                         )
                         return PCS.SET_REQUEST_REJECTION_REASON
-                    case [AdminRequestManagementRoute.REJECT_REASON_SET]:
+                    case [AdminRequestManagementRoute.REJECT_REASON_SET, *rest]:
                         rejection_session = context.pydc.ephemeral.active_rejection_session
                         if rejection_session is None:
                             raise ValueError("Rejection session not found.")
 
-                        reason = rejection_session.reason
-                        if reason is None:
+                        rejection_reason = rejection_session.reason
+                        if rejection_reason is None:
                             raise ValueError("Rejection reason not specified.")
 
-                        await render_admin_confirm_rejection_panel(
-                            update=update,
-                            context=context,
-                            base_path=root,
-                            request=request,
-                            reason=reason
-                        )
-                        return PCS.ADMIN_CONVERSATION
-                    case [AdminRequestManagementRoute.REJECT_REASON_SET, GlobalAction.YES]:
-                        rejection_session = context.pydc.ephemeral.active_rejection_session
-                        if rejection_session is None:
-                            raise ValueError("Rejection session not found.")
-                        request_id = rejection_session.request_id
-                        rejection_reason = rejection_session.reason
+                        match PathBuilder(*rest).segments:
+                            case []:
+                                await render_admin_confirm_rejection_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root + relative_path,
+                                    request=request,
+                                    reason=rejection_reason
+                                )
+                                return PCS.ADMIN_CONVERSATION
+                            case [GlobalAction.YES]:
+                                request_id = rejection_session.request_id
+                                await context.edit_request_status(
+                                    ix=request_id,
+                                    status=RequestStatus.REJECTED,
+                                    rejection_reason=rejection_reason
+                                )
+                                context.pydc.ephemeral.active_rejection_session = None
 
-                        await confirm_rejection(
-                            context=context,
-                            ix=request_id,
-                            reason=rejection_reason
-                        )
-                        await render_admin_rejection_confirmed_panel(
-                            update=update,
-                            context=context,
-                            ix=request_id,
-                            reason=rejection_reason
-                        )
-                        await _notify_user_safe(update=update, context=context, request=request)
-                        return PCS.ADMIN_CONVERSATION
-
+                                await render_admin_rejection_confirmed_panel(
+                                    update=update,
+                                    context=context,
+                                    ix=request_id,
+                                    reason=rejection_reason
+                                )
+                                await _notify_user_safe(update=update, context=context, request=request)
+                                return PCS.ADMIN_CONVERSATION
+                            case _:
+                                log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
+                    case _:
+                        log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
         case _:
             log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
 

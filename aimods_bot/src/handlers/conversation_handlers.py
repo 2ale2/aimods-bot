@@ -1,6 +1,7 @@
 from telegram.ext import ConversationHandler, PrefixHandler, CallbackQueryHandler, MessageHandler, filters
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
+from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_request_rejection_reason
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import (
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
@@ -51,7 +52,8 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_REQUEST_REJECTION_REASON: [
-
+            MessageHandler(filters=filters.TEXT, callback=handle_request_rejection_reason),
+            CallbackQueryHandler(callback=handle_request_rejection_reason)
         ]
     },
     fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE_MENU, callback=safe_delete_wrapper)],

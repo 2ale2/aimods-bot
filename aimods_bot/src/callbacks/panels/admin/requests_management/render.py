@@ -518,7 +518,7 @@ async def render_admin_manage_request_change_status_panel(
 
     keyboard = [[]]
     for sk in RequestStatus:
-        if sk == RequestStatus.CANCELLED:
+        if sk == RequestStatus.CANCELLED or sk == request.status:
             continue
         if len(keyboard[-1]) >= 2:
             keyboard.append([])
@@ -565,31 +565,31 @@ async def render_admin_reject_request_panel(
             [
                 ButtonItem(
                     text="Serverside",
-                    callback_key=base_path.add(RejectRequestReason.SERVERSIDE)
+                    callback_key=RejectRequestReason.SERVERSIDE
                 )
             ],
             [
                 ButtonItem(
                     text="Non disponibile al momento",
-                    callback_key=base_path.add(RejectRequestReason.NOT_AVAILABLE)
+                    callback_key=RejectRequestReason.NOT_AVAILABLE
                 )
             ],
             [
                 ButtonItem(
                     text="Già disponibile",
-                    callback_key=base_path.add(RejectRequestReason.ALREADY_AVAILABLE)
+                    callback_key=RejectRequestReason.ALREADY_AVAILABLE
                 )
             ],
             [
                 ButtonItem(
                     text="Richiesta non chiara",
-                    callback_key=base_path.add(RejectRequestReason.UNCLEAR)
+                    callback_key=RejectRequestReason.UNCLEAR
                 )
             ],
             [
                 ButtonItem(
                     text="🔙 Indietro",
-                    callback_key=base_path.back()
+                    callback_key=AdminRequestManagementRoute.REJECT_REASON_BACK
                 )
             ]
         ]
@@ -623,7 +623,7 @@ async def render_admin_confirm_rejection_panel(
         keyboard=[
             [
                 ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.YES)),
-                ButtonItem(text="🔙 Indietro", callback_key=base_path.back())
+                ButtonItem(text="🔙 Indietro", callback_key=base_path)
             ]
         ],
         message_id=message_id

@@ -17,6 +17,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
     match relative_path.segments:
         case []:
             if await is_admin(user_id=update.effective_chat.id, context=context):
+                context.pydc.persistent.root_path = root.build()
                 context.pydc.persistent.bot_message_id = update.effective_message.message_id
                 await render_user_archive_request_identifier_panel(
                     update=update,
@@ -35,11 +36,14 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
                 return PCS.USER_CONVERSATION
 
         case [identifier]:
+            root = PathBuilder.from_string(context.pydc.persistent.root_path)
+            context.pydc.persistent.root_path = None
+
             if not await is_admin(user_id=update.effective_chat.id, context=context):
                 await render_action_not_permitted_panel(
                     update=update,
                     context=context,
-                    base_path=relative_path.back()
+                    base_path=root.back()
                 )
                 log.warning(
                     f"User {update.effective_user.id} attempted to download request archive of {identifier}. "
@@ -65,7 +69,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
             await render_user_archive_panel(
                 update=update,
                 context=context,
-                base_path=root,
+                base_path=root.back(),
                 user_id=user_id,
                 requested_by_admin=True
             )
