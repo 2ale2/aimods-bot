@@ -108,7 +108,8 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
 async def safe_delete_wrapper(update: Update, context: CustomContext):
     """Wrapper per safe_delete usando il messaggio corrente"""
     await safe_delete(update, context, update.effective_message)
-    return ConversationHandler.END
+    if update.callback_query.data == GlobalAction.CLOSE_MENU:
+        return ConversationHandler.END
 
 
 async def safe_delete(

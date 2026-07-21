@@ -1,3 +1,5 @@
+import re
+
 from telegram.ext import ConversationHandler, PrefixHandler, CallbackQueryHandler, MessageHandler, filters
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
@@ -23,7 +25,10 @@ main_private_conversation_handler = ConversationHandler(
             command="start",
             callback=start
         ),
-        CallbackQueryHandler(callback=general_router)
+        CallbackQueryHandler(
+            callback=general_router,
+            pattern=rf"^(?!(?:{re.escape(GlobalAction.CLOSE_MENU)}|{re.escape(GlobalAction.CLOSE)})$).*$"
+        )
     ],
     states={
         PCS.USER_CONVERSATION: [CallbackQueryHandler(callback=user_main_router)],
@@ -56,7 +61,14 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(callback=handle_request_rejection_reason)
         ]
     },
-    fallbacks=[CallbackQueryHandler(pattern=GlobalAction.CLOSE_MENU, callback=safe_delete_wrapper)],
+    fallbacks=[
+        CallbackQueryHandler(
+            callback=safe_delete_wrapper,
+            pattern=rf"^(?:{re.escape(GlobalAction.CLOSE_MENU)}|{re.escape(GlobalAction.CLOSE)})$"
+        )
+    ],
     persistent=True,
     name="main_private_conversation_handler"
 )
+
+close_menu_handler = CallbackQueryHandler(callback=safe_delete_wrapper, pattern=GlobalAction.CLOSE_MENU)

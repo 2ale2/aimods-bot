@@ -102,7 +102,7 @@ async def render_user_archive_panel(
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton(
                     text="🚮 Chiudi",
-                    callback_data=GlobalAction.CLOSE_MENU
+                    callback_data=GlobalAction.CLOSE
                 )
             ]])
         )
