@@ -268,12 +268,24 @@ async def render_admin_manage_request_panel(
     if not platform or not category:
         raise ValueError("Platform and category must not be None!")
 
+    back_button_callback_key = base_path
+
+    categories = PLATFORM_CATEGORY_REGISTRY.get(platform, None)
+    if not categories:
+        raise ValueError(f"Platform {platform.value} not recognized!")
+    if len(categories) == 1:
+        back_button_callback_key = back_button_callback_key.back()
+
+    requests = context.get_section_active_requests(section=request.section)
+    if len(requests) == 1:
+        back_button_callback_key = back_button_callback_key.back()
+
     text = await _get_admin_manage_request_text(request=request)
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
         request=request,
         base_path=base_path,
-        back_callback_key=base_path.back()
+        back_callback_key=back_button_callback_key.back()
     )
 
     await create_and_render_panel(

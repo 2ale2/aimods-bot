@@ -213,7 +213,7 @@ async def _enter_category_panel_or_list(
             update=update, context=context,
             root=root.add(ix),
             relative_path=PathBuilder(),
-            ix=ix,
+            ix=ix
         )
     await render_admin_active_requests_category_panel(
         update=update,
