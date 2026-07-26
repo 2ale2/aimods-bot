@@ -1,57 +1,106 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.management.handle import cancel_request, toggle_status_notifications
+from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
+from aimods_bot.src.callbacks.panels.user.request.management.handle import toggle_status_notifications
 from aimods_bot.src.callbacks.panels.user.request.management.render import \
-    render_active_request_panel, render_user_request_management_panel, render_user_request_action_panel, \
-    render_confirm_cancel_panel, render_request_details_panel, render_request_cancelled_panel, \
-    render_user_request_archive_panel
+    render_manage_selected_request_panel, render_user_request_management_panel, \
+    render_user_manage_active_requests_panel, render_confirm_cancel_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.constants import RequestStatus
+from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsRoute, GlobalAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.routing import PathBuilder
+
+log = logger.getChild(__name__)
 
 
-async def user_request_management_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_user_request_management_panel(update=update, context=context)
-        return PCS.USER_CONVERSATION
+async def user_request_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            await render_user_request_management_panel(update=update, context=context, base_path=root)
+            return PCS.USER_CONVERSATION
 
-    match path[0]:
-        case "active_requests":
-            return await user_request_action_route(update=update, context=context, path=path[1:])
-        case "requests_archive":
-            await render_user_request_archive_panel(
+        case [UserManageRequestsRoute.ACTIVE, *rest]:
+            return await user_active_requests_management_route(
                 update=update,
                 context=context,
-                user_id=None,
-                requested_by_admin=False
+                root=root.add(UserManageRequestsRoute.ACTIVE),
+                relative_path=PathBuilder(*rest)
+            )
+        case [UserManageRequestsRoute.REQUEST_ARCHIVE]:
+            await route_user_archive(
+                update=update,
+                context=context,
+                root=root.add(UserManageRequestsRoute.REQUEST_ARCHIVE),
+                relative_path=PathBuilder()  # Misura di sicurezza: forzo [] per forzare il ramo corretto del router
             )
             return PCS.USER_CONVERSATION
 
 
-async def user_request_action_route(
+async def user_active_requests_management_route(
         update: Update,
         context: CustomContext,
-        path: list[str]):
-    if len(path) == 0:
-        await render_active_request_panel(update=update, context=context)
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            await render_user_manage_active_requests_panel(update=update, context=context, base_path=root)
 
-    elif len(path) == 1:
-        await render_user_request_action_panel(update=update, context=context, action=path[0])
+        case [request_id, *rest] if request_id.isnumeric():
+            request = context.get_active_request_by_id(ix=int(request_id))
 
-    elif len(path) == 2:
-        match path[0]:
-            case "details":
-                await render_request_details_panel(update=update, context=context, ix=int(path[1]))
-            case "cancel":
-                await render_confirm_cancel_panel(update=update, context=context, ix=int(path[1]))
+            match PathBuilder(*rest).segments:
+                case []:
+                    if not request:
+                        log.warning(f"Active request {request_id} from user {update.effective_user.id} not found")
+                        await update.callback_query.answer(
+                            text="⚠️ Attenzione\n\n"
+                                 "Questa richiesta non è stata trovata. Non dovrebbe accadere, quindi informa un admin "
+                                 "di questo problema. Grazie mille.",
+                            show_alert=True
+                        )
+                        await render_user_manage_active_requests_panel(update=update, context=context, base_path=root)
+                    else:
+                        await render_manage_selected_request_panel(
+                            update=update,
+                            context=context,
+                            base_path=root.add(request_id),
+                            request=request
+                        )
 
-    elif len(path) >= 3:
-        if path[-3] == "cancel" and path[-1] == "yes":
-            # path."endswith" [cancel, <ix>, yes]
-            await cancel_request(context=context, ix=int(path[-2]))
-            await render_request_cancelled_panel(update=update, context=context)
+                case [toggle_notification] if toggle_notification in (
+                    UserManageRequestsRoute.ENABLE_STATUS_NOTIFICATION,
+                    UserManageRequestsRoute.DISABLE_STATUS_NOTIFICATION
+                ):
+                    await toggle_status_notifications(context=context, request=request)
+                    await render_manage_selected_request_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(request_id),
+                        request=request
+                    )
 
-        elif path[2] in ("enable_notifications", "disable_notifications"):
-            await toggle_status_notifications(context=context, ix=int(path[-2]))
-            await render_request_details_panel(update=update, context=context, ix=int(path[1]))
+                case [UserManageRequestsRoute.CANCEL]:
+                    await render_confirm_cancel_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(request_id, UserManageRequestsRoute.CANCEL),
+                        request=request
+                    )
+
+                case [UserManageRequestsRoute.CANCEL, GlobalAction.YES]:
+                    await context.edit_request_status(ix=request.id, status=RequestStatus.CANCELLED)
+                    await render_request_cancelled_panel(
+                        update=update,
+                        context=context,
+                        base_path=root
+                    )
 
     return PCS.USER_CONVERSATION

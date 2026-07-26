@@ -1,599 +1,318 @@
+import asyncio
 import json
-from typing import Dict, Any, Optional
+from typing import get_args, Callable, Awaitable
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import MessageEntityType
+from pydantic import ValidationError
+from telegram import Update
+from telegram.ext import ConversationHandler
 
-from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.core.pydantic import Request, Architecture
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, REQUEST_DETAILS_CONFIG, Platform, Category, \
-    RequestField, Arch
-from aimods_bot.src.helpers.constants.conversation_states import RequestConversationState as RCS
-from aimods_bot.src.helpers.constants.models import MessageTemplate
+from aimods_bot.src.callbacks.commands.general.start_command import start
+from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
+    render_request_wizard_confirmation_panel
+from aimods_bot.src.core.config_accessor import get_section_config
+from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
+from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, edit_message_safely
-from aimods_bot.src.helpers.utils.user_utils import check_auth
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import BaseRequest
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
+    send_section_closing_admin_notification
+from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
+from aimods_bot.src.helpers.utils.request_utils import request_to_record
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, wrong_input_message
 
-log = logger.getChild("request_handler")
+log = logger.getChild(__name__)
 
 
-FIELD_MESSAGES = {
-    RequestField.NAME: MessageTemplate(
-        app="🔹 Indica il <b>nome dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica il <b>nome del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica il <b>nome del software</b> che vorresti richiedere.",
-        daw="🔹 Indica il <b>nome della DAW o del Plug-In</b> che vorresti richiedere."
-    ),
-    RequestField.LINK: MessageTemplate(
-        app="🔹 Indica il <b>link dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica il <b>link del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica il <b>link del software</b> che vorresti richiedere.",
-        daw="🔹 Indica il <b>link della DAW o del Plug-In</b> che vorresti richiedere."
-    ),
-    RequestField.VERSION: MessageTemplate(
-        app="🔹 Indica la <b>versione dell'app</b> che vorresti richiedere.",
-        game="🔹 Indica la <b>versione del gioco</b> che vorresti richiedere.",
-        software="🔹 Indica la <b>versione del software</b> che vorresti richiedere.",
-        daw="🔹 Indica la <b>versione della DAW o del Plug-In</b> che vorresti richiedere."
-    ),
-    RequestField.FUNCTIONALITIES: MessageTemplate(
-        app="🔹 Indica le <b>funzionalità dell'app</b> che vorresti sbloccare.",
-        game="🔹 Indica le <b>funzionalità del gioco</b> che vorresti sbloccare.",
-        software="🔹 Indica le <b>funzionalità del software</b> che vorresti sbloccare.",
-        daw="🔹 Indica le <b>funzionalità della DAW o del Plug-In</b> che vorresti richiedere."
+def _advance_or_finish_wizard(wizard: RequestWizardSession) -> None:
+    draft = wizard.draft
+
+    # Se eravamo in modalità modifica, abbiamo finito la correzione. Torniamo al riepilogo.
+    if wizard.editing:
+        wizard.requesting = None
+        wizard.editing = False
+        return
+
+    # Flusso normale: cerchiamo la prossima domanda vuota
+    wizard.requesting = None
+    for field in draft.FLOW:
+        if field.value not in draft.model_fields_set:
+            wizard.requesting = field
+            break
+
+
+async def handle_wizard_text_input(update: Update, context: CustomContext):
+    if not update.message:
+        raise ValueError("No message inside Update!")
+
+    await safe_delete(update=update, context=context, message_id=update.message.message_id)
+
+    wizard = context.pydc.persistent.active_request_wizard
+    if not wizard:
+        raise ValueError("No wizard to process!")
+
+    if not wizard.requesting:
+        log.warning("Requesting no field!")
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    user_input = update.message.text
+
+    if not user_input:
+        await wrong_input_message(update=update, context=context, correct_message="Manda solo testo, senza allegati.")
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    field_type = wizard.draft.model_fields[wizard.requesting.value].annotation
+    is_boolean_expected = (field_type is bool) or (bool in get_args(field_type))
+
+    if is_boolean_expected:
+        await wrong_input_message(
+            context=context,
+            update=update,
+            correct_message="Usa i bottoni della tastiera per rispondere Sì o No.",
+            reply_to_message_id=wizard.request_msg_id
+        )
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    try:
+        setattr(wizard.draft, wizard.requesting.value, user_input)
+    except ValidationError as e:
+        errors = e.errors()
+        if any(err.get("type") == "url_parsing" for err in errors):
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_message="Manda un link valido."
+            )
+        else:
+            await wrong_input_message(
+                update=update,
+                context=context,
+                correct_message="<b>Input non valido</b>, riprova o contatta il gruppo per assistenza."
+            )
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    _advance_or_finish_wizard(wizard=wizard)
+
+    await render_global_request_wizard_panel(
+        update=update,
+        context=context
     )
-}
-
-CONVERSATION_STATES = {
-    RequestField.NAME: RCS.EDIT_NAME,
-    RequestField.LINK: RCS.EDIT_LINK,
-    RequestField.VERSION: RCS.EDIT_VERSION,
-    RequestField.FUNCTIONALITIES: RCS.EDIT_FUNCTIONALITIES
-}
-
-REQUEST_FLOWS = get_data_from_json('request_conversation_flows')
+    return PCS.USER_REQUEST_WIZARD_SESSION
 
 
-class RequestDataManager:
-    """Gestisce i dati della richiesta in modo centralizzato"""
+async def handle_wizard_callback_input(update: Update, context: CustomContext):
+    query = update.callback_query
+    if not query:
+        raise ValueError("No query inside Update!")
 
-    @staticmethod
-    def initialize_request(
-            context: CustomContext,
-            platform: Optional[Platform] = None,
-            category: Optional[Category] = None
-    ):
-        if context.pydc.persistent.new_request is not None:
-            try:
-                RequestDataManager.cleanup_request(context=context)
-            except Exception as e:
-                log.warning("cleanup_request failed: %s", e, exc_info=e)
+    wizard = context.pydc.persistent.active_request_wizard
+    if not wizard:
+        raise ValueError("No wizard to process!")
 
-        request_data = Request(platform=platform, category=category)
-        context.pydc.persistent.new_request = request_data
+    if query.data in (GlobalAction.YES, GlobalAction.NO):
+        if not wizard.requesting:
+            log.warning("Requesting no field!")
+            return PCS.USER_REQUEST_WIZARD_SESSION
 
-        log.info(
-            "Initialized new request",
-            extra={
-                "platform": getattr(platform, "value", None),
-                "category": getattr(category, "value", None),
-            }
-        )
+        bool_value = (query.data == GlobalAction.YES)
+        setattr(wizard.draft, wizard.requesting.value, bool_value)
 
-    @staticmethod
-    async def request_detail(
-            update: Update,
-            context: CustomContext,
-            detail: RequestField
-    ):
-        request_data = RequestDataManager.get_request_data(context)
-        category = request_data.category
-        text = MessageBuilder.build_request_summary(request_data=request_data)
+        _advance_or_finish_wizard(wizard=wizard)
 
-        RequestDataManager.update_field(context=context, field="requesting", value=detail)
+    elif query.data in RequestField:
+        wizard.requesting = RequestField(query.data)
+        wizard.editing = True
 
-        if detail == RequestField.STEAMTOOLS:
-            link_steamtools = "https://t.me/c/1523566735/13066"
-            text += f"\n🔹 Accetteresti anche i file <a href=\"{link_steamtools}\">Steam Tools</a>?"
-        elif detail == RequestField.ARCH:
-            link_arm_info = "https://justpaste.it/windowsarm"
-            text += f"\n🔹 Possiedi una <a href=\"{link_arm_info}\">CPU di tipo ARM</a>?"
+    elif query.data == UserRoute.ROOT:
+        await start(update=update, context=context)
+        return ConversationHandler.END
+
+    else:
+        await query.answer(text="⚠️ Non puoi eseguire questa azione ora.\n\n"
+                                "💡 Per annullare la formulazione di una richiesta, "
+                                "premi 🔙 Home.", show_alert=True)
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    await query.answer()
+    await render_global_request_wizard_panel(
+        update=update,
+        context=context
+    )
+    return PCS.USER_REQUEST_WIZARD_SESSION
+
+
+async def handle_wizard_back(update: Update, context: CustomContext):
+    query = update.callback_query
+    if not query:
+        raise ValueError("No query inside Update!")
+    await query.answer()
+
+    wizard = context.pydc.persistent.active_request_wizard
+    if not wizard:
+        raise ValueError("No wizard to process!")
+
+    draft = wizard.draft
+
+    if wizard.editing:
+        wizard.requesting = None
+        wizard.editing = False
+    else:
+        flow_list = draft.FLOW
+
+        if wizard.requesting is None:
+            prev_field = flow_list[-1]
         else:
-            field_enum = RequestField(detail)
-            message_template = FIELD_MESSAGES[field_enum]
+            current_index = flow_list.index(wizard.requesting)
+            if current_index == 0:
+                # TODO: await user_main_route, funzione da modificare
+                return PCS.USER_CONVERSATION
 
-            if category.value == "app":
-                text += f"\n{message_template.app}"
-            elif category.value == "game":
-                text += f"\n{message_template.game}"
-            elif category.value == "daw":
-                text += f"\n{message_template.daw}"
-            else:
-                text += f"\n{message_template.software}"
+            prev_field = flow_list[current_index - 1]
 
-        keyboard = KeyboardBuilder.get_back_keyboard(
-            request_data=request_data,
-            detail=detail,
-            bool_keyboard=(detail in (RequestField.STEAMTOOLS, RequestField.ARCH))
-        )
+        wizard.requesting = prev_field
+        draft.model_fields_set.discard(prev_field.value)
 
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_message.chat_id,
-            text=text,
-            keyboard=keyboard
-        )
+    if context.pydc.persistent.root_path:
+        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
+    else:
+        base_path = PathBuilder(UserRoute.ROOT)
 
-    @staticmethod
-    async def request_detail_to_edit(
-            update: Update,
-            context: CustomContext
-    ):
-        if not update.callback_query:
-            raise MissingParameterException("Manca la callback query in questo Update")
+    await render_global_request_wizard_panel(
+        update=update,
+        context=context
+    )
+    return PCS.USER_REQUEST_WIZARD_SESSION
 
-        try:
-            await update.callback_query.answer()
-        except Exception as e:
-            log.warning(f"Non è stato possibile eseguire l'answer della cquery: {e}")
 
-        # Expect: "edit_<field>"
-        detail = update.callback_query.data.split("_")[1]
-        request_data = RequestDataManager.get_request_data(context)
-        category = request_data.category
+async def handle_wizard_confirm(update: Update, context: CustomContext):
+    effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user must not be None!")
 
-        RequestDataManager.update_field(context, "editing", RequestField(detail))
+    query = update.callback_query
+    if not query:
+        raise ValueError("No query inside Update!")
 
-        field_enum = RequestField(detail)
-        message_template = FIELD_MESSAGES[field_enum]
+    wizard = context.pydc.persistent.active_request_wizard
+    if not wizard:
+        raise ValueError("No wizard to process!")
 
-        if category.value == "app":
-            field_message = message_template.app
-        elif category.value == "game":
-            field_message = message_template.game
-        elif category.value == "daw":
-            field_message = message_template.daw
-        else:
-            field_message = message_template.software
+    if wizard.requesting is not None:
+        raise ValueError("Request draft is not complete yet!")
 
-        text = MessageBuilder.build_request_summary(
-            request_data=request_data,
-            editing_field=detail
-        )
-        text += f"\n{field_message}"
+    draft = wizard.draft
+    draft.status = RequestStatus.PENDING
+    try:
+        validated = type(draft).model_validate(draft.model_dump())
+    except ValidationError as e:
+        log.error(f"Draft validation failed at confirm for user {effective_user.id}: {e}")
+        await query.answer("❌ La richiesta è incompleta o non valida. Controlla i dati e riprova "
+                           "o contatta un admin.")
+        return PCS.USER_REQUEST_WIZARD_SESSION
 
-        keyboard = KeyboardBuilder.get_back_keyboard(
-            request_data=request_data,
-            detail=None,
-            callback_data="no_edit"
-        )
+    record = request_to_record(validated)
+    content_json = json.dumps(record["content"])
 
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=text,
-            keyboard=keyboard)
+    query_sql = """
+                INSERT INTO requests_test (platform, category, user_id, name, version, content)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id;
+                """
 
-        return CONVERSATION_STATES[field_enum]
+    params = [
+        draft.section.platform.value,
+        draft.section.category.value,
+        effective_user.id,
+        validated.name,
+        validated.version,
+        content_json
+    ]
 
-    @staticmethod
-    def get_request_data(context: CustomContext) -> Request:
-        """Ottiene i dati della richiesta corrente"""
-        request = context.pydc.persistent.new_request
-        if request is None:
-            RequestDataManager.initialize_request(context=context)
-            request = context.pydc.persistent.new_request
-        return request
+    result = await fetch_query(query=query_sql, params=params)
 
-    @staticmethod
-    def update_field(context: CustomContext, field: str, value: Any) -> None:
-        """Aggiorna un campo specifico della richiesta"""
-        request_data = RequestDataManager.get_request_data(context)
-        if field == "arch":
-            value = Architecture(arch=Arch(value))
-        setattr(request_data, field, value)
-        RequestDataManager.update_request_data(context, request_data)
+    if not result:
+        log.error(f"Error while submitting request from user {effective_user.id}. See previous logs.")
+        await query.answer("❌ Errore nell'invio della richiesta. Riprova o contatta gli admin.")
+        return PCS.USER_REQUEST_WIZARD_SESSION
 
-        log.debug(f"Updated field {field} with value: {value}")
+    validated.id = dict(result[0]).get('id')
+    context.submit_request(validated)
 
-    @staticmethod
-    def update_request_data(context: CustomContext, request_data: Request):
-        context.pydc.persistent.new_request = request_data
+    await query.answer()
+    log.info(f"Request formulated by {effective_user.id} submitted")
 
-    @staticmethod
-    async def recheck_request(update: Update, context: CustomContext):
-        if update.callback_query:
-            data = update.callback_query.data
-            if data.startswith(("bool_yes", "bool_no")):
-                await InputHandler.handle_input(update=update, context=context)
+    await _notify_new_request(update=update, context=context, request=wizard.draft)
 
-        request_data = RequestDataManager.get_request_data(context)
+    section = RequestSection(platform=wizard.draft.section.platform, category=wizard.draft.section.category)
+    config = get_section_config(context=context, section=section)
 
-        text = MessageBuilder.build_request_summary(request_data=request_data)
-        text += ("\n🔹 Verifica i dettagli della tua richiesta. "
-                 "<b>Premi uno dei tasti per modificare un elemento</b>, oppure <b>conferma per inviarla</b>.\n\n"
-                 "<blockquote>⚠️ Assicurati che i dettagli siano <b>chiari</b>, "
-                 "altrimenti <b>la tua richiesta sarà bocciata</b>.</blockquote>")
+    if config and config.limit:
+        active_requests = context.get_section_active_requests(section=section)
+        if len(active_requests) >= config.limit:
+            config.toggle = False
+            await save_yaml_configuration(context=context)
+            await _notify_section_closing(update=update, context=context, section=section)
 
-        keyboard = KeyboardBuilder.get_review_keyboard(request_data=request_data)
+    await render_request_wizard_confirmation_panel(
+        update=update,
+        context=context,
+        from_notification=wizard.from_notification
+    )
 
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=text,
-            keyboard=keyboard
-        )
+    context.pydc.persistent.active_request_wizard = None
 
-        return RCS.CHECK_REQUEST
+    return PCS.USER_CONVERSATION
 
-    @staticmethod
-    @check_auth(bypass_count=True)
-    async def confirm_request(
-            update: Update,
-            context: CustomContext
-    ):
-        """Conferma e salva la richiesta nel database"""
-        request_data = RequestDataManager.get_request_data(context)
 
-        ix = await RequestDataManager.insert_request(
+async def _notify_admins_generic(
+        context: CustomContext,
+        filter_predicate: Callable[[ChatData], bool],
+        send_coroutine: Callable[[int], Awaitable[None]]
+):
+    """
+    Funzione generica per iterare sugli admin e inviare notifiche.
+    """
+    for admin_id in context.pydb.admins:
+        admin_data = context.application.chat_data.get(admin_id)
+        if not isinstance(admin_data, ChatData):
+            continue
+
+        if filter_predicate(admin_data):
+            await send_coroutine(admin_id)
+            await asyncio.sleep(0.2)
+
+
+async def _notify_new_request(update: Update, context: CustomContext, request: BaseRequest):
+    platform = request.section.platform.value
+    category = request.section.category.value
+
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.new_requests_notifications.get(
+            platform, {}
+        ).get(category, False)
+
+    async def sender(admin_id: int):
+        await send_new_request_admin_notification(update=update, context=context, admin_id=admin_id, request=request)
+
+    await _notify_admins_generic(context, should_notify, sender)
+
+
+async def _notify_section_closing(update: Update, context: CustomContext, section: RequestSection):
+    def should_notify(data: ChatData) -> bool:
+        return data.persistent.admin_notifications.section_closing_notifications.get(
+            section.platform, {}
+        ).get(section.category, False)
+
+    async def sender(admin_id: int):
+        await send_section_closing_admin_notification(
             update=update,
             context=context,
-            request_data=request_data
+            admin_id=admin_id,
+            section=section
         )
 
-        confirmation_text = MessageBuilder.build_confirmation_message()
-        confirmation_keyboard = KeyboardBuilder.get_confirmation_keyboard()
-
-        context.pydc.persistent.bot_message_id = await edit_message_safely(
-            context=context,
-            message_id=context.pydc.persistent.bot_message_id,
-            chat_id=update.effective_chat.id,
-            text=confirmation_text,
-            keyboard=confirmation_keyboard
-        )
-
-        RequestDataManager.cleanup_request(context=context)
-        return ix
-
-    # noinspection PyTypedDict
-    @staticmethod
-    async def insert_request(
-            update: Update,
-            context: CustomContext,
-            request_data: Request
-    ):
-        """Aggiorna le richieste dell'utente nel context"""
-
-        platform = request_data.platform
-        category = request_data.category
-        uid = update.effective_user.id
-
-        request_for_db = request_data.model_dump(mode="json")
-        request_for_db.pop("platform", None)
-        request_for_db.pop("category", None)
-        request_for_db.pop("status", None)
-        request_for_db.pop("requesting", None)
-        request_for_db.pop("editing", None)
-        request_for_db.pop("id", None)
-        request_for_db.pop("user_id", None)
-        request_for_db.pop("issued_at", None)
-        request_for_db_str = json.dumps(request_for_db)
-
-        rejection_reason = request_data.rejection_reason if request_data.rejection_reason else None
-
-        query = """
-                INSERT INTO requests (id, platform, content, user_id, status, issued_at, category, rejection_reason)
-                VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT, $4, $5)
-                RETURNING id, issued_at"""
-
-        result = await fetch_query(
-            query=query,
-            params=[platform.value, request_for_db_str, uid, category.value, rejection_reason]
-        )
-
-        if not result:
-            raise Exception(f"Errore durante l'inserimento della richiesta: \n\n{request_for_db}")
-
-        inserted = dict(result[0])
-
-        ix = int(inserted["id"])
-        issued_at = inserted["issued_at"]
-        rejection_reason = inserted.get("rejection_reason", None)
-
-        context.pydb.active_requests[ix] = Request(
-            id=ix,
-            user_id=uid,
-            # status = (default) RequestStatus.PENDING,
-            issued_at=issued_at.isoformat(),
-            platform=platform,
-            category=category,
-            name=request_for_db["name"],
-            arch=request_for_db.get("arch", None),
-            version=request_for_db.get("version", ""),
-            link=request_for_db.get("link", ""),
-            functionalities=request_for_db.get("functionalities", ""),
-            steamtools=request_for_db.get("steamtools", False),
-            rejection_reason=rejection_reason
-        )
-
-        log.info(f"Request inserted with ID {ix} for user {uid}")
-        return ix
-
-    @staticmethod
-    def cleanup_request(context: CustomContext) -> None:
-        """Pulisce i dati della richiesta dal context"""
-        context.pydc.persistent.new_request = None
-        context.pydc.persistent.bot_message_id = None
-
-
-class KeyboardBuilder:
-    """Costruisce keyboard per le diverse fasi"""
-
-    @staticmethod
-    def get_back_keyboard(
-            request_data: Request,
-            detail: Optional[RequestField],
-            bool_keyboard: bool = False,
-            callback_data: str = None
-    ) -> InlineKeyboardMarkup:
-        """Keyboard semplice con solo tasto indietro, oppure la tastiera completa nel caso dei giochi"""
-        platform = request_data.platform
-        category = request_data.category
-        callback_data = callback_data or KeyboardBuilder.get_back_callback_data(
-            platform=platform,
-            category=category,
-            detail=detail
-        )
-
-        keyboard = [[
-            InlineKeyboardButton(text="🔙 Indietro", callback_data=callback_data)
-        ]]
-
-        if bool_keyboard:
-            keyboard.insert(0, [
-                InlineKeyboardButton(text="🟢 Sì", callback_data="bool_yes"),
-                InlineKeyboardButton(text="🔴 No", callback_data="bool_no"),
-            ])
-
-        return InlineKeyboardMarkup(keyboard)
-
-    @staticmethod
-    def get_review_keyboard(request_data: Request) -> InlineKeyboardMarkup:
-        """
-        Tastiera per la review finale, generata in modo dichiarativo:
-        - definisce l'ordine dei campi per categoria
-        - crea pulsanti numerati automaticamente (1️⃣ 2️⃣ 3️⃣ ...)
-        - inserisce 'SteamTools' solo per i giochi, con callback di toggle
-        - aggiunge sempre '✅ Conferma' e '❌ Annulla' in fondo
-        """
-        category = request_data.category
-        cat = category.value if category else "software"
-
-        order_by_category = {
-            "app": ["name", "link", "version", "functionalities"],
-            "software": ["name", "link", "version", "functionalities"],
-            "adobe": ["name", "version", "functionalities", "arch"],
-            "daw": ["name", "link", "version"],
-            "game": ["name", "link", "version", "functionalities", "steamtools"],
-        }
-
-        labels = {
-            "name": "Nome",
-            "link": "Link",
-            "version": "Versione",
-            "functionalities": "Funzionalità",
-            "steamtools": "SteamTools",
-            "arch": "CPU ARM"
-        }
-
-        edit_callbacks = {
-            "name": "edit_name",
-            "link": "edit_link",
-            "version": "edit_version",
-            "functionalities": "edit_functionalities",
-            "arch": "edit_arch"
-        }
-
-        def num_emoji(i: int) -> str:
-            digits = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-            return digits[i] if 0 <= i < len(digits) else f"{i}."
-
-        def chunk(rows, n=2):
-            return [rows[i:i + n] for i in range(0, len(rows), n)]
-
-        fields = order_by_category.get(cat, order_by_category["software"])
-
-        buttons = []
-        idx = 1
-        for field in fields:
-            if field == "steamtools":
-                steamtools = bool(request_data.steamtools)
-                cb = "bool_no:steamtools" if steamtools else "bool_yes:steamtools"
-                buttons.append(
-                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
-                )
-            elif field == "arch":
-                arch = request_data.arch.arm_bool
-                cb = "bool_no:arch" if arch else "bool_yes:arch"
-                buttons.append(
-                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=cb)
-                )
-            else:
-                buttons.append(
-                    InlineKeyboardButton(text=f"{num_emoji(idx)} {labels[field]}", callback_data=edit_callbacks[field])
-                )
-            idx += 1
-
-        keyboard_rows = [buttons] if len(buttons) <= 2 else chunk(buttons, 2)
-
-        keyboard_rows.append([
-            InlineKeyboardButton(text="✅ Conferma", callback_data="confirm_request"),
-            InlineKeyboardButton(text="❌ Annulla", callback_data="back_main"),
-        ])
-
-        return InlineKeyboardMarkup(keyboard_rows)
-
-    @staticmethod
-    def get_confirmation_keyboard() -> InlineKeyboardMarkup:
-        """Keyboard per la conferma finale"""
-        return InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton(text="♟ Gestisci Richieste", callback_data="users/view_requests"),
-                InlineKeyboardButton(text="🏠 Torna alla Home", callback_data="users")
-            ]
-        ])
-
-    @staticmethod
-    def get_back_callback_data(
-            platform: Platform,
-            category: Optional[Category],
-            detail: RequestField
-    ):
-        section = REQUEST_FLOWS[platform.value]
-        flow_data = section[category.value]['flow']
-        back_data = section[category.value]['back_data']
-
-        ix = flow_data.index(detail.value)
-        return back_data[ix]
-
-
-class MessageBuilder:
-    """Costruisce messaggi per le diverse fasi della conversazione"""
-
-    @staticmethod
-    def build_request_summary(
-            request_data: Request,
-            editing_field: Optional[str] = None
-    ) -> str:
-        """Costruisce il riepilogo della richiesta con evidenziazione del campo in editing"""
-        header = MessageBuilder._build_header(request_data)
-
-        fields = MessageBuilder._build_fields(request_data, editing_field)
-
-        return f"{header}\n\n{fields}\n" if fields else f"{header}\n"
-
-    @staticmethod
-    def build_confirmation_message():
-        text = ("✅ <b>Richiesta Inviata Correttamente</b>\n\n"
-                "🔹 Puoi controllare lo stato delle tue richieste dal pannello di controllo.")
-        return text
-
-    @staticmethod
-    def _build_header(request_data: Request) -> str:
-        """Costruisce l'intestazione del messaggio"""
-        platform = request_data.platform
-        category = request_data.category
-
-        category_item = CATEGORY_DETAILS[platform.value][category.value]
-
-        icon = category_item["icon"]
-        name = category_item["label"]
-
-        return f"{icon} <b>Nuova Richiesta – {name}</b>"
-
-    @staticmethod
-    def _build_fields(request_data: Request, editing_field: Optional[str] = None) -> str:
-        """Costruisce la lista dei campi della richiesta"""
-        category = request_data.category
-        platform = request_data.platform
-
-        fields = []
-
-        field_config = MessageBuilder._get_field_config(platform=platform, category=category)
-
-        for field_name, field_info in field_config.items():
-            value = getattr(request_data, field_name, None)
-            if isinstance(value, Architecture):
-                value = value.arm_bool
-            if MessageBuilder._should_display_field(field_name, value):
-                display_value = MessageBuilder._format_field_value(field_name, value, editing_field, field_info)
-                fields.append(f"      🔸 <u>{field_info['label']}</u> – {display_value}")
-
-        return "\n".join(fields)
-
-    @staticmethod
-    def _get_field_config(platform: Platform, category: Category) -> Dict[str, Dict[str, Any]]:
-        """Ottiene la configurazione dei campi basata sul tipo di richiesta"""
-        return REQUEST_DETAILS_CONFIG[platform.value][category.value]
-
-    @staticmethod
-    def _should_display_field(field_name: str, value: Any) -> bool:
-        """Determina se un campo deve essere visualizzato"""
-        if field_name in ('steamtools', 'arch'):
-            return value is not None
-        return value is not None and len(str(value)) > 0
-
-    @staticmethod
-    def _format_field_value(
-            field_name: str,
-            value: Any,
-            editing_field: Optional[str],
-            field_info: Dict[str, Any]
-    ) -> str:
-        """Formatta il valore di un campo"""
-        if editing_field == field_name:
-            return "<i><b>Editing...</b></i>"
-
-        format_type = field_info['format']
-
-        if format_type == 'text':
-            return f"<i>{value}</i>"
-        elif format_type == 'code':
-            return f"<code>{value}</code>"
-        elif format_type == 'link':
-            return f"🔗 <i><a href='{value}'>Link</a></i>"
-        elif format_type == 'bool':
-            return f"<i>{'✔️' if value else '✖'}</i>"
-
-        return str(value)
-
-
-class InputHandler:
-    """Gestisce l'input utente delle richieste."""
-
-    @staticmethod
-    async def handle_input(
-            update: Update,
-            context: CustomContext
-    ):
-        """Gestisce l'input dell'utente per i diversi campi"""
-        if not update.callback_query:
-            await safe_delete(update, context)
-        else:
-            await update.callback_query.answer()
-
-        request_data = RequestDataManager.get_request_data(context)
-        detail = request_data.editing or request_data.requesting
-        if not isinstance(detail, RequestField):
-            detail = RequestField(detail)
-
-        data = InputHandler._extract_data(update, detail)
-
-        if detail == RequestField.ARCH:
-            data = "arm" if data is True else "x86"
-
-        RequestDataManager.update_field(context=context, field=detail.value, value=data)
-        log.info(f"Handled input for {detail}: {data}")
-
-    @staticmethod
-    def _extract_data(update: Update, detail: RequestField):
-        """Estrae i dati dall'update in base al tipo di campo"""
-        if detail == RequestField.LINK:
-            for el in update.effective_message.entities:
-                if el.type == MessageEntityType.URL:
-                    entity = el
-            # entity è necessariamente definita a causa del filtro dell'handler
-            # noinspection PyUnboundLocalVariable
-            return update.effective_message.text[entity.offset:entity.offset + entity.length]
-        elif detail in (RequestField.STEAMTOOLS, RequestField.ARCH):
-            if not update.callback_query:
-                raise MissingParameterException("Per il valore SteamTools e ARCH ci deve essere una callback query.")
-            return update.callback_query.data.startswith("bool_yes")
-        else:
-            return update.effective_message.text
+    await _notify_admins_generic(context, should_notify, sender)

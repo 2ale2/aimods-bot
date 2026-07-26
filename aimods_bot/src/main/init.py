@@ -4,8 +4,9 @@ import sys
 from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
-from aimods_bot.src.core.setup import set_application_data, get_handlers
+from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
+from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
@@ -47,17 +48,17 @@ def main():
         .build()
     )
 
-    handlers = get_handlers()
+    handlers = [main_private_conversation_handler, close_menu_handler]
     application.add_handlers(handlers)
 
     try:
-        # application.run_polling()
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=8080,
-            url_path="bot",
-            webhook_url="https://bot.aimodsitalia.store/bot"
-        )
+        application.run_polling()
+        # application.run_webhook(
+        #     listen="0.0.0.0",
+        #     port=8080,
+        #     url_path="bot",
+        #     webhook_url="https://bot.aimodsitalia.store/bot"
+        # )
         r = application.bot_data.restart
         if r and r.toggle:
             application.bot_data.restart.toggle = False

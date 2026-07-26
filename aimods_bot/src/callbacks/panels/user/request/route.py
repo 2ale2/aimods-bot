@@ -1,173 +1,282 @@
+import os
 from zoneinfo import ZoneInfo
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
-from telegram.ext import ConversationHandler
+from pydantic import ValidationError
+from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.handle import RequestDataManager
 from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import (render_user_has_cooldown_panel,
-                                                                 render_user_request_panel, render_cant_request_panel)
-from aimods_bot.src.callbacks.panels.user.request.request import request_detail
+from aimods_bot.src.callbacks.panels.user.request.render import (
+    render_user_has_cooldown_panel,
+    render_user_request_platform_panel,
+    render_user_request_category_panel, render_global_request_wizard_panel, render_cant_request_panel,
+    render_section_notification_activated_panel, render_user_has_an_active_request_wizard_panel
+)
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import PLATFORM_DETAILS, CATEGORY_DETAILS, Platform, Category, LOCAL_TZ
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS, \
-    RequestConversationState as RCS
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
+from aimods_bot.src.helpers.constants.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA, \
+    UserManageRequestsRoute
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 log = logger.getChild(__name__)
 
-
-async def requests_management_route(update: Update, context: CustomContext, path: list[str]):
-    RequestDataManager.cleanup_request(context=context)
-
-    match path[0]:
-        case "view_requests":
-            return await user_request_management_route(update=update, context=context, path=path[1:])
-        case "add_request":
-            if path[-1] == "from_notification":
-                return await request_from_notification(update=update, context=context)
-
-            rc = context.user_request_cooldown()
-            if rc and update.effective_user.id not in [7233636327, 6540199713]:
-                # L'utente ha un cooldown
-                await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
-                return PCS.USER_CONVERSATION
-            if len(path) > 1:
-                # expected: ".../add_request/<platform>
-                return await request_category(update=update, context=context)
-
-            RequestDataManager.initialize_request(context=context)
-            await render_user_request_panel(update=update, context=context)
-            return PCS.NEW_REQUEST
+BYPASS_LIMITS_USERS = {7233636327, 6540199713}
 
 
-async def request_category(update: Update, context: CustomContext) -> int:
-    """Inizia il flusso della conversazione chiedendo la categoria di software"""
-    await update.callback_query.answer()
+async def user_requests_management_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match root.segments[0]:
+        case UserRoute.VIEW_REQUESTS:
+            return await user_request_management_route(
+                update=update,
+                context=context,
+                root=root,
+                relative_path=relative_path
+            )
 
-    request_data = RequestDataManager.get_request_data(context=context)
+        case UserRoute.ADD_REQUEST:
+            match relative_path.segments:
+                case []:
+                    await render_user_request_platform_panel(
+                        update=update,
+                        context=context,
+                        base_path=root
+                    )
 
-    RequestDataManager.update_field(context=context, field="category", value=None)
-    RequestDataManager.update_field(context=context, field="requesting", value=None)
+                case [NA.FROM_NOTIFICATION, section_str]:
+                    try:
+                        section = RequestSection.from_string(section_str)
+                    except (ValueError, ValidationError):
+                        log.warning(f"Invalid Section input: {section_str}")
+                        return PCS.USER_CONVERSATION
 
-    platform = request_data.platform
-    if not platform:
-        data = update.callback_query.data.split("/")[-1]
+                    root = root.add(section.platform, section.category)
+                    if await _guard_existing_wizard(update=update, context=context, base_path=root):
+                        context.pydc.persistent.active_request_wizard.from_notification = True
+                        return PCS.USER_CONVERSATION
 
-        platform = Platform(data)
-        RequestDataManager.update_field(context=context, field="platform", value=platform)
+                    return await _enter_wizard_or_explain(
+                        update=update,
+                        context=context,
+                        section=section,
+                        base_path=root,
+                        from_notification=True
+                    )
 
-    category = get_platform_categories(platform=platform)
-    category_items = CATEGORY_DETAILS[platform.value]
+                case [platform_str, *rest] if platform_str in Platform:
+                    platform = Platform(platform_str)
+                    root = root.add(platform)
+                    match PathBuilder(*rest).segments:
+                        case []:
+                            configs_cat = PLATFORM_CATEGORY_REGISTRY[platform]
+                            if len(configs_cat) > 1:
+                                await render_user_request_category_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root,
+                                    platform=platform
+                                )
+                            else:
+                                category = list(configs_cat.keys())[0]
+                                root = root.add(category)
+                                section = RequestSection(platform=platform, category=category)
+                                return await _enter_wizard_or_explain(
+                                    update=update,
+                                    context=context,
+                                    base_path=root,
+                                    section=section
+                                )
 
-    if len(category_items) == 1:
-        RequestDataManager.update_field(
-            context=context,
-            field="category",
-            value=category(list(category_items.keys())[0])
-        )
-        return await request_router(update=update, context=context)
+                        case [category_str, *rest] if category_str in Category:
+                            category = Category(category_str)
+                            root = root.add(category)
 
-    name = PLATFORM_DETAILS[platform.value]['label']
-    icon = PLATFORM_DETAILS[platform.value]['icon']
-    item = "app" if platform in ("android", "ios") else "software"
+                            section = RequestSection(platform=platform, category=category)
+                            match PathBuilder(*rest).segments:
+                                case []:
+                                    if await _guard_existing_wizard(
+                                            update=update,
+                                            context=context,
+                                            base_path=root
+                                    ):
+                                        context.pydc.persistent.active_request_wizard.from_notification = False
+                                        return PCS.USER_CONVERSATION
 
-    text = (f"{icon} <b>Nuova Richiesta – {name}</b>\n\n"
-            f"🔹 Scegli la categoria di {item} che vorresti richiedere.")
+                                    return await _enter_wizard_or_explain(
+                                        update=update,
+                                        context=context,
+                                        section=section,
+                                        base_path=root
+                                    )
 
-    keyboard = []
+                                case [user_had_wizard] if user_had_wizard in (
+                                    UserManageRequestsRoute.CONTINUE_REQUEST,
+                                    UserManageRequestsRoute.DISMISS_REQUEST
+                                ):
+                                    if user_had_wizard == UserManageRequestsRoute.CONTINUE_REQUEST:
+                                        await safe_delete(update=update, context=context)
 
-    for el in category_items:
-        label = category_items[el]["label"]
-        icon = category_items[el]["icon"]
+                                    return await _enter_wizard_or_explain(
+                                        update=update,
+                                        context=context,
+                                        base_path=root,
+                                        section=section,
+                                        new_wizard=(user_had_wizard == UserManageRequestsRoute.DISMISS_REQUEST),
+                                        from_notification=context.pydc.persistent.active_request_wizard.from_notification
+                                    )
 
-        if len(keyboard) == 0 or len(keyboard[-1]) == 2:
-            keyboard.append([])
-        log.info(f"Category Keyboard Button -> text: {label} | data: {el}")
-        keyboard[-1].append(InlineKeyboardButton(text=f"{icon} {label}", callback_data=el))
+                                case [UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS]:
+                                    s_o_c = context.pydc.persistent.user_notifications.section_opening_notifications
+                                    s_o_c[section.platform][section.category] = True
+                                    await render_section_notification_activated_panel(
+                                        update=update,
+                                        context=context,
+                                        section=section
+                                    )
 
-    keyboard.append([InlineKeyboardButton(text="🔙 Indietro", callback_data="back_main")])
+                                case _:
+                                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: "
+                                                f"{relative_path.build()}")
 
-    await update.effective_message.edit_text(
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode=ParseMode.HTML
-    )
+                        case _:
+                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
-    return RCS.REQUEST_CATEGORY if update.callback_query.data != "back_category" else RCS.CANCEL_PROCESS
+                case _:
+                    log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
+        case _:
+            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
-async def request_from_notification(update: Update, context: CustomContext):
-    rc = context.user_request_cooldown()
-    if rc:
-        # L'utente ha un cooldown
-        await render_user_has_cooldown_panel(update=update, context=context, rc=rc)
-        return ConversationHandler.END
-
-    path = update.callback_query.data.split("/")
-    pl, ca = path[-3], path[-2]
-    platform = Platform(pl)
-
-    RequestDataManager.initialize_request(context=context)
-    RequestDataManager.update_field(context=context, field="platform", value=platform)
-    RequestDataManager.update_field(context=context, field="category", value=get_platform_categories(platform)(ca))
-
-    return await request_router(update=update, context=context)
-
-
-async def request_router(update: Update, context: CustomContext):
-    await update.callback_query.answer()
-    request_data = RequestDataManager.get_request_data(context=context)
-    user_id = update.effective_user.id
-
-    platform = request_data.platform
-    category = request_data.category
-
-    if not category:
-        callback_data = update.callback_query.data
-
-        category = get_platform_categories(platform)(callback_data)
-        RequestDataManager.update_field(context=context, field="category", value=category)
-
-    l = context.is_user_request_limited(platform=platform, category=category)
-    if l:
-        if l.until:
-            until = l.until.replace(tzinfo=ZoneInfo("UTC")).astimezone(LOCAL_TZ)
-            until_str = until.strftime('fino al %d %b %Y alle %H:%M:%S')
-        else:
-            until_str = "a tempo indeterminato"
-
-        if len(l.reasons) == 1:
-            reasons_text = "– " + l.reasons[0]
-        else:
-            reasons_text = "\n"
-            for r in l.reasons:
-                reasons_text += f"        – {r}\n"
-        text = ("⛔ <b>Richieste Bloccate</b>\n\n"
-                "<blockquote>ℹ Sei stato bloccato dallo staff: non potrai formulare richieste"
-                f" per questa sezione <b>{until_str}</b>.</blockquote>\n\n"
-                f"<b>Motivazioni</b> {reasons_text}")
-        await render_cant_request_panel(update=update, context=context, message=text)
-        return ConversationHandler.END
-
-    if not is_category_request_allowed(context=context, platform=platform, category=category) and user_id not in [6540199713, 7233636327]:
-        RequestDataManager.initialize_request(context=context)
-        text = ("🔐 <b>Richieste Chiuse</b>\n\n"
-                "▪️ <b>Non è al momento possibile formulare nuove richieste</b> per questa categoria, perché ha "
-                "<b>raggiunto il limite</b> di richieste impostato o perché stato <b>chiuso manualmente</b> "
-                "dallo staff.")
-        await render_cant_request_panel(update=update, context=context, message=text)
-        return ConversationHandler.END
-
-    return await request_detail(update=update, context=context)
+    return PCS.USER_CONVERSATION
 
 
-def is_category_request_allowed(context: CustomContext, platform: Platform, category: Category) -> bool:
+def is_category_request_allowed(context: CustomContext, section: RequestSection) -> bool:
     """Verifica se è possibile fare richieste controllando la configurazione."""
-    platform_settings = getattr(context.pydb.configuration.settings.request, platform.value)
-    category_config = getattr(platform_settings, str(category.value))
+    platform_settings = getattr(context.pydb.configuration.settings.request, section.platform.value)
+    category_config = getattr(platform_settings, section.category.value)
     assert isinstance(category_config, CategorySetting)
     return category_config.toggle
+
+
+_CLOSED_MSG = ("🔐 <b>Richieste Chiuse</b>\n\n"
+               "▪️ <b>Non è al momento possibile formulare nuove richieste</b> "
+               "per questa sezione, perché <b>ha raggiunto il limite</b> di "
+               "richieste impostato o perché è stato <b>chiuso manualmente</b> "
+               "dallo staff.")
+
+
+def _blocked_message(limitation: RequestSectionLimitation) -> str:
+    if limitation.until:
+        until = limitation.until.replace(
+            tzinfo=ZoneInfo("UTC")).astimezone(LOCAL_TZ)
+        until_str = until.strftime(f"fino al {DATETIME_FORMAT}")
+    else:
+        until_str = "a tempo indeterminato"
+
+    if len(limitation.reasons) == 1:
+        reasons_text = "– " + limitation.reasons[0]
+    else:
+        reasons_text = "\n"
+        for r in limitation.reasons:
+            reasons_text += f"        – {r}\n"
+    return ("⛔ <b>Richieste Bloccate</b>\n\n"
+            "<blockquote>ℹ Sei stato bloccato dallo staff: "
+            f"non potrai formulare richieste per questa sezione "
+            f"<b>{until_str}</b>.</blockquote>\n\n"
+            f"<b>Motivazioni</b> {reasons_text}")
+
+
+async def _enter_wizard_or_explain(
+        update: Update,
+        context: CustomContext,
+        section: RequestSection,
+        base_path: PathBuilder,
+        new_wizard: bool = True,
+        from_notification: bool = False
+):
+    cat_num = len(PLATFORM_CATEGORY_REGISTRY[section.platform])
+    back_callback = base_path.back(2) if cat_num == 1 else base_path.back()
+
+    if not is_category_request_allowed(context=context, section=section):
+        if context.pydc.persistent.user_notifications.section_opening_notifications[section.platform][section.category]:
+            text = _CLOSED_MSG + ("\n\nℹ️ <b>Hai già attivato le notifiche di apertura di questa sezione</b>. "
+                                  "Riceverai un messaggio da me non appena verrà riaperta.")
+            keyboard = []
+        else:
+            text = _CLOSED_MSG + ("\n\n💡 <b>Attiva le notifiche</b> di questa sezione per ricevere un messaggio "
+                                  "<b>non appena la sezione verrà nuovamente aperta</b>.")
+            keyboard = [
+                [
+                    ButtonItem(
+                        text="🔔 Attiva Notifiche Sezione",
+                        callback_key=base_path.add(UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS)
+                    )
+                ]
+            ]
+
+        keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=back_callback)])
+        await render_cant_request_panel(
+            update=update,
+            context=context,
+            back_callback=back_callback,
+            message=text,
+            kayboard=keyboard
+        )
+        return PCS.USER_CONVERSATION
+
+    cooldown = context.user_request_cooldown()
+    if cooldown and update.effective_user.id not in BYPASS_LIMITS_USERS:
+        await render_user_has_cooldown_panel(update=update, context=context, rc=cooldown, back_callback=back_callback)
+        return PCS.USER_CONVERSATION
+
+    limitation = context.is_user_request_limited(section=section)
+    if limitation:
+        await render_cant_request_panel(
+            update=update,
+            context=context,
+            back_callback=back_callback,
+            message=_blocked_message(limitation)
+        )
+        return PCS.USER_CONVERSATION
+
+    context.pydc.persistent.root_path = base_path.build()
+    if new_wizard:
+        context.init_request_wizard_session(
+            user_id=update.effective_user.id,
+            section=section,
+            from_notification=from_notification,
+            msg_id=update.effective_message.id,
+        )
+    await render_global_request_wizard_panel(update=update, context=context)
+    return PCS.USER_REQUEST_WIZARD_SESSION
+
+
+async def _guard_existing_wizard(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+) -> bool:
+    """
+    Se esiste già un wizard attivo, mostra il pannello di scelta continua/ricomincia
+    e ritorna True (il chiamante deve fermarsi). Altrimenti ritorna False (procedi).
+    """
+    wizard = context.pydc.persistent.active_request_wizard
+    if wizard is not None:
+        await render_user_has_an_active_request_wizard_panel(
+            update=update,
+            context=context,
+            base_path=base_path,
+            section=wizard.draft.section,
+        )
+        return True
+    return False

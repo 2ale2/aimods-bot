@@ -1,325 +1,333 @@
 import json
-import platform as platf
 from datetime import datetime
-from pathlib import Path
-from typing import AsyncIterator, Iterable, Text, Optional, Union
+from typing import Any
 
-from aimods_bot.src.core.exceptions import MissingParameterException, DatabaseBotException
-from aimods_bot.src.core.pydantic import Request, Architecture
-from aimods_bot.src.helpers.constants.constants import REQUEST_STATUS_DETAILS, PLATFORM_DETAILS, \
-    Platform, WindowsCategory, AndroidCategory, IOSCategory, \
-    MacOSCategory, Arch, RequestStatus, Category, CATEGORY_DETAILS
+from pydantic import ValidationError
+
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.file_utils import tex_escape, create_latex_file, convert_latex_to_pdf
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
-log = logger.getChild("request_utils")
+log = logger.getChild(__name__)
 
 
-def get_platform_categories(platform: Platform):
-    categories = {
-        Platform.ANDROID: AndroidCategory,
-        Platform.WINDOWS: WindowsCategory,
-        Platform.IOS: IOSCategory,
-        Platform.MACOS: MacOSCategory
-    }
-    return categories[platform]
+# Contiene tutte le colonne in comune tra le richieste (che corrispondono ai campi di BaseRequest)
+_CONTENT_EXCLUDED_FIELDS: set[str] = {
+    "name",
+    "version",
+    "id",
+    "user_id",
+    "platform",
+    "category",
+    "section",
+    "status",
+    "issued_at",
+    "closed_at",
+    "rejection_reason",
+    "status_change_notifications",
+}
 
 
-async def get_user_requests_archive(user_id: int) -> list[Request]:
+async def get_user_requests_archive(user_id: int) -> list[BaseRequest]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
-    query = """SELECT * FROM requests WHERE user_id = $1 ORDER BY id"""
+    query = """SELECT * \
+               FROM requests_test \
+               WHERE user_id = $1 \
+               ORDER BY issued_at DESC"""
     response = await fetch_query(query=query, params=[user_id])
-    return [await request_from_record(dict(el)) for el in response]
-
-
-async def request_from_record(request: dict) -> Request:
-    """Utility Function per trasformare un Record del database in un'istanza di Request."""
-
-    query = """SELECT column_name 
-               FROM information_schema.columns 
-               WHERE columns.table_schema = 'public' AND table_name = 'requests';"""
-    response = await fetch_query(query=query)
 
     if not response:
-        raise DatabaseBotException("Errore nel fetch delle colonne dalla tabella 'requests'")
+        return []
 
-    response = [dict(c)['column_name'] for c in response]
+    return [request_from_record(dict(el)) for el in response]
 
-    if any(k not in request for k in response):
-        raise MissingParameterException("La struttura del dizionario non corrisponde alla struttura del DB nella "
-                                        "tabella delle richieste.")
 
-    raw_id = request.get("id", None)
-    raw_platform = request.get("platform", None)
-    raw_category = request.get("category", None)
-    user_id = request.get("user_id", None)
-    raw_status = request.get("status", None)
-    issued_at = request.get("issued_at", None)
-    raw_rejection_reason = request.get("rejection_reason", None)
-    raw_content = request.get("content", None)
+def request_to_record(request: BaseRequest) -> dict[str, Any]:
+    """
+    Converte un'istanza di BaseRequest (o sottoclasse) in un dict pronto per
+    l'inserimento/aggiornamento nella tabella `requests`.
 
-    assert isinstance(issued_at, datetime)
+    La chiave `content` contiene un dict JSON-serializzabile (via model_dump
+    mode="json") con tutti i campi specifici della sottoclasse. Le altre chiavi
+    top-level corrispondono a colonne tipizzate.
 
-    platform = Platform(raw_platform) if raw_platform else None
-    if raw_platform and raw_category:
-        category = get_platform_categories(Platform(platform))(raw_category)
+    Nota: `issued_at`/`closed_at` restano `datetime` nativi (tz-aware): asyncpg
+    li lega direttamente alle colonne `timestamptz`.
+    """
+    content = request.model_dump(mode="json", exclude=_CONTENT_EXCLUDED_FIELDS)
+
+    return {
+        "id": request.id,
+        "user_id": request.user_id,
+        "platform": request.section.platform.value,
+        "category": request.section.category.value,
+        "name": request.name,
+        "version": request.version,
+        "status": request.status.value if request.status else None,
+        "issued_at": request.issued_at,
+        "closed_at": request.closed_at,
+        "rejection_reason": request.rejection_reason,
+        "status_change_notifications": request.status_change_notifications,
+        "content": content,
+    }
+
+
+def request_from_record(row: dict[str, Any]) -> BaseRequest:
+    """
+    Converte una riga della tabella `requests` (dict o asyncpg.Record convertito
+    a dict) nell'istanza concreta di BaseRequest corrispondente, scegliendo la
+    sottoclasse tramite PLATFORM_CATEGORY_REGISTRY.
+
+    Solleva ValueError per dati mancanti, malformati o combinazioni platform/category non registrate.
+    """
+    raw_id = row.get("id")
+    raw_name = row.get("name")
+    raw_version = row.get("version")
+    raw_platform = row.get("platform")
+    raw_category = row.get("category")
+    raw_status = row.get("status")
+    raw_content = row.get("content")
+    issued_at = row.get("issued_at")
+    closed_at = row.get("closed_at")
+    user_id = row.get("user_id")
+    rejection_reason = row.get("rejection_reason")
+    status_change_notifications = row.get("status_change_notifications", True)
+
+    if user_id is None:
+        raise ValueError(f"Request {raw_id}: missing user_id!")
+
+    if isinstance(user_id, str) and not user_id.isnumeric():
+        raise ValueError(f"User id {user_id} is not numeric!")
+
+    if not raw_platform or not raw_category:
+        raise ValueError(
+            f"Request {raw_id}: missing platform or category (platform={raw_platform!r}, category={raw_category!r})!"
+        )
+
+    if issued_at is not None and not isinstance(issued_at, (str, datetime)):
+        raise ValueError(
+            f"Request {raw_id}: issued_at must be datetime or ISO string, found {type(issued_at).__name__}"
+        )
+
+    if isinstance(issued_at, str):
+        issued_at = datetime.fromisoformat(issued_at)
+
+    if closed_at is not None and not isinstance(closed_at, (str, datetime)):
+        raise ValueError(
+            f"Request {raw_id}: closed_at must be datetime or ISO string, found {type(closed_at).__name__}"
+        )
+
+    if isinstance(closed_at, str):
+        closed_at = datetime.fromisoformat(closed_at)
+
+    try:
+        platform = Platform(raw_platform)
+    except ValueError as e:
+        raise ValueError(f"Request {raw_id}: invalid platform '{raw_platform}'!") from e
+
+    try:
+        category = Category(raw_category)
+    except ValueError as e:
+        raise ValueError(f"Request {raw_id}: invalid category '{raw_category}'!") from e
+
+    status: RequestStatus | None = None
+    if raw_status:
+        try:
+            status = RequestStatus(raw_status)
+        except ValueError as e:
+            raise ValueError(f"Request {raw_id}: invalid status '{raw_status}'!") from e
+
+    try:
+        model_cls = PLATFORM_CATEGORY_REGISTRY[platform][category].model
+    except KeyError as e:
+        raise ValueError(
+            f"Request {raw_id}: {platform.value}/{category.value} combination not found in PLATFORM_CATEGORY_REGISTRY!"
+        ) from e
+
+    content_dict: dict[str, Any]
+    if raw_content is None:
+        content_dict = {}
+    elif isinstance(raw_content, dict):
+        content_dict = raw_content
+    elif isinstance(raw_content, str):
+        try:
+            content_dict = json.loads(raw_content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Request {raw_id}: wrong JSON structure!") from e
     else:
-        category = None
+        raise ValueError(
+            f"Request {raw_id}: unexpected content type {type(raw_content).__name__}!"
+        )
 
-    # noinspection PyArgumentList
-    status = RequestStatus(raw_status) if raw_status else None
-    # noinspection PyTypeChecker
-    content = json.loads(raw_content) if raw_content else None
-    name = link = version = functionalities = steamtools = arch = None
-    if content:
-        name = content.get("name", None)
-        link = content.get("link", None)
-        version = content.get("version", None)
-        functionalities = content.get("functionalities", None)
-        steamtools = content.get("steamtools", None)
-        arch = content.get("arch", None)
-        if arch:
-            a = arch.get("arch", None)
-            if not a:
-                log.error("Dumped Arch instance should be a dict containing an 'arch' key")
-                arch = None
-            else:
-                arch = Architecture(arch=Arch(arch.get("arch", None)))
+    if isinstance(content_dict, dict):
+        for col in _CONTENT_EXCLUDED_FIELDS:
+            content_dict.pop(col, None)
 
-    # noinspection PyTypeChecker
-    return Request(
-        id=raw_id,
-        user_id=user_id,
-        status=status,
-        issued_at=issued_at.isoformat(),
-        platform=platform,
-        category=category,
-        name=name,
-        arch=arch,
-        link=link,
-        version=version,
-        functionalities=functionalities,
-        steamtools=steamtools,
-        rejection_reason=raw_rejection_reason
-    )
+    try:
+        # noinspection PyArgumentList
+        return model_cls(
+            id=raw_id,
+            name=raw_name,
+            version=raw_version,
+            user_id=int(user_id),
+            section=RequestSection(platform=platform, category=category),
+            status=status,
+            issued_at=issued_at,
+            closed_at=closed_at,
+            rejection_reason=rejection_reason,
+            status_change_notifications=status_change_notifications,
+            **content_dict
+        )
+    except ValidationError as e:
+        log.error(f"Request {raw_id}: validation failed for {model_cls.__name__}: {e}")
+        raise
 
 
-def get_requests_summary(requests: dict[int, Request], with_authors: bool = False) -> str:
-    text = ""
+def get_requests_summary(requests: list[BaseRequest], with_authors: bool = False) -> str:
+    """
+    Ritorna il sommario delle richieste nel dizionario.
+    """
+    parts = []
 
-    for n, ix in enumerate(requests):
-        request = requests[ix]
-        status = request.status.value
-        status_icon = REQUEST_STATUS_DETAILS[status]['icon']
-        status_label = REQUEST_STATUS_DETAILS[status]['label']
-        platform = request.platform.value
-        category = request.category.value
-        category_label = CATEGORY_DETAILS[platform][category]['label']
-        platform_icon = PLATFORM_DETAILS[platform]['icon']
+    if isinstance(requests, dict):
+        requests = requests.values()
 
-        text += (f"    {n+1}. <i>{request.name}</i>\n"
-                 f"         #️⃣ <u>ID</u> – <code>{request.id}</code>\n")
+    for n, request in enumerate(requests):
+        status = request.status
+        platform = request.section.platform
+        category = request.section.category
+
+        if not status:
+            raise ValueError(f"Request {request.id}: status must not be None!")
+
+        if not category or not platform:
+            raise ValueError(
+                f"Request {request.id}: missing platform or category (platform={platform!r}, category={category!r})!"
+            )
+
+        category_config = PLATFORM_CATEGORY_REGISTRY[platform][category]
+
+        block = [
+            f"    {n + 1}. <i>{request.name}</i>\n",
+            f"         #️⃣ <u>ID</u> — <code>{request.id}</code>\n"
+        ]
+
         if with_authors:
-            text += f"         👤 <u>Formulata Da</u> – <code>{request.user_id}</code>\n"
+            block.append(f"         👤 <u>Formulata Da</u> — <code>{request.user_id}</code>\n")
 
-        text += (f"         🖲️ <u>Piattaforma</u> – {platform_icon} {category_label}\n"
-                 f"         🔧 <u>Stato</u> – {status_icon} <b><i>{status_label}</i></b>\n\n")
+        block.extend([
+            f"         🖲️ <u>Piattaforma</u> — {platform.icon} {category_config.icon}\n",
+            f"         🔧 <u>Stato</u> — {status.icon} <b><i>{status.label}</i></b>\n\n"
+        ])
 
-    return text.removesuffix("\n")
+        parts.append("".join(block))
+
+    return "".join(parts).rstrip("\n")
 
 
-async def get_request_details(request: Request, admin: bool = False):
-    text = ""
+def get_request_details(request: BaseRequest, admin: bool = False) -> str:
+    """
+    Ritorna i dettagli di una richiesta.
+    """
+
+    platform = request.section.platform
+    category = request.section.category
+
+    if not category or not platform:
+        raise ValueError(
+            f"Request {request.id}: missing platform or category (platform={platform!r}, category={category!r})!"
+        )
+
+    category_config = PLATFORM_CATEGORY_REGISTRY[platform][category]
+    parts: list[str] = []
+
     if admin:
         if request.id:
-            text += f"      #️⃣ <u>ID</u> – <code>{request.id}</code>\n"
+            parts.append(f"      #️⃣ <u>ID</u> — <code>{request.id}</code>\n")
         if request.user_id:
-            text += f"      👤 <u>User ID</u> – <code>{request.user_id}</code>\n"
-        text += "\n"
+            parts.append(f"      👤 <u>User ID</u> — <code>{request.user_id}</code>\n")
+        parts.append("\n")
 
-    text += f"     🔸 <u>Nome</u> – <i>{request.name}</i>\n"
-    if request.platform:
-        item = PLATFORM_DETAILS[request.platform.value]
-        label = item['label']
-        icon = item['icon']
-        text += f"     🔸️ <u>Piattaforma</u> – {icon} <i>{label}</i>\n"
-    if request.link:
-        text += f"     🔸 <u>Link</u> – <a href=\"{request.link}\">🔗 Link</a>\n"
-    if request.version:
-        text += f"     🔸 <u>Versione</u> – <code>{request.version}</code>\n"
-    if request.functionalities:
-        text += f"     🔸 <u>Funzionalità</u> – <i>{request.functionalities}</i>\n"
-    if request.steamtools is not None:
-        text += f"     🔸 <u>SteamTools</u> - <i>{'✔️' if request.steamtools else '✖️'}</i>\n"
+    parts.append(f"     🔸️ <u>Piattaforma</u> — {platform.icon} <i>{category_config.label}</i>\n")
+
+    for field in type(request).FLOW:
+        value = getattr(request, field.value, None)
+        if value is None or value == "":
+            continue
+        rendered = _render_field_value_html(value, field.format)
+        parts.append(f"     🔸 <u>{field.label}</u> — {rendered}\n")
+
     if request.issued_at:
-        text += f"     🔸 <u>Data</u> – <i>{format_time_as_rome(datetime.fromisoformat(request.issued_at))}</i>\n"
-    if request.arch:
-        text += f"     🔸 <u>CPU ARM</u> – <i>{'✔️' if request.arch.arm_bool else '✖️'}</i>\n"
+        parts.append(f"     🔸 <u>Data</u> — <i>{format_time_as_rome(request.issued_at)}</i>\n")
 
     if request.status:
-        label = REQUEST_STATUS_DETAILS[request.status.value]['label']
-        icon = REQUEST_STATUS_DETAILS[request.status.value]['icon']
-        text += f"\n      <b><u>Status</u></b> – {icon} <i>{label}</i>\n"
+        parts.append(f"\n      <b><u>Status</u></b> — {request.status.icon} <i>{request.status.label}</i>\n")
+
         if request.status == RequestStatus.REJECTED:
-            text += f"      <b><u>Motivazione</u></b> – {request.rejection_reason}\n"
+            parts.append(f"      <b><u>Motivazione</u></b> — {request.rejection_reason}\n")
+
         if request.status == RequestStatus.COMPLETED and not admin:
-            text += ("\n<blockquote>ℹ <b>Cosa Significa?</b> – Se una richiesta è <i>✅ Completata</i> "
-                     "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
-                     "e MacOS, <b>il rilascio sulle piattaforme avverà assieme al post, oppure prima</b>.</blockquote>")
+            parts.append(
+                "\n<blockquote>ℹ <b>Cosa Significa?</b> — Se una richiesta è <i>✅ Completata</i>, "
+                "il post dell'app o del software richiesto è in programmazione. Per i software Windows "
+                "e MacOS, <b>il rilascio sulle piattaforme avverrà assieme al post, oppure prima</b>.</blockquote>"
+            )
 
-    if request.status_change_notifications is not None and not admin and request.is_active:
-        text += (f"\n<blockquote>{'🔔 Riceverai' if request.status_change_notifications else '🔕 Non riceverai'} "
-                 "una notifica quando questa richiesta verrà chiusa.</blockquote>")
+    if not admin and request.is_active:
+        prefix = "🔔 Riceverai" if request.status_change_notifications else "🔕 Non riceverai"
+        parts.append(f"\n<blockquote>{prefix} una notifica quando questa richiesta verrà chiusa.</blockquote>")
 
-    return text
-
-
-async def generate_user_archive_requests_pdf_file(requests: list[Request], input_path: str) -> str:
-    input_path = str(Path(input_path).with_suffix(".tex"))
-    tex_p = await generate_user_archive_requests_latex_file(requests=requests, out_path=input_path)
-    pdf_p = await convert_latex_to_pdf(tex_path=tex_p)
-    return str(pdf_p)
+    return "".join(parts)
 
 
-async def generate_user_archive_requests_latex_file(requests: list[Request], out_path: str) -> str:
-    p = await create_latex_file(out_path, iter_archive_tex(requests))
-    return str(p)
-
-
-async def iter_archive_tex(requests: Iterable[Request]) -> AsyncIterator[Text]:
-    yield render_requests_latex_header()
-    for r in requests:
-        yield render_request_latex_item(r)
-    yield render_requests_latex_footer()
-
-
-def render_request_latex_item(r: Request) -> str:
-    lines = [rf"\item\begin{{minipage}}[t]{{\linewidth}}\raggedright"]
-
-    PLATFORM_LATEX_EMOJIS = {
-        "android": "robot",
-        "windows": "laptop",
-        "ios": "green-apple",
-        "macos": "desktop-computer"
-    }
-
-    STATUS_COLORS = {
-        "pending": "orange",
-        "examining": "linkblue",
-        "testing": "teal",
-        "completed": "green!60!black",
-        "rejected": "red",
-        "cancelled": "statusgrey"
-    }
-
-    STATUS_LATEX_EMOJIS = {
-        "pending": "hourglass-not-done",
-        "examining": "magnifying-glass-tilted-right",
-        "testing": "test-tube",
-        "completed": "check-mark-button",
-        "rejected": "cross-mark",
-        "cancelled": "wastebasket"
-    }
-
-    if r.name:
-        lines.append(rf"\underline{{\textbf{{Nome}}}} – {tex_escape(r.name)} \\")
-    if r.platform:
-        icon = PLATFORM_LATEX_EMOJIS[r.platform.value]
-        label = PLATFORM_DETAILS[r.platform.value]['label']
-        lines.append(rf"\textbf{{Piattaforma}} – \emoji{{{icon}}} \textit{{{tex_escape(label)}}} \\")
-    if r.link:
-        lines.append(rf"\textbf{{Link}} – \href{{{r.link}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}} \\")
-    if r.version:
-        lines.append(rf"\textbf{{Versione}} – \texttt{{{r.version}}} \\")
-    if r.functionalities:
-        lines.append(rf"\textbf{{Funzionalità}} – \textit{{{r.functionalities}}} \\")
-    if r.issued_at:
-        s = format_time_as_rome(until=datetime.fromisoformat(r.issued_at)).replace("<b>", "").replace("</b>", "")
-        lines.append(rf"\textbf{{Data}} – {tex_escape(s)} \\")
-    if r.status:
-        icon = STATUS_LATEX_EMOJIS[r.status.value]
-        label = REQUEST_STATUS_DETAILS[r.status.value]['label']
-        color = STATUS_COLORS[r.status.value]
-        lines.append(rf"\textbf{{Status}} – \emoji{{{icon}}} \textcolor{{{color}}}{{{tex_escape(label)}}} \\")
-
-    if r.rejection_reason:
-        rejection_text = rf"\textbf{{Motivo}} – \textit{{{r.rejection_reason}}}"
-    else:
-        rejection_text = rf"\textbf{{Motivo}} – \texttt{{None}}"
-    lines.append(rf"{rejection_text} \\")
-
-    lines.append(rf"\end{{minipage}}")
-    return """ """.join(lines)
-
-
-def render_requests_latex_header() -> str:
-    s = platf.system()
-    if s == "Windows":
-        font = "Segoe UI Emoji"
-    else:
-        font = "Noto Color Emoji"
-    return fr"""\documentclass[a4paper,12pt]{{article}}
-    \usepackage{{fontspec}}
-    \usepackage{{emoji}}
-    \setemojifont{{{font}}}
-    \usepackage{{multicol}}
-    \usepackage{{enumitem}}
-    \usepackage{{xcolor}}
-    \usepackage{{url}}
-    \usepackage[hidelinks]{{hyperref}}
-    \Urlmuskip=0mu plus 1mu\relax
-    \definecolor{{linkblue}}{{HTML}}{{1F63D1}}
-    \definecolor{{statusgrey}}{{HTML}}{{383A3D}}
-
-    \begin{{document}}
-    \section*{{\emoji{{closed-book}} Archivio Richieste}}
-    \emoji{{small-blue-diamond}} Ecco le richieste che hai formulato in passato in ordine cronologico.
-
-    \begin{{multicols}}{{2}}
-    \begin{{enumerate}}[leftmargin=0.5cm]
-    """  # noqa: E501
-
-
-def render_requests_latex_footer() -> str:
-    return r"""\end{enumerate}
-\end{multicols}
-\end{document}
-"""
+def _render_field_value_html(value: Any, fmt: FieldFormat) -> str:
+    if fmt is FieldFormat.BOOL:
+        return "<i>✔️</i>" if value else "<i>✖️</i>"
+    if fmt is FieldFormat.LINK:
+        return f'<a href="{str(value)}">🔗 Link</a>'
+    if fmt is FieldFormat.CODE:
+        return f"<code>{value}</code>"
+    return f"<i>{value}</i>"  # TEXT
 
 
 async def get_last_n_requests(
         n: int,
-        pl: Optional[Union[Platform, str]],
-        ca: Optional[Union[Category, str]]
-) -> Optional[list[Request]]:
-    if not isinstance(n, int) or n < 0:
-        log.error("Invalid number of requests")
-        return None
-    if pl and isinstance(pl, Platform):
-        pl = pl.value
-    if ca and isinstance(ca, Category):
-        ca = ca.value
+        platform: Platform | None = None,
+        category: Category | None = None,
+) -> list[BaseRequest]:
+    """
+    Ritorna le ultime n richieste fatte per una specifica sezione.
+    """
+    if not isinstance(n, int) or n <= 0:
+        raise ValueError(f"Invalid request number: {n}!")
 
-    if pl not in PLATFORM_DETAILS:
-        log.error(f"Invalid platform: {pl}")
-        return None
-    if ca not in CATEGORY_DETAILS[pl]:
-        log.error(f"Invalid category: {ca}")
-        return None
+    query = "SELECT * FROM requests_test"
+    params = []
+    conditions = []
 
-    query = f"SELECT * FROM requests"
+    if platform:
+        params.append(platform.value)
+        conditions.append(f"platform = ${len(params)}")
 
-    if pl:
-        if ca:
-            query += f" WHERE platform = '{pl}' and category = '{ca}'"
-        else:
-            query += f" WHERE platform = '{pl}'"
-    elif ca:
-        query += f" WHERE category = '{ca}'"
+        if category:
+            params.append(category.value)
+            conditions.append(f"category = ${len(params)}")
+    elif category:
+        params.append(category.value)
+        conditions.append(f"category = ${len(params)}")
 
-    query += f" ORDER BY issued_at DESC LIMIT {n}"
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
 
-    res = await fetch_query(query)
-    return [await request_from_record(dict(record)) for record in res] if res is not None else None
+    params.append(n)
+    query += f" ORDER BY issued_at DESC LIMIT ${len(params)}"
+
+    res = await fetch_query(query, params)
+
+    if res is None:
+        return []
+
+    return [request_from_record(dict(record)) for record in res]

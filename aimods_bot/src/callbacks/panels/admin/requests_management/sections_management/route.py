@@ -2,130 +2,143 @@ from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
     handle_request_section_toggle, handle_request_section_limit
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.render import \
-    render_admin_request_section_configure_panel, render_admin_request_section_configure_platform_panel, \
-    render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel, \
-    render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel, \
+from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.render import (
+    render_admin_request_section_configure_panel, render_admin_request_section_configure_platform_panel,
+    render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel,
+    render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel,
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
-from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform
+)
+from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, LimitationsOp
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
-from aimods_bot.src.helpers.utils.request_utils import get_platform_categories
+from aimods_bot.src.core.config_accessor import get_section_config
 
 
-async def admin_request_section_configure_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_admin_request_section_configure_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+async def route_admin_request_section_configure_selection(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            await render_admin_request_section_configure_panel(update=update, context=context, base_path=root)
 
-    if len(path) == 1:
-        # expected: (admin/manage_requests/manage_sections)/<platform>
-        platform = Platform(path[0])
-        await render_admin_request_section_configure_platform_panel(
-            update=update,
-            context=context,
-            platform=platform
-        )
-        return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 2:
-        # expected: (admin/manage_requests/manage_sections)/<platform>/<category>
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        await render_admin_request_section_configure_category_panel(
-            update=update,
-            context=context,
-            platform=platform,
-            category=category
-        )
-        return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 3:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        match path[2]:
-            case "limit":
-                await render_admin_request_section_limit_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category
-                )
-                return PCS.ADMIN_CONVERSATION
-            case _:  # open/close
-                await render_admin_request_section_toggle_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category,
-                    action=path[2]
-                )
-                return PCS.ADMIN_CONVERSATION
-
-    if len(path) == 4:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        action = path[2]
-        if action in ("open", "close") and path[3] == "yes":
-            await handle_request_section_toggle(
-                context=context,
-                platform=platform,
-                category=category,
-                action=action
+        case [platform_str] if platform_str in Platform:
+            platform = Platform(platform_str)
+            await render_admin_request_section_configure_platform_panel(
+                update=update, context=context, platform=platform, base_path=root.add(platform)
             )
-            if action == "open":
-                await schedule_section_opening_check_for_user_notification(
-                    context=context,
-                    section=f"{path[0]}:{path[1]}"
-                )
-            await render_admin_request_section_toggled_panel(
+
+        case [platform_str, category_str, *rest] if platform_str in Platform and category_str in Category:
+            platform = Platform(platform_str)
+            category = Category(category_str)
+            await admin_request_section_configure_route(
                 update=update,
                 context=context,
-                platform=platform,
-                category=category,
-                action=action
+                section=RequestSection(platform=platform, category=category),
+                root=root.add(platform, category),
+                relative_path=PathBuilder(*rest)
             )
-            return PCS.ADMIN_CONVERSATION
 
-        if path[2] == "limit" and path[3].isnumeric():
-            limit = int(path[3])
-            config = getattr(getattr(context.pydb.configuration.settings.request, platform.value), category.value)
-            assert isinstance(config, CategorySetting)
+    return PCS.ADMIN_CONVERSATION
 
-            if config.limit == limit or (config.limit is None and limit == 0):
-                await render_admin_request_section_configure_category_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category
-                )
-            else:
-                await render_admin_request_section_limit_confirm_panel(
-                    update=update,
-                    context=context,
-                    platform=platform,
-                    category=category,
-                    limit=int(path[3])
-                )
-            return PCS.ADMIN_CONVERSATION
 
-    if len(path) == 5:
-        platform = Platform(path[0])
-        category = get_platform_categories(platform)(path[1])
-        if path[2] == "limit" and path[3].isnumeric() and path[4] == "yes":
-            await handle_request_section_limit(
-                context=context,
-                platform=platform,
-                category=category,
-                limit=int(path[3])
-            )
-            await render_admin_request_section_limit_confirmed_panel(
+async def admin_request_section_configure_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder,
+        section: RequestSection
+):
+    match relative_path.segments:
+        case []:
+            await render_admin_request_section_configure_category_panel(
                 update=update,
                 context=context,
-                platform=platform,
-                category=category,
-                limit=int(path[3])
+                section=section,
+                base_path=root
             )
-            return PCS.ADMIN_CONVERSATION
+
+        case [LimitationsOp.LIMIT, *rest]:
+            match PathBuilder(*rest).segments:
+                case []:
+                    await render_admin_request_section_limit_panel(
+                        update=update,
+                        context=context,
+                        section=section,
+                        base_path=root.add(LimitationsOp.LIMIT)
+                    )
+
+                case [limit_str] if limit_str.isnumeric():
+                    limit = int(limit_str)
+                    config = get_section_config(context=context, section=section)
+
+                    # Se il limite è identico o è "nessun limite" (0) ed era già None, ricarica il pannello
+                    if config.limit == limit or (config.limit is None and limit == 0):
+                        await render_admin_request_section_configure_category_panel(
+                            update=update,
+                            context=context,
+                            base_path=root,
+                            section=section
+                        )
+                    else:
+                        await render_admin_request_section_limit_confirm_panel(
+                            update=update,
+                            context=context,
+                            base_path=root.add(LimitationsOp.LIMIT, limit_str),
+                            section=section,
+                            limit=limit
+                        )
+
+                case [limit_str, GlobalAction.YES] if limit_str.isnumeric():
+                    limit = int(limit_str)
+
+                    await handle_request_section_limit(
+                        context=context,
+                        section=section,
+                        limit=limit
+                    )
+                    await render_admin_request_section_limit_confirmed_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(limit_str),
+                        section=section,
+                        limit=limit
+                    )
+
+        case [action, *rest] if action in (GlobalAction.OPEN, GlobalAction.CLOSE):
+            match PathBuilder(*rest).segments:
+                case []:
+                    await render_admin_request_section_toggle_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(action),
+                        section=section,
+                        action=action
+                    )
+
+                case [GlobalAction.YES]:
+                    await handle_request_section_toggle(
+                        context=context,
+                        section=section,
+                        action=action
+                    )
+
+                    if action == GlobalAction.OPEN:
+                        await schedule_section_opening_check_for_user_notification(
+                            context=context,
+                            section=section
+                        )
+
+                    await render_admin_request_section_toggled_panel(
+                        update=update,
+                        context=context,
+                        base_path=root.add(action),
+                        section=section,
+                        action=action
+                    )

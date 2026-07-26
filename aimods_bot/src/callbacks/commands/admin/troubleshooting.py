@@ -35,7 +35,7 @@ async def reset_user_conversation(update: Update, context: CustomContext):
                     InlineKeyboardButton(text="🚮 Ignora", callback_data="close_menu")
                 ]]
             ),
-            parse_mode=ParseMode.HTML,
+            parse_mode=ParseMode.HTML
         )
     except Exception as e:
         log.warning(f"Error while contacting the user: {e}")

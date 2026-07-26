@@ -1,9 +1,18 @@
+from enum import StrEnum
 from telegram import InputMediaAudio, InputMediaDocument, InputMediaPhoto, InputMediaVideo, InputMediaAnimation
 
+class MediaType(StrEnum):
+    DOCUMENT = "document"
+    PHOTO = "photo"
+    AUDIO = "audio"
+    VIDEO = "video"
+    GIF = "gif"
+
+
 MEDIA_GROUP_TYPES = {
-    "audio": InputMediaAudio,
-    "document": InputMediaDocument,
-    "photo": InputMediaPhoto,
-    "video": InputMediaVideo,
-    "gif": InputMediaAnimation
+    MediaType.AUDIO: InputMediaAudio,
+    MediaType.DOCUMENT: InputMediaDocument,
+    MediaType.PHOTO: InputMediaPhoto,
+    MediaType.VIDEO: InputMediaVideo,
+    MediaType.GIF: InputMediaAnimation
 }

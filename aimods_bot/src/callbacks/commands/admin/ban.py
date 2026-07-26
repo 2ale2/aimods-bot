@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
 
-log = logger.getChild("ban_command")
+log = logger.getChild(__name__)
 
 
 ERROR_MESSAGES = {
@@ -174,7 +174,7 @@ async def _add_to_blacklist(
         return {"status": "error", "message": ERROR_MESSAGES["unable_to_blacklist"]}
 
     context.pydb.ban_list[member["id"]] = BanListItem(
-        expires_at=until.astimezone(pytz.UTC).isoformat(),
+        expires_at=until.astimezone(pytz.UTC),
         reason=reason,
         admin=admin_id
     )
@@ -342,7 +342,7 @@ async def _build_confirmation_message(member, until, reason=None, unban=False, p
             member["first_name"]
         )
     else:
-        if await is_username(member):
+        if is_username(member):
             user_mention = format_user_mention(user_id=None, username=member, first_name=None)
         else:
             user_mention = format_user_mention(user_id=member, username=None, first_name=None)

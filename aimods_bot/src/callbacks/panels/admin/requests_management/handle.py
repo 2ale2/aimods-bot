@@ -1,73 +1,57 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.render import render_admin_confirm_rejection_panel, \
-    send_user_request_status_changed_notification
-from aimods_bot.src.callbacks.panels.user.request.management.render import render_user_request_archive_panel
+from aimods_bot.src.callbacks.panels.admin.requests_management.route import admin_manage_request_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.core.pydantic import Request
-from aimods_bot.src.helpers.constants.constants import RequestStatus, REQUEST_REJECTION_REASONS
+from aimods_bot.src.helpers.constants.constants import RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, username_to_id, wrong_input_message
+from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute
+from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+
+log = logger.getChild(__name__)
 
 
 async def handle_request_rejection_reason(update: Update, context: CustomContext):
-    await safe_delete(update=update, context=context)
+    rejection_session = context.pydc.ephemeral.active_rejection_session
+    if rejection_session is None:
+        raise ValueError("No active request rejection session.")
 
-    reason = update.message.text
+    root_path = PathBuilder.from_string(context.pydc.persistent.root_path)
+    relative_path = PathBuilder.from_string(context.pydc.persistent.relative_path)
 
-    request = context.pydc.ephemeral.rejecting
-    context.pydc.ephemeral.rejecting = None
-
-    if request is None:
-        raise MissingParameterException("Missing 'request' parameter inside ChatData.")
-
-    assert isinstance(request, Request)
-
-    await render_admin_confirm_rejection_panel(
-        update=update,
-        context=context,
-        request=request,
-        ix=request.id,
-        reason=reason
-    )
-
-    return PCS.ADMIN_CONVERSATION
-
-
-async def confirm_rejection(context: CustomContext, ix: int, reason: str):
-    if reason in REQUEST_REJECTION_REASONS:
-        reason = REQUEST_REJECTION_REASONS[reason]
-    await context.edit_request_status(ix=ix, status=RequestStatus.REJECTED, rejection_reason=reason)
-
-
-async def handle_user_archive_identifier(update: Update, context: CustomContext):
-    await safe_delete(update=update, context=context)
-
-    identifier = update.message.text
-
-    if not identifier.isnumeric():
-        identifier = await username_to_id(username=identifier)
-        if identifier is None:
-            await wrong_input_message(
+    if update.callback_query:
+        reason_str = update.callback_query.data
+        if reason_str == AdminRequestManagementRoute.REJECT_REASON_BACK:
+            return await admin_manage_request_route(
                 update=update,
                 context=context,
-                correct_format="un ID o uno @username valido"
+                root=root_path,
+                relative_path=relative_path.back(),
+                ix=rejection_session.request_id
             )
-            return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+        if reason_str not in RejectRequestReason:
+            await update.callback_query.answer(text="⚠️ Scegli una motivazione valida o scrivine una.", show_alert=True)
+            log.warning(f"Invalid rejection reason from callback query: {reason_str}")
+            return PCS.SET_REQUEST_REJECTION_REASON
+    elif update.message:
+        reason_str = update.message.text
+        await safe_delete(update=update, context=context)
+    else:
+        raise ValueError("Rejection reason not specified.")
 
-    if int(identifier) in context.pydb.admins.keys():
-        await wrong_input_message(
-            update=update,
-            context=context,
-            correct_format="uno <b>username</b> o un <b>ID numerico</b> che <b>non appartengano</b> agli admin"
-        )
-        return PCS.SET_USER_FOR_REQUEST_ARCHIVE
+    if reason_str in RejectRequestReason:
+        rejection_session.reason = RejectRequestReason(reason_str).label
+    else:
+        rejection_session.reason = reason_str
 
-    await render_user_request_archive_panel(
+    context.pydc.persistent.root_path = None
+    context.pydc.persistent.relative_path = None
+
+    return await admin_manage_request_route(
         update=update,
         context=context,
-        user_id=int(identifier),
-        requested_by_admin=True
+        root=root_path,
+        relative_path=relative_path.add(AdminRequestManagementRoute.REJECT_REASON_SET),
+        ix=rejection_session.request_id
     )
-    return PCS.ADMIN_CONVERSATION

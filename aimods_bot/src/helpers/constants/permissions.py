@@ -4,6 +4,7 @@ from pyrogram.types import ChatPermissions as PyroChatPermissions
 from dataclasses import dataclass
 from enum import IntEnum
 
+
 @dataclass(frozen=True)
 class Permissions(IntEnum):
     can_send_messages = 0

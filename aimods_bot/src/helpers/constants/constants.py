@@ -3,19 +3,22 @@ from __future__ import annotations
 import pytz
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Union
+from enum import StrEnum
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 
 CHANNEL_JOIN_LINK = "https://t.me/+YmSMpGvSrlphYjJk"
 GROUP_JOIN_LINK = "https://t.me/+s3kZBM549qE1ZTU8"
 
+UNKNOWN_FIELD_SENTINEL = "unknown"
+
 LOCAL_TZ = pytz.timezone('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
 pyro_instance = None
+
+DEFAULT_SECTION_OPENING_NOTIFICATION = True
 
 ERROR_MESSAGES = {
     "command_syntax_error": "⚠️ Warning\n\n▪️ Sintassi del comando non corretta.",
@@ -72,192 +75,61 @@ MODERATION_DISPLAY_ITEMS = {
     "antiflood": DisplayItem("🌊", "Anti-Flood", "a chi fa flooding")
 }
 
-PLATFORM_DETAILS = {
-    "android": {
-        "label": "Android",
-        "icon": "🤖"
-    },
-    "windows": {
-        "label": "Windows",
-        "icon": "💻"
-    },
-    "ios": {
-        "label": "iOS",
-        "icon": "🍏"
-    },
-    "macos": {
-        "label": "MacOS",
-        "icon": "🖥"
-    }
-}
 
-CATEGORY_DETAILS = {
-    "android": {
-        "app": {
-            "label": "App",
-            "icon": "🤖"
-        }
-    },
-    "windows": {
-        "game": {
-            "label": "Gioco",
-            "icon": "🕹"
-        },
-        "adobe": {
-            "label": "Adobe",
-            "icon": "🖌"
-        },
-        "daw": {
-            "label": "DAW",
-            "icon": "🎹"
-        },
-        "software": {
-            "label": "Software",
-            "icon": "⌨"
-        }
-    },
-    "ios": {
-        "app": {
-            "label": "App",
-            "icon": "🍏"
-        }
-    },
-    "macos": {
-        "daw": {
-            "label": "DAW",
-            "icon": "🎹"
-        },
-        "software": {
-            "label": "Software",
-            "icon": "🖥"
-        }
-    }
-}
-
-REQUEST_STATUS_DETAILS = {
-    "pending": {
-        "label": "In Attesa",
-        "icon": "⏳"
-    },
-    "examining": {
-        "label": "In Esame",
-        "icon": "🔎"
-    },
-    "testing": {
-        "label": "In Test",
-        "icon": "🧪"
-    },
-    "completed": {
-        "label": "Completata",
-        "icon": "✅"
-    },
-    "rejected": {
-        "label": "Rifiutata",
-        "icon": "❌"
-    },
-    "cancelled": {
-        "label": "Cancellata",
-        "icon": "🗑️"
-    }
-}
-
-REQUEST_DETAILS_CONFIG = {
-            "android": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "windows": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "game": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-                    'steamtools': {'label': 'Steam Tools', 'format': 'bool'}
-                },
-                "adobe": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'},
-                    'arch': {'label': 'CPU ARM', 'format': 'bool'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            },
-            "ios": {
-                "app": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                }
-            },
-            "macos": {
-                "software": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'},
-                    'functionalities': {'label': 'Funzionalità', 'format': 'text'}
-                },
-                "daw": {
-                    'name': {'label': 'Nome', 'format': 'text'},
-                    'link': {'label': 'Link', 'format': 'link'},
-                    'version': {'label': 'Versione', 'format': 'code'}
-                }
-            }
-        }
+class FieldFormat(StrEnum):
+    TEXT = "text"  # <i>valore</i>
+    CODE = "code"  # <code>valore</code>
+    LINK = "link"  # <a href="valore">🔗 Link</a>
+    BOOL = "bool"  # ✔️ / ✖️
 
 
-class Platform(Enum):
+class Platform(StrEnum):
     ANDROID = "android"
-    IOS = "ios"
     WINDOWS = "windows"
+    IOS = "ios"
     MACOS = "macos"
 
+    @property
+    def icon(self) -> str:
+        match self:
+            case Platform.ANDROID:
+                return "🤖"
+            case Platform.WINDOWS:
+                return "💻"
+            case Platform.IOS:
+                return "🍏"
+            case Platform.MACOS:
+                return "🖥"
 
-class WindowsCategory(Enum):
+    @property
+    def label(self) -> str:
+        match self:
+            case Platform.ANDROID:
+                return "Android"
+            case Platform.WINDOWS:
+                return "Windows"
+            case Platform.IOS:
+                return "iOS"
+            case Platform.MACOS:
+                return "MacOS"
+
+
+class Category(StrEnum):
+    APP = "app"
     GAME = "game"
     DAW = "daw"
     ADOBE = "adobe"
     SOFTWARE = "software"
 
 
-class AndroidCategory(Enum):
-    APP = "app"
-
-
-class IOSCategory(Enum):
-    APP = "app"
-
-
-class MacOSCategory(Enum):
-    SOFTWARE = "software"
-    DAW = "daw"
-
-
-Category = Union[WindowsCategory, AndroidCategory, IOSCategory, MacOSCategory]
-
-
-class Arch(Enum):
+class Arch(StrEnum):
     x86 = "x86"
     x86_64 = "x86_64"
     ARM = "arm"
     ARM_64 = "arm64"
 
 
-class RequestStatus(Enum):
+class RequestStatus(StrEnum):
     PENDING = "pending"
     EXAMINING = "examining"
     TESTING = "testing"
@@ -265,26 +137,209 @@ class RequestStatus(Enum):
     REJECTED = "rejected"
     CANCELLED = "cancelled"
 
+    @property
+    def label(self) -> str:
+        match self:
+            case RequestStatus.PENDING:
+                return "In Attesa"
+            case RequestStatus.EXAMINING:
+                return "In Esame"
+            case RequestStatus.TESTING:
+                return "In Test"
+            case RequestStatus.COMPLETED:
+                return "Completata"
+            case RequestStatus.REJECTED:
+                return "Rifiutata"
+            case RequestStatus.CANCELLED:
+                return "Cancellata"
 
-class RequestField(Enum):
+    @property
+    def icon(self) -> str:
+        match self:
+            case RequestStatus.PENDING:
+                return "⏳"
+            case RequestStatus.EXAMINING:
+                return "🔎"
+            case RequestStatus.TESTING:
+                return "🧪"
+            case RequestStatus.COMPLETED:
+                return "✅"
+            case RequestStatus.REJECTED:
+                return "❌"
+            case RequestStatus.CANCELLED:
+                return "🗑️"
+
+
+class RequestField(StrEnum):
     NAME = "name"
     LINK = "link"
     VERSION = "version"
-    FUNCTIONALITIES = "functionalities"
+    FEATURES = "features"
     STEAMTOOLS = "steamtools"
-    ARCH = "arch"
+    HYPERVISOR = "hypervisor"
+    ARCH_ARM = "arch_arm"
+    MAC_OS_VERSION = "mac_os_version"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case RequestField.NAME:
+                return "Nome"
+            case RequestField.LINK:
+                return "Link"
+            case RequestField.VERSION:
+                return "Versione"
+            case RequestField.FEATURES:
+                return "Funzionalità"
+            case RequestField.STEAMTOOLS:
+                return "SteamTools"
+            case RequestField.HYPERVISOR:
+                return "HyperVisor"
+            case RequestField.ARCH_ARM:
+                return "Arch. ARM"
+            case RequestField.MAC_OS_VERSION:
+                return "Versione MacOS"
+
+    @property
+    def format(self) -> FieldFormat:
+        match self:
+            case RequestField.NAME | RequestField.FEATURES:
+                return FieldFormat.TEXT
+            case RequestField.LINK:
+                return FieldFormat.LINK
+            case RequestField.VERSION | RequestField.MAC_OS_VERSION:
+                return FieldFormat.CODE
+            case RequestField.STEAMTOOLS | RequestField.HYPERVISOR | RequestField.ARCH_ARM:
+                return FieldFormat.BOOL
 
 
-class RejectRequestReason(Enum):
+class ChatType(StrEnum):
+    USER = "user"
+    GROUP = "group"
+    CHANNEL = "channel"
+    BOT = "bot"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "Utenti"
+            case ChatType.GROUP:
+                return "Gruppi"
+            case ChatType.CHANNEL:
+                return "Canali"
+            case ChatType.BOT:
+                return "Bot"
+
+    @property
+    def label_with_article(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "gli utenti"
+            case ChatType.GROUP:
+                return "i gruppi"
+            case ChatType.CHANNEL:
+                return "i canali"
+            case ChatType.BOT:
+                return "i bot"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case ChatType.USER:
+                return "👤"
+            case ChatType.GROUP:
+                return "👥"
+            case ChatType.CHANNEL:
+                return "📢"
+            case ChatType.BOT:
+                return "🤖"
+
+
+class RejectRequestReason(StrEnum):
     SERVERSIDE = "serverside"
     NOT_AVAILABLE = "not_available"
     ALREADY_AVAILABLE = "already_available"
     UNCLEAR = "unclear"
 
+    @property
+    def label(self) -> str:
+        match self:
+            case RejectRequestReason.SERVERSIDE:
+                return "Serverside"
+            case RejectRequestReason.NOT_AVAILABLE:
+                return "Non disponibile al momento"
+            case RejectRequestReason.ALREADY_AVAILABLE:
+                return "Già disponibile sul canale"
+            case RejectRequestReason.UNCLEAR:
+                return "Richiesta non chiara"
 
-REQUEST_REJECTION_REASONS = {
-    "serverside": "Serverside",
-    "not_available": "Non disponibile al momento",
-    "already_available": "Già disponibile sul canale",
-    "unclear": "Richiesta non chiara"
+
+class ModerationList(StrEnum):
+    WHITELIST = "whitelist"
+    GREYLIST = "greylist"
+    BLACKLIST = "blacklist"
+
+    @property
+    def icon(self) -> str:
+        match self:
+            case ModerationList.WHITELIST:
+                return "📨"
+            case ModerationList.GREYLIST:
+                return "🧙‍♂️"
+            case ModerationList.BLACKLIST:
+                return "📓"
+
+    @property
+    def description(self) -> str:
+        match self:
+            case ModerationList.WHITELIST:
+                return "I domini aggiunti a questa lista <b>non verranno puniti</b> se spammati."
+            case ModerationList.GREYLIST:
+                return "I link aggiunti a questa lista <b>non verranno puniti</b>."
+            case ModerationList.BLACKLIST:
+                return ("I domini aggiunti a questa lista verranno <b>puniti con il ban, "
+                        "indipendentemente dalla punizione impostata</b>.")
+
+    @property
+    def item_label_singular(self) -> str:
+        match self:
+            case ModerationList.WHITELIST | ModerationList.BLACKLIST:
+                return "dominio"
+            case ModerationList.GREYLIST:
+                return "link"
+
+    @property
+    def item_label_plural(self) -> str:
+        match self:
+            case ModerationList.WHITELIST | ModerationList.BLACKLIST:
+                return "domini"
+            case ModerationList.GREYLIST:
+                return "link"
+
+
+DATETIME_FORMAT = "%d %b %Y alle %H:%M:%S"
+
+EMOJI_HOURGLASS = "⏳"
+EMOJI_WARNING = "⚠️"
+EMOJI_CHECKMARK = "✔"
+EMOJI_QUESTION_RED = "❓"
+EMOJI_EXCLAMATION_RED = "❗"
+EMOJI_DOT_BLUE = "🔹"
+EMOJI_DOT_ORANGE = "🔸"
+
+EMOJI_NUMBER = {
+    0: "0️⃣",
+    1: "1️⃣",
+    2: "2️⃣",
+    3: "3️⃣",
+    4: "4️⃣",
+    5: "5️⃣",
+    6: "6️⃣",
+    7: "7️⃣",
+    8: "8️⃣",
+    9: "9️⃣",
+    10: "🔟"
 }
+
+COMMAND_PREFIX = [".", "!", "/"]

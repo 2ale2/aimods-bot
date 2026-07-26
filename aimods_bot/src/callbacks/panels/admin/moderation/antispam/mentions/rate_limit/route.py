@@ -8,46 +8,72 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_lim
     render_antispam_mentions_rate_limit_panel, render_antispam_mentions_rate_limit_setting_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
+from aimods_bot.src.helpers.models.routing import PathBuilder
 
 
-async def antispam_mentions_rate_limit_route(update: Update, context: CustomContext, path: list[str]):
-    if len(path) == 0:
-        await render_antispam_mentions_rate_limit_panel(update=update, context=context)
-        return PCS.ADMIN_CONVERSATION
+async def antispam_mentions_rate_limit_route(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+):
+    match relative_path.segments:
+        case []:
+            await render_antispam_mentions_rate_limit_panel(update=update, context=context, base_path=root)
+            return PCS.ADMIN_CONVERSATION
 
-    match path[0]:
-        case "time":
+        case [toggle] if toggle in (GlobalAction.TOGGLE_ON, GlobalAction.TOGGLE_OFF):
+            setting = ModerationSettingRoute.TOGGLE
+            value = (toggle == GlobalAction.TOGGLE_ON)
+            await set_antispam_mention_rate_limit(update=update, context=context, setting=setting, value=value)
+            await render_antispam_mentions_rate_limit_panel(update=update, context=context, base_path=root)
+            return PCS.ADMIN_CONVERSATION
+
+        case [moderation_setting] if moderation_setting in (
+            ModerationSettingRoute.TIME, ModerationSettingRoute.MENTION
+        ):
+            root = root.add(ModerationSettingRoute.TIME)
             return await antispam_mentions_rate_limit_setting_route(
                 update=update,
                 context=context,
-                setting="time",
-                path=path[1:]
+                setting=moderation_setting,
+                root=root,
+                value=None
             )
-        case "mention":
+
+        case [moderation_setting, value] if moderation_setting in (
+            ModerationSettingRoute.TIME, ModerationSettingRoute.MENTION
+        ) and value in RateLimitTimeRoute:
+            root = root.add(moderation_setting)
+            if not isinstance(value, int):
+                raise ValueError(f"Invalid setting value type: {value}! ({root.build()})")
             return await antispam_mentions_rate_limit_setting_route(
                 update=update,
                 context=context,
-                setting="mention",
-                path=path[1:]
+                setting=ModerationSettingRoute.TIME,
+                root=root,
+                value=int(value)
             )
-
-    # L'utente ha premuto il toggle
-    toggle = True if path[0] == "on" else False
-    await set_antispam_mention_rate_limit(update=update, context=context, setting="toggle", value=toggle)
-    await render_antispam_mentions_rate_limit_panel(update=update, context=context)
-    return PCS.ADMIN_CONVERSATION
 
 
 async def antispam_mentions_rate_limit_setting_route(
         update: Update,
         context: CustomContext,
-        setting: Literal['time', 'mention'],
-        path: list[str]
+        setting: Literal[ModerationSettingRoute.TIME, ModerationSettingRoute.MENTION],
+        root: PathBuilder,
+        value: int | None = None
 ):
-    if len(path) == 0:
-        await render_antispam_mentions_rate_limit_setting_panel(update=update, context=context, setting=setting)
+    if not value:
+        await render_antispam_mentions_rate_limit_setting_panel(
+            update=update,
+            context=context,
+            setting=setting,
+            base_path=root
+        )
         return PCS.ADMIN_CONVERSATION
 
-    await set_antispam_mention_rate_limit(update=update, context=context, setting=setting, value=int(path[0]))
-    await render_antispam_mentions_rate_limit_panel(update=update, context=context)
+    await set_antispam_mention_rate_limit(update=update, context=context, setting=setting, value=value)
+    await render_antispam_mentions_rate_limit_panel(update=update, context=context, base_path=root)
     return PCS.ADMIN_CONVERSATION

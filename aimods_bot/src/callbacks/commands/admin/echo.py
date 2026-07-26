@@ -1,7 +1,7 @@
 import asyncio
 import re
 from functools import partial
-from typing import Union, Optional, TypedDict, Literal, cast, List
+from typing import Optional, TypedDict, Literal, cast, List
 
 from telegram import Update, Message, TextQuote, ReplyParameters
 from telegram.constants import ParseMode
@@ -9,14 +9,13 @@ from telegram.helpers import effective_message_type
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
-from aimods_bot.src.helpers.constants.models import JobData
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_and_argument
 from aimods_bot.src.helpers.utils.user_utils import is_admin
 
-log = logger.getChild("echo")
+log = logger.getChild(__name__)
 
 
 class MsgDict(TypedDict):
@@ -31,32 +30,28 @@ async def echo(update: Update, context: CustomContext, full_command: str):
     """Scrive un messaggio facendo le veci del bot. Gestisce i comandi 'annuncio' e 'echo'."""
     message = update.effective_message
 
+    if message is None:
+        raise ValueError("Effective Message must not be None here!")
+
     if message.media_group_id:
-        log.info("Il messaggio ha più di un allegato. Verrà gestito conseguentemente.")
+        log.debug("Message has more then one attachment (will be managed consequentially).")
         return
 
     await safe_delete(update, context)
-    reply_parameters=_get_reply_parameters(message.reply_to_message)
-    text = _get_echo_text(message)
-    attachments = _get_single_attachment(message)
-
-    additional_job_data = JobData(
-        reply_parameters=reply_parameters,
-        thread_id=message.message_thread_id
-    )
-
-    if attachments:
-        additional_job_data.files = attachments
+    text, entities = split_command_and_argument(message)
 
     await send_action_message_after(
         update=update,
         context=context,
         text=text,
-        additional_job_data=additional_job_data
+        entities=entities if entities is not None else None,
+        thread_id=message.message_thread_id,
+        reply_parameters=_get_reply_parameters(message.reply_to_message),
+        files=_get_single_attachment(message),
     )
 
 
-def _get_reply_parameters(reply_message: Optional[Message], allow_sending_without_reply=True):
+def _get_reply_parameters(reply_message: Message | None = None, allow_sending_without_reply: bool = True):
     if not reply_message:
         return None
 
@@ -79,23 +74,6 @@ def _get_reply_quote(quote: Optional[TextQuote]) -> Optional[str]:
         return quote.text
 
 
-def _get_echo_text(message: Union[Message, str]):
-    """Ritorna il testo senza '[.!/]annuncio'."""
-
-    if isinstance(message, str):
-        text = message
-    else:
-        text = message.caption_html_urled or message.text_html_urled
-
-    if not text:
-        return None
-
-    s = text.split(None, 1)
-    if s[0].lower().endswith(("annuncio", "announce", "echo")):
-        return s[1] if len(s) > 1 else ""
-    return text
-
-
 def _get_single_attachment(message: Message) -> Optional[List]:
     """Ritorna l'allegato del messaggio, se presente. Gestisce solo foto, video e documenti."""
 
@@ -116,7 +94,7 @@ async def multimedia_echo(update: Update, context: CustomContext):
         log.info("Nessun comando tipo 'echo' presente nel media group.")
         return
 
-    text = _get_echo_text(echo_element["caption"])
+    text, entities = split_command_and_argument(echo_element["caption"])
 
     for el in job_data:
         await safe_delete(update=update, context=context, message_id=el["post_id"])
@@ -141,17 +119,13 @@ async def multimedia_echo(update: Update, context: CustomContext):
     if not media:
         return
 
-    additional_job_data = JobData(
-        thread_id=echo_element["thread_id"],
-        files=media,
-        send_as_document=False
-    )
-
     await send_action_message_after(
         update=update,
         context=context,
         text=text,
-        additional_job_data=additional_job_data
+        thread_id=echo_element["thread_id"],
+        files=media,
+        send_as_document=False
     )
 
 

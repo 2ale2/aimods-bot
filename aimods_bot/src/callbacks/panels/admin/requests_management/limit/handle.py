@@ -1,172 +1,124 @@
 from datetime import timedelta, datetime, timezone
-from typing import Literal, Union, Optional
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.constants import ParseMode
+from telegram import Update
 
-from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
+from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
-from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
-from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
+from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
+from aimods_bot.src.helpers.utils.telegram_utils import render_error_panel
 
-log = logger.getChild("handle_request_limitation")
-
-
-def set_user_requests_limiting_item(context: CustomContext, set_true_section: Optional[str] = None):
-    """Crea la struttura dati nella persistenza, se non è presente; ritorna la struttura."""
-    if context.pydc.persistent.limiting_user_requests is None:
-        context.pydc.persistent.limiting_user_requests = AdminLimitingUserRequests()
-        if set_true_section:
-            pl, ca = set_true_section.split(":")
-            platform = context.pydc.persistent.limiting_user_requests.sections.get(pl, None)
-            if ca in platform:
-                context.pydc.persistent.limiting_user_requests.sections[pl][ca] = True
-            else:
-                log.warning(f"Section {set_true_section} not found")
-
-    return context.pydc.persistent.limiting_user_requests
+log = logger.getChild(__name__)
 
 
-def get_request_limiting_detail(context: CustomContext, what: Literal["user_id", "duration", "sections", "reason"]):
-    limiting_item = set_user_requests_limiting_item(context=context)
-    return getattr(limiting_item, what)
-
-
-def set_request_limiting_detail(
+async def handle_request_limitation_topic(
         context: CustomContext,
-        what: Literal["user_id", "duration", "sections", "reason"],
-        value: Union[str, int, dict]
+        section_input: LimitationsFlow | RequestSection,
 ):
-    item = context.pydc.persistent.limiting_user_requests
-    if item is None:
-        log.warning("Key 'limit_user_requests' was not initialized.")
-        return False
+    item = context.get_or_create_limitation_wizard()
 
-    setattr(item, what, value)
+    if not item:
+        raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
 
+    match section_input:
+        case LimitationsFlow.BLOCK_ALL:
+            for section in item.sections:
+                item.sections[section] = True
 
-async def handle_request_limitation_duration(update: Update, context: CustomContext):
-    item = context.pydc.persistent.limiting_user_requests
-    if update.callback_query and update.callback_query.data.endswith("endless"):
-        item.duration = 0
-        return True
+        case LimitationsFlow.UNBLOCK_ALL:
+            for section in item.sections:
+                item.sections[section] = False
 
-    text = update.effective_message.text
-    parsed = parse_duration(duration_string=text)
+        case RequestSection() as section:
+            item.sections[section] = not item.sections[section]
 
-    if not parsed:
-        await update.effective_message.reply_text(
-            text="⚠️ Indica una durata del tipo: <code>1 giorno 50 ore 2 minuti 10 secondi</code>",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="🚮 Chiudi", callback_data="close_menu")]
-            ]),
-            parse_mode=ParseMode.HTML
-        )
-        return False
-
-    item.duration = timedelta_to_seconds(parsed)
-    return True
-
-
-async def handle_request_limitation_topic(update: Update, context: CustomContext):
-    data = update.callback_query.data.split("/")[-1]
-    item = context.pydc.persistent.limiting_user_requests
-    sections = item.sections
-
-    if data in ("block_all", "unblock_all"):
-        flag = (data == "block_all")
-        for cats in sections.values():
-            for k in cats:
-                cats[k] = flag
-    else:
-        platform_str, category_str = data.split("-")
-        cats = sections.get(platform_str)
-        cats[category_str] = not cats[category_str]
-
-    # opzionale: trigger valida/persistenza
-    item.sections = sections
+        case _:
+            log.warning(f"Unexpected section_input: {section_input}")
 
 
 def all_sections_are(context: CustomContext, what: bool):
-    sections = context.pydc.persistent.limiting_user_requests.sections
-    for platform, categories in sections.items():
-        for category in categories:
-            if sections[platform][category] != what:
-                return False
-    return True
+    item = context.pydc.persistent.limiting_user_requests
+
+    if not item:
+        raise ValueError("context.pydc.persistent.limiting_user_requests cannot be None here!")
+
+    sections = item.sections
+    return all(bool_value == what for bool_value in sections.values())
 
 
-async def handle_limitation_confirmation(update: Update, context: CustomContext):
-    await handle_limitation_reason(update=update, context=context)
-
-    user_id = get_request_limiting_detail(context=context, what="user_id")
-
+async def handle_limitation_confirmation(
+        update: Update,
+        context: CustomContext,
+        user_id: int
+):
     new_limitations = get_request_limitations(update=update, context=context)
-    current_limitations = context.get_user_request_limitations(user_id=user_id)
+    current_limitations = context.get_user_request_limitations(user_id=user_id) or []
 
-    if current_limitations:
-        new_map = {el.section: {"until": el.until, "reason": el.reasons} for el in new_limitations}
-        current_map = {
-            el.section: {"until": el.until, "reason": el.reasons, "updated": False} for el in current_limitations
-        }
-        for section in new_map:
-            if section in current_map:
-                nu = new_map[section]["until"]
-                cu = current_map[section]["until"]
-                if nu is None or cu is None:
-                    current_map[section]["until"] = None
-                else:
-                    current_map[section]["until"] = cu + (nu - datetime.now(timezone.utc))
-                current_map[section]["reason"].extend(new_map[section]["reason"])
-                current_map[section]["updated"] = True
-            else:
-                current_map[section] = {
-                    "until": new_map[section]["until"],
-                    "reason": new_map[section]["reason"]
-                }
+    effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user cannot be None here!")
 
-        total_limitations = []
-        for l in current_limitations:
-            map_item = current_map[l.section]
-            updated = current_map[l.section]["updated"]
-            total_limitations.append(RequestSectionLimitation(
-                section=l.section,
-                until=map_item["until"],
-                reasons=map_item["reason"],
-                created_by=l.created_by if updated else update.effective_user.id,
-                created_at=l.created_at if updated else None,  # default: now(utc)
-                updated_by=update.effective_user.id,
-                updated_at=None  # default: now(utc)
-            ))
-    else:
-        total_limitations = new_limitations
+    admin_id = effective_user.id
+    now = datetime.now(timezone.utc)
 
-    jobs = context.job_queue.get_jobs_by_name(rf"^request_limit:{user_id}:[^:\s]+$")
+    current_by_section = {l.section: l for l in current_limitations}
+    new_by_section = {l.section: l for l in new_limitations}
 
-    for job in jobs:
+    merged: list[RequestSectionLimitation] = []
+
+    for key, existing in current_by_section.items():
+        new = new_by_section.get(key)
+
+        if new is None:
+            merged.append(existing)
+            continue
+
+        if existing.until is None or new.until is None:
+            merged_until = None
+        else:
+            merged_until = existing.until + (new.until - now)
+
+        merged.append(RequestSectionLimitation(
+            section=existing.section,
+            until=merged_until,
+            reasons=[*existing.reasons, *new.reasons],
+            created_by=existing.created_by,
+            created_at=existing.created_at,
+            updated_by=admin_id
+        ))
+
+    for key, new in new_by_section.items():
+        if key not in current_by_section:
+            merged.append(new)
+
+    for job in filter_jobs_by_kind(
+        job_queue=context.job_queue,
+        name_type=RequestLimitJobName,
+        predicate=lambda n: n.user_id == user_id,
+    ):
         job.schedule_removal()
 
-    for limitation in total_limitations:
-        if limitation.until is not None:
-            await schedule_request_limitation_deletion(
-                context=context,
-                user_id=user_id,
-                section=limitation.section,
-                until=limitation.until
-            )
+    for limitation in merged:
+        if limitation.until is None:
+            continue
+        await schedule_request_limitation_deletion(
+            context=context,
+            user_id=user_id,
+            section=limitation.section,
+            until=limitation.until
+        )
 
-    context.set_user_request_limitations(user_id=user_id, limitations=total_limitations)
-
-
-async def handle_limitation_reason(update: Update, context: CustomContext):
-    set_request_limiting_detail(context=context, what="reason", value=update.effective_message.text)
+    context.set_user_request_limitations(user_id=user_id, limitations=merged)
 
 
 def get_request_limitations(update: Update, context: CustomContext) -> list[RequestSectionLimitation]:
-    sections = get_request_limiting_detail(context=context, what="sections")
-    duration = get_request_limiting_detail(context=context, what="duration")
-    reason = get_request_limiting_detail(context=context, what="reason")
+    wizard = context.get_or_create_limitation_wizard()
+    duration = wizard.duration
+    reason = wizard.reason
+    sections = wizard.sections
 
     if duration:
         duration_delta = timedelta(seconds=duration)
@@ -174,16 +126,68 @@ def get_request_limitations(update: Update, context: CustomContext) -> list[Requ
     else:
         until = None
 
+    effective_user = update.effective_user
+    if not effective_user:
+        raise ValueError("Attribute Update.effective_user cannot be None here!")
+
     limitations = []
-    for pl in sections:
-        for ca in sections[pl]:
-            if sections[pl][ca]:
-                limitations.append(RequestSectionLimitation(
-                    section=f"{pl}:{ca}",
-                    until=until,
-                    reasons=[reason],
-                    created_by=update.effective_user.id,
-                    updated_by=update.effective_user.id
-                ))
+    for section in sections:
+        if sections[section]:
+            limitations.append(RequestSectionLimitation(
+                section=section,
+                until=until,
+                reasons=[reason],
+                created_by=effective_user.id,
+                updated_by=effective_user.id
+            ))
 
     return limitations
+
+
+async def handle_remove_user_request_limitation(
+        update: Update,
+        context: CustomContext,
+        user_id: int,
+        selected_section: LimitationsFlow | RequestSection
+):
+    """Rimuove le limitazioni dell'utente."""
+    if selected_section == LimitationsFlow.REMOVE_ALL:
+        _remove_limitation_jobs(context, user_id, section_pattern=r"[^:\s]+")
+
+        context.set_user_request_limitations(user_id=user_id, limitations=[])
+        log.info(f"Admin {context.user_id} removed all section limitations for {user_id}.")
+        return
+
+    current_limitations = context.get_user_request_limitations(user_id=user_id)
+
+    if current_limitations is None:
+        log.warning(f"User {user_id} has no limitations")
+        await render_error_panel(
+            update=update,
+            context=context,
+            text="⚠️ L'utente non ha limitazioni attive. È possibile che un altro admin abbia rimosso questa "
+                 "limitazione nel frattempo."
+        )
+        return
+
+    new_limitations = [lim for lim in current_limitations if lim.section != selected_section]
+
+    if len(new_limitations) == len(current_limitations):
+        return
+
+    context.set_user_request_limitations(user_id=user_id, limitations=new_limitations)
+
+    _remove_limitation_jobs(context, user_id, section_pattern=str(selected_section))
+
+    log.info(f"Admin {context.user_id} removed {selected_section} section limitations from {user_id}")
+
+
+def _remove_limitation_jobs(context: CustomContext, user_id: int, section_pattern: str):
+    """Rimuove i job schedulati che corrispondono al pattern."""
+    job_name_pattern = rf"^request_limit:{user_id}:{section_pattern}$"
+    # noinspection PyUnresolvedReferences
+    jobs = context.job_queue.get_jobs_by_name(job_name_pattern)
+
+    for job in jobs:
+        log.info(f"Removing scheduled job {job.name} for user {user_id}")
+        job.schedule_removal()

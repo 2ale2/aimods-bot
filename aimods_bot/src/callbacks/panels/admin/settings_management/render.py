@@ -1,51 +1,123 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import AdminNotifications
-from aimods_bot.src.helpers.constants.constants import CATEGORY_DETAILS, PLATFORM_DETAILS
-from aimods_bot.src.helpers.constants.models import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.helpers.constants.constants import Platform
+from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
+    AdminSettingsNotificationsRoute, GlobalAction
+from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
+from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel, chunk_buttons
 
 
-async def render_admin_settings_management_panel(update: Update, context: CustomContext):
+# --- HELPER CONDIVISI ---
+
+def _build_notification_ui(
+        settings_dict: dict,
+        header_title: str,
+        description: str,
+        footer_info: str,
+        base_path: PathBuilder
+):
+    """
+    Costruisce dinamicamente il testo ad albero e la tastiera a griglia per le impostazioni di notifica.
+    """
+    text_parts = [
+        "⚙️ <b>Gestione Impostazioni</b>\n\n",
+        f"      {header_title}\n\n",
+        f"▫️ {description}\n\n",
+        "        🗄 <b>Sezioni</b>\n"
+    ]
+
+    buttons = []
+
+    for pl in Platform:
+        text_parts.append(f"              {pl.icon} <b>{pl.label}</b>\n")
+
+        categories = PLATFORM_CATEGORY_REGISTRY.get(pl, None)
+        if categories is None:
+            raise ValueError(f"Invalid Platform: {pl}")
+
+        for ca, ca_config in categories.items():
+            is_active = settings_dict[pl][ca]
+            status_icon = '🔔' if is_active else '🔕'
+            text_parts.append(f"                   🔸 <i>{ca_config.label}</i> – {status_icon}\n")
+
+            buttons.append(ButtonItem(
+                text=f"{pl.icon} {ca_config.label}",
+                callback_key=base_path.add(RequestSection(platform=pl, category=ca)))
+            )
+
+    keyboard = chunk_buttons(buttons=buttons, size=4)
+
+    text_parts.append(f"\n{footer_info}")
+
+    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=base_path.back())])
+
+    return "".join(text_parts), keyboard
+
+
+def _get_disabled_panel_text(section: RequestSection, context_topic: str) -> str:
+    """Genera il testo per i pannelli di conferma disabilitazione."""
+    cat_config = PLATFORM_CATEGORY_REGISTRY[section.platform][section.category]
+
+    return (
+        "✅ <b>Notifiche Disattivate</b>\n\n"
+        f"▫ <b>Non riceverai più le notifiche</b> inerenti {context_topic} "
+        f"per la sezione {cat_config.icon} <b>{cat_config.label} ({section.platform.label})</b>."
+    )
+
+
+# --- RENDERING PANEL PRINCIPALI ---
+
+async def render_admin_settings_management_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     text = _get_admin_settings_management_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings",
         text=text,
         keyboard=[
-            [ButtonItem(text="🔔 Notifiche", callback_key="notifications")],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔔 Notifiche", callback_key=base_path.add(AdminSettingsRoute.NOTIFICATIONS))],
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
 
-def _get_header():
-    text = ("⚙️ <b>Gestione Impostazioni</b>\n\n"
-            "▫️ Da qui puoi gestire le impostazioni personali e quelle inerenti al gruppo.\n\n")
-    return text
-
-
 def _get_admin_settings_management_text():
-    return _get_header() + "🔹 Scegli un'opzione."
+    return ("⚙️ <b>Gestione Impostazioni</b>\n\n"
+            "▫️ Da qui puoi gestire le impostazioni personali e quelle inerenti al gruppo.\n\n"
+            "🔹 Scegli un'opzione.")
 
 
-async def render_admin_notification_settings_management_panel(update: Update, context: CustomContext):
+async def render_admin_notification_settings_management_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
     text = _get_admin_notification_settings_management_text()
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications",
         text=text,
         keyboard=[
             [
-                ButtonItem(text="📥 Nuove Richieste", callback_key="new_requests"),
-                ButtonItem(text="📪 Chiusura Sezioni", callback_key="section_closing")
+                ButtonItem(
+                    text="📥 Nuove Richieste",
+                    callback_key=base_path.add(AdminSettingsNotificationsRoute.NEW_REQUESTS)
+                ),
+                ButtonItem(
+                    text="📪 Chiusura Sezioni",
+                    callback_key=base_path.add(AdminSettingsNotificationsRoute.SECTION_CLOSING)
+                )
             ],
-            [ButtonItem(text="🔙 Indietro", callback_key=None)]
+            [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )
 
@@ -57,140 +129,80 @@ def _get_admin_notification_settings_management_text():
             "🔹 Scegli un'opzione.")
 
 
-async def render_admin_new_requests_notification_settings_panel(update: Update, context: CustomContext):
-    settings = context.pydc.persistent.admin_notifications
-    text, keyboard = _get_admin_new_requests_notification_settings_text_keyboard(settings=settings)
+# --- RENDERING SPECIFICI (New Requests) ---
+
+async def render_admin_new_requests_notification_settings_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
+    settings = context.pydc.persistent.admin_notifications.new_requests_notifications
+
+    text, keyboard = _build_notification_ui(
+        base_path=base_path,
+        settings_dict=settings,
+        header_title="📥 <i>Notifiche</i> → <i><u>Nuove Richieste</u></i>",
+        description="Da qui puoi gestire le notifiche sulle <b>nuove richieste</b>.",
+        footer_info=("🔹 Riceverai <b>una notifica</b> ogni volta che un utente formulerà una "
+                     "<b>nuova richiesta</b> per le sezioni contrassegnate con la campanella.")
+    )
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications/new_requests",
         text=text,
         keyboard=keyboard
     )
 
 
-def _get_admin_new_requests_notification_settings_text_keyboard(settings: AdminNotifications):
-    current_settings = settings.new_requests_notifications
+async def render_new_requests_notification_disabled_panel(
+        update: Update,
+        context: CustomContext,
+        section: RequestSection):
 
-    text = ("⚙️ <b>Gestione Impostazioni</b>\n\n"
-            "      📥 <i>Notifiche</i> → <i><u>Nuove Richieste</u></i>\n\n"
-            "▫️ Da qui puoi gestire le notifiche sulle <b>nuove richieste</b>.\n\n"
-            "        🗄 <b>Sezioni</b>\n")
-
-    keyboard = [[]]
-
-    for pl in CATEGORY_DETAILS:
-        pl_icon = PLATFORM_DETAILS[pl]["icon"]
-        pl_label = PLATFORM_DETAILS[pl]["label"]
-        text += f"              {pl_icon} <b>{pl_label}</b>\n"
-        for ca in CATEGORY_DETAILS[pl]:
-            ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-            text += f"                   🔸 <i>{ca_label}</i> – {'🔔' if current_settings[pl][ca] else '🔕'}\n"
-            if len(keyboard[-1]) >= 4:
-                keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=f"{pl_icon} {ca_label}", callback_key=f"{pl}:{ca}"))
-
-    text += ("\n🔹 Riceverai <b>una notifica</b> ogni volta che un utente formulerà una <b>nuova richiesta</b> "
-             "per le sezioni contrassegnate con la campanella.")
-
-    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=None)])
-
-    return text, keyboard
-
-
-async def render_new_requests_notification_disabled_panel(update: Update, context: CustomContext, data: str):
-    text = _get_new_requests_notification_disabled_text(data=data)
+    text = _get_disabled_panel_text(section=section, context_topic="alle nuove richieste")
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin",
         text=text,
-        keyboard=[
-            [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
-        ]
+        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )
 
 
-def _get_new_requests_notification_disabled_text(data: str):
-    pl, ca = data.split(":")
-    pl_label = PLATFORM_DETAILS[pl]["label"]
-    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-    ca_icon = CATEGORY_DETAILS[pl][ca]["icon"]
+# --- RENDERING SPECIFICI (Section Closing) ---
 
-    text = ("✅ <b>Notifiche Disattivate</b>\n\n"
-            "▫ <b>Non riceverai più le notifiche</b> inerenti alle nuove richieste "
-            f"per la sezione {ca_icon} <b>{ca_label} ({pl_label})</b>.")
+async def render_admin_section_closing_notification_settings_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
+    settings = context.pydc.persistent.admin_notifications.section_closing_notifications
 
-    return text
-
-
-async def render_admin_section_closing_notification_settings_panel(update: Update, context: CustomContext):
-    settings = context.pydc.persistent.admin_notifications
-    text, keyboard = _get_admin_section_closing_notification_settings_text_keyboard(settings=settings)
+    text, keyboard = _build_notification_ui(
+        base_path=base_path,
+        settings_dict=settings,
+        header_title="📪 <i>Notifiche</i> → <i><u>Chiusura Sezioni</u></i>",
+        description="Da qui puoi gestire le notifiche sulla <b>chiusura delle sezioni</b>.",
+        footer_info=("<blockquote>ℹ <b>Info</b> – Riceverai <b>una notifica</b> ogni volta che una "
+                     "<b>sezione</b> contrassegnata con 🔔 verrà <b>chiusa automaticamente dal bot</b>."
+                     "</blockquote>\n\n🔹 Scegli un'opzione.")
+    )
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin/manage_settings/notifications/section_closing",
         text=text,
         keyboard=keyboard
     )
-
-
-def _get_admin_section_closing_notification_settings_text_keyboard(settings: AdminNotifications):
-    current_settings = settings.section_closing_notifications
-
-    text = ("⚙️ <b>Gestione Impostazioni</b>\n\n"
-            "      📪 <i>Notifiche</i> → <i><u>Chiusura Sezioni</u></i>\n\n"
-            "▫️ Da qui puoi gestire le notifiche sulla <b>chiusura delle sezioni</b>.\n\n"
-            "        🗄 <b>Sezioni</b>\n")
-
-    keyboard = [[]]
-
-    for pl in CATEGORY_DETAILS:
-        pl_icon = PLATFORM_DETAILS[pl]["icon"]
-        pl_label = PLATFORM_DETAILS[pl]["label"]
-        text += f"              {pl_icon} <b>{pl_label}</b>\n"
-        for ca in CATEGORY_DETAILS[pl]:
-            ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-            text += f"                   🔸 <i>{ca_label}</i> – {'🔔' if current_settings[pl][ca] else '🔕'}\n"
-            if len(keyboard[-1]) >= 4:
-                keyboard.append([])
-            keyboard[-1].append(ButtonItem(text=f"{pl_icon} {ca_label}", callback_key=f"{pl}:{ca}"))
-
-    text += ("\n<blockquote>ℹ <b>Info</b> – Riceverai <b>una notifica</b> ogni volta che una <b>sezione</b>"
-             " contrassegnata con 🔔 verrà <b>chiusa automaticamente dal bot</b>.</blockquote>\n\n"
-             "🔹 Scegli un'opzione.")
-
-    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=None)])
-
-    return text, keyboard
 
 
 async def render_section_closure_notification_disabled_panel(update: Update, context: CustomContext, data: str):
-    text = _get_section_closure_notification_disabled_text(data=data)
+    text = _get_disabled_panel_text(data, "alla chiusura")
 
     await create_and_render_panel(
         update=update,
         context=context,
-        base_path="admin",
         text=text,
-        keyboard=[
-            [ButtonItem(text="🚮 Chiudi", callback_key="close_menu")]
-        ]
+        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
     )
-
-
-def _get_section_closure_notification_disabled_text(data: str):
-    pl, ca = data.split(":")
-    pl_label = PLATFORM_DETAILS[pl]["label"]
-    ca_label = CATEGORY_DETAILS[pl][ca]["label"]
-    ca_icon = CATEGORY_DETAILS[pl][ca]["icon"]
-
-    text = ("✅ <b>Notifiche Disattivate</b>\n\n"
-            "▫ <b>Non riceverai più le notifiche</b> inerenti alla chiusure "
-            f"della sezione {ca_icon} <b>{ca_label} ({pl_label})</b>.")
-
-    return text
