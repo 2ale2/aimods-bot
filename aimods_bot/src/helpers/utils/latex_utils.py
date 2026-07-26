@@ -33,6 +33,15 @@ _STATUS_LATEX_EMOJIS = {
     RequestStatus.CANCELLED: "wastebasket"
 }
 
+_LATEX_URL_REPLACEMENTS = {
+    "\\": "%5C",
+    "{": "%7B",
+    "}": "%7D",
+    "^": "%5E",
+    "%": r"\%",
+    "#": r"\#",
+}
+
 
 async def generate_user_archive_requests_pdf_file(requests: list[BaseRequest], input_path: str) -> Path:
     input_path = str(Path(input_path).with_suffix(".tex"))
@@ -103,11 +112,15 @@ def render_request_latex_item(request: BaseRequest) -> str:
     return "".join(lines)
 
 
+def _escape_latex_url(value: Any) -> str:
+    return "".join(_LATEX_URL_REPLACEMENTS.get(ch, ch) for ch in str(value).strip())
+
+
 def _render_field_value_latex(value: Any, fmt: FieldFormat) -> str:
     if fmt is FieldFormat.BOOL:
         return r"\emoji{check-mark-button}" if value else r"\emoji{cross-mark}"
     if fmt is FieldFormat.LINK:
-        return rf"\href{{{str(value)}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}}"
+        return rf"\href{{{_escape_latex_url(value)}}}{{\emoji{{link}} \textcolor{{linkblue}}{{Link}}}}"
     if fmt is FieldFormat.CODE:
         return rf"\texttt{{{tex_escape(str(value))}}}"
     return rf"\textit{{{tex_escape(str(value))}}}"  # TEXT
