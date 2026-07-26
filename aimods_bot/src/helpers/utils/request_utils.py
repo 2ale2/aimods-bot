@@ -14,7 +14,7 @@ from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 log = logger.getChild(__name__)
 
 
-# Contiene tutte le colonne in comune tra le richieste (che corrispondono ai campi di BaseRequest, meno name e version)
+# Contiene tutte le colonne in comune tra le richieste (che corrispondono ai campi di BaseRequest)
 _CONTENT_EXCLUDED_FIELDS: set[str] = {
     "name",
     "version",
