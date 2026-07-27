@@ -166,7 +166,7 @@ async def render_new_requests_notification_disabled_panel(
         update=update,
         context=context,
         text=text,
-        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE_MENU))]]
+        keyboard=[[ButtonItem(text="🚮 Chiudi", callback_key=PathBuilder(GlobalAction.CLOSE))]]
     )
 
 

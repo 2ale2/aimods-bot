@@ -78,15 +78,13 @@ async def admin_new_requests_notification_settings_management_route(
         root: PathBuilder,
         relative_path: PathBuilder
 ):
-    from_notification = NotificationAction.FROM_NOTIFICATION in (root + relative_path).segments
-
     match relative_path.segments:
         case []:
             await render_admin_new_requests_notification_settings_panel(update=update, context=context, base_path=root)
 
-        case [section_str]:
+        case [section_str] | [NotificationAction.FROM_NOTIFICATION, section_str] as segments:
             section = RequestSection.from_string(section_str)
-            if from_notification:
+            if NotificationAction.FROM_NOTIFICATION in segments:
                 await handle_admin_new_requests_notification_toggle(context=context, section=section)
                 await render_new_requests_notification_disabled_panel(update=update, context=context, section=section)
             else:

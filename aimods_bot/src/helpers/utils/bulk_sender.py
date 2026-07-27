@@ -213,8 +213,7 @@ async def send_new_request_admin_notification(
                         AdminSettingsRoute.NOTIFICATIONS,
                         AdminSettingsNotificationsRoute.NEW_REQUESTS,
                         NotificationAction.FROM_NOTIFICATION,
-                        request.section.platform,
-                        request.section.category
+                        request.section
                     )
                 )
             ],

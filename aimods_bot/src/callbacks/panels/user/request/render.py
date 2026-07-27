@@ -115,13 +115,16 @@ async def render_global_request_wizard_panel(
     text = _get_request_wizard_step_text(wizard=wizard)
     keyboard = _get_request_wizard_step_text_keyboard(wizard=wizard)
 
-    await create_and_render_panel(
+    returned_id = await create_and_render_panel(
         update=update,
         context=context,
         text=text,
         keyboard=keyboard,
         message_id=wizard.request_msg_id
     )
+
+    if returned_id:
+        context.pydc.persistent.active_request_wizard.request_msg_id = returned_id
 
 
 def _get_request_wizard_step_text(wizard: RequestWizardSession) -> str:

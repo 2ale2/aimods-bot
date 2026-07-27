@@ -62,8 +62,8 @@ class Panel:
             user_id: int = None,
             message_id: int = None,
             send: bool = False
-    ):
-        """Renderizza il pannello nel chat."""
+    ) -> int | None:
+        """Renderizza il pannello nel chat. Ritorna True se message_id != None e se la modifica va a buon fine."""
         text = self.build_text()
         reply_markup = InlineKeyboardMarkup(self.build_keyboard())
         preview_options = LinkPreviewOptions(is_disabled=True)
@@ -73,13 +73,14 @@ class Panel:
 
         if should_send_new:
             try:
-                await context.bot.send_message(
+                message = await context.bot.send_message(
                     chat_id=target_chat_id,
                     text=text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML,
                     link_preview_options=preview_options
                 )
+                return message.id
             except Forbidden:
                 log.warning(f"Cannot perform send massage action: user {target_chat_id} blocked the bot")
             except TelegramError as e:
@@ -98,26 +99,28 @@ class Panel:
                 message_id=message_id
             )
             if success:
-                return
+                return message_id
 
             try:
-                await context.bot.send_message(
+                message = await context.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.HTML,
                     link_preview_options=preview_options
                 )
-                return
+                return message.id
             except TelegramError:
                 pass
 
         try:
-            await context.bot.edit_message_reply_markup(
+            message = await context.bot.edit_message_reply_markup(
                 message_id=message_id or update.effective_message.message_id,
                 chat_id=update.effective_chat.id,
                 reply_markup=reply_markup
             )
+            if not isinstance(message, bool):
+                return message.id
         except TelegramError:
             pass
 

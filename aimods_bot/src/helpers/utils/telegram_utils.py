@@ -672,7 +672,7 @@ async def create_and_render_panel(
         message_id: Optional[int] = None,
         user_id: Optional[int] = None,
         send: bool = False
-) -> None:
+) -> bool | None:
     """
     Crea e renderizza un pannello con configurazione specifica.
 
@@ -689,7 +689,7 @@ async def create_and_render_panel(
         PanelConfig(text=text, keyboard=keyboard)
     )
 
-    await panel.render(
+    return await panel.render(
         update=update,
         context=context,
         message_id=message_id,

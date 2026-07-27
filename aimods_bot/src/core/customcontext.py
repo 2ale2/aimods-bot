@@ -121,6 +121,8 @@ class RequestWizardSession(BaseModel):
         except KeyError:
             return v
 
+        data = dict(data)
+        data["section"] = RequestSection(platform=platform, category=category)
         return model_cls.model_construct(**data)
 
 

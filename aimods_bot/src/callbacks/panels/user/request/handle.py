@@ -182,11 +182,6 @@ async def handle_wizard_back(update: Update, context: CustomContext):
         wizard.requesting = prev_field
         draft.model_fields_set.discard(prev_field.value)
 
-    if context.pydc.persistent.root_path:
-        base_path = PathBuilder.from_string(context.pydc.persistent.root_path)
-    else:
-        base_path = PathBuilder(UserRoute.ROOT)
-
     await render_global_request_wizard_panel(
         update=update,
         context=context
