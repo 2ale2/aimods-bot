@@ -335,7 +335,7 @@ async def _init_pyrogram() -> None:
             name="bridge_bot",
             api_id=os.getenv("API_ID"),
             api_hash=os.getenv("API_HASH"),
-            bot_token=os.getenv("BOT_TOKEN"),
+            bot_token=os.getenv("BRIDGE_TOKEN"),
         )
     except RPCError as e:
         log.error(f"Failed to initialize Pyrogram client: {e}")

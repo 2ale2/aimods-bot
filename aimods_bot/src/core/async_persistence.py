@@ -130,22 +130,28 @@ class AsyncPostgresPersistence(DictPersistence):
     @staticmethod
     def _load_user_data(raw: Optional[Dict[str, Any]]) -> Dict[int, UserData]:
         if raw is None:
+            log.warning("UserData: nessun dato in persistence (raw=None).")
             return {}
         try:
-            return {int(user_id): UserData.model_validate(data) for user_id, data in raw.items()}
+            data = {int(user_id): UserData.model_validate(d) for user_id, d in raw.items()}
+            log.info(f"Loaded {len(data)} user_data from DB (expected {len(raw)}).")
+            return data
         except ValidationError:
-            log.warning("UserData validation failed, building empty object.")
+            log.warning(f"UserData validation failed on {len(raw)} entry(es), building empty object.")
             # It's dangerous to load an empty object. Consider building a migrate method just like bot_data
             return {}
 
     @staticmethod
     def _load_chat_data(raw: Optional[Dict[str, Any]]) -> Dict[int, ChatData]:
         if raw is None:
+            log.warning("ChatData: nessun dato in persistence (raw=None).")
             return {}
         try:
-            return {int(chat_id): ChatData.model_validate(data) for chat_id, data in raw.items()}
+            data = {int(chat_id): ChatData.model_validate(data) for chat_id, data in raw.items()}
+            log.info(f"Loaded {len(data)} chat_data from DB (expected {len(raw)}).")
+            return data
         except ValidationError:
-            log.warning("ChatData validation failed, building empty object.")
+            log.warning(f"ChatData validation failed on {len(raw)} entry(es), building empty object.")
             # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
             return {}
 
