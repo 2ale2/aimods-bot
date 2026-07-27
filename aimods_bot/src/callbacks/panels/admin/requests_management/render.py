@@ -5,7 +5,8 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute, AdminRoute, \
-    AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp
+    AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp, \
+    NotificationAction
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -741,8 +742,8 @@ async def send_user_request_status_changed_notification(
                     callback_key=base_path.add(
                         UserRoute.VIEW_REQUESTS,
                         UserManageRequestsRoute.ACTIVE,
-                        UserManageRequestsRoute.DETAILS,
-                        str(ix)
+                        str(ix),
+                        NotificationAction.FROM_NOTIFICATION
                     )
                 )
             ]

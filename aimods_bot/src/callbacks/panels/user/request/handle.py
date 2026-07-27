@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
+from aimods_bot.src.callbacks.panels.user import user_requests_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel
 from aimods_bot.src.core.config_accessor import get_section_config
@@ -168,7 +169,12 @@ async def handle_wizard_back(update: Update, context: CustomContext):
         else:
             current_index = flow_list.index(wizard.requesting)
             if current_index == 0:
-                # TODO: await user_main_route, funzione da modificare
+                await user_requests_management_route(
+                    update=update,
+                    context=context,
+                    root=PathBuilder(UserRoute.ADD_REQUEST),
+                    relative_path=PathBuilder()
+                )
                 return PCS.USER_CONVERSATION
 
             prev_field = flow_list[current_index - 1]

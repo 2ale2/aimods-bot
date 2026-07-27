@@ -31,4 +31,3 @@ class UserManageRequestsRoute(StrEnum):
 
     CONTINUE_REQUEST = "continue_request"
     DISMISS_REQUEST = "dismiss_request"
-

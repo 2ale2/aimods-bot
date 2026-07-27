@@ -102,13 +102,16 @@ async def render_manage_selected_request_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        request: BaseRequest
+        request: BaseRequest,
+        from_notification: bool = False
 ):
     text = await _get_manage_selected_request_text(request=request)
 
-    keyboard = [
-        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
-    ]
+    if not from_notification:
+        button = ButtonItem(text="🔙 Indietro", callback_key=base_path.back())
+    else:
+        button = ButtonItem(text="📭 Chiudi", callback_key=GlobalAction.CLOSE)
+    keyboard = [[button]]
 
     timer_sec = context.pydb.configuration.settings.request.cancel_timer
     if request.can_be_cancelled(cancel_time_sec=timer_sec):

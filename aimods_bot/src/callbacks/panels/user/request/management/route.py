@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.panels.user.request.management.render import \
     render_user_manage_active_requests_panel, render_confirm_cancel_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import RequestStatus
-from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsRoute, GlobalAction
+from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsRoute, GlobalAction, NotificationAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
@@ -57,7 +57,7 @@ async def user_active_requests_management_route(
             request = context.get_active_request_by_id(ix=int(request_id))
 
             match PathBuilder(*rest).segments:
-                case []:
+                case [] | [NotificationAction.FROM_NOTIFICATION] as segments:
                     if not request:
                         log.warning(f"Active request {request_id} from user {update.effective_user.id} not found")
                         await update.callback_query.answer(
@@ -72,7 +72,8 @@ async def user_active_requests_management_route(
                             update=update,
                             context=context,
                             base_path=root.add(request_id),
-                            request=request
+                            request=request,
+                            from_notification=NotificationAction.FROM_NOTIFICATION in segments
                         )
 
                 case [toggle_notification] if toggle_notification in (
