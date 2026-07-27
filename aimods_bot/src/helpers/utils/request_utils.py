@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat, REQUESTS_TABLE
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -33,8 +33,8 @@ _CONTENT_EXCLUDED_FIELDS: set[str] = {
 
 async def get_user_requests_archive(user_id: int) -> list[BaseRequest]:
     """Interroga il db per ottenere le richieste formulate da un certo utente."""
-    query = """SELECT * \
-               FROM requests_test \
+    query = f"""SELECT * \
+               FROM {REQUESTS_TABLE} \
                WHERE user_id = $1 \
                ORDER BY issued_at DESC"""
     response = await fetch_query(query=query, params=[user_id])
@@ -304,7 +304,7 @@ async def get_last_n_requests(
     if not isinstance(n, int) or n <= 0:
         raise ValueError(f"Invalid request number: {n}!")
 
-    query = "SELECT * FROM requests_test"
+    query = f"SELECT * FROM {REQUESTS_TABLE}"
     params = []
     conditions = []
 

@@ -12,7 +12,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import render_global_re
     render_request_wizard_confirmation_panel
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
-from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus
+from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus, REQUESTS_TABLE
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.database import fetch_query
@@ -218,8 +218,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     record = request_to_record(validated)
     content_json = json.dumps(record["content"])
 
-    query_sql = """
-                INSERT INTO requests_test (platform, category, user_id, name, version, content)
+    query_sql = f"""
+                INSERT INTO {REQUESTS_TABLE} (platform, category, user_id, name, version, content)
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id;
                 """

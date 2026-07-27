@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import os
 import pytz
 
 from dataclasses import dataclass
 from enum import StrEnum
 
 YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
+
+REQUESTS_TABLE = os.getenv("REQUESTS_TABLE", "requests")
+PERSISTENCE_TABLE = os.getenv("PERSISTENCE_TABLE", "persistence")
 
 CHANNEL_JOIN_LINK = "https://t.me/+YmSMpGvSrlphYjJk"
 GROUP_JOIN_LINK = "https://t.me/+s3kZBM549qE1ZTU8"

@@ -20,7 +20,7 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    Platform, Category, RequestField
+    Platform, Category, RequestField, REQUESTS_TABLE
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
@@ -194,7 +194,7 @@ class ChatData(BaseModel):
 
 class BotData(BaseModel):
     configuration: Configuration = Field(default_factory=Configuration)
-    bot_version: str = "1.0.1"
+    bot_version: str = "2.0.0"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     group_chat_id: int | None = None
@@ -457,7 +457,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             RequestStatus.CANCELLED, RequestStatus.REJECTED, RequestStatus.COMPLETED
         )
         closed_at = datetime.now(timezone.utc) if is_closing else None
-        query = """UPDATE requests_test SET status = $1, rejection_reason = $2, closed_at = $3 WHERE id = $4"""
+        query = f"""UPDATE {REQUESTS_TABLE} SET status = $1, rejection_reason = $2, closed_at = $3 WHERE id = $4"""
 
         res = await execute_query(
             query=query,

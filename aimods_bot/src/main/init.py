@@ -51,14 +51,22 @@ def main():
     handlers = [main_private_conversation_handler, close_menu_handler]
     application.add_handlers(handlers)
 
+    run_mode = os.getenv("RUN_MODE", "webhook")
+    drop_pending = os.getenv("DROP_PENDING_UPDATES", "false").lower() == "true"
+
+    log.info(f"Avvio in modalità {run_mode} (drop_pending_updates={drop_pending})")
+
     try:
-        application.run_polling()
-        # application.run_webhook(
-        #     listen="0.0.0.0",
-        #     port=8080,
-        #     url_path="bot",
-        #     webhook_url="https://bot.aimodsitalia.store/bot"
-        # )
+        if run_mode == "polling":
+            application.run_polling(drop_pending_updates=drop_pending)
+        else:
+            application.run_webhook(
+                listen="0.0.0.0",
+                port=int(os.getenv("PORT", "8080")),
+                url_path="bot",
+                webhook_url=os.getenv("WEBHOOK_URL", "https://bot.aimodsitalia.store/bot"),
+                drop_pending_updates=drop_pending
+            )
         r = application.bot_data.restart
         if r and r.toggle:
             application.bot_data.restart.toggle = False

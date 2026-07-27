@@ -9,9 +9,9 @@ from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild("database")
 
-ALLOWED_TABLES = {'persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts'}
+ALLOWED_TABLES = {'persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts', 'requests_test'}
 
-TableName = Literal['persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts']
+TableName = Literal['persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts', 'requests_test']
 
 _COLUMNS_CACHE: Dict[str, List[str]] = {}
 

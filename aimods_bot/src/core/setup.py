@@ -115,8 +115,8 @@ async def _load_active_requests(bot_data: BotData) -> None:
         seconds=SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
     )
 
-    query = """
-        SELECT * FROM requests_test
+    query = f"""
+        SELECT * FROM {constants.REQUESTS_TABLE}
         WHERE status != ALL($1)
            OR (status = ANY($2) AND closed_at IS NOT NULL AND closed_at > $3)
     """
