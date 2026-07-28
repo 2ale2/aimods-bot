@@ -8,7 +8,8 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, render_action_not_permitted_panel, \
     safe_delete, is_user_id
-from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier, is_admin
+from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
@@ -16,7 +17,7 @@ log = logger.getChild(__name__)
 async def route_user_archive(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):
     match relative_path.segments:
         case []:
-            if await is_admin(user_id=update.effective_chat.id, context=context):
+            if is_admin(user_id=update.effective_chat.id, context=context):
                 context.pydc.persistent.root_path = root.build()
                 context.pydc.persistent.bot_message_id = update.effective_message.message_id
                 await render_user_archive_request_identifier_panel(
@@ -39,7 +40,7 @@ async def route_user_archive(update: Update, context: CustomContext, root: PathB
             root = PathBuilder.from_string(context.pydc.persistent.root_path)
             context.pydc.persistent.root_path = None
 
-            if not await is_admin(user_id=update.effective_chat.id, context=context):
+            if not is_admin(user_id=update.effective_chat.id, context=context):
                 await render_action_not_permitted_panel(
                     update=update,
                     context=context,

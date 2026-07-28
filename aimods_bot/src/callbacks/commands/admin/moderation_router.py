@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.commands.admin.mute import mute_user, unmute_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.auth import is_admin
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 
 action_map = {
@@ -37,7 +37,7 @@ async def moderation_command_router(update: Update, context: CustomContext):
         command = update.effective_message.text
 
     # ⛔ Solo admin/moderatori
-    if not await is_admin(update.effective_user.id, context):
+    if not is_admin(update.effective_user.id, context):
         return await send_temporary_message(
             update=update,
             context=context,

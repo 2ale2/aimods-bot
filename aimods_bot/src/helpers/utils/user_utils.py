@@ -71,13 +71,6 @@ async def get_or_resolve_user(context: CustomContext, identifier: str | int):
     return None  # Può avere senso perché eventuali errori sono già loggati in resolve_user
 
 
-async def is_admin(user_id: int, context: CustomContext) -> bool:
-    """
-    Verifica se l'utente è un admin del gruppo.
-    """
-    return user_id in list(context.pydb.admins.keys())
-
-
 async def user_in_chat(user_id: int, context: CustomContext, chat_id: int = None) -> bool:
     """
     Verifica se l'utente è attualmente nella chat.

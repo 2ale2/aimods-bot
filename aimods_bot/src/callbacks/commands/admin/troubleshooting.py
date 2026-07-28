@@ -5,14 +5,14 @@ from telegram.constants import ParseMode
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
 
 async def reset_user_conversation(update: Update, context: CustomContext):
     await safe_delete(update=update, context=context)
-    if update.effective_chat.type != "private" or not await is_admin(user_id=update.effective_user.id, context=context):
+    if update.effective_chat.type != "private" or not is_admin(user_id=update.effective_user.id, context=context):
         return
 
     if not len(context.args) or not context.args[0].isdigit():
@@ -43,7 +43,7 @@ async def reset_user_conversation(update: Update, context: CustomContext):
 
 async def reset_chat_data(update: Update, context: CustomContext):
     await safe_delete(update, context)
-    if not await is_admin(user_id=update.effective_user.id, context=context):
+    if not is_admin(user_id=update.effective_user.id, context=context):
         return
 
     if not len(context.args) or not context.args[0].isdigit():
@@ -65,7 +65,7 @@ async def reset_chat_data(update: Update, context: CustomContext):
 
 async def erase_callback_queries(update: Update, context: CustomContext):
     await safe_delete(update, context)
-    if not await is_admin(user_id=update.effective_user.id, context=context):
+    if not is_admin(user_id=update.effective_user.id, context=context):
         return
 
     context.bot.callback_data_cache.clear_callback_queries()

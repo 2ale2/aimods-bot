@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRou
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
@@ -66,7 +66,7 @@ class Panel:
         """Renderizza il pannello nel chat. Ritorna True se message_id != None e se la modifica va a buon fine."""
         text = self.build_text()
         fallback = str(
-            AdminRoute.ROOT if await is_admin(
+            AdminRoute.ROOT if is_admin(
                 user_id=update.effective_user.id,
                 context=context
             ) else UserRoute.ROOT

@@ -13,7 +13,7 @@ from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_and_argument
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
@@ -100,7 +100,7 @@ async def multimedia_echo(update: Update, context: CustomContext):
         await safe_delete(update=update, context=context, message_id=el["post_id"])
         await asyncio.sleep(0.3)
 
-    if not await is_admin(user_id=media_group_sender_id, context=context):
+    if not is_admin(user_id=media_group_sender_id, context=context):
         await send_temporary_message(
             update=update,
             context=context,

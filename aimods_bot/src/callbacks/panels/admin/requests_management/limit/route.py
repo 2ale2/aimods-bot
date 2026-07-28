@@ -26,7 +26,8 @@ from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, is_user_id, safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
-from aimods_bot.src.helpers.utils.user_utils import is_admin, resolve_user_from_identifier
+from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
@@ -71,7 +72,7 @@ async def route_admin_manage_limitations(
 
                     user_id = resolved_user if isinstance(resolved_user, int) else resolved_user.id
 
-                    if await is_admin(context=context, user_id=user_id):
+                    if is_admin(context=context, user_id=user_id):
                         await wrong_input_message(
                             update=update,
                             context=context,

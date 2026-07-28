@@ -8,7 +8,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import UserRoute, AdminRoute
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.user_utils import is_admin
+from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)
 
@@ -27,7 +27,7 @@ async def general_router(update: Update, context: CustomContext):
     path = PathBuilder.from_string(c_data)
 
     if len(path) == 0:
-        if await is_admin(context=context, user_id=update.effective_user.id):
+        if is_admin(context=context, user_id=update.effective_user.id):
             path = path.add(AdminRoute.ROOT)
         else:
             path = path.add(UserRoute.ROOT)
