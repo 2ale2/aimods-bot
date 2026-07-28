@@ -206,8 +206,9 @@ async def _enter_wizard_or_explain(
 ):
     cat_num = len(PLATFORM_CATEGORY_REGISTRY[section.platform])
     back_callback = base_path.back(2) if cat_num == 1 else base_path.back()
+    user_id = update.effective_user.id
 
-    if not is_category_request_allowed(context=context, section=section):
+    if not is_category_request_allowed(context=context, section=section) and user_id not in BYPASS_LIMITS_USERS:
         if context.pydc.persistent.user_notifications.section_opening_notifications[section.platform][section.category]:
             text = _CLOSED_MSG + ("\n\nℹ️ <b>Hai già attivato le notifiche di apertura di questa sezione</b>. "
                                   "Riceverai un messaggio da me non appena verrà riaperta.")
