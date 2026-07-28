@@ -111,7 +111,7 @@ class Panel:
                 )
                 return message.id
             except TelegramError as e:
-                log.errore(f"Something went wrong the sending of a message: {e}")
+                log.error(f"Something went wrong the sending of a message: {e}")
 
         try:
             message = await context.bot.edit_message_reply_markup(
