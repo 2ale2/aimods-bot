@@ -82,7 +82,7 @@ class Panel:
                 )
                 return message.id
             except Forbidden:
-                log.warning(f"Cannot perform send massage action: user {target_chat_id} blocked the bot")
+                log.error(f"Cannot perform send massage action: user {target_chat_id} blocked the bot")
             except TelegramError as e:
                 log.error(f"Error sending panel to {target_chat_id}: {e}")
             return
@@ -110,8 +110,8 @@ class Panel:
                     link_preview_options=preview_options
                 )
                 return message.id
-            except TelegramError:
-                pass
+            except TelegramError as e:
+                log.errore(f"Something went wrong the sending of a message: {e}")
 
         try:
             message = await context.bot.edit_message_reply_markup(
@@ -121,8 +121,8 @@ class Panel:
             )
             if not isinstance(message, bool):
                 return message.id
-        except TelegramError:
-            pass
+        except TelegramError as e:
+            log.error(f"Error in trying editing message: {e}")
 
     async def _try_edit_text(
             self,
@@ -146,8 +146,8 @@ class Panel:
                     link_preview_options=preview_options
                 )
                 return True
-            except BadRequest:
-                pass
+            except BadRequest as e:
+                log.error(f"Error in trying editing message: {e}")
 
         # Prova con il messaggio corrente
         try:
@@ -158,7 +158,7 @@ class Panel:
                 link_preview_options=preview_options
             )
             return True
-        except BadRequest:
-            pass
+        except BadRequest as e:
+            log.error(f"Error in trying editing message: {e}")
 
         return False

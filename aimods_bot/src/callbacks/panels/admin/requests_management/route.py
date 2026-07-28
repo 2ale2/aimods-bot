@@ -47,10 +47,7 @@ async def admin_requests_management_route(
 ):
     match relative_path.segments:
         case []:
-            try:
-                await render_admin_request_management_panel(update=update, context=context, base_path=root)
-            except Exception as e:
-                log.error(f"Excpetion Occurred: {e}")
+            await render_admin_request_management_panel(update=update, context=context, base_path=root)
             return PCS.ADMIN_CONVERSATION
 
         case [AdminRequestsRoute.ACTIVE, *rest]:
