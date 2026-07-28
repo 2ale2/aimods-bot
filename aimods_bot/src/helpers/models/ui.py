@@ -8,9 +8,11 @@ from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPre
 from telegram.constants import ParseMode
 from telegram.error import Forbidden, TelegramError, BadRequest
 
+from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.utils.user_utils import is_admin
 
 log = logger.getChild(__name__)
 
@@ -39,19 +41,17 @@ class Panel:
         """Costruisce il testo del messaggio."""
         return self.text
 
-    def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
+    def build_keyboard(self, fallback: str) -> List[List[InlineKeyboardButton]]:
         """Costruisce la tastiera inline."""
         keyboard = []
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
                 key = button.callback_key
-                subkeyboard.append(
-                    InlineKeyboardButton(
-                        text=button.text,
-                        callback_data=key.build() if isinstance(key, PathBuilder) else str(key)
-                    )
-                )
+                data = key.build() if isinstance(key, PathBuilder) else str(key)
+                if not data:
+                    data = fallback
+                subkeyboard.append(InlineKeyboardButton(text=button.text, callback_data=data))
             keyboard.append(subkeyboard)
         return keyboard
 
@@ -65,7 +65,13 @@ class Panel:
     ) -> int | None:
         """Renderizza il pannello nel chat. Ritorna True se message_id != None e se la modifica va a buon fine."""
         text = self.build_text()
-        reply_markup = InlineKeyboardMarkup(self.build_keyboard())
+        fallback = str(
+            AdminRoute.ROOT if await is_admin(
+                user_id=update.effective_user.id,
+                context=context
+            ) else UserRoute.ROOT
+        )
+        reply_markup = InlineKeyboardMarkup(self.build_keyboard(fallback))
         preview_options = LinkPreviewOptions(is_disabled=True)
 
         target_chat_id = user_id or update.effective_chat.id
@@ -111,7 +117,7 @@ class Panel:
                 )
                 return message.id
             except TelegramError as e:
-                log.error(f"Something went wrong the sending of a message: {e}")
+                log.debug(f"Something went wrong the sending of a message: {e}")
 
         try:
             message = await context.bot.edit_message_reply_markup(
@@ -122,7 +128,7 @@ class Panel:
             if not isinstance(message, bool):
                 return message.id
         except TelegramError as e:
-            log.error(f"Error in trying editing message: {e}")
+            log.warning(f"Error in trying editing message: {e}")
 
     async def _try_edit_text(
             self,
@@ -147,7 +153,7 @@ class Panel:
                 )
                 return True
             except BadRequest as e:
-                log.error(f"Error in trying editing message: {e}")
+                log.debug(f"Error in trying editing message: {e}")
 
         # Prova con il messaggio corrente
         try:
@@ -159,6 +165,6 @@ class Panel:
             )
             return True
         except BadRequest as e:
-            log.error(f"Error in trying editing message: {e}")
+            log.warning(f"Error in trying editing message: {e}")
 
         return False
