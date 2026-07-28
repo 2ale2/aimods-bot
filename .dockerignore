@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+*.session*
+*.csv
+**/__pycache__/
+logs/
+.venv
+.idea
+docker-compose.yml
