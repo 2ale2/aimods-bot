@@ -20,7 +20,7 @@ pyrotgfork==2.2.24
 PySocks==1.7.1
 pytgcrypto==1.2.12
 python-dotenv==1.2.2
-python-telegram-bot==22.8
+python-telegram-bot[webhooks,job-queue,callback-data]==22.8
 pytz==2025.2
 PyYAML==6.0.3
 six==1.17.0
