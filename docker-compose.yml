@@ -1,15 +1,26 @@
 services:
   telegram-bot:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
     container_name: telegram_bot
     restart: unless-stopped
     expose:
       - "8080"
     env_file:
       - .env
+    volumes:
+      - /opt/aimods-bot-data/BotConfigurationStructure.yml:/app/aimods_bot/misc/BotConfigurationStructure.yml
+      - /opt/aimods-bot-data/logs:/app/aimods_bot/misc/logs
     networks:
       - proxy_network
       - app-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 networks:
   proxy_network:
