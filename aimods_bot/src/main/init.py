@@ -16,6 +16,8 @@ log = logger.getChild(__name__)
 
 
 def main():
+    log.info(f"Codice in esecuzione: GIT_SHA={os.getenv('GIT_SHA', 'unknown')}")
+
     bot_token = os.getenv("BOT_TOKEN")
     if not bot_token:
         log.error("BOT_TOKEN non impostato")
