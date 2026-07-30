@@ -1,6 +1,7 @@
 import os
 import locale
 import sys
+from urllib.parse import urlparse
 from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
@@ -20,7 +21,7 @@ def main():
 
     bot_token = os.getenv("BOT_TOKEN")
     if not bot_token:
-        log.error("BOT_TOKEN non impostato")
+        log.error("BOT_TOKEN not set. Exiting...")
         sys.exit(1)
 
     persistence = AsyncPostgresPersistence(
@@ -56,18 +57,32 @@ def main():
     run_mode = os.getenv("RUN_MODE", "webhook")
     drop_pending = os.getenv("DROP_PENDING_UPDATES", "false").lower() == "true"
 
-    log.info(f"Avvio in modalità {run_mode} (drop_pending_updates={drop_pending})")
+    log.info(f"Booting in {run_mode} mode (drop_pending_updates={drop_pending})...")
 
     try:
         if run_mode == "polling":
             application.run_polling(drop_pending_updates=drop_pending)
         else:
+            webhook_url = os.getenv("WEBHOOK_URL")
+            if not webhook_url:
+                log.error("WEBHOOK_URL not set or not found. Exiting...")
+                sys.exit(1)
+
+            webhook_secret = os.getenv("WEBHOOK_SECRET_TOKEN")
+            if run_mode != "polling" and not webhook_secret:
+                log.error("WEBHOOK_SECRET_TOKEN not set or not found. Add it in the .env file. Exiting...")
+                sys.exit(1)
+
+            url_path = urlparse(webhook_url).path.strip("/")
+            log.info(f"Webhook: {webhook_url} (url_path={url_path!r})")
+
             application.run_webhook(
                 listen="0.0.0.0",
                 port=int(os.getenv("PORT", "8080")),
-                url_path="bot",
-                webhook_url=os.getenv("WEBHOOK_URL", "https://bot.aimodsitalia.store/bot"),
-                drop_pending_updates=drop_pending
+                url_path=url_path,
+                webhook_url=webhook_url,
+                drop_pending_updates=drop_pending,
+                secret_token=webhook_secret
             )
         r = application.bot_data.restart
         if r and r.toggle:
