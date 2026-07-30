@@ -30,12 +30,13 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                 keyboard=[
                     [
                         ButtonItem(text="♟ Moderazione", callback_key=path.add(AdminRoute.MODERATION)),
-                        ButtonItem(text="⚙ Impostazioni", callback_key=path.add(AdminRoute.MANAGE_SETTINGS))
+                        ButtonItem(text="⚙ Imp. Generali", callback_key=path.add(AdminRoute.MANAGE_SETTINGS))
                     ],
                     [
                         ButtonItem(text="❔ Gestione Richieste", callback_key=path.add(AdminRoute.MANAGE_REQUESTS)),
-                        ButtonItem(text="🔐 Chiudi", callback_key=GlobalAction.CLOSE_MENU)
-                    ]
+                        ButtonItem(text="🔧 Strumenti", callback_key=path.add(AdminRoute.TOOLS))
+                    ],
+                    [ButtonItem(text="🔐 Chiudi", callback_key=GlobalAction.CLOSE_MENU)]
                 ],
             )
         )

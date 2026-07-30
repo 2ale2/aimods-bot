@@ -7,6 +7,7 @@ class AdminRoute(StrEnum):
     MODERATION = "moderation"
     MANAGE_SETTINGS = "manage_settings"
     MANAGE_REQUESTS = "manage_requests"
+    TOOLS = "tools"
 
 
 class AdminSettingsRoute(StrEnum):
@@ -67,3 +68,7 @@ class LimitationsFlow(StrEnum):
     # remove flow — .../manage_limitations/<user_id>/remove
     REMOVE_ALL = "remove_all"
 
+
+class AdminTools(StrEnum):
+    # admin/tools/...
+    CALENDAR = "calendar"

@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import InvalidCallbackData, ConversationHandler
 
+from aimods_bot.src.callbacks.panels.admin.tools.route import admin_tools_route
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState
 from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, GlobalAction
 
@@ -50,6 +51,13 @@ async def admin_main_router(update: Update, context: CustomContext):
                     update=update,
                     context=context,
                     root=PathBuilder(AdminRoute.MANAGE_REQUESTS),
+                    relative_path=PathBuilder(*sub_path)
+                )
+            case [AdminRoute.TOOLS, *sub_path]:
+                return await admin_tools_route(
+                    update=update,
+                    context=context,
+                    root=PathBuilder(AdminRoute.TOOLS),
                     relative_path=PathBuilder(*sub_path)
                 )
             case [close_action] if close_action in (GlobalAction.CLOSE_MENU, GlobalAction.CLOSE):
