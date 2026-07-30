@@ -65,6 +65,11 @@ main_private_conversation_handler = ConversationHandler(
         CallbackQueryHandler(
             callback=safe_delete_wrapper,
             pattern=rf"^(?:{re.escape(GlobalAction.CLOSE_MENU)}|{re.escape(GlobalAction.CLOSE)})$"
+        ),
+        PrefixHandler(
+            prefix=COMMAND_PREFIX,
+            command="start",
+            callback=start
         )
     ],
     persistent=True,
