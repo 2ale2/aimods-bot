@@ -89,11 +89,14 @@ async def render_user_request_category_panel(
         for cat, config in PLATFORM_CATEGORY_REGISTRY[platform].items()
     ]
 
+    keyboard = chunk_buttons(buttons=buttons, size=2)
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
+
     await create_and_render_panel(
         update=update,
         context=context,
         text=_get_user_request_category_text(platform=platform),
-        keyboard=chunk_buttons(buttons=buttons, size=2)
+        keyboard=keyboard
     )
 
 
