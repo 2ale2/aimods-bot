@@ -19,10 +19,13 @@ log = logger.getChild(__name__)
 def main():
     log.info(f"Codice in esecuzione: GIT_SHA={os.getenv('GIT_SHA', 'unknown')}")
 
-    bot_token = os.getenv("BOT_TOKEN")
-    if not bot_token:
-        log.error("BOT_TOKEN not set. Exiting...")
+    required = ("BOT_TOKEN", "BRIDGE_TOKEN", "API_ID", "API_HASH")
+    missing = [k for k in required if not os.getenv(k)]
+    if missing:
+        log.error(f"Missing mandatory setup variables: {', '.join(missing)}. Exiting...")
         sys.exit(1)
+
+    bot_token = os.getenv("BOT_TOKEN")
 
     persistence = AsyncPostgresPersistence(
         url=os.getenv("POSTGRES_CONNECTION_URL"),
@@ -34,6 +37,8 @@ def main():
 
     async def post_init_hook(app):
         await persistence.initialize()  # crea pool + carica dati nel loop PTB
+        cdc = app.bot.callback_data_cache
+        log.info(f"Callback data cache: {len(cdc.persistence_data[0])}/{cdc.maxsize} keyboard caricate")
         await set_application_data(app)
 
     async def post_shutdown_hook(app):

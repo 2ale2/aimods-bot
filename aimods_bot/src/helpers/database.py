@@ -7,11 +7,22 @@ from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.core.database_pool import get_connection
 from aimods_bot.src.helpers.loggers import logger
 
-log = logger.getChild("database")
+log = logger.getChild(__name__)
 
 ALLOWED_TABLES = {'persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts', 'requests_test'}
 
 TableName = Literal['persistence', 'persistence_test', 'requests', 'recap_posts', 'requests_posts', 'requests_test']
+
+
+_RETRY_SAFE = (
+    asyncpg.TooManyConnectionsError,
+    asyncpg.CannotConnectNowError,
+)
+
+# In più, per le sole letture: la connessione può essere caduta a query
+# già inviata (TransactionResolutionUnknownError, ...). Ritentare una SELECT
+# è gratis, ritentare una INSERT la duplicherebbe.
+_RETRY_READ_ONLY = _RETRY_SAFE + (asyncpg.PostgresConnectionError,)
 
 _COLUMNS_CACHE: Dict[str, List[str]] = {}
 
@@ -124,13 +135,9 @@ async def add_to_table(table_name: TableName, content: Dict[str, Any]) -> bool:
 
 
 @retry(
-    stop=stop_after_attempt(2),
+    stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=5),
-    retry=retry_if_exception_type((
-            asyncpg.PostgresConnectionError,
-            asyncpg.TooManyConnectionsError,
-            asyncpg.CannotConnectNowError,
-    )),
+    retry=retry_if_exception_type(_RETRY_SAFE),
     reraise=True
 )
 async def _execute_query_internal(query: str, params: list):
@@ -157,13 +164,9 @@ async def execute_query(query: str, params: Optional[List[Any]] = None) -> bool:
 
 
 @retry(
-    stop=stop_after_attempt(2),
+    stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=5),
-    retry=retry_if_exception_type((
-            asyncpg.PostgresConnectionError,
-            asyncpg.TooManyConnectionsError,
-            asyncpg.CannotConnectNowError,
-    )),
+    retry=retry_if_exception_type(_RETRY_READ_ONLY),
     reraise=True
 )
 async def _fetch_query_internal(query: str, params: list) -> List[asyncpg.Record]:

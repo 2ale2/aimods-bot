@@ -35,30 +35,30 @@ main_private_conversation_handler = ConversationHandler(
         PCS.USER_CONVERSATION: [CallbackQueryHandler(callback=user_main_router)],
         PCS.ADMIN_CONVERSATION: [CallbackQueryHandler(callback=admin_main_router)],
         PCS.USER_REQUEST_WIZARD_SESSION: [
-            MessageHandler(filters=filters.TEXT, callback=handle_wizard_text_input),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_wizard_text_input),
             CallbackQueryHandler(pattern=GlobalAction.REQUEST_WIZARD_BACK, callback=handle_wizard_back),
             CallbackQueryHandler(pattern=GlobalAction.CONFIRM, callback=handle_wizard_confirm),
             CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper),
             CallbackQueryHandler(callback=handle_wizard_callback_input)
         ],
         PCS.SET_REQUEST_LIMITATION_USER: [
-            MessageHandler(filters=filters.TEXT, callback=handle_limitation_user_input),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_limitation_user_input),
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_REQUEST_LIMITATION_DURATION: [
-            MessageHandler(filters=filters.TEXT, callback=handle_limitation_duration),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_limitation_duration),
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_REQUEST_LIMITATION_REASON: [
-            MessageHandler(filters=filters.TEXT, callback=handle_limitation_reason),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_limitation_reason),
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_USER_FOR_REQUEST_ARCHIVE: [
-            MessageHandler(filters=filters.TEXT, callback=handle_user_archive_user_input),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_user_archive_user_input),
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_REQUEST_REJECTION_REASON: [
-            MessageHandler(filters=filters.TEXT, callback=handle_request_rejection_reason),
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_request_rejection_reason),
             CallbackQueryHandler(callback=handle_request_rejection_reason)
         ]
     },

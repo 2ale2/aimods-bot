@@ -50,6 +50,7 @@ class Panel:
                 key = button.callback_key
                 data = key.build() if isinstance(key, PathBuilder) else str(key)
                 if not data:
+                    log.debug(f"Button '{button.text}' without callback_data, using {fallback!r}")
                     data = fallback
                 subkeyboard.append(InlineKeyboardButton(text=button.text, callback_data=data))
             keyboard.append(subkeyboard)
