@@ -23,7 +23,8 @@ main_private_conversation_handler = ConversationHandler(
         PrefixHandler(
             prefix=COMMAND_PREFIX,
             command="start",
-            callback=start
+            callback=start,
+            filters=filters.ChatType.PRIVATE
         ),
         CallbackQueryHandler(
             callback=general_router,
@@ -69,7 +70,8 @@ main_private_conversation_handler = ConversationHandler(
         PrefixHandler(
             prefix=COMMAND_PREFIX,
             command="start",
-            callback=start
+            callback=start,
+            filters=filters.ChatType.PRIVATE
         )
     ],
     persistent=True,
