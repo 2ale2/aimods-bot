@@ -66,16 +66,16 @@ class Panel:
     ) -> int | None:
         """Renderizza il pannello nel chat. Ritorna True se message_id != None e se la modifica va a buon fine."""
         text = self.build_text()
+        target_chat_id = user_id or update.effective_chat.id
         fallback = str(
             AdminRoute.ROOT if is_admin(
-                user_id=update.effective_user.id,
+                user_id=target_chat_id,
                 context=context
             ) else UserRoute.ROOT
         )
         reply_markup = InlineKeyboardMarkup(self.build_keyboard(fallback))
         preview_options = LinkPreviewOptions(is_disabled=True)
 
-        target_chat_id = user_id or update.effective_chat.id
         should_send_new = self.send or send or user_id is not None
 
         if should_send_new:
@@ -118,7 +118,8 @@ class Panel:
                 )
                 return message.id
             except TelegramError as e:
-                log.debug(f"Something went wrong the sending of a message: {e}")
+                log.error(f"Something went wrong while trying to sending a message: {e}")
+                return
 
         try:
             message = await context.bot.edit_message_reply_markup(
@@ -129,7 +130,7 @@ class Panel:
             if not isinstance(message, bool):
                 return message.id
         except TelegramError as e:
-            log.warning(f"Error in trying editing message: {e}")
+            log.error(f"Error in trying editing message: {e}")
 
     async def _try_edit_text(
             self,

@@ -49,7 +49,7 @@ def main():
         ApplicationBuilder()
         .token(bot_token)
         .persistence(persistence)
-        .arbitrary_callback_data(True)
+        .arbitrary_callback_data(4096)
         .context_types(context_types=context_types)
         .post_init(post_init_hook)
         .post_shutdown(post_shutdown_hook)

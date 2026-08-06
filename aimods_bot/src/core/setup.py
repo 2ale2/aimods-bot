@@ -331,18 +331,26 @@ def _setup_auto_recap(application: Application, bot_data: BotData) -> None:
 
 async def _init_pyrogram() -> None:
     try:
-        pyro_inst = Client(
-            name="bridge_bot",
-            api_id=os.getenv("API_ID"),
-            api_hash=os.getenv("API_HASH"),
-            bot_token=os.getenv("BRIDGE_TOKEN"),
-        )
+        api_id = int(os.getenv("API_ID"))
+    except (TypeError, ValueError):
+        log.error("API_ID must be an integer. Exiting...")
+        sys.exit(1)
+
+    # noinspection unbound-local-variable
+    pyro_inst = Client(
+        name="bridge_bot",
+        api_id=api_id,
+        api_hash=os.getenv("API_HASH"),
+        bot_token=os.getenv("BRIDGE_TOKEN"),
+    )
+
+    try:
+        await pyro_inst.start()
     except RPCError as e:
-        log.error(f"Failed to initialize Pyrogram client: {e}")
+        log.error(f"Failed to start Pyrogram client: {e}")
         raise
 
     constants.pyro_instance = pyro_inst
-    await constants.pyro_instance.start()
 
 
 async def _handle_restart_flag(application: Application) -> None:
