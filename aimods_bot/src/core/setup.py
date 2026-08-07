@@ -29,7 +29,7 @@ from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, Remove
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.request_utils import request_from_record
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap, get_last_monday_midnight
-from aimods_bot.src.tasks.channel_recap import create_and_send_recaps
+from aimods_bot.src.tasks.channel_recap import create_and_send_recaps, verify_recap_topics
 
 log = logger.getChild(__name__)
 
@@ -60,7 +60,7 @@ async def set_application_data(application: Application) -> None:
 
     _reschedule_persisted_jobs(application, bot_data)
     _reschedule_remove_inactive(application, bot_data)
-    _setup_auto_recap(application, bot_data)
+    await _setup_auto_recap(application, bot_data)
 
     await _init_pyrogram()
     await _handle_restart_flag(application)
@@ -287,11 +287,13 @@ def _reschedule_request_limit(
 
 
 # noinspection PyUnresolvedReferences
-def _setup_auto_recap(application: Application, bot_data: BotData) -> None:
+async def _setup_auto_recap(application: Application, bot_data: BotData) -> None:
     """
     Esegue il recap eventualmente saltato mentre il bot era offline, quindi
-    pianifica il job ripetuto settimanale e ne registra il JobInfo.
+    pianifica il job ripetuto settimanale.
     """
+    await verify_recap_topics()
+
     job_name = str(AutoRecapJobName())
     previous = bot_data.jobs.pop(job_name, None)
 
@@ -310,14 +312,13 @@ def _setup_auto_recap(application: Application, bot_data: BotData) -> None:
     if missed:
         log.info("Missed auto-recap detected; scheduling immediate run.")
         application.job_queue.run_once(callback=create_and_send_recaps, when=1)
-        bot_data.last_auto_recap = datetime.now(timezone.utc)
 
     time_until_next_recap = get_time_until_next_recap()
     next_run = datetime.now(timezone.utc) + time_until_next_recap
-    job = application.job_queue.run_repeating(
+    application.job_queue.run_daily(
         callback=create_and_send_recaps,
-        interval=timedelta(days=7),
-        first=time_until_next_recap,
+        time=time(hour=0, minute=0, tzinfo=ZoneInfo("Europe/Rome")),
+        days=(6,),  # domenica
         name=job_name,
     )
     log.info(f"Next recap settled at {next_run}")
