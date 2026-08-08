@@ -14,12 +14,13 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import AutoRecapJobName
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 from aimods_bot.src.helpers.utils.time_utils import get_last_monday_midnight
+from aimods_bot.src.core.pydantic import JobInfo
 
 log = logger.getChild(__name__)
 
-RECAP_PLATFORMS = ("Android", "Windows", "iOS", "MacOS")
+_RECAP_PLATFORMS = ("Android", "Windows", "iOS", "MacOS")
 
-STICKER_PATH = os.getenv(
+_STICKER_PATH = os.getenv(
     "RECAP_STICKER_PATH",
     "/app/aimods_bot/misc/images/official_stickers/sticker.webp",
 )
@@ -98,7 +99,7 @@ async def verify_recap_topics() -> None:
         return
 
     names = {topic["name"] for topic in recap_topics.values()}
-    missing = set(RECAP_PLATFORMS) - names
+    missing = set(_RECAP_PLATFORMS) - names
     if missing:
         log.error(
             f"Topic di recap mancanti o con nome non corrispondente in forum_topics.json: "
@@ -120,7 +121,7 @@ async def create_and_send_recaps(context: CustomContext | Application):
 
     recap_texts = {
         platform: f"📝 <b>{platform} – Recap Settimanale</b>\n"
-        for platform in RECAP_PLATFORMS
+        for platform in _RECAP_PLATFORMS
     }
     send = {key: False for key in recap_texts}
 
@@ -177,7 +178,7 @@ async def create_and_send_recaps(context: CustomContext | Application):
             sticker_message = await context.bot.send_sticker(
                 chat_id=group_id,
                 message_thread_id=thread_id,
-                sticker=sticker_id or STICKER_PATH,
+                sticker=sticker_id or _STICKER_PATH,
             )
             if not sticker_id:
                 sticker_id = sticker_message.sticker.file_id
@@ -189,9 +190,9 @@ async def create_and_send_recaps(context: CustomContext | Application):
 
     bot_data.last_auto_recap = datetime.now(timezone.utc)
 
-    job_info = bot_data.jobs.get(str(AutoRecapJobName()))
-    if job_info is not None:
-        job_info.executed = True
-
     if posts:
         await execute_query(query=f"TRUNCATE TABLE {RECAP_POSTS_TABLE}")
+
+    name = str(AutoRecapJobName())
+    scheduled = context.job_queue.get_jobs_by_name(name)
+    bot_data.jobs[name] = JobInfo(next_date=scheduled[0].next_t if scheduled else None, executed=True)

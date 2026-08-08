@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import pytz
+from zoneinfo import ZoneInfo
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -17,7 +17,7 @@ GROUP_JOIN_LINK = "https://t.me/+s3kZBM549qE1ZTU8"
 
 UNKNOWN_FIELD_SENTINEL = "unknown"
 
-LOCAL_TZ = pytz.timezone('Europe/Rome')
+LOCAL_TZ = ZoneInfo('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 

@@ -7,6 +7,7 @@ from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
 from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
+from aimods_bot.src.handlers.channel_handlers import channel_post_capture_handler
 from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
@@ -56,7 +57,7 @@ def main():
         .build()
     )
 
-    handlers = [main_private_conversation_handler, close_menu_handler]
+    handlers = [main_private_conversation_handler, close_menu_handler, channel_post_capture_handler]
     application.add_handlers(handlers)
 
     run_mode = os.getenv("RUN_MODE", "webhook")

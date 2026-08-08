@@ -1,6 +1,8 @@
 import os
-from datetime import timedelta, datetime, timezone
+import sys
 
+from datetime import timedelta, datetime, timezone, time
+from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 from pyrogram import Client
 from pyrogram.errors import RPCError
@@ -318,7 +320,7 @@ async def _setup_auto_recap(application: Application, bot_data: BotData) -> None
     application.job_queue.run_daily(
         callback=create_and_send_recaps,
         time=time(hour=0, minute=0, tzinfo=ZoneInfo("Europe/Rome")),
-        days=(6,),  # domenica
+        days=(0,),  # domenica
         name=job_name,
     )
     log.info(f"Next recap settled at {next_run}")
