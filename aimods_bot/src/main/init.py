@@ -8,6 +8,7 @@ from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, 
 from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
+from aimods_bot.src.handlers.join_request_spike import chat_join_request_spike_handler
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
@@ -53,6 +54,7 @@ def main():
 
     handlers = [main_private_conversation_handler, close_menu_handler]
     application.add_handlers(handlers)
+    application.add_handler(chat_join_request_spike_handler, group=-1)
 
     run_mode = os.getenv("RUN_MODE", "webhook")
     drop_pending = os.getenv("DROP_PENDING_UPDATES", "false").lower() == "true"
