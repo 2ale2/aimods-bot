@@ -25,6 +25,9 @@ def main():
         log.error("BOT_TOKEN not set. Exiting...")
         sys.exit(1)
 
+    miniapp_url = os.getenv("MINIAPP_URL", "https://app.aimodsitalia.store/")
+    log.info(f"Mini App URL: {miniapp_url}")
+
     persistence = AsyncPostgresPersistence(
         url=os.getenv("POSTGRES_CONNECTION_URL"),
         on_flush=False,

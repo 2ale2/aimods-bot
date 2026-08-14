@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     expose:
       - "8080"
+      - "8081"
     env_file:
       - .env
     volumes:

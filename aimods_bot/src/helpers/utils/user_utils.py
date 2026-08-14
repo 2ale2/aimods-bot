@@ -96,7 +96,7 @@ async def user_is_banned(context: CustomContext, user_id: int | str, chat_id: in
     Verifica se l'utente è bannato (o presente in una lista ban).
     Ritorna False in caso di errore.
     """
-    if str(user_id) in context.pydb.ban_list:
+    if user_id in context.pydb.ban_list:
         return True
 
     try:
