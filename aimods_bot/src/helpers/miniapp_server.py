@@ -137,6 +137,42 @@ async def _handle_accept(request: web.Request) -> web.Response:
     return _json({"ok": True, "result": result})
 
 
+async def _handle_rules(request: web.Request) -> web.Response:
+    """POST /api/rules — body: {"init_data": "..."}"""
+    tg_app: Application = request.app["tg_app"]
+    bot_token: str = request.app["bot_token"]
+
+    try:
+        body = json.loads(await request.text())
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json({"ok": False, "error": "body non JSON"}, 400)
+
+    try:
+        data = parse_init_data(body.get("init_data") or "", bot_token, max_age=INITDATA_MAX_AGE)
+    except InitDataError as e:
+        log.warning("initData rifiutato su /api/rules: %s", e)
+        return _json({"ok": False, "error": "sessione non valida"}, 403)
+
+    if not data.get("chat_join_request_query_id"):
+        return _json({"ok": False, "reason": "no_join_request"}, 409)
+
+    text = tg_app.bot_data.user_joined_message_text or ""
+    if not text:
+        log.error("user_joined_message_text vuoto: la Mini App mostrerebbe una pagina bianca")
+        return _json({"ok": False, "error": "regolamento non configurato"}, 503)
+
+    return _json({"ok": True, "title": "Regolamento", "text": text})
+
+
+async def _handle_index(request: web.Request) -> web.Response:
+    """GET / — l'URL che apre Telegram. add_static non fa fallback su index.html."""
+    index = MINIAPP_STATIC_DIR / "index.html"
+    if not os.path.isfile(index):
+        log.error("index.html mancante in %s", MINIAPP_STATIC_DIR)
+        return web.Response(status=503, text="Mini App non disponibile")
+    return web.FileResponse(index)
+
+
 @web.middleware
 async def _error_middleware(request: web.Request, handler: Any) -> web.StreamResponse:
     """
@@ -177,6 +213,8 @@ def build_miniapp(tg_app: Application, bot_token: str) -> web.Application:
 
     aio_app.router.add_post("/api/join", _handle_accept)
     aio_app.router.add_get("/healthz", _handle_health)
+    aio_app.router.add_post("/api/rules", _handle_rules)
+    aio_app.router.add_get("/", _handle_index)
     # Statico per ultimo: la rotta catch-all non deve mangiarsi /api.
     aio_app.router.add_static("/", MINIAPP_STATIC_DIR, show_index=False, follow_symlinks=False)
     return aio_app
