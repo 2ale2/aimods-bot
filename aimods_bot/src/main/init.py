@@ -12,6 +12,9 @@ from aimods_bot.src.handlers.join_request_spike import chat_join_request_spike_h
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
+from aimods_bot.src.helpers.miniapp_server import start_miniapp_server, stop_miniapp_server
+from aimods_bot.src.helpers.utils.botapi_10_1 import assert_bridge_still_needed
+
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
 log = logger.getChild(__name__)
@@ -39,8 +42,16 @@ def main():
     async def post_init_hook(app):
         await persistence.initialize()  # crea pool + carica dati nel loop PTB
         await set_application_data(app)
+        assert_bridge_still_needed()
+        # Per ultimo: non accettare traffico prima che bot_data sia caricato.
+        await start_miniapp_server(app, bot_token)
 
     async def post_shutdown_hook(app):
+        # Prima cosa: smettere di accettare richieste HTTP, poi chiudere il resto.
+        try:
+            await stop_miniapp_server()
+        except Exception:
+            log.exception("Errore fermando il listener Mini App, proseguo")
         await post_shutdown(app)
         await persistence.aclose()
 
