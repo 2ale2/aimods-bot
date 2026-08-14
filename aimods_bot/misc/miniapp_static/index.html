@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Regolamento</title>
+<script src="https://telegram.org/js/telegram-web-app.js?58"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Stato iniziale: caricamento. Il JS mostra una sola <section> alla volta. -->
+<main id="app">
+
+  <section id="view-loading" class="view">
+    <p class="muted">Caricamento…</p>
+  </section>
+
+  <!-- Regolamento + azioni -->
+  <section id="view-rules" class="view" hidden>
+    <h1 id="rules-title">Regolamento</h1>
+    <div id="rules-body" class="rules"></div>
+
+    <div class="actions">
+      <button id="btn-accept" class="btn btn-primary" type="button">
+        Accetto il regolamento
+      </button>
+      <button id="btn-decline" class="btn btn-ghost" type="button">
+        Non accetto
+      </button>
+    </div>
+    <p class="muted small">
+      Accettando verrai aggiunto al gruppo.
+    </p>
+  </section>
+
+  <!-- Esito -->
+  <section id="view-done" class="view" hidden>
+    <h1 id="done-title"></h1>
+    <p id="done-text" class="muted"></p>
+  </section>
+
+  <!-- Errore -->
+  <section id="view-error" class="view" hidden>
+    <h1>Qualcosa è andato storto</h1>
+    <p id="error-text" class="muted"></p>
+    <button id="btn-retry" class="btn btn-ghost" type="button">Riprova</button>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+/*
+ * I colori vengono dal tema di Telegram (var(--tg-theme-*)), con fallback per
+ * quando la pagina è aperta fuori da Telegram. Non fissare colori propri:
+ * l'utente può stare in tema chiaro o scuro, e una Mini App che ignora il tema
+ * si vede subito.
+ */
+
+:root {
+  --bg:        var(--tg-theme-bg-color, #ffffff);
+  --text:      var(--tg-theme-text-color, #000000);
+  --hint:      var(--tg-theme-hint-color, #707579);
+  --link:      var(--tg-theme-link-color, #2481cc);
+  --btn-bg:    var(--tg-theme-button-color, #2481cc);
+  --btn-text:  var(--tg-theme-button-text-color, #ffffff);
+  --section:   var(--tg-theme-secondary-bg-color, #f4f4f5);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#app {
+  /* safe-area-inset: su iPhone il bordo inferiore finisce sotto la tacca. */
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+
+.muted { color: var(--hint); }
+.small { font-size: 13px; }
+
+.rules {
+  background: var(--section);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  /* Il regolamento arriva dal bot e può essere lungo. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rules a { color: var(--link); }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  /* Su mobile un tap accidentale è facile: niente selezione del testo. */
+  user-select: none;
+}
+
+.btn:disabled { opacity: 0.6; cursor: default; }
+
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight: 600;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--hint);
+}
+
+[hidden] { display: none !important; }
