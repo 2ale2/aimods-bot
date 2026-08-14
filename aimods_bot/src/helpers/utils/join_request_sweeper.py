@@ -29,9 +29,9 @@ log = logger.getChild(__name__)
 
 # Quanto tempo l'utente ha per rispondere prima che la richiesta venga declinata.
 # Deve essere >= INITDATA_MAX_AGE del listener (1800s)
-PENDING_TTL_SECONDS = 10
+PENDING_TTL_SECONDS = 1800
 
-SWEEP_INTERVAL_SECONDS = 20
+SWEEP_INTERVAL_SECONDS = 5 * 60
 
 
 def track_pending(bot_data, query_id: str) -> None:
