@@ -14,6 +14,7 @@ from aimods_bot.src.core.exceptions import ConfigError
 
 from aimods_bot.src.helpers.miniapp_server import start_miniapp_server, stop_miniapp_server
 from aimods_bot.src.helpers.utils.botapi_10_1 import assert_bridge_still_needed
+from aimods_bot.src.helpers.utils.join_request_sweeper import schedule_sweeper
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
@@ -43,6 +44,7 @@ def main():
         await persistence.initialize()  # crea pool + carica dati nel loop PTB
         await set_application_data(app)
         assert_bridge_still_needed()
+        schedule_sweeper(app)
         # Per ultimo: non accettare traffico prima che bot_data sia caricato.
         await start_miniapp_server(app, bot_token)
 

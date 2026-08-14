@@ -13,6 +13,7 @@ class JobKind(StrEnum):
     REQUEST_LIMIT = "request_limit"
     REQUEST_COOLDOWN = "request_cooldown"
     DELAYED_SECTION_OPENING_CHECK = "delayed_section_opening_check"
+    JOIN_REQUEST_SWEEPER = "join_request_sweeper"
 
 
 class _BaseJobName(BaseModel):
@@ -75,6 +76,13 @@ class DelayedSectionOpeningJobName(_BaseJobName):
         ])
 
 
+class JoinRequestSweeperJobName(_BaseJobName):
+    name: Literal[JobKind.JOIN_REQUEST_SWEEPER] = JobKind.JOIN_REQUEST_SWEEPER
+
+    def to_string(self) -> str:
+        return self.name.value
+
+
 JobName = Annotated[
     Union[
         AutoRecapJobName,
@@ -82,6 +90,7 @@ JobName = Annotated[
         RequestLimitJobName,
         RequestCooldownJobName,
         DelayedSectionOpeningJobName,
+        JoinRequestSweeperJobName
     ],
     Field(discriminator="name"),
 ]

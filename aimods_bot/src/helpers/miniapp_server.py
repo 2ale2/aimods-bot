@@ -29,6 +29,7 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.constants.paths import MINIAPP_STATIC_DIR
 from aimods_bot.src.helpers.utils.botapi_10_1 import answer_join_request
 from aimods_bot.src.helpers.utils.initdata import InitDataError, parse_init_data
+from aimods_bot.src.helpers.utils.join_request_sweeper import untrack_pending
 
 log = logger.getChild(__name__)
 
@@ -122,12 +123,14 @@ async def _handle_accept(request: web.Request) -> web.Response:
         # TODO: quando il messaggio esatto sarà noto dai log, distinguere
         # "già risposto" da un BadRequest vero e restituire 500 sul secondo.
         log.info("answer %s su query_id già consumato? user=%s: %s", result, user_id, e)
+        untrack_pending(tg_app.bot_data, query_id)
         return _json({"ok": True, "result": result, "repeated": True})
     except Exception:
         log.exception("answer %s fallita per user=%s query_id=%s", result, user_id, query_id)
         return _json({"ok": False, "error": "errore interno"}, 500)
 
     log.info("join %s: user=%s chat=%s", result, user_id, group_chat_id)
+    untrack_pending(tg_app.bot_data, query_id)
 
     # Il post-approvazione (DB, log_ban, messaggio di benvenuto in privato —
     # `allows_write_to_pm` è true) NON va qui: si accoda alla job_queue, così
