@@ -163,6 +163,11 @@ async def _handle_rules(request: web.Request) -> web.Response:
         log.error("user_joined_message_text vuoto: la Mini App mostrerebbe una pagina bianca")
         return _json({"ok": False, "error": "regolamento non configurato"}, 503)
 
+    user = data.get("user") or {}
+    nome = user.get("first_name") or user.get("username") or "utente"
+
+    text = text.replace("{}", nome)
+
     return _json({"ok": True, "title": "Regolamento", "text": text})
 
 

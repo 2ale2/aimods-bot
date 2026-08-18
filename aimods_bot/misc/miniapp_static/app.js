@@ -76,7 +76,10 @@
 
   /* Header dello stesso colore dello sfondo: la finestra sembra una schermata
      sola invece di una pagina web dentro una cornice. */
-  try { tg.setHeaderColor("bg_color"); } catch (e) { /* client vecchi */ }
+  try {
+    tg.setBackgroundColor("secondary_bg_color");
+    tg.setHeaderColor("secondary_bg_color");
+  } catch (e) { /* client vecchi */ }
 
   /*
    * Il pop-up di conferma alla chiusura serve a distinguere "ho deciso" da
