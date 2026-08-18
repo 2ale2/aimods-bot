@@ -210,10 +210,23 @@ async def _error_middleware(request: web.Request, handler: Any) -> web.StreamRes
         return _json({"ok": False, "error": "errore interno"}, 500)
 
 
+@web.middleware
+async def _no_cache_static(request: web.Request, handler: Any) -> web.StreamResponse:
+    """
+    Gli statici della Mini App cambiano spesso e il webview di Telegram li
+    cachea in modo aggressivo: senza questo, una modifica al CSS può non
+    arrivare mai al client.
+    """
+    resp = await handler(request)
+    if not request.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def build_miniapp(tg_app: Application, bot_token: str) -> web.Application:
     aio_app = web.Application(
         client_max_size=MAX_BODY_BYTES,
-        middlewares=[_error_middleware],
+        middlewares=[_error_middleware, _no_cache_static],
     )
     aio_app["tg_app"] = tg_app
     aio_app["bot_token"] = bot_token
