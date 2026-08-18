@@ -27,7 +27,7 @@ from telegram.ext import Application
 
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.constants.paths import MINIAPP_STATIC_DIR
-from aimods_bot.src.helpers.utils.botapi_10_1 import answer_join_request
+from aimods_bot.src.helpers.utils.botapi_10_1 import answer_join_request, is_already_answered
 from aimods_bot.src.helpers.utils.initdata import InitDataError, parse_init_data
 from aimods_bot.src.helpers.utils.join_request_sweeper import untrack_pending
 
@@ -118,24 +118,23 @@ async def _handle_accept(request: web.Request) -> web.Response:
     try:
         await answer_join_request(tg_app.bot, query_id, result)
     except BadRequest as e:
-        # Quasi sempre: query_id già consumato (doppio tap, o retry del client).
-        # NON è un errore per l'utente — l'esito è già quello giusto.
-        # TODO: quando il messaggio esatto sarà noto dai log, distinguere
-        # "già risposto" da un BadRequest vero e restituire 500 sul secondo.
-        log.info("answer %s su query_id già consumato? user=%s: %s", result, user_id, e)
         untrack_pending(tg_app.bot_data, query_id)
-        return _json({"ok": True, "result": result, "repeated": True})
+
+        if is_already_answered(e):
+            # La richiesta non è più pendente: seconda Mini App aperta, admin
+            # che ha gestito a mano, o sweeper. L'esito è già deciso, ma NON
+            # sappiamo quale sia — dirlo all'utente sarebbe inventarselo.
+            log.info("Richiesta già gestita: user=%s query_id=%s", user_id, query_id)
+            return _json({"ok": False, "reason": "already_answered"}, 409)
+
+        log.warning("BadRequest su answer %s: user=%s: %s", result, user_id, e)
+        return _json({"ok": False, "error": "errore imprevisto"}, 500)
     except Exception:
         log.exception("answer %s fallita per user=%s query_id=%s", result, user_id, query_id)
         return _json({"ok": False, "error": "errore interno"}, 500)
 
     log.info("join %s: user=%s chat=%s", result, user_id, group_chat_id)
     untrack_pending(tg_app.bot_data, query_id)
-
-    # Il post-approvazione (DB, log_ban, messaggio di benvenuto in privato —
-    # `allows_write_to_pm` è true) NON va qui: si accoda alla job_queue, così
-    # la risposta HTTP non aspetta il DB.
-    # tg_app.job_queue.run_once(...)
 
     return _json({"ok": True, "result": result})
 

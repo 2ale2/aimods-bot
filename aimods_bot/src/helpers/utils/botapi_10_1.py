@@ -40,6 +40,20 @@ _ANSWER_ENDPOINT = "answer_chat_join_request_query"
 
 JoinRequestResult = Literal["approve", "decline", "queue"]
 
+#: NON è un errore: significa che l'esito è già stato deciso.
+_ALREADY_ANSWERED_MARKER = "hide_requester_missing"
+
+
+def is_already_answered(exc: BaseException) -> bool:
+    """
+    True se l'eccezione dice "questa richiesta non è più pendente".
+
+    Serve per distinguere il doppio tap (esito già deciso, nessun problema) da
+    un BadRequest vero, che invece va segnalato all'utente.
+    """
+    return _ALREADY_ANSWERED_MARKER in str(exc).lower()
+
+
 # Timeout stretti: queste chiamate vivono dentro la finestra di 10 secondi.
 # I default di PTB (5s read + pool) sommati ai retry possono superarla senza
 # che nessuno se ne accorga: meglio fallire presto e finire nel fallback.
@@ -110,9 +124,11 @@ async def answer_join_request(bot: Bot, query_id: str, result: JoinRequestResult
     """
     answerChatJoinRequestQuery — risposta finale.
 
-    `queue` restituisce la richiesta agli admin: è il default sensato in ogni
-    `except` e per lo sweeper (dopo un `decline` Telegram limita la
-    ripresentazione, e il gruppo ha già l'anti-spam aggressivo).
+    `queue` restituisce la richiesta agli admin: è il fallback quando è il BOT
+    ad avere un problema (es. sendChatJoinRequestWebApp fallita), perché
+    l'utente non ha avuto modo di leggere niente e rifiutarlo sarebbe ingiusto.
+    Lo sweeper invece usa `decline`: lì l'utente ha avuto la possibilità e non
+    l'ha usata.
 
     Il query_id è MONOUSO: usare solo quello firmato che arriva nell'initData,
     mai riciclarne uno memorizzato.
