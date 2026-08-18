@@ -84,13 +84,16 @@ h1 {
    MainButton nativo, e due bottoni pieni competerebbero tra loro. */
 .linklike {
   display: inline-block;
-  padding: 12px 24px;
+  background: none;
   border: 1px solid var(--hint);
   border-radius: 10px;
-  color: var(--text);
-  text-decoration: none;
+  padding: 12px 24px;
+  font: inherit;
   font-size: 15px;
   font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .linklike:disabled { opacity: 0.5; cursor: default; }
