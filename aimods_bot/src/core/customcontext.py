@@ -202,6 +202,7 @@ class BotData(BaseModel):
     ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
     user_limitations: Dict[int, UserLimitations] = Field(default_factory=dict)
     user_request_cooldowns: Dict[int, RequestCooldown] = Field(default_factory=dict)
+    pending_join_requests: Dict[str, float] = Field(default_factory=dict)
 
     commands: Dict[str, CommandConfig] = Field(default_factory=dict)
     hashtags: Dict[str, Any] = Field(default_factory=dict)

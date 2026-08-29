@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Regolamento</title>
+<link rel="icon" href="data:,">
+<script src="https://telegram.org/js/telegram-web-app.js?58"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main id="app">
+
+  <section id="view-loading" class="view">
+    <div class="center">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="muted">Caricamento…</p>
+    </div>
+  </section>
+
+  <section id="view-rules" class="view" hidden>
+    <div id="rules-body" class="rules"></div>
+
+    <!--
+      Fallback: se il MainButton nativo non e' disponibile (client molto vecchi
+      o pagina fuori da Telegram) il JS mostra questo bottone.
+    -->
+    <button id="btn-accept-fallback" class="btn btn-primary" type="button" hidden>
+      Accetto il regolamento
+    </button>
+
+    <p class="decline-row">
+      <button id="btn-decline" class="linklike" type="button">Non accetto</button>
+    </p>
+  </section>
+
+  <section id="view-done" class="view" hidden>
+    <div class="center">
+      <div id="done-icon" class="icon" aria-hidden="true"></div>
+      <h1 id="done-title"></h1>
+      <p id="done-text" class="muted"></p>
+    </div>
+  </section>
+
+  <section id="view-error" class="view" hidden>
+    <div class="center">
+      <div class="icon icon-warn" aria-hidden="true">!</div>
+      <h1>Qualcosa e' andato storto</h1>
+      <p id="error-text" class="muted"></p>
+      <button id="btn-retry" class="btn btn-ghost" type="button">Riprova</button>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

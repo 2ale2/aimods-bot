@@ -9,8 +9,13 @@ from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.handlers.channel_handlers import channel_post_capture_handler
 from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
+from aimods_bot.src.handlers.join_request import build_join_request_handler
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.core.exceptions import ConfigError
+
+from aimods_bot.src.helpers.miniapp_server import start_miniapp_server, stop_miniapp_server
+from aimods_bot.src.helpers.utils.botapi_10_1 import assert_bridge_still_needed
+from aimods_bot.src.helpers.utils.join_request_sweeper import schedule_sweeper
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
 
@@ -28,6 +33,9 @@ def main():
 
     bot_token = os.getenv("BOT_TOKEN")
 
+    miniapp_url = os.getenv("MINIAPP_URL", "https://app.aimodsitalia.store/")
+    log.info(f"Mini App URL: {miniapp_url}")
+
     persistence = AsyncPostgresPersistence(
         url=os.getenv("POSTGRES_CONNECTION_URL"),
         on_flush=False,
@@ -41,8 +49,17 @@ def main():
         cdc = app.bot.callback_data_cache
         log.info(f"Callback data cache: {len(cdc.persistence_data[0])}/{cdc.maxsize} keyboard caricate")
         await set_application_data(app)
+        assert_bridge_still_needed()
+        schedule_sweeper(app)
+        # Per ultimo: non accettare traffico prima che bot_data sia caricato.
+        await start_miniapp_server(app, bot_token)
 
     async def post_shutdown_hook(app):
+        # Prima cosa: smettere di accettare richieste HTTP, poi chiudere il resto.
+        try:
+            await stop_miniapp_server()
+        except Exception:
+            log.exception("Errore fermando il listener Mini App, proseguo")
         await post_shutdown(app)
         await persistence.aclose()
 
@@ -59,6 +76,7 @@ def main():
 
     handlers = [main_private_conversation_handler, close_menu_handler, channel_post_capture_handler]
     application.add_handlers(handlers)
+    application.add_handler(build_join_request_handler(miniapp_url), group=-1)
 
     run_mode = os.getenv("RUN_MODE", "webhook")
     drop_pending = os.getenv("DROP_PENDING_UPDATES", "false").lower() == "true"

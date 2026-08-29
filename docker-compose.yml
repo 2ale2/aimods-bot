@@ -8,11 +8,12 @@ services:
     restart: unless-stopped
     expose:
       - "8080"
+      - "8081"
     env_file:
       - .env
     volumes:
       - /opt/aimods-bot-data/BotConfigurationStructure.yml:/app/aimods_bot/misc/BotConfigurationStructure.yml
-      - /opt/aimods-bot-data/logs:/app/aimods_bot/misc/logs
+      - /opt/aimods-bot-data/logs:/app/logs
     networks:
       - proxy_network
       - app-net
