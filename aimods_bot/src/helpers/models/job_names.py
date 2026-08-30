@@ -14,6 +14,7 @@ class JobKind(StrEnum):
     REQUEST_COOLDOWN = "request_cooldown"
     DELAYED_SECTION_OPENING_CHECK = "delayed_section_opening_check"
     JOIN_REQUEST_SWEEPER = "join_request_sweeper"
+    REMINDER = "reminder"
 
 
 class _BaseJobName(BaseModel):
@@ -83,6 +84,14 @@ class JoinRequestSweeperJobName(_BaseJobName):
         return self.name.value
 
 
+class ReminderJobName(_BaseJobName):
+    name: Literal[JobKind.REMINDER] = JobKind.REMINDER
+    reminder_id: int
+
+    def to_string(self) -> str:
+        return _SEPARATOR.join([self.name.value, str(self.reminder_id)])
+
+
 JobName = Annotated[
     Union[
         AutoRecapJobName,
@@ -90,7 +99,8 @@ JobName = Annotated[
         RequestLimitJobName,
         RequestCooldownJobName,
         DelayedSectionOpeningJobName,
-        JoinRequestSweeperJobName
+        JoinRequestSweeperJobName,
+        ReminderJobName
     ],
     Field(discriminator="name"),
 ]
@@ -140,6 +150,14 @@ def parse_job_name(raw: str) -> Optional[JobName]:
                 return DelayedSectionOpeningJobName(
                     section=RequestSection(platform=args[0], category=args[1])
                 )
+
+            case JobKind.JOIN_REQUEST_SWEEPER:
+                return JoinRequestSweeperJobName() if not args else None
+
+            case JobKind.REMINDER:
+                if len(args) != 1:
+                    return None
+                return ReminderJobName(reminder_id=int(args[0]))
 
     except (ValueError, ValidationError):
         return None

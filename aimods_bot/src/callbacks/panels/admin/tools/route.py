@@ -17,7 +17,7 @@ async def admin_tools_route(
     match relative_path.segments:
         case []:
             await render_admin_tools_panel(update=update, context=context, base_path=root)
-        case [AdminTools.CALENDAR]:
+        case [AdminTools.REMINDER]:
             await not_implemented_yet(update=update, context=context)
 
     return PCS.ADMIN_CONVERSATION

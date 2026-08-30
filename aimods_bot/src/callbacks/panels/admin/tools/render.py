@@ -15,7 +15,7 @@ async def render_admin_tools_panel(update: Update, context: CustomContext, base_
     text = _get_admin_tools_panel_text()
 
     keyboard = [
-        [ButtonItem(text="🗓️ Calendario", callback_key=base_path.add(AdminTools.CALENDAR))],
+        [ButtonItem(text="🗓️ Calendario", callback_key=base_path.add(AdminTools.REMINDER))],
         [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
     ]
 
