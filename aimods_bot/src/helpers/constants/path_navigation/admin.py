@@ -71,4 +71,4 @@ class LimitationsFlow(StrEnum):
 
 class AdminTools(StrEnum):
     # admin/tools/...
-    REMINDER = "calendar"
+    REMINDER = "reminder"
