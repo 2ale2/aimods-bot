@@ -4,7 +4,7 @@ import asyncpg
 
 from datetime import datetime
 from aimods_bot.src.helpers.constants.constants import REMINDERS_TABLE
-from aimods_bot.src.infra.database import execute_query, fetch_query
+from aimods_bot.src.helpers.database import execute_query, fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.reminders import Reminder
 
