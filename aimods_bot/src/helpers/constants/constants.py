@@ -11,6 +11,7 @@ YAML_CONFIG_PATH = "aimods_bot/misc/BotConfigurationStructure.yml"
 REQUESTS_TABLE = os.getenv("REQUESTS_TABLE", "requests")
 PERSISTENCE_TABLE = os.getenv("PERSISTENCE_TABLE", "persistence")
 RECAP_POSTS_TABLE = os.getenv("RECAP_POSTS_TABLE", "recap_posts")
+REMINDERS_TABLE = os.getenv("REMINDERS_TABLE", "reminders")
 
 CHANNEL_JOIN_LINK = "https://t.me/+YmSMpGvSrlphYjJk"
 GROUP_JOIN_LINK = "https://t.me/+s3kZBM549qE1ZTU8"
