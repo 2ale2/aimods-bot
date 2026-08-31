@@ -237,6 +237,7 @@ def tex_escape(s: str) -> str:
         "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}",
         "^": r"\textasciicircum{}",
     }
+    s = re.sub(r"\s*\n\s*", " ", s).strip()
     return "".join(_LATEX_ESC.get(ch, ch) for ch in s)
 
 
