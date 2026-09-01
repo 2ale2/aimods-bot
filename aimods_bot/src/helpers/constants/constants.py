@@ -22,6 +22,9 @@ LOCAL_TZ = ZoneInfo('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
+# 0 = lunedì, convenzione Python. NON quella di run_daily nel recap.
+WEEKDAYS = ("Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica")
+
 pyro_instance = None
 
 DEFAULT_SECTION_OPENING_NOTIFICATION = True
