@@ -1,5 +1,6 @@
 from telegram import Update
 
+from aimods_bot.src.callbacks.panels.admin.tools.reminder.route import admin_reminder_tool_route
 from aimods_bot.src.callbacks.panels.admin.tools.render import render_admin_tools_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation.admin import AdminTools
@@ -17,7 +18,12 @@ async def admin_tools_route(
     match relative_path.segments:
         case []:
             await render_admin_tools_panel(update=update, context=context, base_path=root)
-        case [AdminTools.REMINDER]:
-            await not_implemented_yet(update=update, context=context)
+        case [AdminTools.REMINDER, *rest]:
+            await admin_reminder_tool_route(
+                update=update,
+                context=context,
+                root=root.add(AdminTools.REMINDER),
+                relative_path=PathBuilder(*rest)
+            )
 
     return PCS.ADMIN_CONVERSATION

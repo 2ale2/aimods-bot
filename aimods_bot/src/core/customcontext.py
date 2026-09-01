@@ -70,12 +70,12 @@ class ReminderWizard(BaseModel):
     """Bozza di promemoria in compilazione."""
     requesting: ReminderField | None = Field(
         default=None,
-        description="The wizard request field the user is filling."
+        description="The wizard reminder field the user is filling."
     )
 
-    editing: bool | None = Field(
-        default=None,
-        description="The wizard request field the user is editing"
+    editing: bool = Field(
+        default=False,
+        description="The wizard reminder field the user is editing"
     )
 
     reminder_id: int | None = Field(default=None, description="ID del promemoria")
@@ -103,7 +103,6 @@ class ReminderWizard(BaseModel):
             self.once_at = None
         else:
             self.fire_time = None
-        self.advance()
 
     @property
     def flow(self) -> list[ReminderField]:
@@ -121,7 +120,7 @@ class ReminderWizard(BaseModel):
         }[self.recurrence]
         return base + [specific, ReminderField.FIRE_TIME]
 
-    def advance(self) -> None:
+    def advance_or_finish_wizard(self) -> None:
         """Punta `requesting` alla prima domanda senza risposta. None = bozza completa."""
         self.requesting = None
         for field in self.flow:
@@ -130,8 +129,13 @@ class ReminderWizard(BaseModel):
                 break
 
     @property
+    def missing_fields(self) -> list[ReminderField]:
+        """Campi ancora da compilare, per il pannello di riepilogo."""
+        return [field for field in self.flow if getattr(self, field.value) is None]
+
+    @property
     def is_complete(self) -> bool:
-        return self.requesting is None and bool(self.flow) and self.recurrence is not None
+        return not self.missing_fields
 
     @classmethod
     def from_reminder(cls, reminder: Reminder) -> ReminderWizard:
@@ -162,7 +166,7 @@ class ReminderWizard(BaseModel):
         """
         missing = self.missing_fields
         if missing:
-            raise ValueError(f"Bozza incompleta, manca: {', '.join(missing)}")
+            raise ValueError(f"Incomplete draft, missing: {', '.join(missing)}")
 
         if self.recurrence is Recurrence.ONCE:
             local = self.once_at
@@ -207,8 +211,8 @@ class RequestWizardSession(BaseModel):
         description="The wizard request field the user is filling."
     )
 
-    editing: bool | None = Field(
-        default=None,
+    editing: bool = Field(
+        default=False,
         description="The wizard request field the user is editing"
     )
 
@@ -275,7 +279,7 @@ class ChatDataPersistent(BaseModel):
         default=None,
         description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
     )
-    reminder_wizard: ReminderWizard | None = Field(
+    active_reminder_wizard: ReminderWizard | None = Field(
         default=None,
         description="Reminder draft. None if no wizard is active."
     )
@@ -565,19 +569,28 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
 
     def get_or_create_reminder_wizard(self, source: Reminder | None = None) -> ReminderWizard:
         """
-        Restituisce il wizard promemoria della chat corrente, creandolo se assente.
+            Restituisce il wizard promemoria della chat corrente, creandolo se assente.
 
-        `source` precarica i campi da un promemoria esistente (modifica).
-        """
-        wizard = self.pydc.persistent.reminder_wizard
-        if wizard is None:
-            wizard = ReminderWizard.from_reminder(source) if source else ReminderWizard()
-            self.pydc.persistent.reminder_wizard = wizard
+            `source` precarica i campi da un promemoria esistente (modifica) e vince
+            sulla bozza in corso, a meno che non stia già compilando quello stesso
+            promemoria. Per iniziare una creazione da capo, chiamare prima
+            `clear_reminder_wizard()`.
+            """
+        wizard = self.pydc.persistent.active_reminder_wizard
+
+        if source is not None and (wizard is None or wizard.reminder_id != source.id):
+            wizard = ReminderWizard.from_reminder(source)
+        elif wizard is None:
+            wizard = ReminderWizard()
+        else:
+            return wizard
+
+        self.pydc.persistent.active_reminder_wizard = wizard
         return wizard
 
     def clear_reminder_wizard(self) -> None:
         """Resetta il wizard promemoria."""
-        self.pydc.persistent.reminder_wizard = None
+        self.pydc.persistent.active_reminder_wizard = None
 
     def clear_saved_path(self, clear_relative: bool = True) -> None:
         self.pydc.persistent.root_path = None

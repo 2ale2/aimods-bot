@@ -72,3 +72,10 @@ class LimitationsFlow(StrEnum):
 class AdminTools(StrEnum):
     # admin/tools/...
     REMINDER = "reminder"
+
+
+class ReminderRoute(StrEnum):
+    # admin/tools/reminder/...
+    RESUME_REMINDER_DRAFT = "resume_reminder_draft"
+    ADD_REMINDER = "add_reminder"
+    MANAGE_REMINDERS = "manage_reminders"
