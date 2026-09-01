@@ -219,7 +219,7 @@ class RequestField(StrEnum):
                 return FieldFormat.BOOL
 
 
-class ReminderField(StrEnum):        # in constants.py, accanto a RequestField
+class ReminderField(StrEnum):
     TITLE = "title"
     BODY = "body"
     RECURRENCE = "recurrence"

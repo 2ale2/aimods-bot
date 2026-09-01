@@ -20,7 +20,7 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ
+    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
@@ -68,7 +68,7 @@ class AdminLimitingUserRequests(BaseModel):
 
 class ReminderWizard(BaseModel):
     """Bozza di promemoria in compilazione."""
-    requesting: RequestField | None = Field(
+    requesting: ReminderField | None = Field(
         default=None,
         description="The wizard request field the user is filling."
     )
@@ -103,6 +103,7 @@ class ReminderWizard(BaseModel):
             self.once_at = None
         else:
             self.fire_time = None
+        self.advance()
 
     @property
     def flow(self) -> list[ReminderField]:
