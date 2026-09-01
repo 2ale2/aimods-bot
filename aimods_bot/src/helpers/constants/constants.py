@@ -219,6 +219,37 @@ class RequestField(StrEnum):
                 return FieldFormat.BOOL
 
 
+class ReminderField(StrEnum):        # in constants.py, accanto a RequestField
+    TITLE = "title"
+    BODY = "body"
+    RECURRENCE = "recurrence"
+    INTERVAL_DAYS = "interval_days"
+    DAY_OF_WEEK = "day_of_week"
+    DAY_OF_MONTH = "day_of_month"
+    FIRE_TIME = "fire_time"
+    ONCE_AT = "once_at"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case ReminderField.TITLE:
+                return "Titolo"
+            case ReminderField.BODY:
+                return "Corpo"
+            case ReminderField.RECURRENCE:
+                return "Ricorrenza"
+            case ReminderField.INTERVAL_DAYS:
+                return "Intervallo in Giorni"
+            case ReminderField.DAY_OF_WEEK:
+                return "Giorno della Settimana"
+            case ReminderField.DAY_OF_MONTH:
+                return "Giorno della Mese"
+            case ReminderField.FIRE_TIME:
+                return "Orario"
+            case ReminderField.ONCE_AT:
+                return "Una Volta"
+
+
 class ChatType(StrEnum):
     USER = "user"
     GROUP = "group"

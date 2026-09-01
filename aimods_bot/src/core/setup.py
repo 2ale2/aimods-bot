@@ -60,7 +60,7 @@ async def set_application_data(application: Application) -> None:
         return
 
     await _load_active_requests(bot_data)
-    await _sync_group_and_admins(application, bot_data)
+    await _sync_groups_and_admins(application, bot_data)
     await _sync_static_texts(bot_data)
     await _sync_commands(bot_data)
     await _sync_hashtags(bot_data)
@@ -156,7 +156,7 @@ async def _load_active_requests(bot_data: BotData) -> None:
 # STATIC DATA SYNC
 # ============================================================================
 
-async def _sync_group_and_admins(application: Application, bot_data: BotData) -> None:
+async def _sync_groups_and_admins(application: Application, bot_data: BotData) -> None:
     group_id_env = os.getenv("GROUP_CHAT_ID")
 
     if group_id_env is None or not group_id_env.replace("-", "").isnumeric():
@@ -164,6 +164,13 @@ async def _sync_group_and_admins(application: Application, bot_data: BotData) ->
 
     group_chat_id = int(group_id_env)
     bot_data.group_chat_id = group_chat_id
+
+    staff_id_env = os.getenv("STAFF_CHAT_ID")
+
+    if staff_id_env is None or not staff_id_env.replace("-", "").isnumeric():
+        raise ValueError(f"STAFF_CHAT_ID env variable not found or not numeric ({staff_id_env})!")
+
+    bot_data.staff_chat_id = int(staff_id_env)
 
     # noinspection PyTypeChecker
     admins = await get_admins(app=application, chat_id=bot_data.group_chat_id)

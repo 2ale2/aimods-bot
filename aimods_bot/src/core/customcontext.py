@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from typing import Dict, Any, Union
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -20,12 +20,14 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    Platform, Category, RequestField, REQUESTS_TABLE
+    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.helpers.models.reminders import Reminder, Recurrence
+from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
 
 log = logger.getChild(__name__)
 
@@ -62,6 +64,134 @@ class AdminLimitingUserRequests(BaseModel):
                 for pl, categories in PLATFORM_CATEGORY_REGISTRY.items()
                 for ca in categories
             }
+
+
+class ReminderWizard(BaseModel):
+    """Bozza di promemoria in compilazione."""
+    requesting: RequestField | None = Field(
+        default=None,
+        description="The wizard request field the user is filling."
+    )
+
+    editing: bool | None = Field(
+        default=None,
+        description="The wizard request field the user is editing"
+    )
+
+    reminder_id: int | None = Field(default=None, description="ID del promemoria")
+
+    title: str | None = None
+    body: str | None = None
+    thread_id: int | None = None
+
+    recurrence: Recurrence | None = None
+    fire_time: time | None = Field(default=None, description="Ora locale, solo per i ricorrenti")
+
+    interval_days: int | None = None
+    day_of_week: int | None = None
+    day_of_month: int | None = None
+
+    once_at: datetime | None = Field(default=None, description="Naive, ora locale. Solo per ONCE")
+
+    def set_recurrence(self, recurrence: Recurrence) -> None:
+        """Cambia ricorrenza azzerando i campi delle altre."""
+        self.recurrence = recurrence
+        self.interval_days = None
+        self.day_of_week = None
+        self.day_of_month = None
+        if recurrence is not Recurrence.ONCE:
+            self.once_at = None
+        else:
+            self.fire_time = None
+
+    @property
+    def flow(self) -> list[ReminderField]:
+        """Sequenza di domande in base a ricorrenza"""
+        base = [ReminderField.TITLE, ReminderField.BODY, ReminderField.RECURRENCE]
+        if self.recurrence is None:
+            return base
+        if self.recurrence is Recurrence.ONCE:
+            return base + [ReminderField.ONCE_AT]
+
+        specific = {
+            Recurrence.INTERVAL: ReminderField.INTERVAL_DAYS,
+            Recurrence.WEEKLY: ReminderField.DAY_OF_WEEK,
+            Recurrence.MONTHLY: ReminderField.DAY_OF_MONTH,
+        }[self.recurrence]
+        return base + [specific, ReminderField.FIRE_TIME]
+
+    def advance(self) -> None:
+        """Punta `requesting` alla prima domanda senza risposta. None = bozza completa."""
+        self.requesting = None
+        for field in self.flow:
+            if getattr(self, field.value) is None:
+                self.requesting = field
+                break
+
+    @property
+    def is_complete(self) -> bool:
+        return self.requesting is None and bool(self.flow) and self.recurrence is not None
+
+    @classmethod
+    def from_reminder(cls, reminder: Reminder) -> ReminderWizard:
+        """Precarica il wizard per la modifica di un promemoria esistente."""
+        once_at = None
+        if reminder.recurrence is Recurrence.ONCE:
+            once_at = reminder.next_fire.astimezone(LOCAL_TZ).replace(tzinfo=None)
+
+        return cls(
+            reminder_id=reminder.id,
+            title=reminder.title,
+            body=reminder.body,
+            thread_id=reminder.thread_id,
+            recurrence=reminder.recurrence,
+            fire_time=None if reminder.recurrence is Recurrence.ONCE else reminder.fire_time,
+            interval_days=reminder.interval_days,
+            day_of_week=reminder.day_of_week,
+            day_of_month=reminder.day_of_month,
+            once_at=once_at,
+        )
+
+    def to_reminder(self, chat_id: int, created_by: int) -> Reminder:
+        """
+        Costruisce il Reminder validato. Solleva ValueError se la bozza è incompleta.
+
+        `next_fire` è sempre UTC; `fire_time` resta ora locale (è una regola,
+        non un istante). Vedi DESIGN.md.
+        """
+        missing = self.missing_fields
+        if missing:
+            raise ValueError(f"Bozza incompleta, manca: {', '.join(missing)}")
+
+        if self.recurrence is Recurrence.ONCE:
+            local = self.once_at
+            if local.tzinfo is None:
+                local = local.replace(tzinfo=LOCAL_TZ)
+            next_fire = local.astimezone(timezone.utc)
+            fire_time = local.time()
+        else:
+            fire_time = self.fire_time
+            next_fire = compute_first_fire(
+                recurrence=self.recurrence,
+                fire_time=fire_time,
+                day_of_week=self.day_of_week,
+                day_of_month=self.day_of_month,
+            )
+
+        return Reminder(
+            id=self.reminder_id,
+            title=self.title,
+            body=self.body,
+            chat_id=chat_id,
+            thread_id=self.thread_id,
+            recurrence=self.recurrence,
+            fire_time=fire_time,
+            next_fire=next_fire,
+            interval_days=self.interval_days,
+            day_of_week=self.day_of_week,
+            day_of_month=self.day_of_month,
+            created_by=created_by,
+        )
 
 
 class RequestWizardSession(BaseModel):
@@ -144,6 +274,10 @@ class ChatDataPersistent(BaseModel):
         default=None,
         description="Limitation class for getting user requests limitation parameters before saving in Bot memory"
     )
+    reminder_wizard: ReminderWizard | None = Field(
+        default=None,
+        description="Reminder draft. None if no wizard is active."
+    )
     # ======== Users ========
     user_notifications: UserNotifications = Field(default_factory=UserNotifications)
     active_request_wizard: RequestWizardSession | None = Field(
@@ -197,7 +331,8 @@ class BotData(BaseModel):
     bot_version: str = "2.0.0"
     last_updated: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    group_chat_id: int | None = None
+    group_chat_id: int | None = Field(default=None)
+    staff_chat_id: int | None = Field(default=None)
     admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
     user_limitations: Dict[int, UserLimitations] = Field(default_factory=dict)
@@ -426,6 +561,22 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
     def clear_limitation_wizard(self) -> None:
         """Resetta il wizard di limitazione richieste."""
         self.pydc.persistent.limiting_user_requests = None
+
+    def get_or_create_reminder_wizard(self, source: Reminder | None = None) -> ReminderWizard:
+        """
+        Restituisce il wizard promemoria della chat corrente, creandolo se assente.
+
+        `source` precarica i campi da un promemoria esistente (modifica).
+        """
+        wizard = self.pydc.persistent.reminder_wizard
+        if wizard is None:
+            wizard = ReminderWizard.from_reminder(source) if source else ReminderWizard()
+            self.pydc.persistent.reminder_wizard = wizard
+        return wizard
+
+    def clear_reminder_wizard(self) -> None:
+        """Resetta il wizard promemoria."""
+        self.pydc.persistent.reminder_wizard = None
 
     def clear_saved_path(self, clear_relative: bool = True) -> None:
         self.pydc.persistent.root_path = None
