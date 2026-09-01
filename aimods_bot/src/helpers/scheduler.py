@@ -64,8 +64,8 @@ async def schedule_section_opening_check_for_user_notification(
 ):
     job_name = DelayedSectionOpeningJobName(section=section)
 
-    job = _schedule_unique_job(
-        context=context,
+    job = schedule_unique_job(
+        job_queue=context.job_queue,
         job_name=job_name,
         callback=scheduled_section_opening_check_for_user_notification,
         when=10,
