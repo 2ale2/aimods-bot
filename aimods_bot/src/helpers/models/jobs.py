@@ -55,4 +55,8 @@ class RemoveSectionLimitationJob:
 @dataclass
 class SectionOpeningCheckJob:
     section: RequestSection
-    
+
+
+@dataclass
+class ReminderJob:
+    reminder_id: int

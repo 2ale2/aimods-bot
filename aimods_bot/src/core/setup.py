@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from pyrogram import Client
 from pyrogram.errors import RPCError
 from telegram.ext import Application
+from telegram.error import TelegramError
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.config_loader import load_configuration
@@ -19,6 +20,9 @@ from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.job_queue import (
     scheduled_remove_user_request_section_limitation,
     scheduled_remove_completed_requests,
+    scheduled_send_reminder,
+    schedule_unique_job,
+    deliver_reminder
 )
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import (
@@ -26,10 +30,13 @@ from aimods_bot.src.helpers.models.job_names import (
     AutoRecapJobName,
     RemoveInactiveRequestJobName,
     RequestLimitJobName,
+    ReminderJobName
 )
-from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob
+from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob, ReminderJob
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.request_utils import request_from_record
+from aimods_bot.src.helpers.reminders_utils import list_reminders, update_next_fire
+from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap, get_last_monday_midnight
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps, verify_recap_topics
 
@@ -62,6 +69,7 @@ async def set_application_data(application: Application) -> None:
 
     _reschedule_persisted_jobs(application, bot_data)
     _reschedule_remove_inactive(application, bot_data)
+    await _reschedule_reminders(application)
     await _setup_auto_recap(application, bot_data)
 
     await _init_pyrogram()
@@ -210,7 +218,7 @@ def _reschedule_persisted_jobs(application: Application, bot_data: BotData) -> N
                 # Gestito interamente in _setup_auto_recap
                 surviving[name] = info
 
-            case RemoveInactiveRequestJobName() as p:
+            case RemoveInactiveRequestJobName():
                 # Non più persistiti: rigenerati al boot da closed_at
                 # (vedi _reschedule_remove_inactive). Scarto le voci legacy.
                 continue
@@ -243,6 +251,43 @@ def _reschedule_remove_inactive(application: Application, bot_data: BotData) -> 
             data=RemoveCompletedRequestJob(request_id=req.id),
             name=str(RemoveInactiveRequestJobName(request_id=req.id)),
         )
+
+
+async def _reschedule_reminders(application: Application) -> None:
+    reminders = await list_reminders(only_enabled=True)
+    now = datetime.now(timezone.utc)
+    scheduled = 0
+
+    for reminder in reminders:
+        if reminder.id is None:
+            log.warning("Reminder without ID; skipping...")
+            continue
+
+        next_fire, missed = advance_past(reminder, now=now)
+
+        if missed:
+            # UN solo messaggio anche con molte occorrenze mancate:
+            # bot giù 10 giorni con intervallo 3 => 1 messaggio, non 4.
+            try:
+                await deliver_reminder(application.bot, reminder, recovery=True)
+            except TelegramError as e:
+                log.error(f"Recupero reminder {reminder.id} fallito: {e}")
+            await update_next_fire(reminder.id, next_fire, last_fired_at=now)
+
+        if next_fire is None:
+            log.info(f"Reminder {reminder.id} was one-shot")
+            continue
+
+        schedule_unique_job(
+            job_queue=application.job_queue,
+            job_name=ReminderJobName(reminder_id=reminder.id),
+            callback=scheduled_send_reminder,
+            when=next_fire,
+            data=ReminderJob(reminder_id=reminder.id),
+        )
+        scheduled += 1
+
+    log.info(f"Rescheduled reminders: {scheduled}/{len(reminders)}")
 
 
 # noinspection PyUnresolvedReferences

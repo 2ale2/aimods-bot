@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 from uuid import uuid4
 
 import telegram.error
@@ -13,13 +13,42 @@ from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.constants.media import MediaType
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
-    RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob
+    RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob, ReminderJob
+from aimods_bot.src.helpers.models.job_names import JobName, ReminderJobName
+from aimods_bot.src.helpers.models.reminders import Reminder
+from aimods_bot.src.helpers.reminders_utils import get_reminder, update_next_fire
+from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.models.utils import MediaItem
 from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
 from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files, delete_os_file
 from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
 
 log = logger.getChild(__name__)
+
+
+def schedule_unique_job(
+        job_queue: JobQueue | None,
+        job_name: JobName,
+        callback: Callable,
+        when: datetime | float | int,
+        data: Any,
+):
+    """Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo."""
+    if job_queue is None:
+        raise ValueError("Job Queue must not be None!")
+
+    name_str = str(job_name)
+
+    for j in job_queue.get_jobs_by_name(name_str):
+        j.schedule_removal()
+        log.debug(f"Job precedente rimosso: {name_str}")
+
+    return job_queue.run_once(
+        callback=callback,
+        when=when,
+        data=data,
+        name=name_str,
+    )
 
 
 # ========== JOB: DELETE ==========
@@ -378,3 +407,59 @@ async def scheduled_section_opening_check_for_user_notification(context: CustomC
 
     if context.is_request_section_open(section=job_data.section):
         await send_opening_notifications(context=context, section=job_data.section)
+
+
+# ========== JOB: REMINDERS ==========
+
+async def deliver_reminder(bot: Bot, reminder: Reminder, recovery: bool = False) -> None:
+    prefix = "🔁 <i>Promemoria recuperato</i>\n\n" if recovery else ""
+    text = f"{prefix}⏰ <b>{html.escape(reminder.title)}</b>\n\n🔹 {html.escape(reminder.body)}"
+
+    await bot.send_message(
+        chat_id=reminder.chat_id,
+        text=text,
+        message_thread_id=reminder.thread_id,
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def scheduled_send_reminder(context: CustomContext):
+    """Invia, ricalcola, persiste e si ripianifica."""
+    job = context.job
+    if not job:
+        raise ValueError("Job data must not be None here!")
+
+    job_data = job.data
+    if not isinstance(job_data, ReminderJob):
+        raise WrongTypeException(job_data, "job_data", "ReminderJob")
+
+    reminder = await get_reminder(job_data.reminder_id)
+    if reminder is None:
+        log.warning(f"Reminder {job_data.reminder_id} not in reminders table")
+        return
+    if not reminder.enabled:
+        log.info(f"Reminder {reminder.id} disabled")
+        return
+
+    now = datetime.now(timezone.utc)
+
+    try:
+        await deliver_reminder(context.bot, reminder)
+    except TelegramError as e:
+        log.error(f"Sending reminder {reminder.id} failed: {e}")
+
+    next_fire, _ = advance_past(reminder, now=now)
+
+    await update_next_fire(reminder.id, next_fire, last_fired_at=now)
+
+    if next_fire is None:
+        log.info(f"Reminder {reminder.id} one-shot, disabled in the database table")
+        return
+
+    schedule_unique_job(
+        job_queue=context.job_queue,
+        job_name=ReminderJobName(reminder_id=reminder.id),
+        callback=scheduled_send_reminder,
+        when=next_fire,
+        data=ReminderJob(reminder_id=reminder.id),
+    )
