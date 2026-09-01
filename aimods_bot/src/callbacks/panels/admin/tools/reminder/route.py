@@ -1,7 +1,11 @@
 from telegram import Update
+
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
+
+from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_admin_reminder_tool_panel
 
 
 async def admin_reminder_tool_route(
@@ -15,8 +19,7 @@ async def admin_reminder_tool_route(
             await render_admin_reminder_tool_panel(
                 update=update,
                 context=context,
-                root=root,
-                relative_path=relative_path
+                base_path=root
             )
         case [ReminderRoute.RESUME_REMINDER_DRAFT]:
             pass
@@ -24,3 +27,5 @@ async def admin_reminder_tool_route(
             pass
         case [ReminderRoute.MANAGE_REMINDERS]:
             pass
+
+    return PCS.ADMIN_CONVERSATION

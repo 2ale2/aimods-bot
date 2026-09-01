@@ -13,7 +13,7 @@ def _get_header():
 
 
 async def render_admin_reminder_tool_panel(update: Update, context: CustomContext, base_path: PathBuilder):
-    text, keyboard = await _get_admin_reminder_tool_panel_text(context=context, base_path=base_path)
+    text, keyboard = await _get_admin_reminder_tool_panel_text_and_keyboard(context=context, base_path=base_path)
     await create_and_render_panel(
         update=update,
         context=context,
@@ -23,7 +23,7 @@ async def render_admin_reminder_tool_panel(update: Update, context: CustomContex
 
 
 async def _get_admin_reminder_tool_panel_text_and_keyboard(context: CustomContext, base_path: PathBuilder) -> tuple[str, list[list[ButtonItem]]]:
-    text = _get_header() + "\n\n🔹 Da qui puoi <b>gestire e creare i promemoria</b>."
+    text = _get_header() + "🔹 Da qui puoi <b>gestire e creare i promemoria</b>."
     no_reminders = not await list_reminders()
     if no_reminders:
         text += "\n\nℹ️ Non ci sono promemoria."
