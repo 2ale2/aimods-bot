@@ -9,7 +9,8 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_has_cooldown_panel,
     render_user_request_platform_panel,
     render_user_request_category_panel, render_global_request_wizard_panel, render_cant_request_panel,
-    render_section_notification_activated_panel, render_user_has_an_active_request_wizard_panel
+    render_section_notification_activated_panel, render_user_has_an_active_request_wizard_panel,
+    section_notifications_button
 )
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
@@ -208,21 +209,16 @@ async def _enter_wizard_or_explain(
     user_id = update.effective_user.id
 
     if not is_category_request_allowed(context=context, section=section) and user_id not in BYPASS_REQUEST_LIMITS_USERS:
-        if context.pydc.persistent.user_notifications.section_opening_notifications[section.platform][section.category]:
+        notifications_button = section_notifications_button(context=context, section=section)
+
+        if notifications_button is None:
             text = _CLOSED_MSG + ("\n\nℹ️ <b>Hai già attivato le notifiche di apertura di questa sezione</b>. "
                                   "Riceverai un messaggio da me non appena verrà riaperta.")
             keyboard = []
         else:
             text = _CLOSED_MSG + ("\n\n💡 <b>Attiva le notifiche</b> di questa sezione per ricevere un messaggio "
                                   "<b>non appena la sezione verrà nuovamente aperta</b>.")
-            keyboard = [
-                [
-                    ButtonItem(
-                        text="🔔 Attiva Notifiche Sezione",
-                        callback_key=base_path.add(UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS)
-                    )
-                ]
-            ]
+            keyboard = [[notifications_button]]
 
         keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=back_callback)])
         await render_cant_request_panel(
