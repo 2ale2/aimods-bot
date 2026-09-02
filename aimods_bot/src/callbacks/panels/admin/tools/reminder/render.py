@@ -46,7 +46,7 @@ async def _get_admin_reminder_tool_panel_text_and_keyboard(
     keyboard = []
     if context.pydc.persistent.active_reminder_wizard:
         keyboard.append(
-            [ButtonItem(text="✏️ Riprendi Bozza", callback_key=base_path.add(ReminderRoute.RESUME_REMINDER_DRAFT))]
+            [ButtonItem(text="✏️ Riprendi Bozza", callback_key=base_path.add(ReminderRoute.DRAFT))]
         )
 
     keyboard.append([ButtonItem(text="➕ Nuovo Promemoria", callback_key=base_path.add(ReminderRoute.ADD_REMINDER))])

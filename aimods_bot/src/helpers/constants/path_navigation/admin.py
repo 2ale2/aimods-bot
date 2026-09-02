@@ -76,6 +76,8 @@ class AdminTools(StrEnum):
 
 class ReminderRoute(StrEnum):
     # admin/tools/reminder/...
-    RESUME_REMINDER_DRAFT = "resume_reminder_draft"
+    DRAFT = "draft"
     ADD_REMINDER = "add_reminder"
     MANAGE_REMINDERS = "manage_reminders"
+    CANCEL_DRAFT = "cancel_draft"
+    DAILY = "daily"
