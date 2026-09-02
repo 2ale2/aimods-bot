@@ -22,6 +22,8 @@ LOCAL_TZ = ZoneInfo('Europe/Rome')
 
 SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
+BYPASS_REQUEST_LIMITS_USERS = {7233636327, 6540199713}
+
 # 0 = lunedì, convenzione Python. NON quella di run_daily nel recap.
 WEEKDAYS = ("Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica")
 

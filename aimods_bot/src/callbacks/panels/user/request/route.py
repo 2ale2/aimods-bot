@@ -13,7 +13,8 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
 )
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
-from aimods_bot.src.helpers.constants.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category
+from aimods_bot.src.helpers.constants.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category, \
+    BYPASS_REQUEST_LIMITS_USERS
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA, \
     UserManageRequestsRoute
@@ -25,8 +26,6 @@ from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 
 log = logger.getChild(__name__)
-
-BYPASS_LIMITS_USERS = {7233636327, 6540199713}
 
 
 async def user_requests_management_route(
@@ -208,7 +207,7 @@ async def _enter_wizard_or_explain(
     back_callback = base_path.back(2) if cat_num == 1 else base_path.back()
     user_id = update.effective_user.id
 
-    if not is_category_request_allowed(context=context, section=section) and user_id not in BYPASS_LIMITS_USERS:
+    if not is_category_request_allowed(context=context, section=section) and user_id not in BYPASS_REQUEST_LIMITS_USERS:
         if context.pydc.persistent.user_notifications.section_opening_notifications[section.platform][section.category]:
             text = _CLOSED_MSG + ("\n\nℹ️ <b>Hai già attivato le notifiche di apertura di questa sezione</b>. "
                                   "Riceverai un messaggio da me non appena verrà riaperta.")
@@ -236,7 +235,7 @@ async def _enter_wizard_or_explain(
         return PCS.USER_CONVERSATION
 
     cooldown = context.user_request_cooldown()
-    if cooldown and update.effective_user.id not in BYPASS_LIMITS_USERS:
+    if cooldown and update.effective_user.id not in BYPASS_REQUEST_LIMITS_USERS:
         await render_user_has_cooldown_panel(update=update, context=context, rc=cooldown, back_callback=back_callback)
         return PCS.USER_CONVERSATION
 

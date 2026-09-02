@@ -10,12 +10,12 @@ from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user import user_requests_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button
-from aimods_bot.src.callbacks.panels.user.request.route import BYPASS_LIMITS_USERS
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
-from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus, REQUESTS_TABLE
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.helpers.constants.constants import (RequestField, RequestStatus, REQUESTS_TABLE,
+                                                        BYPASS_REQUEST_LIMITS_USERS)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -211,7 +211,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     section = draft.section
     config = get_section_config(context=context, section=section)
 
-    if effective_user.id not in BYPASS_LIMITS_USERS:
+    if effective_user.id not in BYPASS_REQUEST_LIMITS_USERS:
         limit_reached = (
                 config.limit is not None
                 and len(context.get_section_active_requests(section=section)) >= config.limit
@@ -221,8 +221,11 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                      f"(toggle={config.toggle}, limit_reached={limit_reached})")
             context.pydc.persistent.active_request_wizard = None
 
+            path = PathBuilder(UserRoute.ROOT, UserRoute.ADD_REQUEST)
+
             notifications_button = section_notifications_button(context=context, section=section)
             keyboard = [[notifications_button]] if notifications_button else []
+            keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=path)])
 
             await query.answer()
             await render_cant_request_panel(
@@ -232,7 +235,7 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                 message="🔐 Il <b>limite di richieste</b> per questa sezione <b>è stato raggiunto</b> prima che "
                         "potessi confermare la tua.\n\n"
                         "💡 Attiva la notifica per sapere quando la sezione verrà riaperta.",
-                keyboard=keyboard or None
+                keyboard=keyboard
             )
             return PCS.USER_CONVERSATION
 

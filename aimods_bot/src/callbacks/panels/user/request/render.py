@@ -298,7 +298,7 @@ async def render_user_has_an_active_request_wizard_panel(
             "<blockquote>⚠️ Se ne formuli una nuova, <b>i dettagli già forniti dell'altra richiesta "
             "in fase di formulazione andranno persi</b>.</blockquote>")
 
-    kayboard = [
+    keyboard = [
         [
             ButtonItem(
                 text="✏️ Continuo la Precedente",
@@ -317,7 +317,7 @@ async def render_user_has_an_active_request_wizard_panel(
         update=update,
         context=context,
         text=text,
-        keyboard=kayboard
+        keyboard=keyboard
     )
 
 
