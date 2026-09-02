@@ -249,13 +249,13 @@ async def render_cant_request_panel(
         context: CustomContext,
         back_callback: PathBuilder,
         message: str,
-        kayboard: list[list[ButtonItem]] | None = None
+        keyboard: list[list[ButtonItem]] | None = None
 ):
     await create_and_render_panel(
         update=update,
         context=context,
         text=message,
-        keyboard=kayboard or [[ButtonItem(text="🔙 Indietro", callback_key=back_callback)]]
+        keyboard=keyboard or [[ButtonItem(text="🔙 Indietro", callback_key=back_callback)]]
     )
 
 
@@ -318,4 +318,17 @@ async def render_user_has_an_active_request_wizard_panel(
         context=context,
         text=text,
         keyboard=kayboard
+    )
+
+
+def section_notifications_button(context: CustomContext, section: RequestSection) -> ButtonItem | None:
+    enabled = context.pydc.persistent.user_notifications.section_opening_notifications[section.platform][section.category]
+    if enabled:
+        return None
+    return ButtonItem(
+        text="🔔 Attiva Notifiche Sezione",
+        callback_key=PathBuilder(
+            UserRoute.ADD_REQUEST, section.platform, section.category,
+            UserManageRequestsRoute.ENABLE_SECTION_NOTIFICATIONS
+        )
     )

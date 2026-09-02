@@ -231,7 +231,7 @@ async def _enter_wizard_or_explain(
             context=context,
             back_callback=back_callback,
             message=text,
-            kayboard=keyboard
+            keyboard=keyboard
         )
         return PCS.USER_CONVERSATION
 

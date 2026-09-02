@@ -9,7 +9,8 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user import user_requests_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
-    render_request_wizard_confirmation_panel
+    render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button
+from aimods_bot.src.callbacks.panels.user.request.route import BYPASS_LIMITS_USERS
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
 from aimods_bot.src.helpers.constants.constants import RequestField, RequestStatus, REQUESTS_TABLE
@@ -20,6 +21,7 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
     send_section_closing_admin_notification
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
@@ -206,6 +208,34 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         raise ValueError("Request draft is not complete yet!")
 
     draft = wizard.draft
+    section = draft.section
+    config = get_section_config(context=context, section=section)
+
+    if effective_user.id not in BYPASS_LIMITS_USERS:
+        limit_reached = (
+                config.limit is not None
+                and len(context.get_section_active_requests(section=section)) >= config.limit
+        )
+        if not config.toggle or limit_reached:
+            log.info(f"Confirm refused for {effective_user.id}: section {section} closed "
+                     f"(toggle={config.toggle}, limit_reached={limit_reached})")
+            context.pydc.persistent.active_request_wizard = None
+
+            notifications_button = section_notifications_button(context=context, section=section)
+            keyboard = [[notifications_button]] if notifications_button else []
+
+            await query.answer()
+            await render_cant_request_panel(
+                update=update,
+                context=context,
+                back_callback=PathBuilder(UserRoute.ROOT, UserRoute.ADD_REQUEST),
+                message="🔐 Il <b>limite di richieste</b> per questa sezione <b>è stato raggiunto</b> prima che "
+                        "potessi confermare la tua.\n\n"
+                        "💡 Attiva la notifica per sapere quando la sezione verrà riaperta.",
+                keyboard=keyboard or None
+            )
+            return PCS.USER_CONVERSATION
+
     draft.status = RequestStatus.PENDING
     try:
         validated = type(draft).model_validate(draft.model_dump())
@@ -246,12 +276,9 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
     await query.answer()
     log.info(f"Request formulated by {effective_user.id} submitted")
 
-    await _notify_new_request(update=update, context=context, request=wizard.draft)
+    await _notify_new_request(update=update, context=context, request=validated)
 
-    section = RequestSection(platform=wizard.draft.section.platform, category=wizard.draft.section.category)
-    config = get_section_config(context=context, section=section)
-
-    if config and config.limit:
+    if config.toggle and config.limit:
         active_requests = context.get_section_active_requests(section=section)
         if len(active_requests) >= config.limit:
             config.toggle = False
