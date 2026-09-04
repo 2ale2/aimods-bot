@@ -2,7 +2,8 @@ import os
 
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import move_cursor_after_answer
+from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import move_cursor_after_answer, \
+    handle_reminder_field_value
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_admin_reminder_tool_panel, \
     render_reminder_wizard_step
 from aimods_bot.src.core.customcontext import CustomContext
@@ -102,9 +103,9 @@ async def _route_reminder_draft(
                 case [raw_value]:
                     # TODO: handle.py — converte `raw_value` e scrive sul wizard.
                     #       Gestisce anche ReminderRoute.DAILY (INTERVAL + interval_days=1).
-                    # if not handle_reminder_field_value(wizard=wizard, field=field, raw_value=raw_value):
-                    #     log.warning(f"Invalid value for {field}: {raw_value}")
-                    #     return PCS.ADMIN_CONVERSATION
+                    if not handle_reminder_field_value(wizard=wizard, field=field, raw_value=raw_value):
+                        log.warning(f"Invalid value for {field}: {raw_value}")
+                        return PCS.ADMIN_CONVERSATION
 
                     move_cursor_after_answer(wizard=wizard, field=field)
 

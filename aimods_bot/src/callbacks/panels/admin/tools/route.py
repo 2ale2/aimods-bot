@@ -6,7 +6,6 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation.admin import AdminTools
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet
 
 
 async def admin_tools_route(
@@ -19,7 +18,7 @@ async def admin_tools_route(
         case []:
             await render_admin_tools_panel(update=update, context=context, base_path=root)
         case [AdminTools.REMINDER, *rest]:
-            await admin_reminder_tool_route(
+            return await admin_reminder_tool_route(
                 update=update,
                 context=context,
                 root=root.add(AdminTools.REMINDER),

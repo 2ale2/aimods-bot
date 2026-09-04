@@ -92,7 +92,7 @@ async def render_reminder_wizard_step(
     field = wizard.requesting
     state = _TEXT_INPUT_STATE.get(field, PCS.ADMIN_CONVERSATION)
 
-    if state != PCS.ADMIN_CONVERSATION:
+    if state != PCS.ADMIN_CONVERSATION and update.callback_query:
         context.pydc.persistent.bot_message_id = update.effective_message.id
         context.pydc.persistent.root_path = base_path.build()
 
@@ -237,7 +237,7 @@ async def render_reminder_question_panel(
         step = wizard.flow.index(field) + 1
         text += f"🔹 <b>{field.label}</b> — <i>passo {step} di {len(wizard.flow)}</i>\n\n"
 
-    text += _QUESTIONS[field]
+    text += field.wizard_question()
 
     keyboard = _value_keyboard(field=field, field_path=base_path.add(field))
 
