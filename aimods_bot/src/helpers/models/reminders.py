@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, time
-from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
+from aimods_bot.src.helpers.constants.constants import Recurrence
+
 LAST_DAY_OF_MONTH = -1
-
-
-class Recurrence(StrEnum):
-    """Tipo di ricorrenza di un promemoria."""
-    ONCE = "once"
-    INTERVAL = "interval"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
 
 
 class Reminder(BaseModel):

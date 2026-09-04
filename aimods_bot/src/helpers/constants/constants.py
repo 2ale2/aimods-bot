@@ -24,6 +24,9 @@ SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE = 86400
 
 BYPASS_REQUEST_LIMITS_USERS = {7233636327, 6540199713}
 
+REMINDER_DATETIME_FORMAT = "%d/%m/%Y %H:%M"
+REMINDER_TIME_FORMAT = "%H:%M"
+
 # 0 = lunedì, convenzione Python. NON quella di run_daily nel recap.
 WEEKDAYS = ("Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica")
 
@@ -253,6 +256,45 @@ class ReminderField(StrEnum):
                 return "Orario"
             case ReminderField.ONCE_AT:
                 return "Una Volta"
+
+    def wizard_question(self) -> str:
+        match self:
+            case ReminderField.TITLE:
+                return "✏️ Scrivi il <b>titolo</b> del promemoria."
+            case ReminderField.BODY:
+                return "✏️ Scrivi il <b>corpo</b> del messaggio."
+            case ReminderField.RECURRENCE:
+                return "🔁 <b>Ogni quanto</b> deve essere inviato?"
+            case ReminderField.INTERVAL_DAYS:
+                return "🔢 <b>Ogni quanti giorni</b>?"
+            case ReminderField.DAY_OF_WEEK:
+                return "📆 In che <b>giorno della settimana</b>?"
+            case ReminderField.DAY_OF_MONTH:
+                return "📆 In che <b>giorno del mese</b>?"
+            case ReminderField.FIRE_TIME:
+                return "🕘 A che <b>ora</b>? Formato <code>HH:MM</code> (es. <code>09:00</code>)."
+            case ReminderField.ONCE_AT:
+                return "🕘 <b>Quando</b>? Formato <code>GG/MM/AAAA HH:MM</code> (es. <code>05/03/2026 14:30</code>)."
+
+
+class Recurrence(StrEnum):
+    """Tipo di ricorrenza di un promemoria."""
+    ONCE = "once"
+    INTERVAL = "interval"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case Recurrence.ONCE:
+                return "Una Volta"
+            case Recurrence.INTERVAL:
+                return "A Intervalli"
+            case Recurrence.WEEKLY:
+                return "Settimanale"
+            case Recurrence.MONTHLY:
+                return "Mensile"
 
 
 class ChatType(StrEnum):

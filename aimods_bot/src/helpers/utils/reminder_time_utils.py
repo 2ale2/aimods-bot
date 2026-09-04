@@ -4,10 +4,9 @@ import calendar
 from datetime import datetime, time, timedelta, timezone
 from typing import Optional
 
-from aimods_bot.src.helpers.constants.constants import LOCAL_TZ
+from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, Recurrence
 from aimods_bot.src.helpers.models.reminders import (
     LAST_DAY_OF_MONTH,
-    Recurrence,
     Reminder,
 )
 

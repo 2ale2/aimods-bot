@@ -69,6 +69,73 @@ def parse_duration(duration_string: str) -> Optional[timedelta]:
     return timedelta(**kwargs) if any(kwargs.values()) else None
 
 
+_ABSOLUTE_DATETIME_PATTERN = re.compile(
+    r"^\s*(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})"
+    r"(?:\s*,\s*|\s+)(?:alle\s+)?"
+    r"(\d{1,2})[:.](\d{2})\s*$",
+    re.IGNORECASE
+)
+_CLOCK_TIME_PATTERN = re.compile(r"^\s*(\d{1,2})[:.](\d{2})\s*$")
+
+
+def parse_absolute_datetime(datetime_string: str) -> Optional[datetime]:
+    """
+    Parse una data assoluta nel formato `GG/MM/AAAA HH:MM` e restituisce un datetime
+    naive in ora locale.
+
+    Separatori tollerati: `/ - .` per la data, `: .` per l'ora. Anno a 4 cifre e
+    minuti a 2 cifre sono obbligatori. 31/02 e 25:00 restituiscono None.
+    """
+    if not datetime_string:
+        return None
+
+    match = _ABSOLUTE_DATETIME_PATTERN.match(datetime_string)
+    if not match:
+        return None
+
+    day, month, year, hour, minute = (int(group) for group in match.groups())
+
+    try:
+        return datetime(year, month, day, hour, minute)
+    except ValueError:
+        return None
+
+
+def parse_clock_time(time_string: str) -> Optional[time]:
+    """Parse un orario nel formato `HH:MM` (separatori `: .`) e restituisce un time."""
+    if not time_string:
+        return None
+
+    match = _CLOCK_TIME_PATTERN.match(time_string)
+    if not match:
+        return None
+
+    hour, minute = (int(group) for group in match.groups())
+
+    try:
+        return time(hour, minute)
+    except ValueError:
+        return None
+
+
+def is_nonexistent_local_time(naive: datetime) -> bool:
+    """
+    True se l'orario locale non esiste.
+
+    `replace(tzinfo=LOCAL_TZ)` su un orario inesistente non solleva nulla: slitta
+    di un'ora in silenzio. Il round-trip locale → UTC → locale lo rivela.
+    L'ora ambigua di ottobre NON viene segnalata: esiste due volte, `fold=0` è
+    una scelta legittima.
+    """
+    if naive.tzinfo is not None:
+        raise ValueError("is_nonexistent_local_time() richiede un datetime naive.")
+
+    local = naive.replace(tzinfo=LOCAL_TZ)
+    round_trip = local.astimezone(timezone.utc).astimezone(LOCAL_TZ)
+
+    return round_trip.replace(tzinfo=None) != naive
+
+
 def get_time_until_next_recap() -> timedelta:
     """
     Calcola il tempo rimanente fino alla prossima domenica a mezzanotte (ora italiana).

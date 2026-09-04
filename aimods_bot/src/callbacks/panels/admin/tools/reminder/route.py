@@ -115,6 +115,18 @@ async def _route_reminder_draft(
                         wizard=wizard
                     )
 
+        case [ReminderRoute.BACK_TO_SUMMARY]:
+            # Annulla la modifica
+            wizard.requesting = None
+            wizard.editing = False
+
+            await render_reminder_wizard_step(
+                update=update,
+                context=context,
+                base_path=root,
+                wizard=wizard
+            )
+
         case [ReminderRoute.CANCEL_DRAFT]:
             context.clear_reminder_wizard()
             await render_admin_reminder_tool_panel(update=update, context=context, base_path=root.back())

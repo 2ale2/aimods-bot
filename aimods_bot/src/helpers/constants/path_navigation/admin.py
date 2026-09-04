@@ -81,3 +81,4 @@ class ReminderRoute(StrEnum):
     MANAGE_REMINDERS = "manage_reminders"
     CANCEL_DRAFT = "cancel_draft"
     DAILY = "daily"
+    BACK_TO_SUMMARY = "back_to_summary"

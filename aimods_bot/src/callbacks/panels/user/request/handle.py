@@ -22,6 +22,7 @@ from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
     send_section_closing_admin_notification
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
@@ -275,6 +276,9 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     validated.id = dict(result[0]).get('id')
     context.submit_request(validated)
+
+    cooldown = context.set_user_request_cooldown(user_id=effective_user.id)
+    await schedule_request_cooldown_removal(context=context, user_id=effective_user.id, until=cooldown.until)
 
     await query.answer()
     log.info(f"Request formulated by {effective_user.id} submitted")

@@ -1,8 +1,8 @@
 from aimods_bot.src.core.customcontext import ReminderWizard
-from aimods_bot.src.helpers.constants.constants import ReminderField
+from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.loggers import logger
-from aimods_bot.src.helpers.models.reminders import Recurrence, LAST_DAY_OF_MONTH
+from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH
 
 log = logger.getChild(__name__)
 

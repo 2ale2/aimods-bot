@@ -20,13 +20,13 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField
+    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.reminders import Reminder, Recurrence
+from aimods_bot.src.helpers.models.reminders import Reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
 
 log = logger.getChild(__name__)
@@ -493,8 +493,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         user_id = user_id or self.user_id
         cooldown = self.pydb.user_request_cooldowns.get(user_id, None)
         if cooldown:
-            end_utc = cooldown.until
-            end_utc.replace(tzinfo=timezone.utc)
+            end_utc = ensure_utc(cooldown.until)
             if end_utc > datetime.now(timezone.utc):
                 return cooldown
             try:
