@@ -47,7 +47,7 @@ async def _get_admin_reminder_tool_panel_text_and_keyboard(
     current_reminders = await list_reminders()
     if not current_reminders:
         text += "\n\nℹ️ Non ci sono promemoria."
-    elif any(r.enabled for r in current_reminders):
+    elif not any(r.enabled for r in current_reminders):
         text += "\n\n💤 Non ci sono promemoria attivi."
     text += "\n\n🔸 Scegli un'opzione."
 
@@ -58,7 +58,7 @@ async def _get_admin_reminder_tool_panel_text_and_keyboard(
         )
 
     keyboard.append([ButtonItem(text="➕ Nuovo Promemoria", callback_key=base_path.add(ReminderRoute.ADD_REMINDER))])
-    if not current_reminders:
+    if current_reminders:
         keyboard[-1].append(
             ButtonItem(text="🗃️ Gestisci Promemoria", callback_key=base_path.add(ReminderRoute.MANAGE_REMINDERS))
         )
@@ -73,6 +73,7 @@ async def render_reminder_wizard_step(
         context: CustomContext,
         base_path: PathBuilder,
         wizard: ReminderWizard,
+        message_id: int | None = None
 ) -> int:
     """
     Disegna lo stato corrente del wizard: la domanda in sospeso o il riepilogo.
@@ -85,7 +86,8 @@ async def render_reminder_wizard_step(
             update=update,
             context=context,
             base_path=base_path,
-            wizard=wizard
+            wizard=wizard,
+            message_id=message_id
         )
         return PCS.ADMIN_CONVERSATION
 
@@ -101,7 +103,8 @@ async def render_reminder_wizard_step(
         context=context,
         base_path=base_path,
         wizard=wizard,
-        field=field
+        field=field,
+        message_id=message_id
     )
     return state
 
@@ -194,6 +197,7 @@ async def render_reminder_summary_panel(
         context: CustomContext,
         base_path: PathBuilder,
         wizard: ReminderWizard,
+        message_id: int | None = None
 ):
     """Riepilogo della bozza. Idempotente: si può ridisegnare quante volte si vuole."""
     text = _get_header()
@@ -217,7 +221,13 @@ async def render_reminder_summary_panel(
         ButtonItem(text="🔙 Menù", callback_key=base_path.back()),
     ])
 
-    await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )
 
 
 async def render_reminder_question_panel(
@@ -226,6 +236,7 @@ async def render_reminder_question_panel(
         base_path: PathBuilder,
         wizard: ReminderWizard,
         field: ReminderField,
+        message_id: int | None = None
 ):
     """Domanda singola. In modifica mostra il valore attuale e la via di fuga verso il riepilogo."""
     text = _get_header()
@@ -251,4 +262,10 @@ async def render_reminder_question_panel(
         ButtonItem(text="🔙 Menù", callback_key=base_path.back()),
     ])
 
-    await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard,
+        message_id=message_id
+    )

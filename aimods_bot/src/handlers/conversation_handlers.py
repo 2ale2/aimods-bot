@@ -8,6 +8,8 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route impor
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
 )
+from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import handle_reminder_text_field, \
+    handle_reminder_datetime_field
 from aimods_bot.src.callbacks.panels.general.router import general_router
 from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
@@ -60,7 +62,15 @@ main_private_conversation_handler = ConversationHandler(
         PCS.SET_REQUEST_REJECTION_REASON: [
             MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_request_rejection_reason),
             CallbackQueryHandler(callback=handle_request_rejection_reason)
-        ]
+        ],
+        PCS.SET_REMINDER_BODY: [
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_reminder_text_field),
+            CallbackQueryHandler(callback=admin_main_router)
+        ],
+        PCS.SET_REMINDER_DATETIME: [
+            MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_reminder_datetime_field),
+            CallbackQueryHandler(callback=admin_main_router)
+        ],
     },
     fallbacks=[
         CallbackQueryHandler(

@@ -1,11 +1,14 @@
 import asyncio
+import html
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict
 from uuid import uuid4
 
 import telegram.error
-from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters, Message, MessageEntity
+from telegram import Update, InputMedia, InlineKeyboardMarkup, ReplyParameters, Message, MessageEntity, Bot
 from telegram.constants import ChatAction, ParseMode
+from telegram.ext import JobQueue
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
@@ -445,7 +448,7 @@ async def scheduled_send_reminder(context: CustomContext):
 
     try:
         await deliver_reminder(context.bot, reminder)
-    except TelegramError as e:
+    except telegram.error.TelegramError as e:
         log.error(f"Sending reminder {reminder.id} failed: {e}")
 
     next_fire, _ = advance_past(reminder, now=now)
