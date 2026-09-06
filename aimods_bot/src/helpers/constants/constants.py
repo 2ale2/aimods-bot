@@ -251,11 +251,11 @@ class ReminderField(StrEnum):
             case ReminderField.DAY_OF_WEEK:
                 return "Giorno della Settimana"
             case ReminderField.DAY_OF_MONTH:
-                return "Giorno della Mese"
+                return "Giorno del Mese"
             case ReminderField.FIRE_TIME:
                 return "Orario"
             case ReminderField.ONCE_AT:
-                return "Una Volta"
+                return "Data e Ora"
 
     def wizard_question(self) -> str:
         match self:

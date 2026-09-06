@@ -50,7 +50,7 @@ async def admin_reminder_tool_route(
                 relative_path=PathBuilder(*rest)
             )
 
-        case [ReminderRoute.MANAGE_REMINDERS, *_rest]:
+        case [ReminderRoute.MANAGE_REMINDERS, *rest]:
             # TODO: elenco promemoria, scheda singola, toggle, elimina.
             pass
         case _:
