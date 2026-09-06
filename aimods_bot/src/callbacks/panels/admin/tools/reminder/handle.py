@@ -89,7 +89,6 @@ async def handle_reminder_text_field(update: Update, context: CustomContext) -> 
 
     if wizard is None or wizard.requesting not in (ReminderField.TITLE, ReminderField.BODY):
         log.warning("Text input received with no reminder field pending.")
-        await safe_delete(update=update, context=context)
         return PCS.ADMIN_CONVERSATION
 
     field = wizard.requesting

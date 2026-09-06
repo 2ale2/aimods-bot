@@ -14,7 +14,7 @@ from typing import Dict, Any, Union
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from telegram.ext import CallbackContext, ExtBot, Application
-from telegram import User as PTBUser, ChatMember as PTBChatMember
+from telegram import User as PTBUser, ChatMember as PTBChatMember, Update
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
@@ -28,6 +28,7 @@ from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGOR
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.reminders import Reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
+from aimods_bot.src.helpers.utils.time_utils import ensure_utc
 
 log = logger.getChild(__name__)
 
