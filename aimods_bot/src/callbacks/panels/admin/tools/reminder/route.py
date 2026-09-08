@@ -35,7 +35,7 @@ async def admin_reminder_tool_route(
             wizard = context.get_or_create_reminder_wizard()
             wizard.advance_or_finish_wizard()
 
-            await render_reminder_wizard_step(
+            return await render_reminder_wizard_step(
                 update=update,
                 context=context,
                 base_path=root.add(ReminderRoute.DRAFT),
@@ -43,7 +43,7 @@ async def admin_reminder_tool_route(
             )
 
         case [ReminderRoute.DRAFT, *rest]:
-            await _route_reminder_draft(
+            return await _route_reminder_draft(
                 update=update,
                 context=context,
                 root=root.add(ReminderRoute.DRAFT),
@@ -93,7 +93,7 @@ async def _route_reminder_draft(
                     wizard.requesting = field
                     wizard.editing = getattr(wizard, field.value) is not None
 
-                    await render_reminder_wizard_step(
+                    return await render_reminder_wizard_step(
                         update=update,
                         context=context,
                         base_path=root,
@@ -107,12 +107,15 @@ async def _route_reminder_draft(
 
                     move_cursor_after_answer(wizard=wizard, field=field)
 
-                    await render_reminder_wizard_step(
+                    return await render_reminder_wizard_step(
                         update=update,
                         context=context,
                         base_path=root,
                         wizard=wizard
                     )
+
+                case _:
+                    log.warning(f"Unhandled draft path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
         case [ReminderRoute.BACK_TO_SUMMARY]:
             # Annulla la modifica
@@ -137,7 +140,7 @@ async def _route_reminder_draft(
             )
 
         case [GlobalAction.CONFIRM]:
-            await handle_reminder_confirm(
+            return await handle_reminder_confirm(
                 update=update,
                 context=context,
                 base_path=root

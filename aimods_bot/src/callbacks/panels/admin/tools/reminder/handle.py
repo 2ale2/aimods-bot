@@ -79,7 +79,7 @@ async def _reject(update: Update, context: CustomContext, reason: str, state: in
     await update.effective_message.reply_text(
         text=reason,
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE_MENU)]
+            [InlineKeyboardButton(text="🚮 Chiudi", callback_data=GlobalAction.CLOSE)]
         ]),
         parse_mode=ParseMode.HTML
     )
@@ -185,7 +185,7 @@ async def handle_reminder_confirm(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder
-) -> None:
+) -> int:
     """
     Valida la bozza, la persiste, pianifica il job e pulisce.
 
@@ -199,6 +199,7 @@ async def handle_reminder_confirm(
     if wizard is None:
         # Bottone vecchio su una bozza già confermata o annullata.
         await render_admin_reminder_tool_panel(update=update, context=context, base_path=menu_path)
+        return PCS.ADMIN_CONVERSATION
 
     staff_chat_id = context.pydb.staff_chat_id
     if staff_chat_id is None:
@@ -207,6 +208,7 @@ async def handle_reminder_confirm(
             text="⚠️ Il gruppo staff non è configurato.",
             show_alert=True
         )
+        return PCS.ADMIN_CONVERSATION
 
     try:
         reminder = wizard.to_reminder(
@@ -230,8 +232,10 @@ async def handle_reminder_confirm(
             text="❌ Inserimento nel database non riuscito. La bozza è ancora qui, riprova.",
             show_alert=True
         )
+        return PCS.ADMIN_CONVERSATION
 
     reminder.id = reminder_id
+
     schedule_unique_job(
         job_queue=context.job_queue,
         job_name=ReminderJobName(reminder_id=reminder_id),
@@ -250,3 +254,4 @@ async def handle_reminder_confirm(
         base_path=menu_path,
         reminder=reminder
     )
+    return PCS.ADMIN_CONVERSATION

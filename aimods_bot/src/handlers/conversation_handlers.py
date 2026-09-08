@@ -65,10 +65,12 @@ main_private_conversation_handler = ConversationHandler(
         ],
         PCS.SET_REMINDER_BODY: [
             MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_reminder_text_field),
+            CallbackQueryHandler(pattern=rf"^{re.escape(GlobalAction.CLOSE)}$", callback=safe_delete_wrapper),
             CallbackQueryHandler(callback=admin_main_router)
         ],
         PCS.SET_REMINDER_DATETIME: [
             MessageHandler(filters=filters.TEXT & ~filters.Regex(r"^[/.!]"), callback=handle_reminder_datetime_field),
+            CallbackQueryHandler(pattern=rf"^{re.escape(GlobalAction.CLOSE)}$", callback=safe_delete_wrapper),
             CallbackQueryHandler(callback=admin_main_router)
         ],
     },
