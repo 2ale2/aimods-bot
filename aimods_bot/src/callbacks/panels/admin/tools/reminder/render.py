@@ -4,11 +4,11 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext, ReminderWizard
 from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
-    REMINDER_DATETIME_FORMAT
+    REMINDER_DATETIME_FORMAT, LOCAL_TZ
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
-from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH
+from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.reminders_utils import list_reminders
@@ -268,4 +268,31 @@ async def render_reminder_question_panel(
         text=text,
         keyboard=keyboard,
         message_id=message_id
+    )
+
+
+async def render_reminder_created_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        reminder: Reminder
+) -> None:
+    """Esito positivo. `base_path` è il menù promemoria"""
+    local_next = reminder.next_fire.astimezone(LOCAL_TZ)
+
+    text = (
+        _get_header()
+        + "✅ <b>Promemoria creato.</b>\n\n"
+        + f"🔹 <b>Titolo</b> — {html.escape(reminder.title)}\n"
+        + f"🔹 <b>Ricorrenza</b> — {reminder.recurrence.label}\n"
+        + f"🔹 <b>Primo invio</b> — {local_next.strftime(REMINDER_DATETIME_FORMAT)}"
+    )
+
+    keyboard = [[ButtonItem(text="🔙 Menù Promemoria", callback_key=base_path)]]
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard
     )

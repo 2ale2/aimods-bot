@@ -3,15 +3,20 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_reminder_wizard_step
+from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_reminder_wizard_step, \
+    render_admin_reminder_tool_panel, render_reminder_created_panel
 from aimods_bot.src.core.customcontext import ReminderWizard, CustomContext
 from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
+from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send_reminder
 from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.helpers.models.job_names import ReminderJobName
+from aimods_bot.src.helpers.models.jobs import ReminderJob
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.reminders_utils import create_reminder
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_clock_time, parse_absolute_datetime, is_nonexistent_local_time
 
@@ -174,3 +179,74 @@ def move_cursor_after_answer(wizard: ReminderWizard, field: ReminderField) -> No
         wizard.requesting = None
     else:
         wizard.advance_or_finish_wizard()
+
+
+async def handle_reminder_confirm(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+) -> None:
+    """
+    Valida la bozza, la persiste, pianifica il job e pulisce.
+
+    Pianifica subito invece di aspettare `_reschedule_reminders()` al boot:
+    un promemoria creato e non pianificato è indistinguibile da uno pianificato
+    finché non manca l'invio.
+    """
+    wizard = context.pydc.persistent.active_reminder_wizard
+    menu_path = base_path.back()
+
+    if wizard is None:
+        # Bottone vecchio su una bozza già confermata o annullata.
+        await render_admin_reminder_tool_panel(update=update, context=context, base_path=menu_path)
+
+    staff_chat_id = context.pydb.staff_chat_id
+    if staff_chat_id is None:
+        log.error("STAFF_CHAT_ID not configured: cannot create reminder.")
+        await update.callback_query.answer(
+            text="⚠️ Il gruppo staff non è configurato.",
+            show_alert=True
+        )
+
+    try:
+        reminder = wizard.to_reminder(
+            chat_id=staff_chat_id,
+            created_by=update.effective_user.id
+        )
+    except ValueError as e:
+        # Conferma premuta su una bozza incompleta: bottone rimasto in un messaggio vecchio.
+        # Non è un errore da mostrare, è un redraw: il wizard riapre il campo mancante.
+        log.warning(f"Confirm on incomplete reminder draft: {e}")
+        return await render_reminder_wizard_step(
+            update=update,
+            context=context,
+            base_path=base_path,
+            wizard=wizard
+        )
+
+    reminder_id = await create_reminder(reminder)
+    if reminder_id is None:
+        await update.callback_query.answer(
+            text="❌ Inserimento nel database non riuscito. La bozza è ancora qui, riprova.",
+            show_alert=True
+        )
+
+    reminder.id = reminder_id
+    schedule_unique_job(
+        job_queue=context.job_queue,
+        job_name=ReminderJobName(reminder_id=reminder_id),
+        callback=scheduled_send_reminder,
+        when=reminder.next_fire,
+        data=ReminderJob(reminder_id=reminder_id)
+    )
+
+    context.clear_reminder_wizard()
+    context.pydc.persistent.root_path = None
+    context.pydc.persistent.bot_message_id = None
+
+    await render_reminder_created_panel(
+        update=update,
+        context=context,
+        base_path=menu_path,
+        reminder=reminder
+    )

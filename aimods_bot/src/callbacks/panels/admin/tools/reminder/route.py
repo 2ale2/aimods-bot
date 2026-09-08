@@ -3,7 +3,7 @@ import os
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import move_cursor_after_answer, \
-    handle_reminder_field_value
+    handle_reminder_field_value, handle_reminder_confirm
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_admin_reminder_tool_panel, \
     render_reminder_wizard_step
 from aimods_bot.src.core.customcontext import CustomContext
@@ -101,8 +101,6 @@ async def _route_reminder_draft(
                     )
 
                 case [raw_value]:
-                    # TODO: handle.py — converte `raw_value` e scrive sul wizard.
-                    #       Gestisce anche ReminderRoute.DAILY (INTERVAL + interval_days=1).
                     if not handle_reminder_field_value(wizard=wizard, field=field, raw_value=raw_value):
                         log.warning(f"Invalid value for {field}: {raw_value}")
                         return PCS.ADMIN_CONVERSATION
@@ -130,12 +128,20 @@ async def _route_reminder_draft(
 
         case [ReminderRoute.CANCEL_DRAFT]:
             context.clear_reminder_wizard()
-            await render_admin_reminder_tool_panel(update=update, context=context, base_path=root.back())
+            context.pydc.persistent.root_path = None
+            context.pydc.persistent.bot_message_id = None
+            await render_admin_reminder_tool_panel(
+                update=update,
+                context=context,
+                base_path=root.back()
+            )
 
         case [GlobalAction.CONFIRM]:
-            # TODO: handle.py — to_reminder() → create_reminder() → schedule_unique_job()
-            #       → clear_reminder_wizard(), poi pannello di conferma.
-            pass
+            await handle_reminder_confirm(
+                update=update,
+                context=context,
+                base_path=root
+            )
 
         case _:
             log.warning(f"Unhandled draft path in {os.path.realpath(__file__)}: {relative_path.build()}")
