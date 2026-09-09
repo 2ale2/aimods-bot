@@ -4,7 +4,7 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext, ReminderWizard
 from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
-    REMINDER_DATETIME_FORMAT, LOCAL_TZ
+    REMINDER_DATETIME_FORMAT, LOCAL_TZ, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
@@ -26,7 +26,7 @@ _BODY_PREVIEW_LIMIT = 200
 
 
 def _get_header():
-    return "<tg-emoji emoji-id=\"5411478619081953369\">📅</tg-emoji> <b>Menù Promemoria</b>\n\n"
+    return "<tg-emoji emoji-id=\"5940722339179139731\">📅</tg-emoji> <b>Menù Promemoria</b>"
 
 
 async def render_admin_reminder_tool_panel(update: Update, context: CustomContext, base_path: PathBuilder):
@@ -43,7 +43,7 @@ async def _get_admin_reminder_tool_panel_text_and_keyboard(
         context: CustomContext,
         base_path: PathBuilder
 ) -> tuple[str, list[list[ButtonItem]]]:
-    text = _get_header() + "🔹 Da qui puoi <b>gestire e creare i promemoria</b>."
+    text = _get_header() + "\n\n🔹 Da qui puoi <b>gestire e creare i promemoria</b>."
     current_reminders = await list_reminders()
     if not current_reminders:
         text += "\n\nℹ️ Non ci sono promemoria."
@@ -140,8 +140,8 @@ def _format_field_value(wizard: ReminderWizard, field: ReminderField) -> str:
 def _format_draft(wizard: ReminderWizard) -> str:
     """Righe del riepilogo. Cicla su `flow`, non su tutti i campi."""
     return "\n".join(
-        f"🔹 <b>{field.label}</b> — {_format_field_value(wizard=wizard, field=field)}"
-        for field in wizard.flow
+        f"{EMOJI_NUMBER.get(index + 1, '🔹')} <b>{field.label}</b> — <i>{_format_field_value(wizard=wizard, field=field)}</i>"
+        for index, field in enumerate(wizard.flow)
     )
 
 
@@ -155,11 +155,11 @@ def _value_keyboard(field: ReminderField, field_path: PathBuilder) -> list[list[
                     ButtonItem(text="☀️ Giornaliero", callback_key=field_path.add(ReminderRoute.DAILY)),
                 ],
                 [
-                    ButtonItem(text="🔢 A Intervalli", callback_key=field_path.add(Recurrence.INTERVAL)),
-                ],
-                [
                     ButtonItem(text="📅 Settimanale", callback_key=field_path.add(Recurrence.WEEKLY)),
                     ButtonItem(text="🗓 Mensile", callback_key=field_path.add(Recurrence.MONTHLY)),
+                ],
+                [
+                    ButtonItem(text="🔢 A Intervalli", callback_key=field_path.add(Recurrence.INTERVAL)),
                 ],
             ]
 
@@ -201,7 +201,7 @@ async def render_reminder_summary_panel(
 ):
     """Riepilogo della bozza. Idempotente: si può ridisegnare quante volte si vuole."""
     text = _get_header()
-    text += "🔹 <b>Riepilogo del promemoria</b>\n\n"
+    text += "\n\n <b>📝 Riepilogo del promemoria</b>\n\n"
     text += _format_draft(wizard=wizard)
     text += "\n\n🔸 Tocca un campo per <b>modificarlo</b>, oppure conferma."
 
@@ -239,14 +239,15 @@ async def render_reminder_question_panel(
         message_id: int | None = None
 ):
     """Domanda singola. In modifica mostra il valore attuale e la via di fuga verso il riepilogo."""
-    text = _get_header()
+    text = _get_header() + "\n\n➕ <b><i>Nuovo Promemoria</i></b>\n\n"
 
     if wizard.editing:
         text += (f"✏️ <b>Modifica — {field.label}</b>\n\n"
-                 f"🔹 Valore attuale: {_format_field_value(wizard=wizard, field=field)}\n\n")
+                 f"🔍 Valore attuale: {_format_field_value(wizard=wizard, field=field)}\n\n")
     else:
         step = wizard.flow.index(field) + 1
-        text += f"🔹 <b>{field.label}</b> — <i>passo {step} di {len(wizard.flow)}</i>\n\n"
+        step_emoji = EMOJI_NUMBER.get(step, "🔹")
+        text += f"{step_emoji} <b>{field.label}</b> — <i>passo {step} di {len(wizard.flow)}</i>\n\n"
 
     text += field.wizard_question()
 
@@ -282,7 +283,7 @@ async def render_reminder_created_panel(
 
     text = (
         _get_header()
-        + "✅ <b>Promemoria creato.</b>\n\n"
+        + "\n\n✅ <b>Promemoria creato.</b>\n\n"
         + f"🔹 <b>Titolo</b> — {html.escape(reminder.title)}\n"
         + f"🔹 <b>Ricorrenza</b> — {reminder.recurrence.label}\n"
         + f"🔹 <b>Primo invio</b> — {local_next.strftime(REMINDER_DATETIME_FORMAT)}"

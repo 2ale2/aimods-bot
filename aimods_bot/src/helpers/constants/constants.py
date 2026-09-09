@@ -266,15 +266,15 @@ class ReminderField(StrEnum):
             case ReminderField.RECURRENCE:
                 return "🔁 <b>Ogni quanto</b> deve essere inviato?"
             case ReminderField.INTERVAL_DAYS:
-                return "🔢 <b>Ogni quanti giorni</b>?"
+                return "🔢 <b>Ogni quanti giorni?</b>"
             case ReminderField.DAY_OF_WEEK:
                 return "📆 In che <b>giorno della settimana</b>?"
             case ReminderField.DAY_OF_MONTH:
                 return "📆 In che <b>giorno del mese</b>?"
             case ReminderField.FIRE_TIME:
-                return "🕘 A che <b>ora</b>? Formato <code>HH:MM</code> (es. <code>09:00</code>)."
+                return "🕘 A che <b>ora?</b> Formato <code>HH:MM</code> (es. <code>09:00</code>)."
             case ReminderField.ONCE_AT:
-                return "🕘 <b>Quando</b>? Formato <code>GG/MM/AAAA HH:MM</code> (es. <code>05/03/2026 14:30</code>)."
+                return "🕘 <b>Quando?</b> Formato <code>GG/MM/AAAA HH:MM</code> (es. <code>05/03/2026 14:30</code>)."
 
 
 class Recurrence(StrEnum):

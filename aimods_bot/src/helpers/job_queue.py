@@ -418,6 +418,8 @@ async def deliver_reminder(bot: Bot, reminder: Reminder, recovery: bool = False)
     prefix = "🔁 <i>Promemoria recuperato</i>\n\n" if recovery else ""
     text = f"{prefix}⏰ <b>{html.escape(reminder.title)}</b>\n\n🔹 {html.escape(reminder.body)}"
 
+    log.info(f"Sending reminder in chat {reminder.chat_id}...")
+
     await bot.send_message(
         chat_id=reminder.chat_id,
         text=text,
@@ -451,7 +453,7 @@ async def scheduled_send_reminder(context: CustomContext):
     except telegram.error.TelegramError as e:
         log.error(f"Sending reminder {reminder.id} failed: {e}")
 
-    next_fire, _ = advance_past(reminder, now=now)
+    next_fire, _ = advance_past(reminder, now=max(now, reminder.next_fire))
 
     await update_next_fire(reminder.id, next_fire, last_fired_at=now)
 
