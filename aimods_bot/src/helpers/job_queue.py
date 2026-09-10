@@ -418,8 +418,6 @@ async def deliver_reminder(bot: Bot, reminder: Reminder, recovery: bool = False)
     prefix = "🔁 <i>Promemoria recuperato</i>\n\n" if recovery else ""
     text = f"{prefix}⏰ <b>{html.escape(reminder.title)}</b>\n\n🔹 {html.escape(reminder.body)}"
 
-    log.info(f"Sending reminder in chat {reminder.chat_id}...")
-
     await bot.send_message(
         chat_id=reminder.chat_id,
         text=text,
