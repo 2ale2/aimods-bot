@@ -93,7 +93,7 @@ def render_request_latex_item(request: BaseRequest) -> str:
         lines.append(rf"\textbf{{{field.label}}} — {rendered} \\")
 
     if request.issued_at:
-        s = format_time_as_rome(until=request.issued_at, markup=False)
+        s = format_time_as_rome(time_instant=request.issued_at, markup=False)
         if s:
             lines.append(rf"\textbf{{Data}} — {tex_escape(s)} \\")
         else:

@@ -13,6 +13,7 @@ from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.reminders_utils import list_reminders
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
 
 _TEXT_INPUT_STATE: dict[ReminderField, int] = {
     ReminderField.TITLE: PCS.SET_REMINDER_BODY,
@@ -297,3 +298,26 @@ async def render_reminder_created_panel(
         text=text,
         keyboard=keyboard
     )
+
+
+async def render_manage_reminders_main_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+) -> None:
+    text = await _get_manage_reminders_main_panel_text()
+
+
+async def _get_manage_reminders_main_panel_text():
+    text = _get_header()
+
+    current_reminders = await list_reminders()
+    if not current_reminders:
+        text += ("ℹ️ <i>Nessun promemoria presente.</i>\n\n"
+                 "🔸 Scegli un'opzione.")
+    else:
+        "\n\n".join(
+            f"{index + 1}. <b>{reminder.title}</b>"
+            f"\n      🔹 <i>Ricorrenza</i> – {reminder.recurrence.label}"
+            f"\n      🔹 <i>Prossimo Avviso</i> – {format_time_as_rome(reminder.next_fire)}" for index, reminder in enumerate(current_reminders)
+        )

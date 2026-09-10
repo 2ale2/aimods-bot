@@ -180,13 +180,13 @@ def get_until_date(duration: Optional[timedelta]) -> datetime:
     return now_utc + duration
 
 
-def format_time_as_rome(until: datetime, markup: bool = True) -> Optional[str]:
+def format_time_as_rome(time_instant: datetime, markup: bool = True) -> str | None:
     """Formatta il datetime nel fuso orario italiano se diverso da zero_datetime(), altrimenti None."""
-    if until is None:
+    if time_instant is None:
         raise ValueError("Devi fornire il parametro 'until'")
-    if until == zero_datetime():
+    if time_instant == zero_datetime():
         return None
-    rome_time = until.astimezone(LOCAL_TZ)
+    rome_time = time_instant.astimezone(LOCAL_TZ)
     if markup:
         return f"<b>{rome_time.strftime('%d %B %Y')}</b> alle {rome_time.strftime('%H:%M')}"
     return f"{rome_time.strftime('%d %B %Y')} alle {rome_time.strftime('%H:%M')}"
