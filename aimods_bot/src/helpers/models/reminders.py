@@ -71,4 +71,4 @@ class Reminder(BaseModel):
 
     @property
     def state_emoji(self) -> str:
-        return "🟢" if self.enabled else "💤"
+        return "☑️" if self.enabled else "💤"

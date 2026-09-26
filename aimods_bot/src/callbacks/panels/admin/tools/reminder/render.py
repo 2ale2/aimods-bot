@@ -229,7 +229,7 @@ async def render_reminder_summary_panel(
 
     keyboard.append([
         ButtonItem(
-            text="🗑 Scarta Modifiche" if editing_existing else "🗑 Annulla Bozza",
+            text="🚮 Scarta Modifiche" if editing_existing else "🚮 Annulla Bozza",
             callback_key=base_path.add(ReminderRoute.CANCEL_DRAFT)
         ),
         ButtonItem(text="🔙 Menù", callback_key=base_path.back()),
@@ -266,6 +266,13 @@ async def render_reminder_question_panel(
         step_emoji = EMOJI_NUMBER.get(step, "🔹")
         text += f"{step_emoji} <b>{field.label}</b> — <i>passo {step} di {len(wizard.flow)}</i>\n\n"
 
+        if wizard.title:
+            text += "🔍 <i>Anteprima</i>\n"
+            if wizard.body:
+                text += f"<blockquote><i><b>⏰ {wizard.title}</b>\n\n🔹 {wizard.body}</i></blockquote>\n\n"
+            else:
+                text += f"<blockquote><i><b>⏰ {wizard.title}</b></i></blockquote>\n\n"
+
     text += field.wizard_question()
 
     keyboard = _value_keyboard(field=field, field_path=base_path.add(field))
@@ -276,7 +283,7 @@ async def render_reminder_question_panel(
         ])
 
     keyboard.append([
-        ButtonItem(text="🗑 Annulla Bozza", callback_key=base_path.add(ReminderRoute.CANCEL_DRAFT)),
+        ButtonItem(text="🚮 Annulla Bozza", callback_key=base_path.add(ReminderRoute.CANCEL_DRAFT)),
         ButtonItem(text="🔙 Menù", callback_key=base_path.back()),
     ])
 
@@ -319,18 +326,18 @@ async def render_reminder_created_panel(
 def _describe_recurrence(reminder: Reminder) -> str:
     match reminder.recurrence:
         case Recurrence.ONCE:
-            return "una sola volta"
+            return "Una Sola Volta"
         case Recurrence.INTERVAL:
             if reminder.interval_days == 1:
-                return f"ogni giorno alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}"
-            return (f"ogni {reminder.interval_days} giorni "
+                return f"Ogni Giorno alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}"
+            return (f"Ogni {reminder.interval_days} Giorni "
                     f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
         case Recurrence.WEEKLY:
-            return (f"ogni {WEEKDAYS[reminder.day_of_week].lower()} "
+            return (f"Ogni {WEEKDAYS[reminder.day_of_week].lower()} "
                     f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
         case Recurrence.MONTHLY:
-            day = ("l'ultimo giorno del mese" if reminder.day_of_month == LAST_DAY_OF_MONTH
-                   else f"il {reminder.day_of_month} del mese")
+            day = ("L'Ultimo Giorno del Mese" if reminder.day_of_month == LAST_DAY_OF_MONTH
+                   else f"Il {reminder.day_of_month} del Mese")
             return f"{day} alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}"
 
 
@@ -355,8 +362,8 @@ async def render_manage_reminders_list_panel(
 
     text += "\n\n".join(
         f"{reminder.state_emoji} <b>{html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}</b>"
-        f"\n      🔹 <i>Ricorrenza</i> – {_describe_recurrence(reminder)}"
-        f"\n      🔹 <i>Prossimo avviso</i> – {format_instant(reminder.next_fire)}"
+        f"\n      🔄 <i>Ricorrenza</i> – {_describe_recurrence(reminder)}"
+        f"\n      ➡️ <i>Prossimo avviso</i> – {format_instant(reminder.next_fire)}"
         for reminder in current
     )
     text += "\n\n🔸 Tocca un promemoria per <b>aprirlo</b>."
@@ -413,13 +420,13 @@ async def render_reminder_card_panel(
     text = (
         _get_header()
         + f"\n\n{reminder.state_emoji} <b>{html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}</b>\n\n"
-        + f"🔹 <b>Stato</b> — <i>{'attivo' if reminder.enabled else 'sospeso'}</i>\n"
-        + f"🔹 <b>Ricorrenza</b> — <i>{_describe_recurrence(reminder)}</i>\n"
-        + f"🔹 <b>Prossimo avviso</b> — <i>{format_instant(reminder.next_fire)}</i>\n"
-        + "🔹 <b>Ultimo invio</b> — <i>"
+        + f"ℹ️ <b>Stato</b> — <i>{'attivo' if reminder.enabled else 'sospeso'}</i>\n"
+        + f"🔄 <b>Ricorrenza</b> — <i>{_describe_recurrence(reminder)}</i>\n"
+        + f"➡️ <b>Prossimo avviso</b> — <i>{format_instant(reminder.next_fire)}</i>\n"
+        + "⬅️ <b>Ultimo invio</b> — <i>"
         + (format_instant(reminder.last_fired_at) if reminder.last_fired_at else "mai")
         + "</i>\n\n"
-        + f"📄 <b>Corpo</b>\n<i>{html.escape(shorten(reminder.body, _BODY_PREVIEW_LIMIT))}</i>"
+        + f"✉️ <b>Corpo</b>\n<blockquote><i>{html.escape(shorten(reminder.body, _BODY_PREVIEW_LIMIT))}</i></blockquote>"
     )
 
     reminder_path = base_path.add(str(reminder.id))
@@ -431,7 +438,7 @@ async def render_reminder_card_panel(
             ),
             ButtonItem(text="✏️ Modifica", callback_key=reminder_path.add(ReminderRoute.EDIT)),
         ],
-        [ButtonItem(text="🗑 Elimina", callback_key=reminder_path.add(ReminderRoute.DELETE))],
+        [ButtonItem(text="🚮 Elimina", callback_key=reminder_path.add(ReminderRoute.DELETE))],
         [ButtonItem(text="🔙 Elenco", callback_key=base_path)],
     ]
 
@@ -473,7 +480,7 @@ async def render_reminder_delete_panel(
     keyboard = [
         [
             ButtonItem(
-                text="🗑 Sì, elimina",
+                text="🚮 Sì, elimina",
                 callback_key=reminder_path.add(ReminderRoute.DELETE, GlobalAction.CONFIRM)
             ),
             ButtonItem(text="↩️ Annulla", callback_key=reminder_path),
