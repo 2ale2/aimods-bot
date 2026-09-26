@@ -75,14 +75,14 @@ def test_paginate_covers_every_reminder():
 # ---------- _describe_recurrence ----------
 
 @pytest.mark.parametrize("reminder,expected", [
-    (make(Recurrence.ONCE, interval_days=None), "una sola volta"),
-    (make(Recurrence.INTERVAL, interval_days=1), "ogni giorno alle 09:00"),
-    (make(Recurrence.INTERVAL, interval_days=3), "ogni 3 giorni alle 09:00"),
-    (make(Recurrence.WEEKLY, interval_days=None, day_of_week=0), "ogni lunedì alle 09:00"),
-    (make(Recurrence.WEEKLY, interval_days=None, day_of_week=6), "ogni domenica alle 09:00"),
-    (make(Recurrence.MONTHLY, interval_days=None, day_of_month=15), "il 15 del mese alle 09:00"),
+    (make(Recurrence.ONCE, interval_days=None), "Una Sola Volta"),
+    (make(Recurrence.INTERVAL, interval_days=1), "Ogni Giorno alle 09:00"),
+    (make(Recurrence.INTERVAL, interval_days=3), "Ogni 3 Giorni alle 09:00"),
+    (make(Recurrence.WEEKLY, interval_days=None, day_of_week=0), "Ogni Lunedì alle 09:00"),
+    (make(Recurrence.WEEKLY, interval_days=None, day_of_week=6), "Ogni Domenica alle 09:00"),
+    (make(Recurrence.MONTHLY, interval_days=None, day_of_month=15), "Il 15 del Mese alle 09:00"),
     (make(Recurrence.MONTHLY, interval_days=None, day_of_month=LAST_DAY_OF_MONTH),
-     "l'ultimo giorno del mese alle 09:00"),
+     "L'Ultimo Giorno del Mese alle 09:00"),
 ])
 def test_describe_recurrence(reminder, expected):
     assert _describe_recurrence(reminder) == expected
@@ -90,7 +90,7 @@ def test_describe_recurrence(reminder, expected):
 
 def test_describe_weekly_uses_python_weekday_convention():
     """0 = lunedì, non domenica. La convenzione di `run_daily` nel recap è l'opposta."""
-    assert "lunedì" in _describe_recurrence(make(Recurrence.WEEKLY, interval_days=None, day_of_week=0))
+    assert "Lunedì" in _describe_recurrence(make(Recurrence.WEEKLY, interval_days=None, day_of_week=0))
 
 
 # ---------- shorten ----------

@@ -333,7 +333,7 @@ def _describe_recurrence(reminder: Reminder) -> str:
             return (f"Ogni {reminder.interval_days} Giorni "
                     f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
         case Recurrence.WEEKLY:
-            return (f"Ogni {WEEKDAYS[reminder.day_of_week].lower()} "
+            return (f"Ogni {WEEKDAYS[reminder.day_of_week]} "
                     f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
         case Recurrence.MONTHLY:
             day = ("L'Ultimo Giorno del Mese" if reminder.day_of_month == LAST_DAY_OF_MONTH
