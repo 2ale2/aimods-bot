@@ -217,6 +217,19 @@ class RequestWizardSession(BaseModel):
         description="The wizard request field the user is editing"
     )
 
+    @field_validator("editing", mode="before")
+    @classmethod
+    def _editing_none_is_false(cls, v):
+        """
+        Accetta il `null` scritto da quando il campo era `bool | None`.
+
+        Un campo NUOVO con un default è retrocompatibile; un campo ESISTENTE
+        ristretto non lo è. La chiave assente prende il default, ma un `null`
+        esplicito in tabella fallisce la validazione — ed è bastato quello per
+        far buttare via l'intera `chat_data` persistita.
+        """
+        return False if v is None else v
+
     from_notification: bool = Field(
         default=False,
         description="Tells if the Request is being made from a received notification."

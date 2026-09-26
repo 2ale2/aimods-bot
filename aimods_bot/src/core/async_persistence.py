@@ -1,10 +1,10 @@
 import asyncio
 import json
 from logging import getLogger
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import asyncpg
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from telegram.ext import DictPersistence
 
 from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
@@ -14,6 +14,7 @@ from aimods_bot.src.helpers.loggers import logger
 
 log = logger.getChild(__name__)
 CDCData = Tuple[List[Tuple[str, float, Dict[str, Any]]], Dict[str, str]]
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 
 class AsyncPostgresPersistence(DictPersistence):
@@ -128,32 +129,52 @@ class AsyncPostgresPersistence(DictPersistence):
             return migrate_bot_data(raw)
 
     @staticmethod
-    def _load_user_data(raw: Optional[Dict[str, Any]]) -> Dict[int, UserData]:
+    def _load_entries(
+            raw: Optional[Dict[str, Any]],
+            model: type[_ModelT],
+            label: str
+    ) -> Dict[int, _ModelT]:
+        """
+        Valida una entry per volta.
+
+        Il punto è l'isolamento: con la validazione dentro una sola
+        comprehension, UNA riga malformata faceva fallire l'intero dizionario e
+        si ripartiva da zero per tutti. È successo davvero — il restringimento di
+        un campo da `bool | None` a `bool` ha buttato via l'intera `chat_data`.
+        Qui una riga rotta costa quella riga e basta, e il log dice quale.
+
+        La perdita è irreversibile perché il flush riscrive l'intero blob: quello
+        che non si riesce a leggere all'avvio sparisce dal database al primo
+        salvataggio. Vale la pena essere prudenti proprio qui.
+        """
         if raw is None:
-            log.warning("UserData: nessun dato in persistence (raw=None).")
-            return {}
-        try:
-            data = {int(user_id): UserData.model_validate(d) for user_id, d in raw.items()}
-            log.info(f"Loaded {len(data)} user_data from DB (expected {len(raw)}).")
-            return data
-        except ValidationError:
-            log.warning(f"UserData validation failed on {len(raw)} entry(es), building empty object.")
-            # It's dangerous to load an empty object. Consider building a migrate method just like bot_data
+            log.warning(f"{label}: nessun dato in persistence (raw=None).")
             return {}
 
-    @staticmethod
-    def _load_chat_data(raw: Optional[Dict[str, Any]]) -> Dict[int, ChatData]:
-        if raw is None:
-            log.warning("ChatData: nessun dato in persistence (raw=None).")
-            return {}
-        try:
-            data = {int(chat_id): ChatData.model_validate(data) for chat_id, data in raw.items()}
-            log.info(f"Loaded {len(data)} chat_data from DB (expected {len(raw)}).")
-            return data
-        except ValidationError:
-            log.warning(f"ChatData validation failed on {len(raw)} entry(es), building empty object.")
-            # It's dangerous loading an empty object. Consider building a migrate method just like bot_data
-            return {}
+        data: Dict[int, _ModelT] = {}
+        failed: list[str] = []
+
+        for key, entry in raw.items():
+            try:
+                data[int(key)] = model.model_validate(entry)
+            except (ValidationError, ValueError, TypeError):
+                failed.append(str(key))
+
+        if failed:
+            log.warning(
+                f"{label}: {len(failed)}/{len(raw)} entry non valide, saltate. "
+                f"Prime: {failed[:10]}"
+            )
+        log.info(f"Loaded {len(data)} {label} from DB (expected {len(raw)}).")
+        return data
+
+    @classmethod
+    def _load_user_data(cls, raw: Optional[Dict[str, Any]]) -> Dict[int, UserData]:
+        return cls._load_entries(raw, UserData, "user_data")
+
+    @classmethod
+    def _load_chat_data(cls, raw: Optional[Dict[str, Any]]) -> Dict[int, ChatData]:
+        return cls._load_entries(raw, ChatData, "chat_data")
 
     def _dump_into_json(self) -> Dict[str, Any]:
         return {

@@ -365,7 +365,16 @@ async def _setup_auto_recap(application: Application, bot_data: BotData) -> None
     )
     if missed:
         log.info("Missed auto-recap detected; scheduling immediate run.")
-        application.job_queue.run_once(callback=create_and_send_recaps, when=1)
+        # `when=1` non funzionava mai: fra la pianificazione e l'avvio dello
+        # scheduler ci sono l'auth Pyrogram e il resto del boot, qualche secondo.
+        # Con `misfire_grace_time` al default di 1s, APScheduler trovava l'orario
+        # già passato e scartava il job in silenzio. Si vedeva solo come
+        # "Run time of job ... was missed by 0:00:02".
+        application.job_queue.run_once(
+            callback=create_and_send_recaps,
+            when=30,
+            job_kwargs={"misfire_grace_time": 300},
+        )
 
     time_until_next_recap = get_time_until_next_recap()
     next_run = datetime.now(timezone.utc) + time_until_next_recap
