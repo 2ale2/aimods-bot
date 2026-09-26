@@ -3,9 +3,11 @@ import os
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import move_cursor_after_answer, \
-    handle_reminder_field_value, handle_reminder_confirm
+    handle_reminder_field_value, handle_reminder_confirm, handle_reminder_toggle, handle_reminder_delete, \
+    handle_reminder_edit_start
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_admin_reminder_tool_panel, \
-    render_reminder_wizard_step
+    render_reminder_wizard_step, render_manage_reminders_list_panel, render_reminder_card_panel, \
+    render_reminder_delete_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import ReminderField
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
@@ -51,10 +53,100 @@ async def admin_reminder_tool_route(
             )
 
         case [ReminderRoute.MANAGE_REMINDERS, *rest]:
-            # TODO: elenco promemoria, scheda singola, toggle, elimina.
-            pass
+            return await _route_manage_reminders(
+                update=update,
+                context=context,
+                root=root,
+                relative_path=PathBuilder(*rest)
+            )
+
         case _:
             log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
+    return PCS.ADMIN_CONVERSATION
+
+
+async def _route_manage_reminders(
+        update: Update,
+        context: CustomContext,
+        root: PathBuilder,
+        relative_path: PathBuilder
+) -> int:
+    """Sotto-albero `admin/tools/reminder/manage_reminders/...`."""
+    manage_path = root.add(ReminderRoute.MANAGE_REMINDERS)
+
+    match relative_path.segments:
+        case []:
+            await render_manage_reminders_list_panel(
+                update=update,
+                context=context,
+                base_path=manage_path,
+                page=0
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [ReminderRoute.PAGE, raw_page] if raw_page.isdigit():
+            await render_manage_reminders_list_panel(
+                update=update,
+                context=context,
+                base_path=manage_path,
+                page=int(raw_page)
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        case [raw_id, *rest] if raw_id.isdigit():
+            reminder_id = int(raw_id)
+
+            match PathBuilder(*rest).segments:
+                case []:
+                    await render_reminder_card_panel(
+                        update=update,
+                        context=context,
+                        base_path=manage_path,
+                        reminder_id=reminder_id
+                    )
+                    return PCS.ADMIN_CONVERSATION
+
+                case [ReminderRoute.TOGGLE]:
+                    await handle_reminder_toggle(
+                        update=update,
+                        context=context,
+                        base_path=manage_path,
+                        reminder_id=reminder_id
+                    )
+                    return PCS.ADMIN_CONVERSATION
+
+                case [ReminderRoute.DELETE]:
+                    await render_reminder_delete_panel(
+                        update=update,
+                        context=context,
+                        base_path=manage_path,
+                        reminder_id=reminder_id
+                    )
+                    return PCS.ADMIN_CONVERSATION
+
+                case [ReminderRoute.DELETE, GlobalAction.CONFIRM]:
+                    return await handle_reminder_delete(
+                        update=update,
+                        context=context,
+                        base_path=manage_path,
+                        reminder_id=reminder_id
+                    )
+
+                case [ReminderRoute.EDIT]:
+                    return await handle_reminder_edit_start(
+                        update=update,
+                        context=context,
+                        draft_path=root.add(ReminderRoute.DRAFT),
+                        manage_path=manage_path,
+                        reminder_id=reminder_id
+                    )
+
+                case _:
+                    log.warning(f"Unhandled manage path in {os.path.realpath(__file__)}: {relative_path.build()}")
+
+        case _:
+            log.warning(f"Unhandled manage path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
     return PCS.ADMIN_CONVERSATION
 

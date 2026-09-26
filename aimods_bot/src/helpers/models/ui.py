@@ -17,6 +17,18 @@ from aimods_bot.src.helpers.utils.auth import is_admin
 log = logger.getChild(__name__)
 
 
+def _is_not_modified(error: BadRequest) -> bool:
+    """
+    Riconosce il `BadRequest` che Telegram alza quando testo e tastiera sono già
+    quelli richiesti.
+
+    Magic string, ma è l'unico modo che la Bot API offre per distinguere il caso.
+    Senza questo, `_try_edit_text` ritorna False, `Panel.render` cade sul
+    `send_message` di fallback e compare un pannello nuovo sotto quello vecchio.
+    """
+    return "not modified" in str(error).lower()
+
+
 @dataclass
 class ButtonItem:
     text: str
@@ -155,6 +167,8 @@ class Panel:
                 )
                 return True
             except BadRequest as e:
+                if _is_not_modified(e):
+                    return True
                 log.debug(f"Error in trying editing message: {e}")
 
         # Prova con il messaggio corrente
@@ -167,6 +181,8 @@ class Panel:
             )
             return True
         except BadRequest as e:
+            if _is_not_modified(e):
+                return True
             log.warning(f"Error in trying editing message: {e}")
 
         return False

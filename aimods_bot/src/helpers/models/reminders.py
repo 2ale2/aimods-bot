@@ -67,3 +67,8 @@ class Reminder(BaseModel):
     @property
     def is_recurring(self) -> bool:
         return self.recurrence is not Recurrence.ONCE
+
+
+    @property
+    def state_emoji(self) -> str:
+        return "🟢" if self.enabled else "💤"

@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_reminder_wizard_step, \
-    render_admin_reminder_tool_panel, render_reminder_created_panel
+    render_admin_reminder_tool_panel, render_reminder_created_panel, render_manage_reminders_list_panel, \
+    render_reminder_card_panel
 from aimods_bot.src.core.customcontext import ReminderWizard, CustomContext
 from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
@@ -14,13 +15,26 @@ from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import ReminderJobName
 from aimods_bot.src.helpers.models.jobs import ReminderJob
-from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH
+from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.reminders_utils import create_reminder
+from aimods_bot.src.helpers.reminders_utils import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
+    register_execution, reschedule_reminder
+from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.helpers.utils.text_utils import to_int
 from aimods_bot.src.helpers.utils.time_utils import parse_clock_time, parse_absolute_datetime, is_nonexistent_local_time
 
 log = logger.getChild(__name__)
+
+# Il singolo messaggio in ingresso può arrivare a 4096 caratteri, ma
+# `deliver_reminder` compone prefisso + titolo + corpo e `html.escape` gonfia:
+# senza un tetto qui, un promemoria valido in bozza fallisce all'invio, dove
+# nessuno lo vede. Resta scoperto il caso patologico (un corpo di soli `&`
+# sestuplica) — quello è il fallimento d'invio, che vuole il canale di log.
+_FIELD_MAX_LENGTH: dict[ReminderField, int] = {
+    ReminderField.TITLE: 200,
+    ReminderField.BODY: 3000,
+}
 
 
 def handle_reminder_field_value(wizard: ReminderWizard, field: ReminderField, raw_value: str) -> bool:
@@ -37,21 +51,21 @@ def handle_reminder_field_value(wizard: ReminderWizard, field: ReminderField, ra
             return True
 
         case ReminderField.INTERVAL_DAYS:
-            days = _to_int(raw_value)
+            days = to_int(raw_value)
             if days is None or days < 1:
                 return False
             wizard.interval_days = days
             return True
 
         case ReminderField.DAY_OF_WEEK:
-            day = _to_int(raw_value)
+            day = to_int(raw_value)
             if day is None or not 0 <= day <= 6:  # 0 = lunedì
                 return False
             wizard.day_of_week = day
             return True
 
         case ReminderField.DAY_OF_MONTH:
-            day = _to_int(raw_value)
+            day = to_int(raw_value)
             if day is None or not (day == LAST_DAY_OF_MONTH or 1 <= day <= 31):
                 return False
             wizard.day_of_month = day
@@ -99,6 +113,14 @@ async def handle_reminder_text_field(update: Update, context: CustomContext) -> 
     field = wizard.requesting
     if not raw:
         return await _reject(update, context, "⚠️ Il testo non può essere vuoto.", PCS.SET_REMINDER_BODY)
+
+    limit = _FIELD_MAX_LENGTH[field]
+    if len(raw) > limit:
+        return await _reject(
+            update, context,
+            f"⚠️ Troppo lungo: massimo <b>{limit}</b> caratteri, ne hai scritti <b>{len(raw)}</b>.",
+            PCS.SET_REMINDER_BODY
+        )
 
     setattr(wizard, field.value, raw)
     move_cursor_after_answer(wizard=wizard, field=field)
@@ -157,13 +179,6 @@ async def handle_reminder_datetime_field(update: Update, context: CustomContext)
     return await _redraw(update=update, context=context)
 
 
-def _to_int(raw_value: str) -> int | None:
-    try:
-        return int(raw_value)
-    except ValueError:
-        return None
-
-
 def move_cursor_after_answer(wizard: ReminderWizard, field: ReminderField) -> None:
     """
     Dopo una risposta, decide dove va il cursore.
@@ -201,20 +216,40 @@ async def handle_reminder_confirm(
         await render_admin_reminder_tool_panel(update=update, context=context, base_path=menu_path)
         return PCS.ADMIN_CONVERSATION
 
-    staff_chat_id = context.pydb.staff_chat_id
-    if staff_chat_id is None:
-        log.error("STAFF_CHAT_ID not configured: cannot create reminder.")
-        await update.callback_query.answer(
-            text="⚠️ Il gruppo staff non è configurato.",
-            show_alert=True
-        )
-        return PCS.ADMIN_CONVERSATION
+    is_edit = wizard.reminder_id is not None
+    original: Reminder | None = None
+
+    if is_edit:
+        original = await get_reminder(wizard.reminder_id)
+        if original is None:
+            # Eliminato mentre lo si modificava, magari da un altro admin.
+            log.warning(f"Confirm on reminder {wizard.reminder_id}, gone from the table")
+            context.clear_reminder_wizard()
+            context.clear_saved_path()
+            context.pydc.persistent.bot_message_id = None
+            await update.callback_query.answer(
+                text="⚠️ Questo promemoria non esiste più: la modifica è stata annullata.",
+                show_alert=True
+            )
+            await render_admin_reminder_tool_panel(update=update, context=context, base_path=menu_path)
+            return PCS.ADMIN_CONVERSATION
+
+        chat_id = original.chat_id
+        created_by = original.created_by
+    else:
+        chat_id = context.pydb.staff_chat_id
+        created_by = update.effective_user.id
+
+        if chat_id is None:
+            log.error("STAFF_CHAT_ID not configured: cannot create reminder.")
+            await update.callback_query.answer(
+                text="⚠️ Il gruppo staff non è configurato.",
+                show_alert=True
+            )
+            return PCS.ADMIN_CONVERSATION
 
     try:
-        reminder = wizard.to_reminder(
-            chat_id=staff_chat_id,
-            created_by=update.effective_user.id
-        )
+        reminder = wizard.to_reminder(chat_id=chat_id, created_by=created_by)
     except ValueError as e:
         # Conferma premuta su una bozza incompleta: bottone rimasto in un messaggio vecchio.
         # Non è un errore da mostrare, è un redraw: il wizard riapre il campo mancante.
@@ -226,23 +261,60 @@ async def handle_reminder_confirm(
             wizard=wizard
         )
 
-    reminder_id = await create_reminder(reminder)
-    if reminder_id is None:
+    # `misfire_grace_time` vale 1 secondo: un job pianificato nel passato viene
+    # scartato in silenzio. La validazione di ONCE_AT avviene quando l'admin
+    # *scrive* la data, non quando *conferma* — e in modifica la data arriva
+    # già scritta, da prima. Senza questo controllo si legge "creato" e non
+    # succede nulla fino al riavvio.
+    if reminder.next_fire <= datetime.now(timezone.utc):
         await update.callback_query.answer(
-            text="❌ Inserimento nel database non riuscito. La bozza è ancora qui, riprova.",
+            text="⚠️ Quella data è ormai passata. Indica un nuovo momento.",
             show_alert=True
         )
-        return PCS.ADMIN_CONVERSATION
+        if reminder.recurrence is Recurrence.ONCE:
+            wizard.requesting = ReminderField.ONCE_AT
+            wizard.editing = True
+        else:
+            log.error(f"Recurring reminder computed a past next_fire: {reminder.next_fire}")
+        return await render_reminder_wizard_step(
+            update=update,
+            context=context,
+            base_path=base_path,
+            wizard=wizard
+        )
 
-    reminder.id = reminder_id
+    if is_edit:
+        # La modifica cambia il contenuto, non lo stato: un promemoria sospeso
+        # resta sospeso anche dopo che ne è stato corretto il testo.
+        reminder.enabled = original.enabled
 
-    schedule_unique_job(
-        job_queue=context.job_queue,
-        job_name=ReminderJobName(reminder_id=reminder_id),
-        callback=scheduled_send_reminder,
-        when=reminder.next_fire,
-        data=ReminderJob(reminder_id=reminder_id)
-    )
+        if not await register_execution(reminder):
+            await update.callback_query.answer(
+                text="❌ Aggiornamento nel database non riuscito. La bozza è ancora qui, riprova.",
+                show_alert=True
+            )
+            return PCS.ADMIN_CONVERSATION
+    else:
+        reminder_id = await create_reminder(reminder)
+        if reminder_id is None:
+            await update.callback_query.answer(
+                text="❌ Inserimento nel database non riuscito. La bozza è ancora qui, riprova.",
+                show_alert=True
+            )
+            return PCS.ADMIN_CONVERSATION
+
+        reminder.id = reminder_id
+
+    if reminder.enabled:
+        schedule_unique_job(
+            job_queue=context.job_queue,
+            job_name=ReminderJobName(reminder_id=reminder.id),
+            callback=scheduled_send_reminder,
+            when=reminder.next_fire,
+            data=ReminderJob(reminder_id=reminder.id)
+        )
+    else:
+        remove_job(job_queue=context.job_queue, job_name=ReminderJobName(reminder_id=reminder.id))
 
     context.clear_reminder_wizard()
     context.pydc.persistent.root_path = None
@@ -255,3 +327,157 @@ async def handle_reminder_confirm(
         reminder=reminder
     )
     return PCS.ADMIN_CONVERSATION
+
+
+async def handle_reminder_toggle(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        reminder_id: int
+) -> int:
+    """Sospende o riattiva. `base_path` è la gestione."""
+    reminder = await get_reminder(reminder_id)
+
+    if reminder is None:
+        if update.callback_query:
+            await update.callback_query.answer(
+                text="⚠️ Questo promemoria non esiste più.",
+                show_alert=True
+            )
+        await render_manage_reminders_list_panel(
+            update=update, context=context, base_path=base_path
+        )
+        return PCS.ADMIN_CONVERSATION
+
+    job_name = ReminderJobName(reminder_id=reminder_id)
+
+    if reminder.enabled:
+        if not await toggle_reminder(reminder_id, False):
+            await update.callback_query.answer(text="❌ Operazione non riuscita.", show_alert=True)
+            return PCS.ADMIN_CONVERSATION
+        remove_job(job_queue=context.job_queue, job_name=job_name)
+        log.info(f"Reminder {reminder_id} suspended by {update.effective_user.id}")
+
+        await render_reminder_card_panel(
+            update=update, context=context, base_path=base_path, reminder_id=reminder_id
+        )
+        return PCS.ADMIN_CONVERSATION
+
+    next_fire, _ = advance_past(reminder, now=datetime.now(timezone.utc))
+
+    if next_fire is None:
+        await update.callback_query.answer(
+            text="⚠️ È un promemoria una tantum e la sua data è passata. "
+                 "Modificalo indicando un nuovo momento, poi riattivalo.",
+            show_alert=True
+        )
+        return PCS.ADMIN_CONVERSATION
+
+    if next_fire != reminder.next_fire and not await reschedule_reminder(reminder_id=reminder_id, next_fire=next_fire):
+        await update.callback_query.answer(text="❌ Operazione non riuscita.", show_alert=True)
+        return PCS.ADMIN_CONVERSATION
+
+    if not await toggle_reminder(reminder_id, True):
+        await update.callback_query.answer(text="❌ Operazione non riuscita.", show_alert=True)
+        return PCS.ADMIN_CONVERSATION
+
+    schedule_unique_job(
+        job_queue=context.job_queue,
+        job_name=job_name,
+        callback=scheduled_send_reminder,
+        when=next_fire,
+        data=ReminderJob(reminder_id=reminder_id)
+    )
+    log.info(f"Reminder {reminder_id} resumed by {update.effective_user.id}, next fire {next_fire}")
+
+    await render_reminder_card_panel(
+        update=update,
+        context=context,
+        base_path=base_path,
+        reminder_id=reminder_id
+    )
+
+    return PCS.ADMIN_CONVERSATION
+
+
+async def handle_reminder_delete(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        reminder_id: int
+) -> int:
+    """Elimina definitivamente. `base_path` è la gestione."""
+    remove_job(job_queue=context.job_queue, job_name=ReminderJobName(reminder_id=reminder_id))
+
+    if not await delete_reminder(reminder_id):
+        await update.callback_query.answer(text="❌ Eliminazione non riuscita.", show_alert=True)
+        await render_reminder_card_panel(
+            update=update,
+            context=context,
+            base_path=base_path,
+            reminder_id=reminder_id
+        )
+        return PCS.ADMIN_CONVERSATION
+
+    log.info(f"Reminder {reminder_id} deleted by {update.effective_user.id}")
+
+    wizard = context.pydc.persistent.active_reminder_wizard
+    if wizard is not None and wizard.reminder_id == reminder_id:
+        context.clear_reminder_wizard()
+        context.clear_saved_path()
+        context.pydc.persistent.bot_message_id = None
+
+    await update.callback_query.answer(text="🗑 Promemoria eliminato.")
+
+    await render_manage_reminders_list_panel(
+        update=update,
+        context=context,
+        base_path=base_path
+    )
+
+    return PCS.ADMIN_CONVERSATION
+
+
+async def handle_reminder_edit_start(
+        update: Update,
+        context: CustomContext,
+        draft_path: PathBuilder,
+        manage_path: PathBuilder,
+        reminder_id: int
+) -> int:
+    """
+    Apre il wizard su un promemoria esistente, direttamente sul riepilogo.
+
+    Il cursore parte da fermo (`requesting = None`)
+    """
+    reminder = await get_reminder(reminder_id)
+
+    if reminder is None:
+        if update.callback_query:
+            await update.callback_query.answer(
+                text="⚠️ Questo promemoria non esiste più.",
+                show_alert=True
+            )
+        await render_manage_reminders_list_panel(
+            update=update,
+            context=context,
+            base_path=manage_path
+        )
+        return PCS.ADMIN_CONVERSATION
+
+    previous = context.pydc.persistent.active_reminder_wizard
+    replacing = previous is not None and previous.reminder_id != reminder_id
+
+    wizard = context.get_or_create_reminder_wizard(source=reminder)
+    wizard.requesting = None
+    wizard.editing = False
+
+    if replacing and update.callback_query:
+        await update.callback_query.answer(text="ℹ️ La bozza precedente è stata sostituita.")
+
+    return await render_reminder_wizard_step(
+        update=update,
+        context=context,
+        base_path=draft_path,
+        wizard=wizard
+    )

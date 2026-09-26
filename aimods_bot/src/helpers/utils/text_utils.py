@@ -14,3 +14,15 @@ def utf16_slice(s: str, start: int, end: int | None = None) -> str:
     b = s.encode("utf-16-le")
     end_byte = None if end is None else end * 2
     return b[start * 2 : end_byte].decode("utf-16-le")
+
+
+def shorten(value: str, limit: int) -> str:
+    """Tronca una stringa in base al limite fornito."""
+    return value if len(value) <= limit else value[:limit].rstrip() + "…"
+
+
+def to_int(raw_value: str) -> int | None:
+    try:
+        return int(raw_value)
+    except ValueError:
+        return None

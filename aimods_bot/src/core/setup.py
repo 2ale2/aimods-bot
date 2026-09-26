@@ -35,7 +35,7 @@ from aimods_bot.src.helpers.models.job_names import (
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob, ReminderJob
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.request_utils import request_from_record
-from aimods_bot.src.helpers.reminders_utils import list_reminders, update_next_fire
+from aimods_bot.src.helpers.reminders_utils import list_reminders, register_execution
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap, get_last_monday_midnight
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps, verify_recap_topics
@@ -279,7 +279,7 @@ async def _reschedule_reminders(application: Application) -> None:
                 await deliver_reminder(application.bot, reminder, recovery=True)
             except TelegramError as e:
                 log.error(f"Recupero reminder {reminder.id} fallito: {e}")
-            await update_next_fire(reminder.id, next_fire, last_fired_at=now)
+            await register_execution(reminder.id, next_fire, last_fired_at=now)
 
         if next_fire is None:
             log.info(f"Reminder {reminder.id} was one-shot")

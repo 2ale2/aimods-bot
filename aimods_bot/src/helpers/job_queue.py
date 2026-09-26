@@ -19,7 +19,7 @@ from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob,
     RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob, ReminderJob
 from aimods_bot.src.helpers.models.job_names import JobName, ReminderJobName
 from aimods_bot.src.helpers.models.reminders import Reminder
-from aimods_bot.src.helpers.reminders_utils import get_reminder, update_next_fire
+from aimods_bot.src.helpers.reminders_utils import get_reminder, register_execution
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.models.utils import MediaItem
 from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
@@ -37,21 +37,35 @@ def schedule_unique_job(
         data: Any,
 ):
     """Rimuove eventuali job esistenti con lo stesso nome e ne schedula uno nuovo."""
-    if job_queue is None:
-        raise ValueError("Job Queue must not be None!")
-
-    name_str = str(job_name)
-
-    for j in job_queue.get_jobs_by_name(name_str):
-        j.schedule_removal()
-        log.debug(f"Job precedente rimosso: {name_str}")
+    remove_job(job_queue=job_queue, job_name=job_name)
 
     return job_queue.run_once(
         callback=callback,
         when=when,
         data=data,
-        name=name_str,
+        name=str(job_name),
     )
+
+
+def remove_job(job_queue: JobQueue | None, job_name: JobName) -> int:
+    """
+    Rimozione secca di tutti i job con questo nome. Ritorna quanti ne ha rimossi.
+
+    Serve dove non c'è un rimpiazzo da pianificare (eliminazione, disattivazione):
+    `schedule_unique_job` rimuove i vecchi, ma solo perché ne mette uno nuovo.
+    """
+    if job_queue is None:
+        raise ValueError("Job Queue must not be None!")
+
+    name_str = str(job_name)
+    jobs = job_queue.get_jobs_by_name(name_str)
+
+    for j in jobs:
+        j.schedule_removal()
+
+    if jobs:
+        log.debug(f"Job rimossi: {name_str} ({len(jobs)})")
+    return len(jobs)
 
 
 # ========== JOB: DELETE ==========
@@ -453,7 +467,7 @@ async def scheduled_send_reminder(context: CustomContext):
 
     next_fire, _ = advance_past(reminder, now=max(now, reminder.next_fire))
 
-    await update_next_fire(reminder.id, next_fire, last_fired_at=now)
+    await register_execution(reminder.id, next_fire, last_fired_at=now)
 
     if next_fire is None:
         log.info(f"Reminder {reminder.id} one-shot, disabled in the database table")

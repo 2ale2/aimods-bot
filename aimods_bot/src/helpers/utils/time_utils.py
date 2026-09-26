@@ -2,7 +2,7 @@ import re
 from typing import Optional
 from datetime import timedelta, datetime, timezone, time
 
-from aimods_bot.src.helpers.constants.constants import LOCAL_TZ
+from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, REMINDER_DATETIME_FORMAT
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
@@ -239,3 +239,8 @@ def ensure_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def format_instant(instant: datetime) -> str:
+    """Un istante UTC reso in ora locale."""
+    return instant.astimezone(LOCAL_TZ).strftime(REMINDER_DATETIME_FORMAT)

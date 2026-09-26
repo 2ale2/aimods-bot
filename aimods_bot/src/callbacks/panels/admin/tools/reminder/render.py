@@ -4,16 +4,17 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext, ReminderWizard
 from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
-    REMINDER_DATETIME_FORMAT, LOCAL_TZ, EMOJI_NUMBER
+    REMINDER_DATETIME_FORMAT, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.reminders_utils import list_reminders
+from aimods_bot.src.helpers.reminders_utils import list_reminders, get_reminder, paginate_reminders
 from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
-from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
+from aimods_bot.src.helpers.utils.text_utils import shorten
+from aimods_bot.src.helpers.utils.time_utils import format_instant
 
 _TEXT_INPUT_STATE: dict[ReminderField, int] = {
     ReminderField.TITLE: PCS.SET_REMINDER_BODY,
@@ -24,6 +25,9 @@ _TEXT_INPUT_STATE: dict[ReminderField, int] = {
 
 _INTERVAL_PRESETS = (2, 3, 5, 7, 10, 14, 30)
 _BODY_PREVIEW_LIMIT = 200
+
+_TITLE_PREVIEW_LIMIT = 120
+_BUTTON_TITLE_LIMIT = 40
 
 
 def _get_header():
@@ -200,9 +204,12 @@ async def render_reminder_summary_panel(
         wizard: ReminderWizard,
         message_id: int | None = None
 ):
-    """Riepilogo della bozza. Idempotente: si può ridisegnare quante volte si vuole."""
+    """Riepilogo della bozza."""
+    editing_existing = wizard.reminder_id is not None
+
     text = _get_header()
-    text += "\n\n <b>📝 Riepilogo del promemoria</b>\n\n"
+    text += ("\n\n <b>📝 Modifica del promemoria</b>\n\n" if editing_existing
+             else "\n\n <b>📝 Riepilogo del promemoria</b>\n\n")
     text += _format_draft(wizard=wizard)
     text += "\n\n🔸 Tocca un campo per <b>modificarlo</b>, oppure conferma."
 
@@ -214,11 +221,17 @@ async def render_reminder_summary_panel(
 
     if wizard.is_complete:
         keyboard.append([
-            ButtonItem(text="✅ Conferma", callback_key=base_path.add(GlobalAction.CONFIRM))
+            ButtonItem(
+                text="✅ Salva Modifiche" if editing_existing else "✅ Conferma",
+                callback_key=base_path.add(GlobalAction.CONFIRM)
+            )
         ])
 
     keyboard.append([
-        ButtonItem(text="🗑 Annulla Bozza", callback_key=base_path.add(ReminderRoute.CANCEL_DRAFT)),
+        ButtonItem(
+            text="🗑 Scarta Modifiche" if editing_existing else "🗑 Annulla Bozza",
+            callback_key=base_path.add(ReminderRoute.CANCEL_DRAFT)
+        ),
         ButtonItem(text="🔙 Menù", callback_key=base_path.back()),
     ])
 
@@ -240,7 +253,10 @@ async def render_reminder_question_panel(
         message_id: int | None = None
 ):
     """Domanda singola. In modifica mostra il valore attuale e la via di fuga verso il riepilogo."""
-    text = _get_header() + "\n\n➕ <b><i>Nuovo Promemoria</i></b>\n\n"
+    text = _get_header() + (
+        "\n\n✏️ <b><i>Modifica Promemoria</i></b>\n\n" if wizard.reminder_id is not None
+        else "\n\n➕ <b><i>Nuovo Promemoria</i></b>\n\n"
+    )
 
     if wizard.editing:
         text += (f"✏️ <b>Modifica — {field.label}</b>\n\n"
@@ -277,17 +293,17 @@ async def render_reminder_created_panel(
         update: Update,
         context: CustomContext,
         base_path: PathBuilder,
-        reminder: Reminder
+        reminder: Reminder,
+        updated: bool = False
 ) -> None:
-    """Esito positivo. `base_path` è il menù promemoria"""
-    local_next = reminder.next_fire.astimezone(LOCAL_TZ)
-
     text = (
-        _get_header()
-        + "\n\n✅ <b>Promemoria creato.</b>\n\n"
-        + f"🔹 <b>Titolo</b> — {html.escape(reminder.title)}\n"
-        + f"🔹 <b>Ricorrenza</b> — {reminder.recurrence.label}\n"
-        + f"🔹 <b>Primo invio</b> — {local_next.strftime(REMINDER_DATETIME_FORMAT)}"
+            _get_header()
+            + ("\n\n✅ <b>Promemoria aggiornato.</b>\n\n" if updated
+               else "\n\n✅ <b>Promemoria creato.</b>\n\n")
+            + f"🔹 <b>Titolo</b> — {html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}\n"
+            + f"🔹 <b>Ricorrenza</b> — {_describe_recurrence(reminder)}\n"
+            + (f"🔹 <b>Prossimo invio</b> — {format_instant(reminder.next_fire)}" if reminder.enabled
+               else "💤 <b>Sospeso</b> — non verrà inviato finché non lo riattivi")
     )
 
     keyboard = [[ButtonItem(text="🔙 Menù Promemoria", callback_key=base_path)]]
@@ -300,24 +316,167 @@ async def render_reminder_created_panel(
     )
 
 
-async def render_manage_reminders_main_panel(
+def _describe_recurrence(reminder: Reminder) -> str:
+    match reminder.recurrence:
+        case Recurrence.ONCE:
+            return "una sola volta"
+        case Recurrence.INTERVAL:
+            if reminder.interval_days == 1:
+                return f"ogni giorno alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}"
+            return (f"ogni {reminder.interval_days} giorni "
+                    f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
+        case Recurrence.WEEKLY:
+            return (f"ogni {WEEKDAYS[reminder.day_of_week].lower()} "
+                    f"alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}")
+        case Recurrence.MONTHLY:
+            day = ("l'ultimo giorno del mese" if reminder.day_of_month == LAST_DAY_OF_MONTH
+                   else f"il {reminder.day_of_month} del mese")
+            return f"{day} alle {reminder.fire_time.strftime(REMINDER_TIME_FORMAT)}"
+
+
+async def render_manage_reminders_list_panel(
         update: Update,
         context: CustomContext,
-        base_path: PathBuilder
+        base_path: PathBuilder,
+        page: int = 0
 ) -> None:
-    text = await _get_manage_reminders_main_panel_text()
+    """Elenco dei promemoria, paginato."""
+    reminders = await list_reminders()
+
+    text = _get_header() + "\n\n🗃️ <b>Gestisci Promemoria</b>\n\n"
+
+    if not reminders:
+        text += "ℹ️ <i>Non c'è nessun promemoria.</i>"
+        keyboard = [[ButtonItem(text="🔙 Menù Promemoria", callback_key=base_path.back())]]
+        await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
+
+    current, page, pages = paginate_reminders(reminders, page)
+
+    text += "\n\n".join(
+        f"{reminder.state_emoji} <b>{html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}</b>"
+        f"\n      🔹 <i>Ricorrenza</i> – {_describe_recurrence(reminder)}"
+        f"\n      🔹 <i>Prossimo avviso</i> – {format_instant(reminder.next_fire)}"
+        for reminder in current
+    )
+    text += "\n\n🔸 Tocca un promemoria per <b>aprirlo</b>."
+
+    keyboard = [
+        [ButtonItem(
+            text=f"{reminder.state_emoji} {shorten(reminder.title, _BUTTON_TITLE_LIMIT)}",
+            callback_key=base_path.add(str(reminder.id))
+        )]
+        for reminder in current
+    ]
+
+    if pages > 1:
+        navigation = []
+        if page > 0:
+            navigation.append(ButtonItem(
+                text="⬅️", callback_key=base_path.add(ReminderRoute.PAGE, str(page - 1))
+            ))
+        navigation.append(ButtonItem(
+            text=f"📄 {page + 1}/{pages}", callback_key=base_path.add(ReminderRoute.PAGE, str(page))
+        ))
+        if page < pages - 1:
+            navigation.append(ButtonItem(
+                text="➡️", callback_key=base_path.add(ReminderRoute.PAGE, str(page + 1))
+            ))
+        keyboard.append(navigation)
+
+    keyboard.append([ButtonItem(text="🔙 Menù Promemoria", callback_key=base_path.back())])
+
+    await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
 
 
-async def _get_manage_reminders_main_panel_text():
-    text = _get_header()
+async def render_reminder_card_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        reminder_id: int
+) -> None:
+    """Scheda di un promemoria. `base_path` è la gestione."""
+    reminder = await get_reminder(reminder_id)
 
-    current_reminders = await list_reminders()
-    if not current_reminders:
-        text += ("ℹ️ <i>Nessun promemoria presente.</i>\n\n"
-                 "🔸 Scegli un'opzione.")
-    else:
-        "\n\n".join(
-            f"{index + 1}. <b>{reminder.title}</b>"
-            f"\n      🔹 <i>Ricorrenza</i> – {reminder.recurrence.label}"
-            f"\n      🔹 <i>Prossimo Avviso</i> – {format_time_as_rome(reminder.next_fire)}" for index, reminder in enumerate(current_reminders)
+    if reminder is None:
+        # Bottone vecchio su un promemoria eliminato nel frattempo.
+        if update.callback_query:
+            await update.callback_query.answer(
+                text="⚠️ Questo promemoria non esiste più.",
+                show_alert=True
+            )
+        await render_manage_reminders_list_panel(
+            update=update, context=context, base_path=base_path
         )
+        return
+
+    text = (
+        _get_header()
+        + f"\n\n{reminder.state_emoji} <b>{html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}</b>\n\n"
+        + f"🔹 <b>Stato</b> — <i>{'attivo' if reminder.enabled else 'sospeso'}</i>\n"
+        + f"🔹 <b>Ricorrenza</b> — <i>{_describe_recurrence(reminder)}</i>\n"
+        + f"🔹 <b>Prossimo avviso</b> — <i>{format_instant(reminder.next_fire)}</i>\n"
+        + "🔹 <b>Ultimo invio</b> — <i>"
+        + (format_instant(reminder.last_fired_at) if reminder.last_fired_at else "mai")
+        + "</i>\n\n"
+        + f"📄 <b>Corpo</b>\n<i>{html.escape(shorten(reminder.body, _BODY_PREVIEW_LIMIT))}</i>"
+    )
+
+    reminder_path = base_path.add(str(reminder.id))
+    keyboard = [
+        [
+            ButtonItem(
+                text="💤 Sospendi" if reminder.enabled else "🟢 Riattiva",
+                callback_key=reminder_path.add(ReminderRoute.TOGGLE)
+            ),
+            ButtonItem(text="✏️ Modifica", callback_key=reminder_path.add(ReminderRoute.EDIT)),
+        ],
+        [ButtonItem(text="🗑 Elimina", callback_key=reminder_path.add(ReminderRoute.DELETE))],
+        [ButtonItem(text="🔙 Elenco", callback_key=base_path)],
+    ]
+
+    await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
+
+
+async def render_reminder_delete_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        reminder_id: int
+) -> None:
+    """Conferma di eliminazione. Un passo in più perché l'eliminazione non si annulla."""
+    reminder = await get_reminder(reminder_id)
+
+    if reminder is None:
+        if update.callback_query:
+            await update.callback_query.answer(
+                text="⚠️ Questo promemoria non esiste più.",
+                show_alert=True
+            )
+        await render_manage_reminders_list_panel(
+            update=update,
+            context=context,
+            base_path=base_path
+        )
+        return
+
+    text = (
+        _get_header()
+        + "\n\n🗑 <b>Eliminare questo promemoria?</b>\n\n"
+        + f"🔹 <b>Titolo</b> — <i>{html.escape(shorten(reminder.title, _TITLE_PREVIEW_LIMIT))}</i>\n"
+        + f"🔹 <b>Ricorrenza</b> — <i>{_describe_recurrence(reminder)}</i>\n\n"
+        + "⚠️ <b>L'operazione non è reversibile.</b> Per fermarlo senza perderlo, "
+          "usa <i>Sospendi</i>."
+    )
+
+    reminder_path = base_path.add(str(reminder.id))
+    keyboard = [
+        [
+            ButtonItem(
+                text="🗑 Sì, elimina",
+                callback_key=reminder_path.add(ReminderRoute.DELETE, GlobalAction.CONFIRM)
+            ),
+            ButtonItem(text="↩️ Annulla", callback_key=reminder_path),
+        ]
+    ]
+
+    await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)

@@ -82,3 +82,9 @@ class ReminderRoute(StrEnum):
     CANCEL_DRAFT = "cancel_draft"
     DAILY = "daily"
     BACK_TO_SUMMARY = "back_to_summary"
+    
+    # admin/tools/reminder/manage_reminders/...
+    PAGE = "page"
+    TOGGLE = "toggle"
+    EDIT = "edit"
+    DELETE = "delete"
