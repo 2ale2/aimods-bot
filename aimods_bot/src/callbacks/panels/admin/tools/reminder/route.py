@@ -223,6 +223,7 @@ async def _route_reminder_draft(
 
         case [ReminderRoute.CANCEL_DRAFT]:
             context.clear_reminder_wizard()
+            context.clear_saved_path()
             context.pydc.persistent.root_path = None
             context.pydc.persistent.bot_message_id = None
             await render_admin_reminder_tool_panel(

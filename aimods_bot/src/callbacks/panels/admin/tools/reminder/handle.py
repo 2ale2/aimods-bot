@@ -317,6 +317,7 @@ async def handle_reminder_confirm(
         remove_job(job_queue=context.job_queue, job_name=ReminderJobName(reminder_id=reminder.id))
 
     context.clear_reminder_wizard()
+    context.clear_saved_path()
     context.pydc.persistent.root_path = None
     context.pydc.persistent.bot_message_id = None
 
