@@ -349,6 +349,7 @@ async def render_manage_reminders_list_panel(
         text += "ℹ️ <i>Non c'è nessun promemoria.</i>"
         keyboard = [[ButtonItem(text="🔙 Menù Promemoria", callback_key=base_path.back())]]
         await create_and_render_panel(update=update, context=context, text=text, keyboard=keyboard)
+        return
 
     current, page, pages = paginate_reminders(reminders, page)
 

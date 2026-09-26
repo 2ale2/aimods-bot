@@ -11,14 +11,14 @@ from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
-from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send_reminder
+from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send_reminder, remove_job
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.job_names import ReminderJobName
 from aimods_bot.src.helpers.models.jobs import ReminderJob
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.reminders_utils import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
-    register_execution, reschedule_reminder
+    reschedule_reminder, update_reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.text_utils import to_int
@@ -288,7 +288,7 @@ async def handle_reminder_confirm(
         # resta sospeso anche dopo che ne è stato corretto il testo.
         reminder.enabled = original.enabled
 
-        if not await register_execution(reminder):
+        if not await update_reminder(reminder):
             await update.callback_query.answer(
                 text="❌ Aggiornamento nel database non riuscito. La bozza è ancora qui, riprova.",
                 show_alert=True
@@ -324,7 +324,8 @@ async def handle_reminder_confirm(
         update=update,
         context=context,
         base_path=menu_path,
-        reminder=reminder
+        reminder=reminder,
+        updated=is_edit
     )
     return PCS.ADMIN_CONVERSATION
 

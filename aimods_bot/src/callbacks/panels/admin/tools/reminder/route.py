@@ -214,7 +214,7 @@ async def _route_reminder_draft(
             wizard.requesting = None
             wizard.editing = False
 
-            await render_reminder_wizard_step(
+            return await render_reminder_wizard_step(
                 update=update,
                 context=context,
                 base_path=root,
