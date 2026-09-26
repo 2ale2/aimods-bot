@@ -318,7 +318,6 @@ async def handle_reminder_confirm(
 
     context.clear_reminder_wizard()
     context.clear_saved_path()
-    context.pydc.persistent.root_path = None
     context.pydc.persistent.bot_message_id = None
 
     await render_reminder_created_panel(
