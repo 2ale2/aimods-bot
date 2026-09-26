@@ -37,7 +37,7 @@ def main():
     log.info(f"Mini App URL: {miniapp_url}")
 
     persistence = AsyncPostgresPersistence(
-        url=os.getenv("POSTGRES_CONNECTION_URL"),
+        url=os.getenv("DB_URL"),
         on_flush=False,
         coalesce_delay=0.1
     )

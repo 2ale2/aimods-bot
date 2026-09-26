@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from aimods_bot.src.core.exceptions import DatabaseBotException
 from aimods_bot.src.helpers.loggers import logger
 
-log = logger.getChild("database_pool")
+log = logger.getChild(__name__)
 
 
 class DatabasePool:
@@ -29,7 +29,7 @@ class DatabasePool:
             try:
                 # noinspection PyUnresolvedReferences
                 cls._pool = await asyncpg.create_pool(
-                    os.getenv("POSTGRES_CONNECTION_URL"),
+                    os.getenv("DB_URL"),
                     ssl=False,
                     min_size=5,
                     max_size=20,
