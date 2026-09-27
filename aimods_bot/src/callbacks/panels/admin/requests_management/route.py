@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op
+from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op, log
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
@@ -27,7 +27,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext, RequestRejectionSession
-from aimods_bot.src.helpers.constants.constants import RequestStatus, Platform, Category
+from aimods_bot.src.helpers.constants.constants import RequestStatus, Platform, Category, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction
@@ -35,6 +35,7 @@ from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 
 log = logger.getChild(__name__)
@@ -410,3 +411,48 @@ async def _notify_user_safe(update: Update, context: CustomContext, request):
             user_id=request.user_id,
             request=request
         )
+
+
+async def handle_request_rejection_reason(update: Update, context: CustomContext):
+    rejection_session = context.pydc.ephemeral.active_rejection_session
+    if rejection_session is None:
+        raise ValueError("No active request rejection session.")
+
+    root_path = PathBuilder.from_string(context.pydc.persistent.root_path)
+    relative_path = PathBuilder.from_string(context.pydc.persistent.relative_path)
+
+    if update.callback_query:
+        reason_str = update.callback_query.data
+        if reason_str == AdminRequestManagementRoute.REJECT_REASON_BACK:
+            return await admin_manage_request_route(
+                update=update,
+                context=context,
+                root=root_path,
+                relative_path=relative_path.back(),
+                ix=rejection_session.request_id
+            )
+        if reason_str not in RejectRequestReason:
+            await update.callback_query.answer(text="⚠️ Scegli una motivazione valida o scrivine una.", show_alert=True)
+            log.warning(f"Invalid rejection reason from callback query: {reason_str}")
+            return PCS.SET_REQUEST_REJECTION_REASON
+    elif update.message:
+        reason_str = update.message.text
+        await safe_delete(update=update, context=context)
+    else:
+        raise ValueError("Rejection reason not specified.")
+
+    if reason_str in RejectRequestReason:
+        rejection_session.reason = RejectRequestReason(reason_str).label
+    else:
+        rejection_session.reason = reason_str
+
+    context.pydc.persistent.root_path = None
+    context.pydc.persistent.relative_path = None
+
+    return await admin_manage_request_route(
+        update=update,
+        context=context,
+        root=root_path,
+        relative_path=relative_path.add(AdminRequestManagementRoute.REJECT_REASON_SET),
+        ix=rejection_session.request_id
+    )

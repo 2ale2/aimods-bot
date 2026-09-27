@@ -3,7 +3,7 @@ import re
 from telegram.ext import ConversationHandler, PrefixHandler, CallbackQueryHandler, MessageHandler, filters
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_request_rejection_reason
+from aimods_bot.src.callbacks.panels.admin.requests_management.route import handle_request_rejection_reason
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import (
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
