@@ -404,7 +404,7 @@ def _get_admin_menage_request_keyboard(
         if _shows_membership_buttons(request):
             keyboard.insert(0, [
                 ButtonItem(
-                    text="🔍 Verifica Iscrizione",
+                    text="👁‍🗨 Verifica Iscrizione",
                     callback_key=base_path.add(AdminRequestManagementRoute.VERIFY_MEMBERSHIP)
                 ),
                 ButtonItem(
