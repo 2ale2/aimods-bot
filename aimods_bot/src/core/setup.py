@@ -172,6 +172,12 @@ async def _sync_groups_and_admins(application: Application, bot_data: BotData) -
 
     bot_data.staff_chat_id = int(staff_id_env)
 
+    channel_id_env = os.getenv("CHANNEL_ID")
+    if channel_id_env is None or not channel_id_env.replace("-", "").isnumeric():
+        raise ValueError(f"CHANNEL_ID env variable not found or not numeric ({channel_id_env})!")
+
+    bot_data.channel_id = int(channel_id_env)
+
     # noinspection PyTypeChecker
     admins = await get_admins(app=application, chat_id=bot_data.group_chat_id)
     bot_data.admins = admins

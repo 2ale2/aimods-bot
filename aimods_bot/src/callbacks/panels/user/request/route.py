@@ -10,12 +10,12 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     render_user_request_platform_panel,
     render_user_request_category_panel, render_global_request_wizard_panel, render_cant_request_panel,
     render_section_notification_activated_panel, render_user_has_an_active_request_wizard_panel,
-    section_notifications_button
+    section_notifications_button, render_not_channel_member_panel
 )
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category, \
-    BYPASS_REQUEST_LIMITS_USERS
+    BYPASS_REQUEST_LIMITS_USERS, ChannelMembership
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import UserRoute, NotificationAction as NA, \
     UserManageRequestsRoute
@@ -242,6 +242,18 @@ async def _enter_wizard_or_explain(
             context=context,
             back_callback=back_callback,
             message=_blocked_message(limitation)
+        )
+        return PCS.USER_CONVERSATION
+
+    membership = await context.check_channel_membership(user_id=user_id)
+    if membership == ChannelMembership.NOT_MEMBER:
+        log.info(f"User {user_id} not subscribed to the channel: wizard entry refused")
+        await render_not_channel_member_panel(
+            update=update,
+            context=context,
+            # ripete esattamente il passo che è stato bloccato (nuovo wizard, ripresa o notifica)
+            retry_callback=update.callback_query.data if update.callback_query else base_path,
+            exit_button=ButtonItem(text="🔙 Indietro", callback_key=back_callback)
         )
         return PCS.USER_CONVERSATION
 

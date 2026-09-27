@@ -1,9 +1,11 @@
+import html
+
 from telegram import Update
 from telegram.constants import ChatAction
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import CategorySetting
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, RejectRequestReason, ChannelMembership
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp, \
     NotificationAction
@@ -281,7 +283,7 @@ async def render_admin_manage_request_panel(
     if len(requests) == 1:
         back_button_callback_key = back_button_callback_key.back()
 
-    text = await _get_admin_manage_request_text(request=request)
+    text = await _get_admin_manage_request_text(context=context, request=request)
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
         request=request,
@@ -297,13 +299,42 @@ async def render_admin_manage_request_panel(
     )
 
 
-async def _get_admin_manage_request_text(request: BaseRequest) -> str:
+async def _get_admin_manage_request_text(context: CustomContext, request: BaseRequest) -> str:
     text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
     if request.status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
                  f"contrassegnata come {request.status.label.lower()}.</blockquote>\n")
+    text += _get_channel_membership_note(context=context, request=request)
     text += "\n🔹 Scegli un'opzione."
     return text
+
+
+def _shows_membership_buttons(request: BaseRequest) -> bool:
+    """I tasti di verifica compaiono solo se c'è ancora qualcosa da decidere."""
+    return request.is_active and request.channel_membership.is_unconfirmed
+
+
+def _get_channel_membership_note(context: CustomContext, request: BaseRequest) -> str:
+    """
+    Postilla sull'iscrizione al canale dell'autore. Vuota per le richieste verificate
+    e per quelle formulate prima che esistesse il controllo (UNKNOWN).
+    """
+    if not request.is_active:
+        return ""
+    user = f"<code>{request.user_id}</code>"
+    match request.channel_membership:
+        case ChannelMembership.UNVERIFIED:
+            return (f"\n<blockquote>⚠️ Non sono riuscito a verificare se l'utente {user} è iscritto "
+                    "al canale.</blockquote>\n")
+        case ChannelMembership.NOT_MEMBER:
+            return f"\n<blockquote>🚫 L'utente {user} non risulta iscritto al canale.</blockquote>\n"
+        case ChannelMembership.MANUALLY_CONFIRMED:
+            admin_id = request.channel_membership_confirmed_by
+            admin_name = context.pydb.admins.get(admin_id) if admin_id is not None else None
+            by = f" da <b>{html.escape(admin_name)}</b>" if admin_name else ""
+            return f"\n<blockquote>☑️ Iscrizione al canale confermata manualmente{by}.</blockquote>\n"
+        case _:
+            return ""
 
 
 def _get_admin_menage_request_keyboard(
@@ -369,6 +400,18 @@ def _get_admin_menage_request_keyboard(
         keyboard[-2].insert(0, ButtonItem(
             text="🚮 Rimuovi da Attive", callback_key=base_path.add(AdminRequestManagementRoute.REMOVE)
         ))
+    else:
+        if _shows_membership_buttons(request):
+            keyboard.insert(0, [
+                ButtonItem(
+                    text="🔍 Verifica Iscrizione",
+                    callback_key=base_path.add(AdminRequestManagementRoute.VERIFY_MEMBERSHIP)
+                ),
+                ButtonItem(
+                    text="☑️ Conferma Manuale",
+                    callback_key=base_path.add(AdminRequestManagementRoute.CONFIRM_MEMBERSHIP)
+                )
+            ])
 
     return keyboard
 
@@ -435,7 +478,7 @@ async def render_request_status_changed_panel(
     else:
         back_callback_key = base_path.back(2)
 
-    text = await _get_request_status_changed_text(request=request)
+    text = await _get_request_status_changed_text(context=context, request=request)
 
     keyboard = _get_admin_menage_request_keyboard(
         context=context,
@@ -452,7 +495,7 @@ async def render_request_status_changed_panel(
     )
 
 
-async def _get_request_status_changed_text(request: BaseRequest) -> str:
+async def _get_request_status_changed_text(context: CustomContext, request: BaseRequest) -> str:
     text = await _build_request_panel_preamble(request, "📕", "Richieste Attive")
 
     if not request.status:
@@ -462,6 +505,7 @@ async def _get_request_status_changed_text(request: BaseRequest) -> str:
         text += ("\n<blockquote>ℹ Lo stato di questa richiesta non può essere cambiato perché è stata già "
                  "contrassegnata come completata.</blockquote>\n")
     text += f"\n\n✅ <b>Stato {request.status.icon} <i>{request.status.label}</i> impostato</b>.\n"
+    text += _get_channel_membership_note(context=context, request=request)
     return text
 
 

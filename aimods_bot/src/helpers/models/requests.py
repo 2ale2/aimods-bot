@@ -4,7 +4,8 @@ from typing import Literal, Annotated, Any, ClassVar
 
 from pydantic import BaseModel, BeforeValidator, HttpUrl, ConfigDict, AfterValidator
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus
+from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus, \
+    ChannelMembership
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.utils import MessageTemplate
@@ -47,6 +48,9 @@ class BaseRequest(BaseModel):
 
     rejection_reason: str | None = None
     status_change_notifications: bool = True
+
+    channel_membership: ChannelMembership = ChannelMembership.UNKNOWN
+    channel_membership_confirmed_by: int | None = None
 
     FLOW: ClassVar[list[RequestField]]
 

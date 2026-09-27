@@ -184,6 +184,20 @@ class RequestStatus(StrEnum):
                 return "🗑️"
 
 
+class ChannelMembership(StrEnum):
+    """Esito della verifica di iscrizione al canale dell'autore di una richiesta."""
+    MEMBER = "member"
+    NOT_MEMBER = "not_member"
+    UNVERIFIED = "unverified"               # chiamata Telegram fallita
+    MANUALLY_CONFIRMED = "manually_confirmed"   # un admin ha confermato a mano
+    # Mai controllato: richieste formulate prima che il controllo esistesse
+    UNKNOWN = UNKNOWN_FIELD_SENTINEL
+
+    @property
+    def is_unconfirmed(self) -> bool:
+        return self in (ChannelMembership.UNVERIFIED, ChannelMembership.NOT_MEMBER)
+
+
 class RequestField(StrEnum):
     NAME = "name"
     LINK = "link"

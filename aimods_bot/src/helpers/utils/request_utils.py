@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat, REQUESTS_TABLE
+from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat, REQUESTS_TABLE, \
+    ChannelMembership
 from aimods_bot.src.helpers.database import fetch_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
@@ -28,6 +29,8 @@ _CONTENT_EXCLUDED_FIELDS: set[str] = {
     "closed_at",
     "rejection_reason",
     "status_change_notifications",
+    "channel_membership",
+    "channel_membership_confirmed_by",
 }
 
 
@@ -71,6 +74,8 @@ def request_to_record(request: BaseRequest) -> dict[str, Any]:
         "closed_at": request.closed_at,
         "rejection_reason": request.rejection_reason,
         "status_change_notifications": request.status_change_notifications,
+        "channel_membership": request.channel_membership.value,
+        "channel_membership_confirmed_by": request.channel_membership_confirmed_by,
         "content": content,
     }
 
@@ -95,6 +100,8 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
     user_id = row.get("user_id")
     rejection_reason = row.get("rejection_reason")
     status_change_notifications = row.get("status_change_notifications", True)
+    raw_membership = row.get("channel_membership")
+    membership_confirmed_by = row.get("channel_membership_confirmed_by")
 
     if user_id is None:
         raise ValueError(f"Request {raw_id}: missing user_id!")
@@ -141,6 +148,11 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
             raise ValueError(f"Request {raw_id}: invalid status '{raw_status}'!") from e
 
     try:
+        channel_membership = ChannelMembership(raw_membership)
+    except ValueError as e:
+        raise ValueError(f"Request {raw_id}: invalid channel_membership '{raw_membership}'!") from e
+
+    try:
         model_cls = PLATFORM_CATEGORY_REGISTRY[platform][category].model
     except KeyError as e:
         raise ValueError(
@@ -179,6 +191,8 @@ def request_from_record(row: dict[str, Any]) -> BaseRequest:
             closed_at=closed_at,
             rejection_reason=rejection_reason,
             status_change_notifications=status_change_notifications,
+            channel_membership=channel_membership,
+            channel_membership_confirmed_by=membership_confirmed_by,
             **content_dict
         )
     except ValidationError as e:

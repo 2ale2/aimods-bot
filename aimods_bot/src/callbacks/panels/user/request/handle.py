@@ -9,11 +9,12 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.user import user_requests_management_route
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
-    render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button
+    render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button, \
+    render_not_channel_member_panel
 from aimods_bot.src.core.config_accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
 from aimods_bot.src.helpers.constants.constants import (RequestField, RequestStatus, REQUESTS_TABLE,
-                                                        BYPASS_REQUEST_LIMITS_USERS)
+                                                        BYPASS_REQUEST_LIMITS_USERS, ChannelMembership)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.helpers.database import fetch_query
@@ -240,6 +241,28 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
             )
             return PCS.USER_CONVERSATION
 
+    membership = await context.check_channel_membership(user_id=effective_user.id)
+    if membership == ChannelMembership.NOT_MEMBER:
+        log.info(f"Confirm refused for {effective_user.id}: not subscribed to the channel (draft kept)")
+        if wizard.from_notification:
+            exit_button = ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)
+        else:
+            exit_button = ButtonItem(text="🔙 Home", callback_key=UserRoute.ROOT)
+
+        await query.answer()
+        await render_not_channel_member_panel(
+            update=update,
+            context=context,
+            retry_callback=GlobalAction.CONFIRM,
+            exit_button=exit_button,
+            draft_kept=True
+        )
+        return PCS.USER_REQUEST_WIZARD_SESSION
+
+    if membership == ChannelMembership.UNVERIFIED:
+        log.warning(f"Channel membership of {effective_user.id} could not be verified: "
+                    f"request accepted and flagged for the admins")
+
     draft.status = RequestStatus.PENDING
     try:
         validated = type(draft).model_validate(draft.model_dump())
@@ -249,12 +272,15 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
                            "o contatta un admin.")
         return PCS.USER_REQUEST_WIZARD_SESSION
 
+    validated.channel_membership = membership
+
     record = request_to_record(validated)
     content_json = json.dumps(record["content"])
 
     query_sql = f"""
-                INSERT INTO {REQUESTS_TABLE} (platform, category, user_id, name, version, content)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO {REQUESTS_TABLE} (platform, category, user_id, name, version, content,
+                                              channel_membership)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING id;
                 """
 
@@ -264,7 +290,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
         effective_user.id,
         validated.name,
         validated.version,
-        content_json
+        content_json,
+        validated.channel_membership.value
     ]
 
     result = await fetch_query(query=query_sql, params=params)

@@ -1,5 +1,6 @@
 from telegram import Update
 
+from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
@@ -252,6 +253,18 @@ async def admin_manage_request_route(
                 request=request,
                 base_path=root
             )
+            return PCS.ADMIN_CONVERSATION
+
+        # --- ISCRIZIONE AL CANALE ---
+        case [AdminRequestManagementRoute.VERIFY_MEMBERSHIP | AdminRequestManagementRoute.CONFIRM_MEMBERSHIP as op]:
+            if await ensure_active():
+                await handle_membership_op(update=update, context=context, request=request, op=op)
+                await render_admin_manage_request_panel(
+                    update=update,
+                    context=context,
+                    request=request,
+                    base_path=root
+                )
             return PCS.ADMIN_CONVERSATION
 
         case [LimitationsOp.LIMIT, *rest]:

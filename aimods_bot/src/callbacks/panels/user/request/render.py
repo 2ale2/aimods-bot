@@ -7,7 +7,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSession
 from aimods_bot.src.core.pydantic import RequestCooldown
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
-    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER
+    DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER, GROUP_JOIN_LINK
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
@@ -256,6 +256,47 @@ async def render_cant_request_panel(
         context=context,
         text=message,
         keyboard=keyboard or [[ButtonItem(text="🔙 Indietro", callback_key=back_callback)]]
+    )
+
+
+async def render_not_channel_member_panel(
+        update: Update,
+        context: CustomContext,
+        retry_callback: PathBuilder | str,
+        exit_button: ButtonItem,
+        draft_kept: bool = False
+):
+    """
+    Pannello per chi prova a fare una richiesta senza essere iscritto al canale.
+
+    `retry_callback` ripete esattamente l'azione che è stata bloccata: il path di
+    ingresso nel wizard, oppure `GlobalAction.CONFIRM` quando il blocco scatta alla
+    conferma (in quel caso la bozza è intatta e `draft_kept` lo dice all'utente).
+    """
+    text = ("📢 <b>Iscrizione al Canale Richiesta</b>\n\n"
+            "▪️ Per formulare una richiesta <b>devi essere iscritto al canale</b>, "
+            "e al momento non risulti iscritto.\n\n")
+    if draft_kept:
+        text += ("<blockquote>💾 La tua richiesta è stata <b>conservata</b>: "
+                 "non dovrai compilarla di nuovo.</blockquote>\n\n")
+    text += "🔹 Iscriviti al canale, poi premi <i>🔄 Riprova</i>."
+
+    keyboard = [
+        [
+            *([
+                  ButtonItem(text="📢 Vai al Canale", url=context.pydb.channel_join_link)
+              ] if context.pydb.channel_join_link else []),
+            ButtonItem(text="🆘 Chiedi Aiuto", url=GROUP_JOIN_LINK)
+        ],
+        [ButtonItem(text="🔄 Riprova", callback_key=retry_callback), exit_button]
+    ]
+
+    await render_cant_request_panel(
+        update=update,
+        context=context,
+        back_callback=PathBuilder(UserRoute.ROOT),
+        message=text,
+        keyboard=keyboard
     )
 
 

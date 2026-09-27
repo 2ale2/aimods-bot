@@ -32,7 +32,10 @@ def _is_not_modified(error: BadRequest) -> bool:
 @dataclass
 class ButtonItem:
     text: str
-    callback_key: PathBuilder | str
+    callback_key: PathBuilder | str = ""
+    # Se valorizzato il bottone apre un link e `callback_key` viene ignorato:
+    # Telegram non accetta url e callback_data sullo stesso bottone.
+    url: str | None = None
 
 
 @dataclass
@@ -59,6 +62,9 @@ class Panel:
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
+                if button.url:
+                    subkeyboard.append(InlineKeyboardButton(text=button.text, url=button.url))
+                    continue
                 key = button.callback_key
                 data = key.build() if isinstance(key, PathBuilder) else str(key)
                 if not data:

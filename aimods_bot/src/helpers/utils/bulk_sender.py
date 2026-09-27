@@ -7,6 +7,7 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.pydantic import CategorySetting
+from aimods_bot.src.helpers.constants.constants import ChannelMembership
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, NotificationAction, UserRoute, \
     UserManageSettingsRoute, AdminRoute, AdminRequestsRoute, AdminSettingsRoute, AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.loggers import logger
@@ -173,7 +174,10 @@ async def send_new_request_admin_notification(
         request: BaseRequest
 ):
     """Send notification to admin about new request."""
-    text = _get_new_request_admin_notification_text(section=request.section)
+    text = _get_new_request_admin_notification_text(
+        section=request.section,
+        membership_unverified=(request.channel_membership == ChannelMembership.UNVERIFIED)
+    )
     request_id = request.id
 
     await create_and_render_panel(
@@ -223,12 +227,15 @@ async def send_new_request_admin_notification(
     )
 
 
-def _get_new_request_admin_notification_text(section: RequestSection) -> str:
+def _get_new_request_admin_notification_text(section: RequestSection, membership_unverified: bool = False) -> str:
     cat_config = section.category_config
     text = ("📬 <b>Nuova Richiesta Ricevuta</b>\n\n"
             "▫ È stata appena aggiunta una <b>nuova richiesta</b> per la sezione\n\n"
-            f"            {cat_config.icon} <b>{cat_config.label}</b> ({section.platform.label})\n\n"
-            "🔹 Scegli un'opzione.")
+            f"            {cat_config.icon} <b>{cat_config.label}</b> ({section.platform.label})\n\n")
+    if membership_unverified:
+        text += ("<blockquote>⚠️ Non sono riuscito a verificare se l'autore è iscritto al canale. "
+                 "Puoi farlo dal pannello della richiesta.</blockquote>\n\n")
+    text += "🔹 Scegli un'opzione."
     return text
 
 

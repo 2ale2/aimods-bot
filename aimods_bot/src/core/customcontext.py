@@ -13,14 +13,15 @@ from datetime import datetime, time, timezone
 from typing import Dict, Any, Union
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import CallbackContext, ExtBot, Application
-from telegram import User as PTBUser, ChatMember as PTBChatMember, Update
+from telegram import User as PTBUser, ChatMember as PTBChatMember, ChatMemberRestricted, Update
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
-    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence
+    Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence, ChannelMembership
 from aimods_bot.src.helpers.database import execute_query
 from aimods_bot.src.helpers.loggers import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
@@ -31,6 +32,27 @@ from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
 from aimods_bot.src.helpers.utils.time_utils import ensure_utc
 
 log = logger.getChild(__name__)
+
+
+# Frammenti (minuscoli) dei BadRequest con cui Telegram risponde a `getChatMember`
+# per un utente che non è mai stato nel canale.
+_NOT_A_PARTICIPANT_ERRORS = ("user not found", "member not found", "user_not_participant")
+
+# NON è fra quelli sopra: Telegram lo può restituire anche per utenti che nel
+# canale ci sono, e sparisce ripetendo la chiamata (tdlib/telegram-bot-api#802).
+# Si riprova una volta; se resta, è UNVERIFIED e decide un admin.
+_TRANSIENT_PARTICIPANT_ERROR = "participant_id_invalid"
+
+
+def _membership_from_status(member: PTBChatMember) -> ChannelMembership:
+    """Traduce lo stato di un ChatMember in MEMBER / NOT_MEMBER."""
+    if member.status in (PTBChatMember.OWNER, PTBChatMember.ADMINISTRATOR, PTBChatMember.MEMBER):
+        return ChannelMembership.MEMBER
+    # Un utente con restrizioni può essere ancora dentro il canale oppure no: lo dice `is_member`.
+    if isinstance(member, ChatMemberRestricted):
+        return ChannelMembership.MEMBER if member.is_member else ChannelMembership.NOT_MEMBER
+    # LEFT, BANNED
+    return ChannelMembership.NOT_MEMBER
 
 
 class UserDataPersistent(BaseModel):
@@ -352,6 +374,7 @@ class BotData(BaseModel):
 
     group_chat_id: int | None = Field(default=None)
     staff_chat_id: int | None = Field(default=None)
+    channel_id: int | None = Field(default=None)
     admins: Dict[int, str] = Field(default_factory=dict)
     ban_list: Dict[int, BanListItem] = Field(default_factory=dict)
     user_limitations: Dict[int, UserLimitations] = Field(default_factory=dict)
@@ -674,6 +697,76 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
             )
 
         log.info(f"Updated request {ix} status to '{status}'")
+
+    # ======== ISCRIZIONE AL CANALE ========
+
+    async def check_channel_membership(self, user_id: int | None = None) -> ChannelMembership:
+        """
+        Chiede a Telegram se l'utente è iscritto al canale.
+
+        Ritorna MEMBER, NOT_MEMBER oppure UNVERIFIED.
+        Cosa fare con UNVERIFIED lo decide il chiamante.
+        """
+        user_id = user_id or self.user_id
+        channel_id = self.pydb.channel_id
+
+        if channel_id is None or user_id is None:
+            log.error(f"Cannot check channel membership (channel_id={channel_id}, user_id={user_id})")
+            return ChannelMembership.UNVERIFIED
+
+        for attempt in (1, 2):
+            try:
+                member = await self.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+            except BadRequest as e:
+                message = str(e).lower()
+                # Chi non è mai entrato nel canale può ricevere un errore invece dello
+                # stato `left`: è un "non iscritto", non un guasto. Magic string, come in
+                # `_is_not_modified`: la Bot API non dà altro modo di distinguerli.
+                if any(marker in message for marker in _NOT_A_PARTICIPANT_ERRORS):
+                    return ChannelMembership.NOT_MEMBER
+                if _TRANSIENT_PARTICIPANT_ERROR in message and attempt == 1:
+                    continue
+                log.warning(f"Channel membership check failed for {user_id}: {e}")
+                return ChannelMembership.UNVERIFIED
+            except TelegramError as e:
+                log.warning(f"Channel membership check failed for {user_id}: {e}")
+                return ChannelMembership.UNVERIFIED
+
+            return _membership_from_status(member)
+
+        return ChannelMembership.UNVERIFIED
+
+    async def set_request_channel_membership(
+            self,
+            ix: int,
+            membership: ChannelMembership,
+            confirmed_by: int | None = None
+    ) -> bool:
+        """
+        Aggiorna l'esito della verifica su una richiesta attiva: prima il database,
+        poi la copia in memoria, solo se il database ha accettato la modifica.
+        """
+        request = self.pydb.active_requests.get(ix, None)
+        if request is None:
+            log.warning(f"Request {ix} not found in active request cache.")
+            return False
+
+        if membership is ChannelMembership.MANUALLY_CONFIRMED and not confirmed_by:
+            log.error(f"Manual membership verification requires to specify the ID of the admin who verified (request #{ix}).")
+            return False
+
+        query = f"""UPDATE {REQUESTS_TABLE}
+                    SET channel_membership = $1, channel_membership_confirmed_by = $2
+                    WHERE id = $3"""
+        res = await execute_query(query=query, params=[membership.value, confirmed_by, int(ix)])
+        if not res:
+            log.error(f"Failed to update request {ix} channel membership to '{membership}'")
+            return False
+
+        request.channel_membership = membership
+        request.channel_membership_confirmed_by = confirmed_by
+        log.info(f"Request {ix} channel membership set to '{membership}' (by {confirmed_by})")
+        return True
 
     # ======== SEZIONI RICHIESTE ========
 
