@@ -8,7 +8,7 @@ from aimods_bot.src.core.logger import log_join, log_ban
 from aimods_bot.src.infra.db.queries import add_to_table
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message, scheduled_edit_message
 from aimods_bot.src.infra.scheduling.jobs import EditMessageJob
-from aimods_bot.src.helpers.utils.user_utils import user_is_banned
+from aimods_bot.src.features.moderation.members import user_is_banned
 from aimods_bot.src.infra.telegram.utils import safe_delete
 
 from aimods_bot.src.ui.conversation_states.new_user import NewUserState

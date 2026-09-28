@@ -36,7 +36,7 @@ from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import safe_delete
-from aimods_bot.src.helpers.utils.user_utils import user_is_banned
+from aimods_bot.src.features.moderation.members import user_is_banned
 
 log = logger.getChild(__name__)
 

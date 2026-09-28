@@ -15,7 +15,7 @@ from aimods_bot.src.ui.alerts import send_private_alert
 from aimods_bot.src.infra.telegram.command_parser import parse_command
 from aimods_bot.src.infra.telegram.utils import safe_delete, format_user_mention
 from aimods_bot.src.shared.time_utils import zero_datetime, get_until_date, format_time_as_rome
-from aimods_bot.src.helpers.utils.user_utils import get_user_warnings_count, erase_user_warnings
+from aimods_bot.src.features.moderation.members import get_user_warnings_count, erase_user_warnings
 
 
 log = logger.getChild("warn")

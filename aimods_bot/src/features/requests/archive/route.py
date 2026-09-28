@@ -8,7 +8,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import wrong_input_message, render_action_not_permitted_panel, \
     safe_delete, is_user_id
-from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
+from aimods_bot.src.features.moderation.members import resolve_user_from_identifier
 from aimods_bot.src.infra.telegram.auth import is_admin
 
 log = logger.getChild(__name__)
