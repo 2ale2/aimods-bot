@@ -7,7 +7,7 @@ from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.core.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
-from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
+from aimods_bot.src.shared.time_utils import sec_value_limited, get_duration_text
 
 
 async def render_punishment_panel(update: Update, context: CustomContext, base_path: PathBuilder, setting: str):

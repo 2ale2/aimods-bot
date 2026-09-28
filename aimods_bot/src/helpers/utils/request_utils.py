@@ -10,7 +10,7 @@ from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
-from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
+from aimods_bot.src.shared.time_utils import format_time_as_rome
 
 log = logger.getChild(__name__)
 

@@ -29,7 +29,7 @@ from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGOR
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.reminders import Reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
-from aimods_bot.src.helpers.utils.time_utils import ensure_utc
+from aimods_bot.src.shared.time_utils import ensure_utc
 
 log = logger.getChild(__name__)
 

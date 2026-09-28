@@ -10,7 +10,7 @@ from aimods_bot.src.ui.conversation_states import PrivateConversationState as PC
 from aimods_bot.src.ui.path_navigation import PunishmentRoute
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
 from aimods_bot.src.infra.telegram.utils import safe_delete
-from aimods_bot.src.helpers.utils.time_utils import parse_duration
+from aimods_bot.src.shared.time_utils import parse_duration
 
 
 async def set_as_parent(update: Update, context: CustomContext, setting: str):

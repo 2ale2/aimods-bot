@@ -37,7 +37,7 @@ from aimods_bot.src.infra.files import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.request_utils import request_from_record
 from aimods_bot.src.helpers.reminders_utils import list_reminders, register_execution
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
-from aimods_bot.src.helpers.utils.time_utils import get_time_until_next_recap, get_last_monday_midnight
+from aimods_bot.src.shared.time_utils import get_time_until_next_recap, get_last_monday_midnight
 from aimods_bot.src.tasks.channel_recap import create_and_send_recaps, verify_recap_topics
 
 log = logger.getChild(__name__)

@@ -8,7 +8,7 @@ from aimods_bot.src.ui.path_navigation.moderation import ForwardRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import get_toggle_text, create_and_render_panel
-from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
+from aimods_bot.src.shared.time_utils import get_allow_after_text
 
 
 async def render_antispam_forward_panel(update: Update, context: CustomContext, base_path: PathBuilder):

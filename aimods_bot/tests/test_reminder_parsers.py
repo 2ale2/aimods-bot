@@ -2,7 +2,7 @@ import pytest
 
 from datetime import datetime, time
 
-from aimods_bot.src.helpers.utils.time_utils import (
+from aimods_bot.src.shared.time_utils import (
     parse_absolute_datetime,
     parse_clock_time,
     is_nonexistent_local_time,

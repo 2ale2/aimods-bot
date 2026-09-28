@@ -13,7 +13,7 @@ from aimods_bot.src.infra.db.queries import fetch_query, add_to_table, execute_q
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import AutoRecapJobName
 from aimods_bot.src.infra.files import get_data_from_json
-from aimods_bot.src.helpers.utils.time_utils import get_last_monday_midnight
+from aimods_bot.src.shared.time_utils import get_last_monday_midnight
 from aimods_bot.src.core.config.models import JobInfo
 
 log = logger.getChild(__name__)

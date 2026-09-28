@@ -16,7 +16,7 @@ from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
-from aimods_bot.src.helpers.utils.time_utils import pluralize
+from aimods_bot.src.shared.time_utils import pluralize
 
 log = logger.getChild(__name__)
 

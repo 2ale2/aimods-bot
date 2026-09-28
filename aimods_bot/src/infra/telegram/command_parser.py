@@ -6,7 +6,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingConfigurationException
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.telegram.utils import resolve_chat_member, normalize_user, is_user_id
-from aimods_bot.src.helpers.utils.time_utils import parse_duration
+from aimods_bot.src.shared.time_utils import parse_duration
 
 log = logger.getChild("command_parser")
 

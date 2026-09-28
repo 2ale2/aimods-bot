@@ -5,7 +5,7 @@ from typing import Iterable, AsyncIterator, Any
 from aimods_bot.src.core.constants import Platform, RequestStatus, FieldFormat, RequestField
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.infra.files import convert_latex_to_pdf, create_latex_file, tex_escape
-from aimods_bot.src.helpers.utils.time_utils import format_time_as_rome
+from aimods_bot.src.shared.time_utils import format_time_as_rome
 
 
 _PLATFORM_LATEX_EMOJIS = {

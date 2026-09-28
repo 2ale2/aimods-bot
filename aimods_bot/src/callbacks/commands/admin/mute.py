@@ -9,7 +9,7 @@ from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.ui.alerts import send_private_alert
 from aimods_bot.src.infra.telegram.command_parser import parse_command
 from aimods_bot.src.infra.telegram.utils import safe_delete, format_user_mention
-from aimods_bot.src.helpers.utils.time_utils import timedelta_to_seconds, format_time_as_rome, get_until_date
+from aimods_bot.src.shared.time_utils import timedelta_to_seconds, format_time_as_rome, get_until_date
 
 
 async def mute_user(update: Update, context: CustomContext, full_command: str, delete_flag=False):
