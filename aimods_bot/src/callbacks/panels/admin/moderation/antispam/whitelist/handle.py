@@ -13,7 +13,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, Moder
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.utils.file_utils import make_temp_file
+from aimods_bot.src.infra.files import make_temp_file
 from aimods_bot.src.infra.telegram.utils import safe_delete, chunk_buttons, render_error_panel, \
     create_and_render_panel
 
