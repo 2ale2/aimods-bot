@@ -4,7 +4,7 @@ from typing import Union, Optional
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser
 from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 
-from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
+from aimods_bot.src.features.moderation.commands.ban import attempt_ban_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.infra.db.queries import add_to_table, revoke_last_action

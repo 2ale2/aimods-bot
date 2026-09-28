@@ -1,5 +1,5 @@
 from telegram import Update
-from aimods_bot.src.callbacks.commands.admin.ban import ban_user, unban_user
+from aimods_bot.src.features.moderation.commands.ban import ban_user, unban_user
 from aimods_bot.src.callbacks.commands.admin.kick import kick_user
 from aimods_bot.src.callbacks.commands.admin.limit import limit_user
 from aimods_bot.src.callbacks.commands.admin.warn import warn_user, unwarn_user
