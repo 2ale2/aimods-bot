@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.route import admin_tools_route
 from aimods_bot.src.ui.conversation_states import PrivateConversationState
 from aimods_bot.src.ui.path_navigation import AdminRoute, GlobalAction
 
-from aimods_bot.src.callbacks.commands.general.start_command import start
+from aimods_bot.src.app.menus.start import start
 from aimods_bot.src.features.moderation.panels.route import moderation_router
 from aimods_bot.src.features.requests.admin.route import admin_requests_management_route
 from aimods_bot.src.features.settings.admin.route import admin_settings_management_route
