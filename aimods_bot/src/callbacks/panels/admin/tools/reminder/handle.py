@@ -14,7 +14,7 @@ from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send_reminder, remove_job
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName
-from aimods_bot.src.helpers.models.jobs import ReminderJob
+from aimods_bot.src.infra.scheduling.jobs import ReminderJob
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.reminders_utils import create_reminder, get_reminder, delete_reminder, toggle_reminder, \

@@ -8,7 +8,7 @@ from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_secti
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import RequestLimitJobName, RequestCooldownJobName, \
     DelayedSectionOpeningJobName
-from aimods_bot.src.helpers.models.jobs import RemoveSectionLimitationJob, RemoveRequestCooldownJob, \
+from aimods_bot.src.infra.scheduling.jobs import RemoveSectionLimitationJob, RemoveRequestCooldownJob, \
     SectionOpeningCheckJob
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.utils.time_utils import ensure_utc

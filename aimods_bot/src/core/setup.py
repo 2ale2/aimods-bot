@@ -32,7 +32,7 @@ from aimods_bot.src.infra.scheduling.job_names import (
     RequestLimitJobName,
     ReminderJobName
 )
-from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob, ReminderJob
+from aimods_bot.src.infra.scheduling.jobs import RemoveCompletedRequestJob, RemoveSectionLimitationJob, ReminderJob
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json, set_data_in_json
 from aimods_bot.src.helpers.utils.request_utils import request_from_record
 from aimods_bot.src.helpers.reminders_utils import list_reminders, register_execution

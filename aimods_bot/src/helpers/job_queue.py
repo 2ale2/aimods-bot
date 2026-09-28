@@ -15,7 +15,7 @@ from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeExc
 from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.constants.media import MediaType
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
+from aimods_bot.src.infra.scheduling.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
     RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob, ReminderJob
 from aimods_bot.src.infra.scheduling.job_names import JobName, ReminderJobName
 from aimods_bot.src.helpers.models.reminders import Reminder
