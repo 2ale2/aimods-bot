@@ -12,7 +12,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import safe_delete, username_to_id, create_and_render_panel, \
     wrong_input_message, chunk_buttons, format_user_mention
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text, format_time_as_rome, pluralize

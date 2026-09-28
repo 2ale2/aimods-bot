@@ -4,7 +4,7 @@ from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation.moderation import AllowAfterDurationRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
 from aimods_bot.src.core.constants import MODERATION_DISPLAY_ITEMS

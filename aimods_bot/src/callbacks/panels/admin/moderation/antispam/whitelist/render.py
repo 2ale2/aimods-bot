@@ -4,7 +4,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChatType
 from aimods_bot.src.helpers.constants.path_navigation import ModerationListsRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 
 

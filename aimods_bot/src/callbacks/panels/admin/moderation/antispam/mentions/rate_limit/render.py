@@ -6,7 +6,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.common import DigitRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 
 from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
 from aimods_bot.src.helpers.utils.time_utils import get_rate_limit_text, pluralize

@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.reminders_utils import list_reminders, get_reminder, paginate_reminders
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.text_utils import shorten

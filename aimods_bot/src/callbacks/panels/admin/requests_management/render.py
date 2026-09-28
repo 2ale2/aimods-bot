@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagem
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.ui import ButtonItem
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details, get_last_n_requests
 from aimods_bot.src.infra.telegram.utils import safe_delete, create_and_render_panel, chunk_buttons

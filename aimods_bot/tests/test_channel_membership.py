@@ -28,7 +28,7 @@ from aimods_bot.src.core.constants import ChannelMembership, Platform, Category,
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import AndroidApp
-from aimods_bot.src.helpers.models.ui import ButtonItem, Panel, PanelConfig
+from aimods_bot.src.ui.panel import ButtonItem, Panel, PanelConfig
 from aimods_bot.src.helpers.utils.request_utils import request_to_record, request_from_record
 
 CHANNEL = -100123

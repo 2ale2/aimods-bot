@@ -19,7 +19,7 @@ from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionExc
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.models.ui import PanelConfig, Panel, ButtonItem
+from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.helpers.utils.text_utils import utf16_len, utf16_slice
 
 log = logger.getChild(__name__)
