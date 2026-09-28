@@ -10,7 +10,7 @@ from telegram.ext import Application
 from telegram.error import TelegramError
 
 import aimods_bot.src.helpers.constants.constants as constants
-from aimods_bot.src.core.config_loader import load_configuration
+from aimods_bot.src.core.config.loader import load_configuration
 from aimods_bot.src.core.customcontext import BotData
 from aimods_bot.src.core.config.models import Configuration, JobInfo, CommandConfig
 from aimods_bot.src.helpers.constants.constants import (
