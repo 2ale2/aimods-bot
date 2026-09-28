@@ -12,7 +12,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.command_parser import parse_command
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, get_until_date, format_time_as_rome
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
-from aimods_bot.src.helpers.job_queue import send_temporary_message
+from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.infra.db.queries import add_to_table, revoke_last_action
 
 log = logger.getChild(__name__)

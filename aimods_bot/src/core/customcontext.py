@@ -683,7 +683,7 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         if status == RequestStatus.CANCELLED:
             self.remove_from_active_requests(ix=ix)
         elif status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
-            from aimods_bot.src.helpers.job_queue import scheduled_remove_completed_requests
+            from aimods_bot.src.infra.scheduling.job_queue import scheduled_remove_completed_requests
             job_name = f"remove_inactive_request:{ix}"
             job = self.job_queue.run_once(
                 callback=scheduled_remove_completed_requests,

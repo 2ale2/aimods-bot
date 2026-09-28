@@ -17,7 +17,7 @@ from aimods_bot.src.helpers.constants.constants import (
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK, RequestStatus
 )
 from aimods_bot.src.infra.db.queries import fetch_query
-from aimods_bot.src.helpers.job_queue import (
+from aimods_bot.src.infra.scheduling.job_queue import (
     scheduled_remove_user_request_section_limitation,
     scheduled_remove_completed_requests,
     scheduled_send_reminder,

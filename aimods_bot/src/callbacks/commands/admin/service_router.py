@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.callbacks.commands.admin.echo import echo, handle_media_group
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.job_queue import send_temporary_message
+from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
