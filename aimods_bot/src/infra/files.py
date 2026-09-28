@@ -15,7 +15,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import YAML_CONFIG_PATH
 from aimods_bot.src.core.media import MEDIA_GROUP_TYPES, MediaType
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.utils import MediaItem
+from aimods_bot.src.core.models import MediaItem
 
 SEM = asyncio.Semaphore(2)
 
