@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.infra.scheduling.job_queue import get_valid_thread_id, send_action_message_after
-from aimods_bot.src.helpers.models.typed_callback_data import AlertCallbackData, parse_callback_data
+from aimods_bot.src.ui.callback_data import AlertCallbackData, parse_callback_data
 from aimods_bot.src.infra.telegram.utils import safe_delete
 
 """

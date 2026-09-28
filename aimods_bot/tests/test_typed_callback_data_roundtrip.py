@@ -1,6 +1,6 @@
 import pytest
 
-from aimods_bot.src.helpers.models.typed_callback_data import (
+from aimods_bot.src.ui.callback_data import (
     AlertCallbackData,
     CallbackType,
     parse_callback_data,
