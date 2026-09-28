@@ -7,7 +7,8 @@ from aimods_bot.src.ui.path_navigation import AntispamRoute, GlobalAction, Secur
 from aimods_bot.src.ui.path_navigation.common import DigitRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
-from aimods_bot.src.infra.telegram.utils import get_toggle_text, create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import get_toggle_text
+from aimods_bot.src.ui.helpers import create_and_render_panel
 from aimods_bot.src.shared.time_utils import get_allow_after_text, get_rate_limit_text, pluralize
 
 

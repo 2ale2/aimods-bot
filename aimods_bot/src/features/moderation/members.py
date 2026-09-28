@@ -13,7 +13,8 @@ from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.telegram.chat import get_chat_permissions
 from aimods_bot.src.infra.telegram.utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user, \
-    get_banned_panel, safe_delete
+    safe_delete
+from aimods_bot.src.ui.helpers import get_banned_panel
 
 log = logger.getChild(__name__)
 

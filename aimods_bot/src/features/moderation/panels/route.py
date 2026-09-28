@@ -8,7 +8,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation import ModerationRoute, SecurityFiltersRoute
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.infra.telegram.utils import not_implemented_yet
+from aimods_bot.src.ui.helpers import not_implemented_yet
 
 
 async def moderation_router(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):

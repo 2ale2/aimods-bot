@@ -13,7 +13,7 @@ from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
-from aimods_bot.src.infra.telegram.utils import create_and_render_panel, chunk_buttons
+from aimods_bot.src.ui.helpers import create_and_render_panel, chunk_buttons
 from aimods_bot.src.shared.time_utils import get_duration_text
 
 

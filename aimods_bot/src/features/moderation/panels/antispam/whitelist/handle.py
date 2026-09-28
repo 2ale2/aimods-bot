@@ -14,8 +14,8 @@ from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.files import make_temp_file
-from aimods_bot.src.infra.telegram.utils import safe_delete, chunk_buttons, render_error_panel, \
-    create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import safe_delete
+from aimods_bot.src.ui.helpers import chunk_buttons, render_error_panel, create_and_render_panel
 
 BASE_TEXT = "📨 <b>Impostazioni Anti-Spam</b>\n\n↦ 💬 <i>Gestione Whitelist</i>"
 

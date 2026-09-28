@@ -4,7 +4,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation.admin import AdminTools
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
-from aimods_bot.src.infra.telegram.utils import create_and_render_panel
+from aimods_bot.src.ui.helpers import create_and_render_panel
 
 
 def _get_header():

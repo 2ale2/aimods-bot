@@ -13,8 +13,8 @@ from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
-from aimods_bot.src.infra.telegram.utils import safe_delete, username_to_id, create_and_render_panel, \
-    wrong_input_message, chunk_buttons, format_user_mention
+from aimods_bot.src.infra.telegram.utils import safe_delete, username_to_id, format_user_mention
+from aimods_bot.src.ui.helpers import create_and_render_panel, wrong_input_message, chunk_buttons
 from aimods_bot.src.shared.time_utils import get_duration_text, format_time_as_rome, pluralize
 from aimods_bot.src.features.moderation.members import get_member_details_text
 

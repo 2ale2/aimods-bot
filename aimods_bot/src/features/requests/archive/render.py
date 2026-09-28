@@ -13,7 +13,7 @@ from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.files import delete_os_file
 from aimods_bot.src.features.requests.repository import get_user_requests_archive
 from aimods_bot.src.features.requests.archive.latex import generate_user_archive_requests_pdf_file
-from aimods_bot.src.infra.telegram.utils import create_and_render_panel
+from aimods_bot.src.ui.helpers import create_and_render_panel
 
 
 async def render_user_archive_request_identifier_panel(

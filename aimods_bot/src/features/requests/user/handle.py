@@ -28,7 +28,8 @@ from aimods_bot.src.features.requests.notifications import send_new_request_admi
     send_section_closing_admin_notification
 from aimods_bot.src.infra.files import save_yaml_configuration
 from aimods_bot.src.features.requests.repository import request_to_record
-from aimods_bot.src.infra.telegram.utils import safe_delete, wrong_input_message
+from aimods_bot.src.infra.telegram.utils import safe_delete
+from aimods_bot.src.ui.helpers import wrong_input_message
 
 log = logger.getChild(__name__)
 

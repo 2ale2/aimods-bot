@@ -6,20 +6,15 @@ from typing import Optional, Any, Union, Dict, List, Literal
 import telegram
 from pyrogram.errors import UserNotParticipant, UserKicked, UsernameNotOccupied
 from pyrogram.types import ChatMember as PyroChatMember, User as PyroUser, ChatPermissions as PyroChatPermissions
-from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, InlineKeyboardButton,
-                      LinkPreviewOptions, ChatPermissions as PTBChatPermissions, User as PTBUser, Message,
-                      MessageEntity)
+from telegram import Update, ChatMember as PTBChatMember, InlineKeyboardMarkup, LinkPreviewOptions, \
+    ChatPermissions as PTBChatPermissions, User as PTBUser, Message, MessageEntity
 from telegram.constants import ParseMode
-from telegram.ext import ConversationHandler
 
 import aimods_bot.src.core.constants as constants
 from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.shared.text_utils import utf16_len, utf16_slice
 
 log = logger.getChild(__name__)
@@ -103,13 +98,6 @@ def get_valid_thread_id(update: Update) -> Optional[int]:
     if thread_id is not None and thread_id < 20:
         return thread_id
     return None
-
-
-async def safe_delete_wrapper(update: Update, context: CustomContext):
-    """Wrapper per safe_delete usando il messaggio corrente"""
-    await safe_delete(update, context, update.effective_message)
-    if update.callback_query.data == GlobalAction.CLOSE_MENU:
-        return ConversationHandler.END
 
 
 async def safe_delete(
@@ -244,11 +232,6 @@ def format_user_mention(
 def get_toggle_text(b: bool) -> str:
     """Restituisce emoji/testo per stato on/off"""
     return '☂️ <i>On</i>' if b else '🌂 <i>Off</i>'
-
-
-def chunk_buttons(buttons: list[ButtonItem], size: int = 2) -> list[list[ButtonItem]]:
-    """Divide una lista piatta di bottoni in righe della dimensione specificata."""
-    return [buttons[i:i + size] for i in range(0, len(buttons), size)]
 
 
 def permission_instance_to_dict(permissions: Union[PTBChatPermissions, PyroChatPermissions]) -> Dict[str, bool]:
@@ -615,87 +598,9 @@ async def edit_message_safely(
             return None
 
 
-async def render_error_panel(
-        update: Update,
-        context: CustomContext,
-        text: str,
-        chat_id: int | None = None
-):
-    await context.bot.send_message(
-        chat_id=chat_id or update.effective_chat.id,
-        text=text,
-        parse_mode=ParseMode.HTML,
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="📫 Chiudi", callback_data=GlobalAction.CLOSE)]]
-        )
-    )
-
-
-async def wrong_input_message(
-        update: Update,
-        context: CustomContext,
-        correct_message: str,
-        reply_to_message_id: int | None = None
-) -> None:
-    """Invia un messaggio di errore per input non valido"""
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"⚠️ {correct_message}",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
-        ),
-        reply_to_message_id=reply_to_message_id,
-        parse_mode=ParseMode.HTML
-    )
-
-
-async def not_implemented_yet(update: Update, context: CustomContext) -> None:
-    """Messaggio per funzionalità non ancora implementate"""
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="⚠️ Funzionalità non ancora implementata.",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="🗑️ Chiudi", callback_data=GlobalAction.CLOSE)]]
-        )
-    )
-
-
 # ============================================================================
 # PANEL & SETTINGS
 # ============================================================================
-
-async def create_and_render_panel(
-        update: Update,
-        context: CustomContext,
-        text: str,
-        keyboard: List[List[ButtonItem]],
-        message_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        send: bool = False
-) -> bool | None:
-    """
-    Crea e renderizza un pannello con configurazione specifica.
-
-    Args:
-        update: Update object
-        context: CustomContext
-        text: Testo del pannello
-        keyboard: Layout tastiera
-        message_id: ID messaggio da modificare (opzionale)
-        user_id: ID utente target (opzionale)
-        send: Se True, invia nuovo messaggio invece di modificare
-    """
-    panel = Panel(
-        PanelConfig(text=text, keyboard=keyboard)
-    )
-
-    return await panel.render(
-        update=update,
-        context=context,
-        message_id=message_id,
-        user_id=user_id,
-        send=send
-    )
 
 
 async def set_moderation_bool_setting(
@@ -727,36 +632,6 @@ async def set_moderation_bool_setting(
         f"Modifica setting: {path} impostato a '{value}' "
         f"da utente {update.effective_user.id} "
         f"({update.effective_user.username or update.effective_user.first_name})"
-    )
-
-
-def get_banned_panel() -> Panel:
-    """Restituisce il pannello per utenti bannati"""
-    return Panel(
-        PanelConfig(
-            text="❌ Sei stato bannato/a. Non potrai usare il bot.",
-            keyboard=[[ButtonItem(text="🗑️ Chiudi", callback_key=GlobalAction.CLOSE)]]
-        ),
-        send=True
-    )
-
-
-async def render_action_not_permitted_panel(update: Update, context: CustomContext, base_path: PathBuilder) -> None:
-    text = ("⛔ <b>Azione Vietata</b>\n\n"
-            "🔐 Non hai i permessi per eseguire questa azione.")
-
-    keyboard = [
-        [
-            ButtonItem(text="🔙 Indietro", callback_key=base_path.back()),
-            ButtonItem(text="🏠 Home", callback_key=PathBuilder(base_path.segments[0]))
-        ]
-    ]
-
-    await create_and_render_panel(
-        update=update,
-        context=context,
-        text=text,
-        keyboard=keyboard
     )
 
 

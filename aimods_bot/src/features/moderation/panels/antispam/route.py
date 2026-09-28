@@ -13,7 +13,7 @@ from aimods_bot.src.ui.path_navigation import GlobalAction, SecurityFiltersRoute
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.infra.telegram.utils import not_implemented_yet
+from aimods_bot.src.ui.helpers import not_implemented_yet
 
 
 log = logger.getChild(__name__)

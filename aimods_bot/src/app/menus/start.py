@@ -8,7 +8,8 @@ from aimods_bot.src.ui.conversation_states import PrivateConversationState as PC
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.infra.telegram.utils import safe_delete, get_banned_panel
+from aimods_bot.src.infra.telegram.utils import safe_delete
+from aimods_bot.src.ui.helpers import get_banned_panel
 from aimods_bot.src.features.moderation.members import user_is_banned
 
 log = logger.getChild(__name__)
