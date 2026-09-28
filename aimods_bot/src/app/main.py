@@ -6,7 +6,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes
 from aimods_bot.src.infra.db.persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
 from aimods_bot.src.app.setup import set_application_data
-from aimods_bot.src.core.shutdown import post_shutdown
+from aimods_bot.src.app.shutdown import post_shutdown
 from aimods_bot.src.handlers.channel_handlers import channel_post_capture_handler
 from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
 from aimods_bot.src.handlers.join_request import build_join_request_handler
