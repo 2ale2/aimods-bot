@@ -11,7 +11,7 @@ from aimods_bot.src.callbacks.panels.user.request.route import user_requests_man
 from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button, \
     render_not_channel_member_panel
-from aimods_bot.src.core.config_accessor import get_section_config
+from aimods_bot.src.core.config.accessor import get_section_config
 from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWizardSession
 from aimods_bot.src.helpers.constants.constants import (RequestField, RequestStatus, REQUESTS_TABLE,
                                                         BYPASS_REQUEST_LIMITS_USERS, ChannelMembership)

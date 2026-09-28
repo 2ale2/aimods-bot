@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel, chunk_buttons
-from aimods_bot.src.core.config_accessor import get_section_config
+from aimods_bot.src.core.config.accessor import get_section_config
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 

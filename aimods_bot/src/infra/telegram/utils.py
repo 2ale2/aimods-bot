@@ -13,7 +13,7 @@ from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
 
 import aimods_bot.src.helpers.constants.constants as constants
-from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction

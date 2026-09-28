@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Keyboar
     KeyboardButtonRequestChat, ReplyKeyboardMarkup
 from telegram.constants import ParseMode
 
-from aimods_bot.src.core.config_accessor import get_value, set_value
+from aimods_bot.src.core.config.accessor import get_value, set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS

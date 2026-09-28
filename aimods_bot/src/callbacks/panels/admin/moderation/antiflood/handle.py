@@ -1,5 +1,5 @@
 from telegram import Update
-from aimods_bot.src.core.config_accessor import set_value
+from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 
 

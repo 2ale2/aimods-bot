@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.core.config_accessor import get_value
+from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.path_navigation import AntispamRoute, GlobalAction, SecurityFiltersRoute

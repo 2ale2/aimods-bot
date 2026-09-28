@@ -3,7 +3,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.infra.files import save_yaml_configuration
-from aimods_bot.src.core.config_accessor import get_section_config
+from aimods_bot.src.core.config.accessor import get_section_config
 
 log = logger.getChild(__name__)
 
