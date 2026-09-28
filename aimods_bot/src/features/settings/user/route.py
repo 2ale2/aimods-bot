@@ -3,9 +3,9 @@ import os
 from pydantic import ValidationError
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.settings_management.handle import \
+from aimods_bot.src.features.settings.user.handle import \
     handle_user_section_opening_notification_toggle
-from aimods_bot.src.callbacks.panels.user.settings_management.render import render_user_settings_management_panel, \
+from aimods_bot.src.features.settings.user.render import render_user_settings_management_panel, \
     render_user_notification_settings_management_panel, render_user_section_opening_notification_settings_panel, \
     render_section_opening_notification_disabled_panel
 from aimods_bot.src.core.customcontext import CustomContext

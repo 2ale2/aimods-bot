@@ -3,7 +3,7 @@ from telegram.ext import InvalidCallbackData, ConversationHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.features.requests.user.route import user_requests_management_route
-from aimods_bot.src.callbacks.panels.user.settings_management.route import user_settings_management_route
+from aimods_bot.src.features.settings.user.route import user_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState
 from aimods_bot.src.ui.path_navigation import UserRoute, GlobalAction
