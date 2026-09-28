@@ -5,7 +5,7 @@ from telegram.ext import ConversationHandler
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.logger import log_join, log_ban
-from aimods_bot.src.helpers.database import add_to_table
+from aimods_bot.src.infra.db.queries import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message, scheduled_edit_message
 from aimods_bot.src.helpers.models.jobs import EditMessageJob
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned

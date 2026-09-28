@@ -17,7 +17,7 @@ from aimods_bot.src.helpers.constants.constants import (RequestField, RequestSta
                                                         BYPASS_REQUEST_LIMITS_USERS, ChannelMembership)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
-from aimods_bot.src.helpers.database import fetch_query
+from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest

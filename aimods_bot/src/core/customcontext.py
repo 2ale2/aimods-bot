@@ -22,7 +22,7 @@ from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, Ba
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
     Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence, ChannelMembership
-from aimods_bot.src.helpers.database import execute_query
+from aimods_bot.src.infra.db.queries import execute_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.jobs import RemoveCompletedRequestJob
 from aimods_bot.src.helpers.models.requests import BaseRequest, PLATFORM_CATEGORY_REGISTRY

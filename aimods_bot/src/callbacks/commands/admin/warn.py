@@ -7,7 +7,7 @@ from telegram import Update, ChatMember as PTBChatMember, User as PTBUser
 from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
-from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
+from aimods_bot.src.infra.db.queries import add_to_table, revoke_last_action
 from aimods_bot.src.infra.log import logger
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.helpers.job_queue import send_temporary_message

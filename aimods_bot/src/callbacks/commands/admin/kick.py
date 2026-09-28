@@ -5,7 +5,7 @@ from telegram import Update, ChatMemberMember as PTBChatMember
 
 from aimods_bot.src.core.customcontext import CustomContext
 import aimods_bot.src.helpers.constants.constants as constants
-from aimods_bot.src.helpers.database import add_to_table
+from aimods_bot.src.infra.db.queries import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
