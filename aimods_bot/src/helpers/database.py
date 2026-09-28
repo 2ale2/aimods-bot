@@ -4,7 +4,7 @@ from typing import Optional, Union, Dict, Any, List, Literal
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from aimods_bot.src.core.exceptions import DatabaseBotException
-from aimods_bot.src.core.database_pool import get_connection
+from aimods_bot.src.infra.db.pool import get_connection
 from aimods_bot.src.infra.log import logger
 
 log = logger.getChild(__name__)

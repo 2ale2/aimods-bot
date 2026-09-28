@@ -8,7 +8,7 @@ from pydantic import BaseModel, ValidationError
 from telegram.ext import DictPersistence
 
 from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
-from aimods_bot.src.core.database_pool import DatabasePool, get_connection
+from aimods_bot.src.infra.db.pool import DatabasePool, get_connection
 from aimods_bot.src.helpers.constants.constants import PERSISTENCE_TABLE
 from aimods_bot.src.infra.log import logger
 
