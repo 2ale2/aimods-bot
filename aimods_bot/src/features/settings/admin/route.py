@@ -1,10 +1,10 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.settings_management.handle import (
+from aimods_bot.src.features.settings.admin.handle import (
     handle_admin_new_requests_notification_toggle,
     handle_admin_section_closing_notification_toggle
 )
-from aimods_bot.src.callbacks.panels.admin.settings_management.render import (
+from aimods_bot.src.features.settings.admin.render import (
     render_admin_settings_management_panel,
     render_admin_notification_settings_management_panel,
     render_admin_new_requests_notification_settings_panel,
