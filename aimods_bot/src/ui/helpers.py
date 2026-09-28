@@ -1,12 +1,14 @@
 from typing import Optional, List
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
+
 from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.infra.telegram.utils import safe_delete
+from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem
-from aimods_bot.src.infra.telegram.utils import safe_delete
 
 
 async def safe_delete_wrapper(update: Update, context: CustomContext):

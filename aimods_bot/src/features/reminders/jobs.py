@@ -1,17 +1,19 @@
 import html
 from datetime import datetime, timezone
+
 import telegram.error
 from telegram import Bot
 from telegram.constants import ParseMode
+
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import WrongTypeException
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.infra.scheduling.jobs import ReminderJob
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName
+from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job
+from aimods_bot.src.infra.scheduling.jobs import ReminderJob
 from aimods_bot.src.features.reminders.models import Reminder
 from aimods_bot.src.features.reminders.repository import get_reminder, register_execution
 from aimods_bot.src.features.reminders.schedule import advance_past
-from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job
 
 log = logger.getChild(__name__)
 

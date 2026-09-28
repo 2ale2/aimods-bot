@@ -19,8 +19,10 @@ from aimods_bot.src.core.constants import (
 from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job
 from aimods_bot.src.features.reminders.jobs import scheduled_send_reminder, deliver_reminder
-from aimods_bot.src.features.requests.jobs import scheduled_remove_user_request_section_limitation, \
+from aimods_bot.src.features.requests.jobs import (
+    scheduled_remove_user_request_section_limitation,
     scheduled_remove_completed_requests
+)
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import (
     parse_job_name,
