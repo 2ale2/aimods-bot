@@ -13,7 +13,7 @@ from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.reminders_utils import list_reminders, get_reminder, paginate_reminders
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
-from aimods_bot.src.helpers.utils.text_utils import shorten
+from aimods_bot.src.shared.text_utils import shorten
 from aimods_bot.src.helpers.utils.time_utils import format_instant
 
 _TEXT_INPUT_STATE: dict[ReminderField, int] = {

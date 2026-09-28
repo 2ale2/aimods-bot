@@ -20,7 +20,7 @@ from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem
-from aimods_bot.src.helpers.utils.text_utils import utf16_len, utf16_slice
+from aimods_bot.src.shared.text_utils import utf16_len, utf16_slice
 
 log = logger.getChild(__name__)
 

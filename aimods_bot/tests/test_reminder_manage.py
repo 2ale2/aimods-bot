@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.reminders_utils import paginate_reminders
 from aimods_bot.src.core.constants import LOCAL_TZ, Recurrence
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName, parse_job_name
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
-from aimods_bot.src.helpers.utils.text_utils import shorten
+from aimods_bot.src.shared.text_utils import shorten
 
 NINE = time(hour=9, minute=0)
 
