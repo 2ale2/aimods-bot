@@ -1,7 +1,7 @@
 from pyrogram.types import User as PyroUser
 from telegram import User as PTBUser, Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import all_sections_are
+from aimods_bot.src.features.requests.admin.limit.handle import all_sections_are
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
 from aimods_bot.src.core.config.models import RequestSectionLimitation
 from aimods_bot.src.core.constants import Platform, Category

@@ -1,8 +1,8 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.handle import \
+from aimods_bot.src.features.requests.admin.sections_management.handle import \
     handle_request_section_toggle, handle_request_section_limit
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.render import (
+from aimods_bot.src.features.requests.admin.sections_management.render import (
     render_admin_request_section_configure_panel, render_admin_request_section_configure_platform_panel,
     render_admin_request_section_configure_category_panel, render_admin_request_section_toggle_panel,
     render_admin_request_section_toggled_panel, render_admin_request_section_limit_panel,

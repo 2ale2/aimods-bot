@@ -7,7 +7,7 @@ from aimods_bot.src.ui.path_navigation import AdminRoute, GlobalAction
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_router
-from aimods_bot.src.callbacks.panels.admin.requests_management.route import admin_requests_management_route
+from aimods_bot.src.features.requests.admin.route import admin_requests_management_route
 from aimods_bot.src.callbacks.panels.admin.settings_management.route import admin_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.routing import PathBuilder

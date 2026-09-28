@@ -5,12 +5,12 @@ from pyrogram.types import User as PyroUser
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, User as PTBUser
 from telegram.constants import ParseMode
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import (
+from aimods_bot.src.features.requests.admin.limit.handle import (
     handle_request_limitation_topic,
     handle_limitation_confirmation,
     handle_remove_user_request_limitation
 )
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import (
+from aimods_bot.src.features.requests.admin.limit.render import (
     render_admin_add_user_request_limitation_panel, render_admin_limit_user_request_duration_panel,
     render_admin_limit_user_request_sections_panel,
     render_admin_user_limitation_reason_panel, render_admin_manage_limitations_panel,

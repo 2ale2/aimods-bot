@@ -1,10 +1,10 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
+from aimods_bot.src.features.requests.admin.handle import handle_membership_op
+from aimods_bot.src.features.requests.admin.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
-from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations
-from aimods_bot.src.callbacks.panels.admin.requests_management.render import (
+from aimods_bot.src.features.requests.admin.limit.route import route_admin_manage_limitations
+from aimods_bot.src.features.requests.admin.render import (
     render_admin_request_management_panel,
     render_admin_active_requests_management_panel,
     render_admin_active_requests_category_selector_panel,
@@ -23,7 +23,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.render import (
     render_last_ten_requests_category_panel,
     render_last_ten_requests_section_panel
 )
-from aimods_bot.src.callbacks.panels.admin.requests_management.sections_management.route import \
+from aimods_bot.src.features.requests.admin.sections_management.route import \
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext, RequestRejectionSession
