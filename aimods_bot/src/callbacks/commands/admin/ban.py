@@ -9,7 +9,7 @@ from aimods_bot.src.core.pydantic import BanListItem
 from aimods_bot.src.infra.telegram.utils import safe_delete, resolve_chat_member, normalize_user, is_username, format_user_mention
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.utils.command_parser import parse_command
+from aimods_bot.src.infra.telegram.command_parser import parse_command
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, get_until_date, format_time_as_rome
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message

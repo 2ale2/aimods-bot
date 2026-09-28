@@ -9,7 +9,7 @@ from aimods_bot.src.infra.db.queries import add_to_table
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
-from aimods_bot.src.helpers.utils.command_parser import parse_command
+from aimods_bot.src.infra.telegram.command_parser import parse_command
 from aimods_bot.src.infra.telegram.utils import safe_delete, format_user_mention, is_user_id
 
 log = logger.getChild("kick")
