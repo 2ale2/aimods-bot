@@ -22,4 +22,4 @@ ENV PYTHONPATH="${PYTHONPATH}:/app"
 ARG GIT_SHA=unknown
 ENV GIT_SHA=$GIT_SHA
 
-CMD ["python", "aimods_bot/src/main/init.py"]
+CMD ["python", "aimods_bot/src/app/main.py"]
