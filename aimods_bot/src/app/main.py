@@ -9,7 +9,7 @@ from aimods_bot.src.app.setup import set_application_data
 from aimods_bot.src.app.shutdown import post_shutdown
 from aimods_bot.src.app.handlers.channel import channel_post_capture_handler
 from aimods_bot.src.app.handlers.conversation import main_private_conversation_handler, close_menu_handler
-from aimods_bot.src.handlers.join_request import build_join_request_handler
+from aimods_bot.src.features.onboarding.join_request import build_join_request_handler
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
