@@ -8,7 +8,7 @@ from aimods_bot.src.ui.path_navigation import LimitationsFlow
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.features.requests.section import RequestSection
-from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
+from aimods_bot.src.features.requests.scheduling import schedule_request_limitation_deletion
 from aimods_bot.src.infra.telegram.utils import render_error_panel
 
 log = logger.getChild(__name__)
