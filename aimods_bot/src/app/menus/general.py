@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import InvalidCallbackData, ConversationHandler
 
 from aimods_bot.src.app.menus.start import start
-from aimods_bot.src.callbacks.panels.admin import admin_main_router
+from aimods_bot.src.app.menus.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation import UserRoute, AdminRoute
