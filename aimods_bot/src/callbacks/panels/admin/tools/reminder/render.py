@@ -11,7 +11,7 @@ from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
 from aimods_bot.src.features.reminders.models import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
-from aimods_bot.src.helpers.reminders_utils import list_reminders, get_reminder, paginate_reminders
+from aimods_bot.src.features.reminders.repository import list_reminders, get_reminder, paginate_reminders
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.shared.text_utils import shorten
 from aimods_bot.src.shared.time_utils import format_instant

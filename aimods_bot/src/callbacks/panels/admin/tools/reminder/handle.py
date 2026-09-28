@@ -17,7 +17,7 @@ from aimods_bot.src.infra.scheduling.job_names import ReminderJobName
 from aimods_bot.src.infra.scheduling.jobs import ReminderJob
 from aimods_bot.src.features.reminders.models import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.helpers.reminders_utils import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
+from aimods_bot.src.features.reminders.repository import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
     reschedule_reminder, update_reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.infra.telegram.utils import safe_delete
