@@ -1,5 +1,5 @@
 from telegram.ext import PrefixHandler
-from aimods_bot.src.callbacks.commands.admin.moderation_router import moderation_command_router
+from aimods_bot.src.features.moderation.commands.router import moderation_command_router
 
 commands_list = [
     "ban",
