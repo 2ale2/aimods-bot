@@ -3,8 +3,10 @@ from typing import Optional
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import JobInfo
-from aimods_bot.src.infra.scheduling.job_queue import scheduled_remove_user_request_section_limitation, \
-    scheduled_remove_user_request_cooldown, scheduled_section_opening_check_for_user_notification, schedule_unique_job
+from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job
+from aimods_bot.src.features.requests.jobs import scheduled_remove_user_request_section_limitation, \
+    scheduled_remove_user_request_cooldown, \
+    scheduled_section_opening_check_for_user_notification
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import RequestLimitJobName, RequestCooldownJobName, \
     DelayedSectionOpeningJobName
