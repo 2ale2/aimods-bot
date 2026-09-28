@@ -13,7 +13,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import handle_r
 from aimods_bot.src.callbacks.panels.general.router import general_router
 from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
-from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_callback_input, handle_wizard_back, \
+from aimods_bot.src.features.requests.user.handle import handle_wizard_callback_input, handle_wizard_back, \
     handle_wizard_text_input, handle_wizard_confirm
 from aimods_bot.src.core.constants import COMMAND_PREFIX
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

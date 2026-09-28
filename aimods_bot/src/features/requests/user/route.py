@@ -4,8 +4,8 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.user.request.management.route import user_request_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import (
+from aimods_bot.src.features.requests.user.management.route import user_request_management_route
+from aimods_bot.src.features.requests.user.render import (
     render_user_has_cooldown_panel,
     render_user_request_platform_panel,
     render_user_request_category_panel, render_global_request_wizard_panel, render_cant_request_panel,

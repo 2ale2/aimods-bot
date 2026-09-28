@@ -1,8 +1,8 @@
 from telegram import Update
 
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
-from aimods_bot.src.callbacks.panels.user.request.management.handle import toggle_status_notifications
-from aimods_bot.src.callbacks.panels.user.request.management.render import \
+from aimods_bot.src.features.requests.user.management.handle import toggle_status_notifications
+from aimods_bot.src.features.requests.user.management.render import \
     render_manage_selected_request_panel, render_user_request_management_panel, \
     render_user_manage_active_requests_panel, render_confirm_cancel_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext

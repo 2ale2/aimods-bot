@@ -7,8 +7,8 @@ from telegram import Update
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.callbacks.commands.general.start_command import start
-from aimods_bot.src.callbacks.panels.user.request.route import user_requests_management_route
-from aimods_bot.src.callbacks.panels.user.request.render import render_global_request_wizard_panel, \
+from aimods_bot.src.features.requests.user.route import user_requests_management_route
+from aimods_bot.src.features.requests.user.render import render_global_request_wizard_panel, \
     render_request_wizard_confirmation_panel, render_cant_request_panel, section_notifications_button, \
     render_not_channel_member_panel
 from aimods_bot.src.core.config.accessor import get_section_config
