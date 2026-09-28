@@ -25,7 +25,7 @@ from aimods_bot.src.helpers.job_queue import (
     deliver_reminder
 )
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.job_names import (
+from aimods_bot.src.infra.scheduling.job_names import (
     parse_job_name,
     AutoRecapJobName,
     RemoveInactiveRequestJobName,

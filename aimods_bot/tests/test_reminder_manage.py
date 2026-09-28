@@ -13,7 +13,7 @@ from datetime import datetime, time, timezone
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import _describe_recurrence
 from aimods_bot.src.helpers.reminders_utils import paginate_reminders
 from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, Recurrence
-from aimods_bot.src.helpers.models.job_names import ReminderJobName, parse_job_name
+from aimods_bot.src.infra.scheduling.job_names import ReminderJobName, parse_job_name
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.helpers.utils.text_utils import shorten
 

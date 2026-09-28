@@ -20,7 +20,7 @@ import time
 from telegram.ext import Application, ContextTypes
 
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.job_names import JoinRequestSweeperJobName
+from aimods_bot.src.infra.scheduling.job_names import JoinRequestSweeperJobName
 from aimods_bot.src.helpers.utils.botapi_10_1 import answer_join_request
 
 JOB_NAME = JoinRequestSweeperJobName()

@@ -1,6 +1,6 @@
 import pytest
 
-from aimods_bot.src.helpers.models.job_names import (
+from aimods_bot.src.infra.scheduling.job_names import (
     AutoRecapJobName,
     RemoveInactiveRequestJobName,
     RequestLimitJobName,

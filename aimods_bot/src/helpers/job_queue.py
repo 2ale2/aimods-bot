@@ -17,7 +17,7 @@ from aimods_bot.src.helpers.constants.media import MediaType
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
     RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob, ReminderJob
-from aimods_bot.src.helpers.models.job_names import JobName, ReminderJobName
+from aimods_bot.src.infra.scheduling.job_names import JobName, ReminderJobName
 from aimods_bot.src.helpers.models.reminders import Reminder
 from aimods_bot.src.helpers.reminders_utils import get_reminder, register_execution
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
