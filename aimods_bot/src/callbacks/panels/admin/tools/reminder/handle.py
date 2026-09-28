@@ -19,7 +19,7 @@ from aimods_bot.src.features.reminders.models import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.features.reminders.repository import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
     reschedule_reminder, update_reminder
-from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
+from aimods_bot.src.features.reminders.schedule import advance_past
 from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.shared.text_utils import to_int
 from aimods_bot.src.shared.time_utils import parse_clock_time, parse_absolute_datetime, is_nonexistent_local_time

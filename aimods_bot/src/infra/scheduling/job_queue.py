@@ -20,7 +20,7 @@ from aimods_bot.src.infra.scheduling.jobs import DeleteMessageJob, SendMessageJo
 from aimods_bot.src.infra.scheduling.job_names import JobName, ReminderJobName
 from aimods_bot.src.features.reminders.models import Reminder
 from aimods_bot.src.features.reminders.repository import get_reminder, register_execution
-from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
+from aimods_bot.src.features.reminders.schedule import advance_past
 from aimods_bot.src.core.models import MediaItem
 from aimods_bot.src.features.requests.notifications import send_opening_notifications
 from aimods_bot.src.infra.files import get_file_type, normalize_files, delete_os_file
