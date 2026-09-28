@@ -10,7 +10,7 @@ from aimods_bot.src.infra.scheduling.job_names import (
     parse_job_name,
 )
 from aimods_bot.src.core.constants import Platform, Category
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 
 SAMPLES = [
     AutoRecapJobName(),

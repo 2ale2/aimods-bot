@@ -2,7 +2,7 @@ from enum import StrEnum
 from typing import Annotated, Literal, Optional, Union, Callable
 from pydantic import BaseModel, Field, ValidationError
 
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 
 _SEPARATOR = ":"
 

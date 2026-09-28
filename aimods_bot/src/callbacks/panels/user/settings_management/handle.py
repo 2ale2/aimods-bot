@@ -1,6 +1,6 @@
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import DEFAULT_SECTION_OPENING_NOTIFICATION
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 
 
 async def handle_user_section_opening_notification_toggle(

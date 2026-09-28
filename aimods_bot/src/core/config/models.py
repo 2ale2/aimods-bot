@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serial
 
 from aimods_bot.src.core.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
 
 log = logger.getChild(__name__)

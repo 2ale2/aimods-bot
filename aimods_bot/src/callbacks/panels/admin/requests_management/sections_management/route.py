@@ -12,7 +12,7 @@ from aimods_bot.src.core.constants import Platform, Category
 from aimods_bot.src.ui.path_navigation import GlobalAction, LimitationsOp
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
 from aimods_bot.src.core.config.accessor import get_section_config

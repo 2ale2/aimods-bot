@@ -7,7 +7,7 @@ from aimods_bot.src.core.config.models import CategorySetting
 from aimods_bot.src.core.constants import Platform
 from aimods_bot.src.ui.path_navigation import GlobalAction, \
     AdminRoute, LimitationsOp
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem

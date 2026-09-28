@@ -1,5 +1,5 @@
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 
 
 async def handle_admin_new_requests_notification_toggle(context: CustomContext, section: RequestSection):

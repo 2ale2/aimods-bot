@@ -26,7 +26,7 @@ from aimods_bot.src.infra.db.queries import execute_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.jobs import RemoveCompletedRequestJob
 from aimods_bot.src.features.requests.models import BaseRequest, PLATFORM_CATEGORY_REGISTRY
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.helpers.models.reminders import Reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import compute_first_fire
 from aimods_bot.src.shared.time_utils import ensure_utc

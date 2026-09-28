@@ -10,7 +10,7 @@ from aimods_bot.src.infra.scheduling.job_names import RequestLimitJobName, Reque
     DelayedSectionOpeningJobName
 from aimods_bot.src.infra.scheduling.jobs import RemoveSectionLimitationJob, RemoveRequestCooldownJob, \
     SectionOpeningCheckJob
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.shared.time_utils import ensure_utc
 
 log = logger.getChild(__name__)

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from telegram import InputMedia, InlineKeyboardMarkup, ReplyParameters, MessageEntity
 
-from aimods_bot.src.helpers.models.request_section import RequestSection
+from aimods_bot.src.features.requests.section import RequestSection
 
 
 @dataclass
