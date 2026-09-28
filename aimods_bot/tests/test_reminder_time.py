@@ -2,7 +2,7 @@ import pytest
 
 from datetime import datetime, time, timezone
 
-from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
+from aimods_bot.src.features.reminders.models import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.core.constants import LOCAL_TZ, Recurrence
 from aimods_bot.src.helpers.utils.reminder_time_utils import (
     advance_past,

@@ -8,7 +8,7 @@ from aimods_bot.src.core.constants import ReminderField, Recurrence, WEEKDAYS, R
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
-from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
+from aimods_bot.src.features.reminders.models import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.reminders_utils import list_reminders, get_reminder, paginate_reminders

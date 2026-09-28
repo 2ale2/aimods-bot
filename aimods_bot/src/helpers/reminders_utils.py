@@ -7,7 +7,7 @@ from datetime import datetime
 from aimods_bot.src.core.constants import REMINDERS_TABLE
 from aimods_bot.src.infra.db.queries import execute_query, fetch_query
 from aimods_bot.src.infra.log import logger
-from aimods_bot.src.helpers.models.reminders import Reminder
+from aimods_bot.src.features.reminders.models import Reminder
 
 log = logger.getChild(__name__)
 

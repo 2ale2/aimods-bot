@@ -5,7 +5,7 @@ from datetime import datetime, time, timedelta, timezone
 from typing import Optional
 
 from aimods_bot.src.core.constants import LOCAL_TZ, Recurrence
-from aimods_bot.src.helpers.models.reminders import (
+from aimods_bot.src.features.reminders.models import (
     LAST_DAY_OF_MONTH,
     Reminder,
 )
