@@ -3,7 +3,7 @@ import locale
 import sys
 from urllib.parse import urlparse
 from telegram.ext import ApplicationBuilder, ContextTypes
-from aimods_bot.src.core.async_persistence import AsyncPostgresPersistence
+from aimods_bot.src.infra.db.persistence import AsyncPostgresPersistence
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData
 from aimods_bot.src.core.setup import set_application_data
 from aimods_bot.src.core.shutdown import post_shutdown
