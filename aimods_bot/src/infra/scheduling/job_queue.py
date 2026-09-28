@@ -352,17 +352,3 @@ async def send_temporary_message(
         when=delay_before,
         data=job_data,
     )
-
-        
-# ========== JOB: REQUESTS ==========
-
-
-# ========== JOB: LIMITATIONS ==========
-
-
-# ========== JOB: SECTIONS MANAGEMENT ==========
-
-
-# ========== JOB: REMINDERS ==========
-
-
