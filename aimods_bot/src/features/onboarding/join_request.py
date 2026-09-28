@@ -22,7 +22,7 @@ from aimods_bot.src.infra.telegram.botapi_10_1 import (
     extract_query_id,
     send_join_request_web_app,
 )
-from aimods_bot.src.helpers.utils.join_request_sweeper import track_pending
+from aimods_bot.src.features.onboarding.sweeper import track_pending
 
 log = logger.getChild(__name__)
 

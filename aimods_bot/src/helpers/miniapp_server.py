@@ -29,7 +29,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.core.paths import MINIAPP_STATIC_DIR
 from aimods_bot.src.infra.telegram.botapi_10_1 import answer_join_request, is_already_answered
 from aimods_bot.src.helpers.utils.initdata import InitDataError, parse_init_data
-from aimods_bot.src.helpers.utils.join_request_sweeper import untrack_pending
+from aimods_bot.src.features.onboarding.sweeper import untrack_pending
 
 log = logger.getChild(__name__)
 
