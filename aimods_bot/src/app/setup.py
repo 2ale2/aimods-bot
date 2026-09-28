@@ -38,7 +38,7 @@ from aimods_bot.src.features.requests.repository import request_from_record
 from aimods_bot.src.features.reminders.repository import list_reminders, register_execution
 from aimods_bot.src.features.reminders.schedule import advance_past
 from aimods_bot.src.shared.time_utils import get_time_until_next_recap, get_last_monday_midnight
-from aimods_bot.src.tasks.channel_recap import create_and_send_recaps, verify_recap_topics
+from aimods_bot.src.features.recap.channel_recap import create_and_send_recaps, verify_recap_topics
 
 log = logger.getChild(__name__)
 

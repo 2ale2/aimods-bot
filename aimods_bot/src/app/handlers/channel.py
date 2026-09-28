@@ -1,7 +1,7 @@
 import os
 
 from telegram.ext import MessageHandler, filters
-from aimods_bot.src.tasks.channel_recap import catch_post_from_channel
+from aimods_bot.src.features.recap.channel_recap import catch_post_from_channel
 
 CHANNEL_ID = int(os.environ["CHANNEL_ID"])
 
