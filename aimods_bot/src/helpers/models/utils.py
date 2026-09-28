@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from telegram import InputMedia
 
 from aimods_bot.src.core.constants import Category
-from aimods_bot.src.helpers.constants.media import MediaType
+from aimods_bot.src.core.media import MediaType
 
 
 @dataclass

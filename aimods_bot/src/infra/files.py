@@ -13,7 +13,7 @@ from yaml import YAMLError
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import YAML_CONFIG_PATH
-from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES, MediaType
+from aimods_bot.src.core.media import MEDIA_GROUP_TYPES, MediaType
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.utils import MediaItem
 

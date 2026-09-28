@@ -13,7 +13,7 @@ from telegram.ext import JobQueue
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import JobDataMissingException, WrongTypeException
 from aimods_bot.src.core.config.models import JobInfo
-from aimods_bot.src.helpers.constants.media import MediaType
+from aimods_bot.src.core.media import MediaType
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.jobs import DeleteMessageJob, SendMessageJob, EditMessageJob, \
     RemoveCompletedRequestJob, RemoveRequestCooldownJob, RemoveSectionLimitationJob, SectionOpeningCheckJob, ReminderJob
