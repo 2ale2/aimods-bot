@@ -12,7 +12,7 @@ from aimods_bot.src.features.reminders.panels.handle import handle_reminder_text
     handle_reminder_datetime_field
 from aimods_bot.src.app.menus.general import general_router
 from aimods_bot.src.features.requests.archive.route import handle_user_archive_user_input
-from aimods_bot.src.callbacks.panels.user import user_main_router
+from aimods_bot.src.app.menus.user import user_main_router
 from aimods_bot.src.features.requests.user.handle import handle_wizard_callback_input, handle_wizard_back, \
     handle_wizard_text_input, handle_wizard_confirm
 from aimods_bot.src.core.constants import COMMAND_PREFIX
