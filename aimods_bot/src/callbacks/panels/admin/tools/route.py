@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.route import admin_reminder_tool_route
+from aimods_bot.src.features.reminders.panels.route import admin_reminder_tool_route
 from aimods_bot.src.callbacks.panels.admin.tools.render import render_admin_tools_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation.admin import AdminTools

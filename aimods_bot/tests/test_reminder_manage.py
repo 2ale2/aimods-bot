@@ -10,7 +10,7 @@ import pytest
 
 from datetime import datetime, time, timezone
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import _describe_recurrence
+from aimods_bot.src.features.reminders.panels.render import _describe_recurrence
 from aimods_bot.src.features.reminders.repository import paginate_reminders
 from aimods_bot.src.core.constants import LOCAL_TZ, Recurrence
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName, parse_job_name

@@ -2,10 +2,10 @@ import os
 
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import move_cursor_after_answer, \
+from aimods_bot.src.features.reminders.panels.handle import move_cursor_after_answer, \
     handle_reminder_field_value, handle_reminder_confirm, handle_reminder_toggle, handle_reminder_delete, \
     handle_reminder_edit_start
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_admin_reminder_tool_panel, \
+from aimods_bot.src.features.reminders.panels.render import render_admin_reminder_tool_panel, \
     render_reminder_wizard_step, render_manage_reminders_list_panel, render_reminder_card_panel, \
     render_reminder_delete_panel
 from aimods_bot.src.core.customcontext import CustomContext

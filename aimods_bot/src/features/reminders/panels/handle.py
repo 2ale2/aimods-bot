@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_reminder_wizard_step, \
+from aimods_bot.src.features.reminders.panels.render import render_reminder_wizard_step, \
     render_admin_reminder_tool_panel, render_reminder_created_panel, render_manage_reminders_list_panel, \
     render_reminder_card_panel
 from aimods_bot.src.core.customcontext import ReminderWizard, CustomContext

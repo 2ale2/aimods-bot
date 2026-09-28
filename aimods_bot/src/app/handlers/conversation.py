@@ -8,7 +8,7 @@ from aimods_bot.src.features.requests.admin.limit.route import (
     handle_limitation_user_input,
     handle_limitation_duration, handle_limitation_reason
 )
-from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import handle_reminder_text_field, \
+from aimods_bot.src.features.reminders.panels.handle import handle_reminder_text_field, \
     handle_reminder_datetime_field
 from aimods_bot.src.callbacks.panels.general.router import general_router
 from aimods_bot.src.features.requests.archive.route import handle_user_archive_user_input
