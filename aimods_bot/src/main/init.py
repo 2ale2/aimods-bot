@@ -14,7 +14,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
 from aimods_bot.src.helpers.miniapp_server import start_miniapp_server, stop_miniapp_server
-from aimods_bot.src.helpers.utils.botapi_10_1 import assert_bridge_still_needed
+from aimods_bot.src.infra.telegram.botapi_10_1 import assert_bridge_still_needed
 from aimods_bot.src.helpers.utils.join_request_sweeper import schedule_sweeper
 
 locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
