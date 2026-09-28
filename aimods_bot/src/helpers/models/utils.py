@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 from telegram import InputMedia
 
-from aimods_bot.src.helpers.constants.constants import Category
+from aimods_bot.src.core.constants import Category
 from aimods_bot.src.helpers.constants.media import MediaType
 
 

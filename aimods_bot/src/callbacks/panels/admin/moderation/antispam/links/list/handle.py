@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.render
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.render import render_empty_list_panel
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import ModerationList
+from aimods_bot.src.core.constants import ModerationList
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, ModerationListsRoute
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after

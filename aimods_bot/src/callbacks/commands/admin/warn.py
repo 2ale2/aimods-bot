@@ -9,7 +9,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.infra.db.queries import add_to_table, revoke_last_action
 from aimods_bot.src.infra.log import logger
-import aimods_bot.src.helpers.constants.constants as constants
+import aimods_bot.src.core.constants as constants
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.infra.telegram.command_parser import parse_command

@@ -20,7 +20,7 @@ from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
 from aimods_bot.src.core.config.models import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
-from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
+from aimods_bot.src.core.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
     Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence, ChannelMembership
 from aimods_bot.src.infra.db.queries import execute_query
 from aimods_bot.src.infra.log import logger

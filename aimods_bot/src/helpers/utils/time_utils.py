@@ -2,7 +2,7 @@ import re
 from typing import Optional
 from datetime import timedelta, datetime, timezone, time
 
-from aimods_bot.src.helpers.constants.constants import LOCAL_TZ, REMINDER_DATETIME_FORMAT
+from aimods_bot.src.core.constants import LOCAL_TZ, REMINDER_DATETIME_FORMAT
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600

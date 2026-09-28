@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from pydantic import HttpUrl
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.core.constants import Platform, Category
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import (
     AndroidApp, WindowsGame, WindowsAdobe, WindowsDaw, WindowsSoftware, IosApp, MacOsDaw, MacOsSoftware,

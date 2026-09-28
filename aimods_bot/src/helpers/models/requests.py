@@ -4,7 +4,7 @@ from typing import Literal, Annotated, Any, ClassVar
 
 from pydantic import BaseModel, BeforeValidator, HttpUrl, ConfigDict, AfterValidator
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus, \
+from aimods_bot.src.core.constants import Platform, Category, RequestField, RequestStatus, \
     ChannelMembership
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection

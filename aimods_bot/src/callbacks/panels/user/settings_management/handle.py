@@ -1,5 +1,5 @@
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import DEFAULT_SECTION_OPENING_NOTIFICATION
+from aimods_bot.src.core.constants import DEFAULT_SECTION_OPENING_NOTIFICATION
 from aimods_bot.src.helpers.models.request_section import RequestSection
 
 

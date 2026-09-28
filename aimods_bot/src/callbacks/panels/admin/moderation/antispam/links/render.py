@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import ModerationList
+from aimods_bot.src.core.constants import ModerationList
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel

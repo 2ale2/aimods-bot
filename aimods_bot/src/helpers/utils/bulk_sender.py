@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.config.models import CategorySetting
-from aimods_bot.src.helpers.constants.constants import ChannelMembership
+from aimods_bot.src.core.constants import ChannelMembership
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, NotificationAction, UserRoute, \
     UserManageSettingsRoute, AdminRoute, AdminRequestsRoute, AdminSettingsRoute, AdminSettingsNotificationsRoute
 from aimods_bot.src.infra.log import logger

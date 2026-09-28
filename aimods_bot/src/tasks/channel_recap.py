@@ -8,7 +8,7 @@ from telegram.error import TelegramError
 from telegram.ext import Application
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import RECAP_POSTS_TABLE
+from aimods_bot.src.core.constants import RECAP_POSTS_TABLE
 from aimods_bot.src.infra.db.queries import fetch_query, add_to_table, execute_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import AutoRecapJobName

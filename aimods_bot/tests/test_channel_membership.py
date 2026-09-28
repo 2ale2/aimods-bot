@@ -23,7 +23,7 @@ import aimods_bot.src.callbacks.panels.admin.requests_management.render as admin
 import aimods_bot.src.callbacks.panels.admin.requests_management.handle as handle
 import aimods_bot.src.core.customcontext as customcontext
 from aimods_bot.src.core.customcontext import CustomContext, BotData, _membership_from_status
-from aimods_bot.src.helpers.constants.constants import ChannelMembership, Platform, Category, RequestStatus, \
+from aimods_bot.src.core.constants import ChannelMembership, Platform, Category, RequestStatus, \
     UNKNOWN_FIELD_SENTINEL
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection

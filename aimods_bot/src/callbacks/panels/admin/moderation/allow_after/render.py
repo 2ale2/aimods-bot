@@ -7,7 +7,7 @@ from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
-from aimods_bot.src.helpers.constants.constants import MODERATION_DISPLAY_ITEMS
+from aimods_bot.src.core.constants import MODERATION_DISPLAY_ITEMS
 
 
 # TODO: devo tizzare il parametro 'setting'

@@ -27,7 +27,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     route_admin_request_section_configure_selection
 from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
 from aimods_bot.src.core.customcontext import CustomContext, RequestRejectionSession
-from aimods_bot.src.helpers.constants.constants import RequestStatus, Platform, Category, RejectRequestReason
+from aimods_bot.src.core.constants import RequestStatus, Platform, Category, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction

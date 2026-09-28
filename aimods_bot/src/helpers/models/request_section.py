@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Self, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from aimods_bot.src.helpers.constants.constants import Platform, Category
+from aimods_bot.src.core.constants import Platform, Category
 if TYPE_CHECKING:
     from aimods_bot.src.helpers.models.requests import CategoryConfig, BaseRequest
 

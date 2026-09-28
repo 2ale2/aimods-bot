@@ -1,7 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import Platform
+from aimods_bot.src.core.constants import Platform
 from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
     AdminSettingsNotificationsRoute, GlobalAction
 from aimods_bot.src.helpers.models.request_section import RequestSection

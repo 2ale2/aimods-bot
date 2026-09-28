@@ -2,7 +2,7 @@ import pytz
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
 from telegram.ext import ConversationHandler
 
-import aimods_bot.src.helpers.constants.constants as constants
+import aimods_bot.src.core.constants as constants
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.logger import log_join, log_ban
 from aimods_bot.src.infra.db.queries import add_to_table

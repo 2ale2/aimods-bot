@@ -6,7 +6,7 @@ from aimods_bot.src.callbacks.panels.user.request.management.render import \
     render_manage_selected_request_panel, render_user_request_management_panel, \
     render_user_manage_active_requests_panel, render_confirm_cancel_panel, render_request_cancelled_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import RequestStatus
+from aimods_bot.src.core.constants import RequestStatus
 from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsRoute, GlobalAction, NotificationAction
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.infra.log import logger

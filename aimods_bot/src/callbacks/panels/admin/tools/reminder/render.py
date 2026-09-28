@@ -3,7 +3,7 @@ import html
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext, ReminderWizard
-from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
+from aimods_bot.src.core.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
     REMINDER_DATETIME_FORMAT, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction

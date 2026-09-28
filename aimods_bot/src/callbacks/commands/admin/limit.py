@@ -6,7 +6,7 @@ from pyrogram.types import ChatMember as PyroChatMember, ChatPermissions as Pyro
 from telegram import Update, ChatMember as PTBChatMember, ChatPermissions as PTBChatPermissions
 
 from aimods_bot.src.core.customcontext import CustomContext
-import aimods_bot.src.helpers.constants.constants as constants
+import aimods_bot.src.core.constants as constants
 from aimods_bot.src.helpers.constants.permissions import permissions_texts, Permissions as Permissions, \
     get_ptb_permissions, get_pyro_permissions
 from aimods_bot.src.infra.db.queries import add_to_table

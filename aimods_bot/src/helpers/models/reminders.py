@@ -4,7 +4,7 @@ from datetime import datetime, time
 
 from pydantic import BaseModel, Field, model_validator
 
-from aimods_bot.src.helpers.constants.constants import Recurrence
+from aimods_bot.src.core.constants import Recurrence
 
 LAST_DAY_OF_MONTH = -1
 

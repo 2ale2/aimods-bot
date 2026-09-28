@@ -4,7 +4,7 @@ from telegram import Update
 
 from aimods_bot.src.callbacks.commands.admin.limit import limit_user
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.constants import ERROR_MESSAGES
+from aimods_bot.src.core.constants import ERROR_MESSAGES
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert
 from aimods_bot.src.infra.telegram.command_parser import parse_command

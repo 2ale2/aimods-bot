@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from aimods_bot.src.helpers.constants.constants import Platform, RequestStatus, Category, FieldFormat, REQUESTS_TABLE, \
+from aimods_bot.src.core.constants import Platform, RequestStatus, Category, FieldFormat, REQUESTS_TABLE, \
     ChannelMembership
 from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger

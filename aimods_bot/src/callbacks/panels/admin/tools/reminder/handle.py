@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_r
     render_admin_reminder_tool_panel, render_reminder_created_panel, render_manage_reminders_list_panel, \
     render_reminder_card_panel
 from aimods_bot.src.core.customcontext import ReminderWizard, CustomContext
-from aimods_bot.src.helpers.constants.constants import ReminderField, Recurrence
+from aimods_bot.src.core.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute

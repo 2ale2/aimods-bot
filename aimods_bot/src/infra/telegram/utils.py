@@ -12,7 +12,7 @@ from telegram import (Update, ChatMember as PTBChatMember, InlineKeyboardMarkup,
 from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler
 
-import aimods_bot.src.helpers.constants.constants as constants
+import aimods_bot.src.core.constants as constants
 from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
