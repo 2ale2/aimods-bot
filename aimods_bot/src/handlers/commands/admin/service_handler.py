@@ -4,7 +4,7 @@ import asyncio
 from telegram.ext import MessageHandler, filters, PrefixHandler
 
 from aimods_bot.src.callbacks.commands.admin.test_mode import test_mode_command
-from aimods_bot.src.helpers.filters import MediaGroupIDMessageFilter
+from aimods_bot.src.infra.telegram.filters import MediaGroupIDMessageFilter
 from aimods_bot.src.callbacks.commands.admin.service_router import service_command_router
 from aimods_bot.src.helpers.utils.file_utils import get_data_from_json
 
