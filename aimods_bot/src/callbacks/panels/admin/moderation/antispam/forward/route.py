@@ -9,7 +9,7 @@ from aimods_bot.src.core.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import SecurityFiltersRoute, GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.moderation import ForwardRoute
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import set_moderation_bool_setting, not_implemented_yet
 
 

@@ -22,7 +22,7 @@ from aimods_bot.src.helpers.constants.path_navigation import UserRoute, Notifica
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import safe_delete
 

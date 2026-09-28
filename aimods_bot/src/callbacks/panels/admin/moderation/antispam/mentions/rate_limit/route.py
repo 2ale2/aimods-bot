@@ -10,7 +10,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 
 
 async def antispam_mentions_rate_limit_route(

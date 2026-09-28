@@ -5,7 +5,7 @@ from aimods_bot.src.helpers.constants.path_navigation import UserManageRequestsR
     GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel

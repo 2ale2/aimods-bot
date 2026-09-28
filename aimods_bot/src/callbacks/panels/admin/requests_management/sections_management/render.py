@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
     AdminRoute, LimitationsOp
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel, chunk_buttons
 from aimods_bot.src.core.config.accessor import get_section_config

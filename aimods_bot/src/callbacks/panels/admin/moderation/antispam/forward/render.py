@@ -5,7 +5,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChatType
 from aimods_bot.src.helpers.constants.path_navigation import SecurityFiltersRoute, GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.moderation import ForwardRoute
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import get_toggle_text, create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text

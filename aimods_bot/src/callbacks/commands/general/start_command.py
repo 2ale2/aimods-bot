@@ -5,7 +5,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, Admin
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.telegram.utils import safe_delete, get_banned_panel

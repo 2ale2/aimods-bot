@@ -11,7 +11,7 @@ from aimods_bot.src.core.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECK
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import get_duration_text

@@ -11,7 +11,7 @@ from aimods_bot.src.core.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, ModerationListsRoute
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.files import make_temp_file
 from aimods_bot.src.infra.telegram.utils import safe_delete, chunk_buttons, render_error_panel, \

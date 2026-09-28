@@ -17,7 +17,7 @@ from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute,
     AdminSettingsNotificationsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 
 
 async def admin_settings_management_route(

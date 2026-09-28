@@ -13,7 +13,7 @@ from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, Limit
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.helpers.scheduler import schedule_section_opening_check_for_user_notification
 from aimods_bot.src.core.config.accessor import get_section_config
 

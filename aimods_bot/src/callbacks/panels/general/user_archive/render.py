@@ -8,7 +8,7 @@ from telegram.error import BadRequest
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRoute, GlobalAction
 from aimods_bot.src.helpers.models.requests import BaseRequest
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.files import delete_os_file
 from aimods_bot.src.helpers.utils.request_utils import get_user_requests_archive

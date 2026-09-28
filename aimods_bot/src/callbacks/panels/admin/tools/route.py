@@ -4,7 +4,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.reminder.route import admin_rem
 from aimods_bot.src.callbacks.panels.admin.tools.render import render_admin_tools_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation.admin import AdminTools
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
 

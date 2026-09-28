@@ -9,7 +9,7 @@ from telegram.constants import ParseMode
 from telegram.error import Forbidden, TelegramError, BadRequest
 
 from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRoute
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.telegram.auth import is_admin

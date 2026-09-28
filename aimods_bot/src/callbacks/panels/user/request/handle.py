@@ -21,7 +21,7 @@ from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
 from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \

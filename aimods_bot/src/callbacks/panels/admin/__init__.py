@@ -10,7 +10,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.route import moderation_ro
 from aimods_bot.src.callbacks.panels.admin.requests_management.route import admin_requests_management_route
 from aimods_bot.src.callbacks.panels.admin.settings_management.route import admin_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.models.routing import PathBuilder
+from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import not_implemented_yet, safe_delete
 
 
