@@ -11,7 +11,7 @@ from aimods_bot.src.features.requests.admin.limit.route import (
 from aimods_bot.src.callbacks.panels.admin.tools.reminder.handle import handle_reminder_text_field, \
     handle_reminder_datetime_field
 from aimods_bot.src.callbacks.panels.general.router import general_router
-from aimods_bot.src.callbacks.panels.general.user_archive.route import handle_user_archive_user_input
+from aimods_bot.src.features.requests.archive.route import handle_user_archive_user_input
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.features.requests.user.handle import handle_wizard_callback_input, handle_wizard_back, \
     handle_wizard_text_input, handle_wizard_confirm

@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.general.user_archive.route import route_user_archive
+from aimods_bot.src.features.requests.archive.route import route_user_archive
 from aimods_bot.src.features.requests.user.management.handle import toggle_status_notifications
 from aimods_bot.src.features.requests.user.management.render import \
     render_manage_selected_request_panel, render_user_request_management_panel, \
