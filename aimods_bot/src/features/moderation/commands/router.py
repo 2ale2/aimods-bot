@@ -3,7 +3,7 @@ from aimods_bot.src.features.moderation.commands.ban import ban_user, unban_user
 from aimods_bot.src.features.moderation.commands.kick import kick_user
 from aimods_bot.src.features.moderation.commands.limit import limit_user
 from aimods_bot.src.callbacks.commands.admin.warn import warn_user, unwarn_user
-from aimods_bot.src.callbacks.commands.admin.mute import mute_user, unmute_user
+from aimods_bot.src.features.moderation.commands.mute import mute_user, unmute_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.alerts import send_private_alert
 from aimods_bot.src.infra.telegram.utils import safe_delete
