@@ -9,7 +9,7 @@ from aimods_bot.src.core.constants import Platform, RequestStatus, RejectRequest
 from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp, \
     NotificationAction
-from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest
+from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY, BaseRequest
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.ui.panel import ButtonItem

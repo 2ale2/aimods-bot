@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterable, AsyncIterator, Any
 
 from aimods_bot.src.core.constants import Platform, RequestStatus, FieldFormat, RequestField
-from aimods_bot.src.helpers.models.requests import BaseRequest
+from aimods_bot.src.features.requests.models import BaseRequest
 from aimods_bot.src.infra.files import convert_latex_to_pdf, create_latex_file, tex_escape
 from aimods_bot.src.shared.time_utils import format_time_as_rome
 

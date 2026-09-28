@@ -10,7 +10,7 @@ from aimods_bot.src.core.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECK
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER, GROUP_JOIN_LINK
 from aimods_bot.src.ui.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
+from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel, chunk_buttons

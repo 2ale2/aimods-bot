@@ -27,7 +27,7 @@ from aimods_bot.src.core.constants import ChannelMembership, Platform, Category,
     UNKNOWN_FIELD_SENTINEL
 from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
-from aimods_bot.src.helpers.models.requests import AndroidApp
+from aimods_bot.src.features.requests.models import AndroidApp
 from aimods_bot.src.ui.panel import ButtonItem, Panel, PanelConfig
 from aimods_bot.src.helpers.utils.request_utils import request_to_record, request_from_record
 

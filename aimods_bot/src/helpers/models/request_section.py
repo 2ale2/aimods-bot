@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 from aimods_bot.src.core.constants import Platform, Category
 if TYPE_CHECKING:
-    from aimods_bot.src.helpers.models.requests import CategoryConfig, BaseRequest
+    from aimods_bot.src.features.requests.models import CategoryConfig, BaseRequest
 
 
 _SEPARATOR = ":"
@@ -19,7 +19,7 @@ class RequestSection(BaseModel):
 
     @model_validator(mode="after")
     def _validate_combination(self) -> Self:
-        from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
+        from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
 
         categories = PLATFORM_CATEGORY_REGISTRY.get(self.platform)
         if categories is None:
@@ -47,7 +47,7 @@ class RequestSection(BaseModel):
 
     @property
     def category_config(self) -> CategoryConfig:
-        from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
+        from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
         return PLATFORM_CATEGORY_REGISTRY[self.platform][self.category]
 
     @property
