@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from telegram import Update
 
-from aimods_bot.src.callbacks.commands.admin.limit import limit_user
+from aimods_bot.src.features.moderation.commands.limit import limit_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ERROR_MESSAGES
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
