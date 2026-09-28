@@ -1,7 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.reboot import reboot
+from aimods_bot.src.features.service.reboot import reboot
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.infra.files import set_data_in_json
 from aimods_bot.src.infra.telegram.utils import safe_delete
