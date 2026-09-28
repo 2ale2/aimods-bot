@@ -29,7 +29,7 @@ from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import AndroidApp
 from aimods_bot.src.ui.panel import ButtonItem, Panel, PanelConfig
-from aimods_bot.src.helpers.utils.request_utils import request_to_record, request_from_record
+from aimods_bot.src.features.requests.repository import request_to_record, request_from_record
 
 CHANNEL = -100123
 USER = User(id=42, first_name="Mario", is_bot=False)

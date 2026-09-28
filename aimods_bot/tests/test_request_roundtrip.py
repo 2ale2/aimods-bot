@@ -8,7 +8,7 @@ from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import (
     AndroidApp, WindowsGame, WindowsAdobe, WindowsDaw, WindowsSoftware, IosApp, MacOsDaw, MacOsSoftware,
 )
-from aimods_bot.src.helpers.utils.request_utils import request_from_record, request_to_record
+from aimods_bot.src.features.requests.repository import request_from_record, request_to_record
 
 
 SAMPLES = [

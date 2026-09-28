@@ -11,7 +11,7 @@ from aimods_bot.src.features.requests.models import BaseRequest
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.files import delete_os_file
-from aimods_bot.src.helpers.utils.request_utils import get_user_requests_archive
+from aimods_bot.src.features.requests.repository import get_user_requests_archive
 from aimods_bot.src.helpers.utils.latex_utils import generate_user_archive_requests_pdf_file
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 
