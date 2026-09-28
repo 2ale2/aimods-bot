@@ -1,6 +1,6 @@
 from telegram.ext import PrefixHandler
 
-from aimods_bot.src.callbacks.commands.admin.troubleshooting import reset_user_conversation, reset_chat_data, \
+from aimods_bot.src.features.service.troubleshooting import reset_user_conversation, reset_chat_data, \
     erase_callback_queries, get_chat_data
 
 reset_user_conversation = PrefixHandler(
