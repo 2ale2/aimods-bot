@@ -8,7 +8,7 @@ from aimods_bot.src.core.customcontext import CustomContext, RequestWizardSessio
 from aimods_bot.src.core.config.models import RequestCooldown
 from aimods_bot.src.core.constants import LOCAL_TZ, EMOJI_HOURGLASS, EMOJI_CHECKMARK, EMOJI_DOT_ORANGE, \
     DATETIME_FORMAT, EMOJI_QUESTION_RED, EMOJI_DOT_BLUE, Platform, EMOJI_NUMBER, GROUP_JOIN_LINK
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
+from aimods_bot.src.ui.path_navigation import GlobalAction, UserRoute, UserManageRequestsRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, FIELD_MESSAGES
 from aimods_bot.src.ui.routing import PathBuilder

@@ -29,7 +29,7 @@ from aimods_bot.src.callbacks.panels.general.user_archive.route import route_use
 from aimods_bot.src.core.customcontext import CustomContext, RequestRejectionSession
 from aimods_bot.src.core.constants import RequestStatus, Platform, Category, RejectRequestReason
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import AdminRequestsRoute, \
+from aimods_bot.src.ui.path_navigation import AdminRequestsRoute, \
     LimitationsOp, AdminRequestManagementRoute, GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection

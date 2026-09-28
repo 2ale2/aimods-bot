@@ -6,7 +6,7 @@ from telegram.constants import ChatAction
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import CategorySetting
 from aimods_bot.src.core.constants import Platform, RequestStatus, RejectRequestReason, ChannelMembership
-from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute, AdminRoute, \
+from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp, \
     NotificationAction
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY, BaseRequest

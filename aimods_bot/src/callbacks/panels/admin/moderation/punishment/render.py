@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
+from aimods_bot.src.ui.path_navigation import PunishmentRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.core.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS

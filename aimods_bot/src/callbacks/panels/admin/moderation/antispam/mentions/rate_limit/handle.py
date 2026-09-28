@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute
+from aimods_bot.src.ui.path_navigation.moderation import ModerationSettingRoute
 from aimods_bot.src.infra.log import logger
 
 log = logger.getChild(__name__)

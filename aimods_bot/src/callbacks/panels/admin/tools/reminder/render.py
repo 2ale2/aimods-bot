@@ -6,8 +6,8 @@ from aimods_bot.src.core.customcontext import CustomContext, ReminderWizard
 from aimods_bot.src.core.constants import ReminderField, Recurrence, WEEKDAYS, REMINDER_TIME_FORMAT, \
     REMINDER_DATETIME_FORMAT, EMOJI_NUMBER
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
+from aimods_bot.src.ui.path_navigation import GlobalAction
+from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem

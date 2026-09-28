@@ -7,7 +7,7 @@ from aimods_bot.src.core.config.accessor import set_value, get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 
-from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
+from aimods_bot.src.ui.path_navigation import PunishmentRoute
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
 from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration

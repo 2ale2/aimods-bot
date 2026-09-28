@@ -4,7 +4,7 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import RequestSectionLimitation
-from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow
+from aimods_bot.src.ui.path_navigation import LimitationsFlow
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection

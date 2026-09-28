@@ -7,7 +7,7 @@ from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import get_allow_after_text
-from aimods_bot.src.helpers.constants.path_navigation import SecurityFiltersRoute
+from aimods_bot.src.ui.path_navigation import SecurityFiltersRoute
 
 
 async def render_antispam_links_panel(update: Update, context: CustomContext, base_path: PathBuilder):

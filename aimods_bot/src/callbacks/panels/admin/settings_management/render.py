@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import Platform
-from aimods_bot.src.helpers.constants.path_navigation import AdminSettingsRoute, \
+from aimods_bot.src.ui.path_navigation import AdminSettingsRoute, \
     AdminSettingsNotificationsRoute, GlobalAction
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY

@@ -3,12 +3,12 @@ from typing import Literal
 from telegram import Update
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.constants.path_navigation.common import DigitRoute
+from aimods_bot.src.ui.path_navigation import GlobalAction
+from aimods_bot.src.ui.path_navigation.common import DigitRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 
-from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
+from aimods_bot.src.ui.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
 from aimods_bot.src.helpers.utils.time_utils import get_rate_limit_text, pluralize
 from aimods_bot.src.infra.telegram.utils import get_toggle_text, create_and_render_panel
 

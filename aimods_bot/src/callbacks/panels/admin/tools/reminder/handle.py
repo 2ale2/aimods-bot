@@ -9,8 +9,8 @@ from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_r
 from aimods_bot.src.core.customcontext import ReminderWizard, CustomContext
 from aimods_bot.src.core.constants import ReminderField, Recurrence
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
+from aimods_bot.src.ui.path_navigation import GlobalAction
+from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
 from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job, scheduled_send_reminder, remove_job
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName

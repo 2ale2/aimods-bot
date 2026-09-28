@@ -6,7 +6,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import r
     render_punishment_duration_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute, SecurityFiltersRoute
+from aimods_bot.src.ui.path_navigation import PunishmentRoute, SecurityFiltersRoute
 from aimods_bot.src.ui.routing import PathBuilder
 
 

@@ -8,7 +8,7 @@ from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPre
 from telegram.constants import ParseMode
 from telegram.error import Forbidden, TelegramError, BadRequest
 
-from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRoute
+from aimods_bot.src.ui.path_navigation import AdminRoute, UserRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.infra.log import logger

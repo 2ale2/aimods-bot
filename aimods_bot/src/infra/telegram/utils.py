@@ -16,7 +16,7 @@ import aimods_bot.src.core.constants as constants
 from aimods_bot.src.core.config.accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import CallbackDataException, UserMentionException
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
+from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import PanelConfig, Panel, ButtonItem

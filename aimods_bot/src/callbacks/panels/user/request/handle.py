@@ -16,7 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext, ChatData, RequestWi
 from aimods_bot.src.core.constants import (RequestField, RequestStatus, REQUESTS_TABLE,
                                                         BYPASS_REQUEST_LIMITS_USERS, ChannelMembership)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, UserRoute
+from aimods_bot.src.ui.path_navigation import GlobalAction, UserRoute
 from aimods_bot.src.infra.db.queries import fetch_query
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection

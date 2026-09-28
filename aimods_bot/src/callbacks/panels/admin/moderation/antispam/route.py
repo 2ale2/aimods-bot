@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import ren
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_route
 from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, SecurityFiltersRoute, \
+from aimods_bot.src.ui.path_navigation import GlobalAction, SecurityFiltersRoute, \
     AntispamRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.infra.log import logger

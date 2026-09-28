@@ -9,7 +9,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
     render_admin_request_section_limit_confirmed_panel, render_admin_request_section_limit_confirm_panel
 )
 from aimods_bot.src.core.constants import Platform, Category
-from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, LimitationsOp
+from aimods_bot.src.ui.path_navigation import GlobalAction, LimitationsOp
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.request_section import RequestSection

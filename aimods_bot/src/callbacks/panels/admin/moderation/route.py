@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.render import render_moder
     render_security_filters_panel
 from aimods_bot.src.callbacks.panels.admin.moderation.antiflood.route import antiflood_route
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import ModerationRoute, SecurityFiltersRoute
+from aimods_bot.src.ui.path_navigation import ModerationRoute, SecurityFiltersRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import not_implemented_yet

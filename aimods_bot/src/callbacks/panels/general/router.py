@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.commands.general.start_command import start
 from aimods_bot.src.callbacks.panels.admin import admin_main_router
 from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.path_navigation import UserRoute, AdminRoute
+from aimods_bot.src.ui.path_navigation import UserRoute, AdminRoute
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.auth import is_admin

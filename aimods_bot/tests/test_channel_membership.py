@@ -25,7 +25,7 @@ import aimods_bot.src.core.customcontext as customcontext
 from aimods_bot.src.core.customcontext import CustomContext, BotData, _membership_from_status
 from aimods_bot.src.core.constants import ChannelMembership, Platform, Category, RequestStatus, \
     UNKNOWN_FIELD_SENTINEL
-from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute
+from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import AndroidApp
 from aimods_bot.src.ui.panel import ButtonItem, Panel, PanelConfig
