@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op, log
+from aimods_bot.src.callbacks.panels.admin.requests_management.handle import handle_membership_op
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.route import route_admin_manage_limitations

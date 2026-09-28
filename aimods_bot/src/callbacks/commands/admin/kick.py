@@ -4,7 +4,7 @@ from pyrogram.types import ChatMember as PyroChatMember
 from telegram import Update, ChatMemberMember as PTBChatMember
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants import constants as constants
+import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.helpers.database import add_to_table
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.loggers import logger

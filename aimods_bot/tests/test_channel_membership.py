@@ -19,9 +19,9 @@ from telegram import (
 )
 from telegram.error import BadRequest, Forbidden, NetworkError, TimedOut
 
-from aimods_bot.src.callbacks.panels.admin.requests_management import render as admin_render, handle
-from aimods_bot.src.callbacks.panels.admin.requests_management import route as admin_route
-from aimods_bot.src.core import customcontext
+import aimods_bot.src.callbacks.panels.admin.requests_management.render as admin_render
+import aimods_bot.src.callbacks.panels.admin.requests_management.handle as handle
+import aimods_bot.src.core.customcontext as customcontext
 from aimods_bot.src.core.customcontext import CustomContext, BotData, _membership_from_status
 from aimods_bot.src.helpers.constants.constants import ChannelMembership, Platform, Category, RequestStatus, \
     UNKNOWN_FIELD_SENTINEL

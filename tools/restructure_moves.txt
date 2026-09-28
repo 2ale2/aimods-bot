@@ -1,0 +1,110 @@
+# Ristrutturazione di aimods_bot/src — elenco degli spostamenti, in ordine.
+# Una riga = un commit:  VECCHIO  NUOVO  [--init-only]
+# I percorsi sono puntati e relativi ad aimods_bot.src.
+# Le righe che iniziano con "!" sono passi a mano: vedi aimods_bot/docs/RESTRUCTURE.md.
+
+## FASE 1a — infrastruttura
+helpers.loggers                         infra.log
+core.database_pool                      infra.db.pool
+helpers.database                        infra.db.queries
+core.async_persistence                  infra.db.persistence
+helpers.models.job_names                infra.scheduling.job_names
+helpers.models.jobs                     infra.scheduling.jobs
+helpers.job_queue                       infra.scheduling.job_queue
+helpers.utils.telegram_utils            infra.telegram.utils
+helpers.utils.botapi_10_1               infra.telegram.botapi_10_1
+helpers.utils.chat_utils                infra.telegram.chat
+helpers.filters                         infra.telegram.filters
+helpers.utils.command_parser            infra.telegram.command_parser
+helpers.utils.auth                      infra.telegram.auth
+helpers.utils.file_utils                infra.files
+
+## FASE 1b — nucleo condiviso
+core.pydantic                           core.config.models
+core.config_loader                      core.config.loader
+core.config_accessor                    core.config.accessor
+helpers.constants.constants             core.constants
+helpers.constants.permissions           core.permissions
+helpers.constants.media                 core.media
+helpers.constants.paths                 core.paths
+! paths: parents[3] -> parents[2]
+helpers.models.utils                    core.models
+
+## FASE 1c — interfaccia e funzioni pure
+helpers.models.ui                       ui.panel
+helpers.models.routing                  ui.routing
+helpers.models.typed_callback_data      ui.callback_data
+helpers.utils.alerts                    ui.alerts
+helpers.constants.path_navigation       ui.path_navigation
+helpers.constants.conversation_states   ui.conversation_states
+helpers.utils.text_utils                shared.text_utils
+helpers.utils.time_utils                shared.time_utils
+
+## FASE 1d — avvio e cablaggio
+main.init                               app.main
+core.setup                              app.setup
+core.shutdown                           app.shutdown
+handlers.conversation_handlers          app.handlers.conversation
+handlers.channel_handlers               app.handlers.channel
+handlers.commands                       app.handlers.commands
+
+## FASE 2a — richieste
+helpers.models.requests                 features.requests.models
+helpers.models.request_section          features.requests.section
+helpers.utils.request_utils             features.requests.repository
+helpers.utils.bulk_sender               features.requests.notifications
+helpers.scheduler                       features.requests.scheduling
+callbacks.panels.user.request           features.requests.user
+callbacks.panels.admin.requests_management  features.requests.admin
+callbacks.panels.general.user_archive   features.requests.archive
+helpers.utils.latex_utils               features.requests.archive.latex
+
+## FASE 2b — promemoria
+helpers.models.reminders                features.reminders.models
+helpers.reminders_utils                 features.reminders.repository
+helpers.utils.reminder_time_utils       features.reminders.schedule
+callbacks.panels.admin.tools.reminder   features.reminders.panels
+
+## FASE 2c — moderazione
+callbacks.panels.admin.moderation       features.moderation.panels
+callbacks.commands.admin.moderation_router  features.moderation.commands.router
+callbacks.commands.admin.ban            features.moderation.commands.ban
+callbacks.commands.admin.kick           features.moderation.commands.kick
+callbacks.commands.admin.limit          features.moderation.commands.limit
+callbacks.commands.admin.mute           features.moderation.commands.mute
+callbacks.commands.admin.warn           features.moderation.commands.warn
+helpers.utils.user_utils                features.moderation.members
+core.logger                             features.moderation.event_log
+
+## FASE 2d — comandi di servizio
+callbacks.commands.admin.service_router features.service.router
+callbacks.commands.admin.echo           features.service.echo
+callbacks.commands.admin.test_mode      features.service.test_mode
+callbacks.commands.admin.troubleshooting    features.service.troubleshooting
+callbacks.commands.general.check_command    features.service.check
+core.reboot                             features.service.reboot
+
+## FASE 2e — ingresso nel gruppo (con la Mini App di verifica), recap, impostazioni
+handlers.join_request                   features.onboarding.join_request
+helpers.utils.join_request_sweeper      features.onboarding.sweeper
+helpers.miniapp_server                  features.onboarding.miniapp_server
+helpers.utils.initdata                  features.onboarding.initdata
+callbacks.status_updates.new_member     features.onboarding.new_member
+callbacks.status_updates.accept_rules   features.onboarding.accept_rules
+tasks.channel_recap                     features.recap.channel_recap
+callbacks.panels.admin.settings_management  features.settings.admin
+callbacks.panels.user.settings_management   features.settings.user
+
+## FASE 2f — menù (per ultimi: importano tutto il resto)
+callbacks.commands.general.start_command    app.menus.start
+callbacks.panels.admin.tools            app.menus.tools
+callbacks.panels.general.router         app.menus.general
+callbacks.panels.admin                  app.menus.admin     --init-only
+callbacks.panels.user                   app.menus.user      --init-only
+! pulizia: package vuoti rimasti
+
+## FASE 2g — dividere i file che tirano nella direzione sbagliata
+# `@symbols VECCHIO NUOVO nomi...` sposta funzioni, non file (tools/move_symbols.py)
+@symbols infra.scheduling.job_queue features.requests.jobs scheduled_remove_completed_requests scheduled_remove_user_request_cooldown scheduled_remove_user_request_section_limitation scheduled_section_opening_check_for_user_notification
+@symbols infra.scheduling.job_queue features.reminders.jobs deliver_reminder scheduled_send_reminder
+@symbols infra.telegram.utils ui.helpers safe_delete_wrapper chunk_buttons render_error_panel wrong_input_message not_implemented_yet create_and_render_panel get_banned_panel render_action_not_permitted_panel
