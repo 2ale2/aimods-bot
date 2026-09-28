@@ -24,7 +24,7 @@ from aimods_bot.src.features.requests.models import BaseRequest
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.helpers.scheduler import schedule_request_cooldown_removal
-from aimods_bot.src.helpers.utils.bulk_sender import send_new_request_admin_notification, \
+from aimods_bot.src.features.requests.notifications import send_new_request_admin_notification, \
     send_section_closing_admin_notification
 from aimods_bot.src.infra.files import save_yaml_configuration
 from aimods_bot.src.features.requests.repository import request_to_record
