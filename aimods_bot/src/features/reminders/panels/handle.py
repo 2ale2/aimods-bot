@@ -11,7 +11,8 @@ from aimods_bot.src.core.constants import ReminderField, Recurrence
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
-from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job, scheduled_send_reminder, remove_job
+from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job, remove_job
+from aimods_bot.src.features.reminders.jobs import scheduled_send_reminder
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import ReminderJobName
 from aimods_bot.src.infra.scheduling.jobs import ReminderJob

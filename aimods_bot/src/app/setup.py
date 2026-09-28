@@ -17,7 +17,8 @@ from aimods_bot.src.core.constants import (
     SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, CHANNEL_JOIN_LINK, GROUP_JOIN_LINK, RequestStatus
 )
 from aimods_bot.src.infra.db.queries import fetch_query
-from aimods_bot.src.infra.scheduling.job_queue import scheduled_send_reminder, schedule_unique_job, deliver_reminder
+from aimods_bot.src.infra.scheduling.job_queue import schedule_unique_job
+from aimods_bot.src.features.reminders.jobs import scheduled_send_reminder, deliver_reminder
 from aimods_bot.src.features.requests.jobs import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_completed_requests
 from aimods_bot.src.infra.log import logger
