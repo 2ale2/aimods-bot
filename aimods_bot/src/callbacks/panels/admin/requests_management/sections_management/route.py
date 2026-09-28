@@ -10,7 +10,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.sections_manageme
 )
 from aimods_bot.src.core.constants import Platform, Category
 from aimods_bot.src.ui.path_navigation import GlobalAction, LimitationsOp
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.ui.routing import PathBuilder

@@ -16,7 +16,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import CategorySetting, RequestSectionLimitation
 from aimods_bot.src.core.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category, \
     BYPASS_REQUEST_LIMITS_USERS, ChannelMembership
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import UserRoute, NotificationAction as NA, \
     UserManageRequestsRoute
 from aimods_bot.src.infra.log import logger

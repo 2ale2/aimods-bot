@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.user.request.management.render import \
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import RequestStatus
 from aimods_bot.src.ui.path_navigation import UserManageRequestsRoute, GlobalAction, NotificationAction
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 

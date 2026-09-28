@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import pu
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChatType
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import SecurityFiltersRoute, AntispamRoute, GlobalAction
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import set_moderation_bool_setting

@@ -10,7 +10,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.reminder.render import render_a
     render_reminder_delete_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ReminderField
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.ui.path_navigation.admin import ReminderRoute
 from aimods_bot.src.infra.log import logger

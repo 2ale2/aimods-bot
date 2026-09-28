@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_lim
 from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_limit.render import \
     render_antispam_mentions_rate_limit_panel, render_antispam_mentions_rate_limit_setting_panel
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.ui.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
 from aimods_bot.src.ui.routing import PathBuilder

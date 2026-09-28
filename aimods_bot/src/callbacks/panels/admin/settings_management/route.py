@@ -15,7 +15,7 @@ from aimods_bot.src.callbacks.panels.admin.settings_management.render import (
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation import AdminSettingsRoute, NotificationAction, \
     AdminSettingsNotificationsRoute
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.ui.routing import PathBuilder
 

@@ -16,7 +16,7 @@ from aimods_bot.src.callbacks.panels.user import user_main_router
 from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_callback_input, handle_wizard_back, \
     handle_wizard_text_input, handle_wizard_confirm
 from aimods_bot.src.core.constants import COMMAND_PREFIX
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import GlobalAction
 from aimods_bot.src.infra.telegram.utils import safe_delete_wrapper
 

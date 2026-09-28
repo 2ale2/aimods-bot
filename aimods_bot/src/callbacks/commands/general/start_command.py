@@ -4,7 +4,7 @@ from telegram.ext import ConversationHandler
 from aimods_bot.src.ui.path_navigation import GlobalAction, AdminRoute, UserRoute
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.ui.panel import Panel, PanelConfig, ButtonItem
 from aimods_bot.src.infra.log import logger

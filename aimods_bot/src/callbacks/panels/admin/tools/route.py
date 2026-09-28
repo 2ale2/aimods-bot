@@ -5,7 +5,7 @@ from aimods_bot.src.callbacks.panels.admin.tools.render import render_admin_tool
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation.admin import AdminTools
 from aimods_bot.src.ui.routing import PathBuilder
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 
 
 async def admin_tools_route(

@@ -11,7 +11,7 @@ from aimods_bot.src.infra.scheduling.jobs import EditMessageJob
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 from aimods_bot.src.infra.telegram.utils import safe_delete
 
-from aimods_bot.src.helpers.constants.conversation_states.new_user import NewUserState
+from aimods_bot.src.ui.conversation_states.new_user import NewUserState
 
 TIMEOUT_SECONDS = 300
 

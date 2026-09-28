@@ -19,7 +19,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.limit.render impo
     render_admin_user_limitation_removed_panel, render_admin_remove_user_limitation_panel,
     render_admin_user_limitation_confirmed_panel, render_admin_view_user_request_limitations_panel)
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import LimitationsOp, LimitationsFlow, GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection

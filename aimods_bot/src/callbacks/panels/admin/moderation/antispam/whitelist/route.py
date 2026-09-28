@@ -7,7 +7,7 @@ from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.render 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChatType
 from aimods_bot.src.ui.path_navigation import ModerationListsRoute
-from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
+from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import safe_delete
 
