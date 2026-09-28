@@ -1,8 +1,8 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.punishment.handle import set_punishment_type, \
+from aimods_bot.src.features.moderation.panels.punishment.handle import set_punishment_type, \
     set_punishment_duration, set_as_parent
-from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel, \
+from aimods_bot.src.features.moderation.panels.punishment.render import render_punishment_panel, \
     render_punishment_duration_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

@@ -1,12 +1,12 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.forward.route import antispam_forward_route
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.handle import toggle_antispam
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.route import antispam_link_route
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.route import antispam_mention_route
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.render import render_antispam_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.route import antispam_whitelist_route
-from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
+from aimods_bot.src.features.moderation.panels.antispam.forward.route import antispam_forward_route
+from aimods_bot.src.features.moderation.panels.antispam.handle import toggle_antispam
+from aimods_bot.src.features.moderation.panels.antispam.links.route import antispam_link_route
+from aimods_bot.src.features.moderation.panels.antispam.mentions.route import antispam_mention_route
+from aimods_bot.src.features.moderation.panels.antispam.render import render_antispam_panel
+from aimods_bot.src.features.moderation.panels.antispam.whitelist.route import antispam_whitelist_route
+from aimods_bot.src.features.moderation.panels.punishment.route import punishment_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation import GlobalAction, SecurityFiltersRoute, \
     AntispamRoute

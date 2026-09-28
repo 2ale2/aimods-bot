@@ -1,9 +1,9 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.route import antispam_route
-from aimods_bot.src.callbacks.panels.admin.moderation.render import render_moderation_panel, \
+from aimods_bot.src.features.moderation.panels.antispam.route import antispam_route
+from aimods_bot.src.features.moderation.panels.render import render_moderation_panel, \
     render_security_filters_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.antiflood.route import antiflood_route
+from aimods_bot.src.features.moderation.panels.antiflood.route import antiflood_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.path_navigation import ModerationRoute, SecurityFiltersRoute
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

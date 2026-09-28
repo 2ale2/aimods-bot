@@ -1,7 +1,7 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.handle import view_list, edit_list
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.render import render_antispam_links_list_panel
+from aimods_bot.src.features.moderation.panels.antispam.links.list.handle import view_list, edit_list
+from aimods_bot.src.features.moderation.panels.antispam.links.list.render import render_antispam_links_list_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ModerationList
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

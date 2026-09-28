@@ -2,9 +2,9 @@ from typing import Literal
 
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_limit.handle import \
+from aimods_bot.src.features.moderation.panels.antispam.mentions.rate_limit.handle import \
     set_antispam_mention_rate_limit
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.mentions.rate_limit.render import \
+from aimods_bot.src.features.moderation.panels.antispam.mentions.rate_limit.render import \
     render_antispam_mentions_rate_limit_panel, render_antispam_mentions_rate_limit_setting_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

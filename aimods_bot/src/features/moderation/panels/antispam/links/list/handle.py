@@ -2,9 +2,9 @@ from urllib.parse import urlparse
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Message
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.render import \
+from aimods_bot.src.features.moderation.panels.antispam.links.list.render import \
     render_antispam_edit_link_list_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.render import render_empty_list_panel
+from aimods_bot.src.features.moderation.panels.antispam.links.render import render_empty_list_panel
 from aimods_bot.src.core.config.accessor import get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ModerationList

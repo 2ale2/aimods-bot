@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
-from aimods_bot.src.callbacks.panels.admin.moderation.punishment.render import render_punishment_panel
+from aimods_bot.src.features.moderation.panels.punishment.render import render_punishment_panel
 from aimods_bot.src.core.config.accessor import set_value, get_value
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

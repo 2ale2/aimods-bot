@@ -1,9 +1,9 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.allow_after.route import antispam_link_allow_after_route
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.list.route import antispam_links_list_route
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.links.render import render_antispam_links_panel
-from aimods_bot.src.callbacks.panels.admin.moderation.punishment.route import punishment_route
+from aimods_bot.src.features.moderation.panels.allow_after.route import antispam_link_allow_after_route
+from aimods_bot.src.features.moderation.panels.antispam.links.list.route import antispam_links_list_route
+from aimods_bot.src.features.moderation.panels.antispam.links.render import render_antispam_links_panel
+from aimods_bot.src.features.moderation.panels.punishment.route import punishment_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ModerationList
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS

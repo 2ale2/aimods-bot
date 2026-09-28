@@ -1,8 +1,8 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.handle import view_whitelist, \
+from aimods_bot.src.features.moderation.panels.antispam.whitelist.handle import view_whitelist, \
     edit_whitelist_pre_step, remove_from_whitelist
-from aimods_bot.src.callbacks.panels.admin.moderation.antispam.whitelist.render import render_antispam_whitelist_panel, \
+from aimods_bot.src.features.moderation.panels.antispam.whitelist.render import render_antispam_whitelist_panel, \
     render_antispam_whitelist_view_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChatType

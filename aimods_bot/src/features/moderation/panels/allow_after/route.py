@@ -1,7 +1,7 @@
 from telegram import Update
 
-from aimods_bot.src.callbacks.panels.admin.moderation.allow_after.handle import set_antispam_link_allow_after
-from aimods_bot.src.callbacks.panels.admin.moderation.allow_after.render import render_allow_after_panel
+from aimods_bot.src.features.moderation.panels.allow_after.handle import set_antispam_link_allow_after
+from aimods_bot.src.features.moderation.panels.allow_after.render import render_allow_after_panel
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.routing import PathBuilder
