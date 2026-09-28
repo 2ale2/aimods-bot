@@ -6,7 +6,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, render_action_not_permitted_panel, \
+from aimods_bot.src.infra.telegram.utils import wrong_input_message, render_action_not_permitted_panel, \
     safe_delete, is_user_id
 from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
 from aimods_bot.src.helpers.utils.auth import is_admin

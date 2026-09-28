@@ -6,7 +6,7 @@ from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.constants.constants import PUNISHMENT_EMOJIS, MODERATION_DISPLAY_ITEMS
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 from aimods_bot.src.helpers.utils.time_utils import sec_value_limited, get_duration_text
 
 

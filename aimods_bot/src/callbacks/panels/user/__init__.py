@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 from aimods_bot.src.helpers.constants.path_navigation import UserRoute, GlobalAction
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.helpers.utils.user_utils import check_auth
 
 log = logger.getChild(__name__)

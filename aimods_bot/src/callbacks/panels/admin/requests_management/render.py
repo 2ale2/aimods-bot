@@ -15,7 +15,7 @@ from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details, get_last_n_requests
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, create_and_render_panel, chunk_buttons
+from aimods_bot.src.infra.telegram.utils import safe_delete, create_and_render_panel, chunk_buttons
 from aimods_bot.src.helpers.utils.time_utils import pluralize
 
 log = logger.getChild(__name__)

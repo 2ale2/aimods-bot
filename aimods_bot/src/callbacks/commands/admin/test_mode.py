@@ -4,7 +4,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.reboot import reboot
 from aimods_bot.src.infra.scheduling.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.file_utils import set_data_in_json
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.infra.telegram.utils import safe_delete
 
 
 async def test_mode_command(update: Update, context: CustomContext):

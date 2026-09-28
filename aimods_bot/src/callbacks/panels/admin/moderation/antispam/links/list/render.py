@@ -5,7 +5,7 @@ from aimods_bot.src.helpers.constants.constants import ModerationList
 from aimods_bot.src.helpers.constants.path_navigation import ModerationListsRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 
 
 async def render_antispam_links_list_panel(

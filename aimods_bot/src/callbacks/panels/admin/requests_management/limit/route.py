@@ -24,7 +24,7 @@ from aimods_bot.src.helpers.constants.path_navigation import LimitationsOp, Limi
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import wrong_input_message, is_user_id, safe_delete
+from aimods_bot.src.infra.telegram.utils import wrong_input_message, is_user_id, safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration, timedelta_to_seconds
 from aimods_bot.src.helpers.utils.user_utils import resolve_user_from_identifier
 from aimods_bot.src.helpers.utils.auth import is_admin

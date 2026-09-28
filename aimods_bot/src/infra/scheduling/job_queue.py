@@ -24,7 +24,7 @@ from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
 from aimods_bot.src.helpers.models.utils import MediaItem
 from aimods_bot.src.helpers.utils.bulk_sender import send_opening_notifications
 from aimods_bot.src.helpers.utils.file_utils import get_file_type, normalize_files, delete_os_file
-from aimods_bot.src.helpers.utils.telegram_utils import get_valid_thread_id
+from aimods_bot.src.infra.telegram.utils import get_valid_thread_id
 
 log = logger.getChild(__name__)
 

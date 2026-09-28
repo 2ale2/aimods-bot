@@ -18,7 +18,7 @@ from aimods_bot.src.callbacks.panels.user.request.handle import handle_wizard_ca
 from aimods_bot.src.helpers.constants.constants import COMMAND_PREFIX
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete_wrapper
+from aimods_bot.src.infra.telegram.utils import safe_delete_wrapper
 
 main_private_conversation_handler = ConversationHandler(
     entry_points=[

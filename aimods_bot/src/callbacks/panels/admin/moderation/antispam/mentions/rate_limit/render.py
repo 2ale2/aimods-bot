@@ -10,7 +10,7 @@ from aimods_bot.src.helpers.models.ui import ButtonItem
 
 from aimods_bot.src.helpers.constants.path_navigation.moderation import ModerationSettingRoute, RateLimitTimeRoute
 from aimods_bot.src.helpers.utils.time_utils import get_rate_limit_text, pluralize
-from aimods_bot.src.helpers.utils.telegram_utils import get_toggle_text, create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import get_toggle_text, create_and_render_panel
 
 
 async def render_antispam_mentions_rate_limit_panel(update: Update, context: CustomContext, base_path: PathBuilder):

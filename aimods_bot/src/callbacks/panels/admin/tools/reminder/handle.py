@@ -20,7 +20,7 @@ from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.reminders_utils import create_reminder, get_reminder, delete_reminder, toggle_reminder, \
     reschedule_reminder, update_reminder
 from aimods_bot.src.helpers.utils.reminder_time_utils import advance_past
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.helpers.utils.text_utils import to_int
 from aimods_bot.src.helpers.utils.time_utils import parse_clock_time, parse_absolute_datetime, is_nonexistent_local_time
 

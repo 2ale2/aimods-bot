@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 
 from aimods_bot.src.helpers.constants.path_navigation import PunishmentRoute
 from aimods_bot.src.infra.scheduling.job_queue import send_action_message_after
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
 
 

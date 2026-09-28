@@ -11,7 +11,7 @@ from aimods_bot.src.callbacks.panels.admin.requests_management.route import admi
 from aimods_bot.src.callbacks.panels.admin.settings_management.route import admin_settings_management_route
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import not_implemented_yet, safe_delete
+from aimods_bot.src.infra.telegram.utils import not_implemented_yet, safe_delete
 
 
 async def admin_main_router(update: Update, context: CustomContext):

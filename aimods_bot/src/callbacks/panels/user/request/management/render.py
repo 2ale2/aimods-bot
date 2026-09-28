@@ -8,7 +8,7 @@ from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.request_utils import get_requests_summary, get_request_details
-from aimods_bot.src.helpers.utils.telegram_utils import create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import create_and_render_panel
 
 log = logger.getChild(__name__)
 

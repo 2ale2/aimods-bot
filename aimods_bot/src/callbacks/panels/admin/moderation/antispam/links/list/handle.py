@@ -15,7 +15,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.helpers.models.ui import ButtonItem
 from aimods_bot.src.helpers.utils.file_utils import make_temp_file
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, render_error_panel, create_and_render_panel
+from aimods_bot.src.infra.telegram.utils import safe_delete, render_error_panel, create_and_render_panel
 
 log = logger.getChild(__name__)
 

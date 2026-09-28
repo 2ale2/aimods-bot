@@ -9,7 +9,7 @@ from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.path_navigation import ModerationListsRoute
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import safe_delete
+from aimods_bot.src.infra.telegram.utils import safe_delete
 
 
 async def antispam_whitelist_backer(update: Update, context: CustomContext, root: PathBuilder):

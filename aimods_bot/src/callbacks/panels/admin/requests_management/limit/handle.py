@@ -9,7 +9,7 @@ from aimods_bot.src.infra.log import logger
 from aimods_bot.src.infra.scheduling.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion
-from aimods_bot.src.helpers.utils.telegram_utils import render_error_panel
+from aimods_bot.src.infra.telegram.utils import render_error_panel
 
 log = logger.getChild(__name__)
 

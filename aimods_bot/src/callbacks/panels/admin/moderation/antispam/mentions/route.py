@@ -11,7 +11,7 @@ from aimods_bot.src.helpers.constants.constants import ChatType
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import SecurityFiltersRoute, AntispamRoute, GlobalAction
 from aimods_bot.src.helpers.models.routing import PathBuilder
-from aimods_bot.src.helpers.utils.telegram_utils import set_moderation_bool_setting
+from aimods_bot.src.infra.telegram.utils import set_moderation_bool_setting
 
 
 async def antispam_mention_route(update: Update, context: CustomContext, root: PathBuilder, relative_path: PathBuilder):
