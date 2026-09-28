@@ -6,7 +6,7 @@ from pydantic import BaseModel, BeforeValidator, HttpUrl, ConfigDict, AfterValid
 
 from aimods_bot.src.helpers.constants.constants import Platform, Category, RequestField, RequestStatus, \
     ChannelMembership
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.utils import MessageTemplate
 

@@ -6,7 +6,7 @@ from telegram.constants import ParseMode
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.utils.telegram_utils import format_user_mention, resolve_chat_member, normalize_user
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.time_utils import zero_datetime, format_time_as_rome
 
 log = logger.getChild(__name__)

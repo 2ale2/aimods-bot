@@ -4,7 +4,7 @@ from telegram import Update, Message
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingConfigurationException
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, normalize_user, is_user_id
 from aimods_bot.src.helpers.utils.time_utils import parse_duration
 

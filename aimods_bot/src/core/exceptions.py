@@ -1,6 +1,6 @@
 from typing import Any
 
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild("exceptions")
 

@@ -8,7 +8,7 @@ from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.path_navigation import (LimitationsAction, LimitationsFlow, GlobalAction,
                                                               AdminRoute, LimitationsOp, ModerationListsRoute)
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import PLATFORM_CATEGORY_REGISTRY
 from aimods_bot.src.helpers.models.routing import PathBuilder

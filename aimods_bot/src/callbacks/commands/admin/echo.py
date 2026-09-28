@@ -11,7 +11,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.media import MEDIA_GROUP_TYPES
 from aimods_bot.src.helpers.job_queue import send_action_message_after
 from aimods_bot.src.helpers.job_queue import send_temporary_message
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.telegram_utils import safe_delete, split_command_and_argument
 from aimods_bot.src.helpers.utils.auth import is_admin
 

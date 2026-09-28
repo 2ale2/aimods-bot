@@ -5,7 +5,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 from aimods_bot.src.core.exceptions import DatabaseBotException
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild(__name__)
 

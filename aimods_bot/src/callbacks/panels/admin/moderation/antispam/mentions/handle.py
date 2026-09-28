@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.config_accessor import set_value
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 map_to_word = {
     "user": "Utenti",

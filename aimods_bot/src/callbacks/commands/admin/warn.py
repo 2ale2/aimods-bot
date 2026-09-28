@@ -8,7 +8,7 @@ from aimods_bot.src.callbacks.commands.admin.ban import attempt_ban_user
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.database import add_to_table, revoke_last_action
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.helpers.job_queue import send_temporary_message
 from aimods_bot.src.helpers.utils.alerts import send_private_alert

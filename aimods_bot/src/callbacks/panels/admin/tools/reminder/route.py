@@ -13,7 +13,7 @@ from aimods_bot.src.helpers.constants.constants import ReminderField
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.routing import PathBuilder
 
 log = logger.getChild(__name__)

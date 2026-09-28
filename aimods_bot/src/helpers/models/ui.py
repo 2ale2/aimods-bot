@@ -11,7 +11,7 @@ from telegram.error import Forbidden, TelegramError, BadRequest
 from aimods_bot.src.helpers.constants.path_navigation import AdminRoute, UserRoute
 from aimods_bot.src.helpers.models.routing import PathBuilder
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.auth import is_admin
 
 log = logger.getChild(__name__)

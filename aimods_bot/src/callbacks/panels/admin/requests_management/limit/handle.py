@@ -5,7 +5,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.path_navigation import LimitationsFlow
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.job_names import filter_jobs_by_kind, RequestLimitJobName
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.scheduler import schedule_request_limitation_deletion

@@ -11,7 +11,7 @@ from aimods_bot.src.callbacks.panels.user.settings_management.render import rend
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.helpers.constants.path_navigation import UserManageSettingsRoute, NotificationAction
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.routing import PathBuilder
 

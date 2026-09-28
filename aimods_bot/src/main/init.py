@@ -10,7 +10,7 @@ from aimods_bot.src.core.shutdown import post_shutdown
 from aimods_bot.src.handlers.channel_handlers import channel_post_capture_handler
 from aimods_bot.src.handlers.conversation_handlers import main_private_conversation_handler, close_menu_handler
 from aimods_bot.src.handlers.join_request import build_join_request_handler
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.core.exceptions import ConfigError
 
 from aimods_bot.src.helpers.miniapp_server import start_miniapp_server, stop_miniapp_server

@@ -1,6 +1,6 @@
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.utils.file_utils import save_yaml_configuration
 from aimods_bot.src.core.config_accessor import get_section_config

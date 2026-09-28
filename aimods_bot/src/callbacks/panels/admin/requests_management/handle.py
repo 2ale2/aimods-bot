@@ -3,7 +3,7 @@ from telegram import Update
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.helpers.constants.constants import ChannelMembership
 from aimods_bot.src.helpers.constants.path_navigation import AdminRequestManagementRoute
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.requests import BaseRequest
 
 log = logger.getChild(__name__)

@@ -5,7 +5,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.pydantic import JobInfo
 from aimods_bot.src.helpers.job_queue import scheduled_remove_user_request_section_limitation, \
     scheduled_remove_user_request_cooldown, scheduled_section_opening_check_for_user_notification, schedule_unique_job
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.job_names import RequestLimitJobName, RequestCooldownJobName, \
     DelayedSectionOpeningJobName
 from aimods_bot.src.helpers.models.jobs import RemoveSectionLimitationJob, RemoveRequestCooldownJob, \

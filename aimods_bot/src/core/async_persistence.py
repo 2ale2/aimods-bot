@@ -10,7 +10,7 @@ from telegram.ext import DictPersistence
 from aimods_bot.src.core.customcontext import BotData, ChatData, UserData
 from aimods_bot.src.core.database_pool import DatabasePool, get_connection
 from aimods_bot.src.helpers.constants.constants import PERSISTENCE_TABLE
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild(__name__)
 CDCData = Tuple[List[Tuple[str, float, Dict[str, Any]]], Dict[str, str]]

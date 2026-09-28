@@ -27,7 +27,7 @@ from typing import Any, Literal
 import telegram
 from telegram import Bot, Update
 
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild(__name__)
 

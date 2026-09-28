@@ -1,7 +1,7 @@
 import yaml
 
 from aimods_bot.src.helpers.constants.constants import YAML_CONFIG_PATH
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild("config_loader")
 

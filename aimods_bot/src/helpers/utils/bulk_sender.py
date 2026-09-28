@@ -10,7 +10,7 @@ from aimods_bot.src.core.pydantic import CategorySetting
 from aimods_bot.src.helpers.constants.constants import ChannelMembership
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, NotificationAction, UserRoute, \
     UserManageSettingsRoute, AdminRoute, AdminRequestsRoute, AdminSettingsRoute, AdminSettingsNotificationsRoute
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.request_section import RequestSection
 from aimods_bot.src.helpers.models.requests import BaseRequest
 from aimods_bot.src.helpers.models.routing import PathBuilder

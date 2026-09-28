@@ -10,7 +10,7 @@ from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.exceptions import MissingParameterException
 from aimods_bot.src.helpers.constants.permissions import default_permissions, get_pyro_permissions, get_ptb_permissions
 from aimods_bot.src.helpers.database import fetch_query
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.chat_utils import get_chat_permissions
 from aimods_bot.src.helpers.utils.telegram_utils import resolve_chat_member, add_fucking_at, is_user_id, resolve_user, \
     get_banned_panel, safe_delete

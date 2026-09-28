@@ -16,7 +16,7 @@ from telegram import Update
 from telegram.ext import ChatJoinRequestHandler
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.utils.botapi_10_1 import (
     answer_queue_or_log,
     extract_query_id,

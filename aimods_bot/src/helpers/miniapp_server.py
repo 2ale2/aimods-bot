@@ -25,7 +25,7 @@ from aiohttp import web
 from telegram.error import BadRequest
 from telegram.ext import Application
 
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.constants.paths import MINIAPP_STATIC_DIR
 from aimods_bot.src.helpers.utils.botapi_10_1 import answer_join_request, is_already_answered
 from aimods_bot.src.helpers.utils.initdata import InitDataError, parse_init_data

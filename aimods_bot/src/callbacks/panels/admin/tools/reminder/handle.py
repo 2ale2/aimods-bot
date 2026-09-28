@@ -12,7 +12,7 @@ from aimods_bot.src.helpers.constants.conversation_states import PrivateConversa
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction
 from aimods_bot.src.helpers.constants.path_navigation.admin import ReminderRoute
 from aimods_bot.src.helpers.job_queue import schedule_unique_job, scheduled_send_reminder, remove_job
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 from aimods_bot.src.helpers.models.job_names import ReminderJobName
 from aimods_bot.src.helpers.models.jobs import ReminderJob
 from aimods_bot.src.helpers.models.reminders import LAST_DAY_OF_MONTH, Reminder

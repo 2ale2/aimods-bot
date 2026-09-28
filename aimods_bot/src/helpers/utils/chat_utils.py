@@ -3,7 +3,7 @@ from typing import Optional
 from telegram import ChatFullInfo, ChatPermissions
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.helpers.loggers import logger
+from aimods_bot.src.infra.log import logger
 
 log = logger.getChild("chat_utils")
 
