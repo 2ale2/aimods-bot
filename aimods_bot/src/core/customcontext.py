@@ -18,7 +18,7 @@ from telegram.ext import CallbackContext, ExtBot, Application
 from telegram import User as PTBUser, ChatMember as PTBChatMember, ChatMemberRestricted, Update
 from pyrogram.types import User as PyroUser, ChatMember as PyroChatMember
 
-from aimods_bot.src.core.pydantic import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
+from aimods_bot.src.core.config.models import Configuration, JobInfo, RestartData, BanListItem, CommandConfig, \
     UserLimitations, RequestSectionLimitation, RequestCooldown, AdminNotifications, UserNotifications, CategorySetting
 from aimods_bot.src.helpers.constants.constants import RequestStatus, SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, \
     Platform, Category, RequestField, REQUESTS_TABLE, LOCAL_TZ, ReminderField, Recurrence, ChannelMembership

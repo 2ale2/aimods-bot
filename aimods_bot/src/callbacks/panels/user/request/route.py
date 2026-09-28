@@ -13,7 +13,7 @@ from aimods_bot.src.callbacks.panels.user.request.render import (
     section_notifications_button, render_not_channel_member_panel
 )
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import CategorySetting, RequestSectionLimitation
+from aimods_bot.src.core.config.models import CategorySetting, RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import Platform, LOCAL_TZ, DATETIME_FORMAT, Category, \
     BYPASS_REQUEST_LIMITS_USERS, ChannelMembership
 from aimods_bot.src.helpers.constants.conversation_states import PrivateConversationState as PCS

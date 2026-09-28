@@ -3,7 +3,7 @@ from typing import Optional
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import CategorySetting
+from aimods_bot.src.core.config.models import CategorySetting
 from aimods_bot.src.helpers.constants.constants import Platform
 from aimods_bot.src.helpers.constants.path_navigation import GlobalAction, \
     AdminRoute, LimitationsOp

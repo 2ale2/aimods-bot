@@ -5,7 +5,7 @@ from datetime import datetime
 
 import aimods_bot.src.helpers.constants.constants as constants
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import BanListItem
+from aimods_bot.src.core.config.models import BanListItem
 from aimods_bot.src.infra.telegram.utils import safe_delete, resolve_chat_member, normalize_user, is_username, format_user_mention
 from aimods_bot.src.helpers.utils.user_utils import user_is_banned
 from aimods_bot.src.infra.log import logger

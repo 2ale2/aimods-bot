@@ -1,7 +1,7 @@
 from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.pydantic import RestartData
+from aimods_bot.src.core.config.models import RestartData
 
 
 async def reboot(update: Update, context: CustomContext):

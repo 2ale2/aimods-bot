@@ -3,7 +3,7 @@ from telegram import User as PTBUser, Update
 
 from aimods_bot.src.callbacks.panels.admin.requests_management.limit.handle import all_sections_are
 from aimods_bot.src.core.customcontext import CustomContext, AdminLimitingUserRequests
-from aimods_bot.src.core.pydantic import RequestSectionLimitation
+from aimods_bot.src.core.config.models import RequestSectionLimitation
 from aimods_bot.src.helpers.constants.constants import Platform, Category
 from aimods_bot.src.helpers.constants.path_navigation import (LimitationsAction, LimitationsFlow, GlobalAction,
                                                               AdminRoute, LimitationsOp, ModerationListsRoute)
