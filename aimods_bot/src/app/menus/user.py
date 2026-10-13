@@ -81,7 +81,7 @@ async def _render_sponsor_message(update: Update, context: CustomContext, base_p
             "Fallo davanti a un pubblico 100% in target. La nostra community conta oltre <b>14.000 utenti</b> "
             "appassionati di tecnologia con una media di <b>1.500 visualizzazioni reali in 24h</b>.\n\n"
             "<tg-emoji emoji-id=\"5285221724634239278\">💎</tg-emoji> "
-            "<b>La Nostra Esclusiva: il Pacchetto Weekend</b>\n"
+            "<b><i>L'Esclusiva: il Pacchetto Weekend</i></b>\n"
             "<blockquote>Nel fine settimana non pubblichiamo contenuti: "
             "il tuo post sponsorizzato rimarrà <b>l'ultimo messaggio visibile per 24 o 48 ore consecutive</b>, "
             "senza essere \"oscurato\" da altri contenuti. Questo garantisce una <b>visibilità assoluta</b> e un "
