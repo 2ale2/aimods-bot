@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List
 
 from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup, LinkPreviewOptions
-from telegram.constants import ParseMode
+from telegram.constants import ParseMode, KeyboardButtonStyle
 from telegram.error import Forbidden, TelegramError, BadRequest
 
 from aimods_bot.src.ui.path_navigation import AdminRoute, UserRoute
@@ -36,6 +36,10 @@ class ButtonItem:
     # Se valorizzato il bottone apre un link e `callback_key` viene ignorato:
     # Telegram non accetta url e callback_data sullo stesso bottone.
     url: str | None = None
+    # Emoji premium mostrata prima del testo
+    icon_custom_emoji_id: str | None = None
+    # Colore del bottone: "primary" (blu), "success" (verde), "danger" (rosso).
+    style: KeyboardButtonStyle | None = None
 
 
 @dataclass
@@ -62,15 +66,16 @@ class Panel:
         for sublist in self.keyboard:
             subkeyboard = []
             for button in sublist:
+                extras = {"icon_custom_emoji_id": button.icon_custom_emoji_id, "style": button.style}
                 if button.url:
-                    subkeyboard.append(InlineKeyboardButton(text=button.text, url=button.url))
+                    subkeyboard.append(InlineKeyboardButton(text=button.text, url=button.url, **extras))
                     continue
                 key = button.callback_key
                 data = key.build() if isinstance(key, PathBuilder) else str(key)
                 if not data:
                     log.debug(f"Button '{button.text}' without callback_data, using {fallback!r}")
                     data = fallback
-                subkeyboard.append(InlineKeyboardButton(text=button.text, callback_data=data))
+                subkeyboard.append(InlineKeyboardButton(text=button.text, callback_data=data, **extras))
             keyboard.append(subkeyboard)
         return keyboard
 

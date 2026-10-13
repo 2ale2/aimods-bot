@@ -1,4 +1,5 @@
 from telegram import Update
+from telegram.constants import KeyboardButtonStyle
 from telegram.ext import ConversationHandler
 
 from aimods_bot.src.ui.path_navigation import GlobalAction, AdminRoute, UserRoute
@@ -58,7 +59,15 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                             callback_key=path.add(UserRoute.ADD_REQUEST)
                         )
                     ],
-                    [ButtonItem(text="⚙ Impostazioni", callback_key=path.add(UserRoute.MANAGE_SETTINGS))],
+                    [
+                        ButtonItem(text="⚙ Impostazioni", callback_key=path.add(UserRoute.MANAGE_SETTINGS)),
+                        ButtonItem(
+                            text="Sporizza",
+                            callback_key=path.add(UserRoute.SPONSOR),
+                            icon_custom_emoji_id="5424818078833715060",
+                            style=KeyboardButtonStyle.BLUE
+                        )
+                    ],
                     [ButtonItem(text="🔐 Chiudi", callback_key=GlobalAction.CLOSE_MENU)]
                 ]
             )

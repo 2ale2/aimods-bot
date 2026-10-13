@@ -10,6 +10,8 @@ class UserRoute(StrEnum):
 
     NOTIFICATION = "notification"
 
+    SPONSOR = "sponsor"
+
 
 class UserManageSettingsRoute(StrEnum):
     NOTIFICATIONS = "notifications"

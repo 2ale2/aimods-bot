@@ -7,6 +7,8 @@ from aimods_bot.src.features.settings.user.route import user_settings_management
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState
 from aimods_bot.src.ui.path_navigation import UserRoute, GlobalAction
+from aimods_bot.src.ui.helpers import create_and_render_panel
+from aimods_bot.src.ui.panel import ButtonItem
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import safe_delete
@@ -52,6 +54,14 @@ async def user_main_router(update: Update, context: CustomContext):
                     root=PathBuilder(UserRoute.MANAGE_SETTINGS),
                     relative_path=PathBuilder(*rest)
                 )
+             
+            case [UserRoute.SPONSOR]:
+                await _render_sponsor_message(
+                    update=update, 
+                    context=context,
+                    base_path=PathBuilder(UserRoute.SPONSOR)
+                )
+                return PrivateConversationState.USER_CONVERSATION
 
             case [close_action] if close_action in (GlobalAction.CLOSE_MENU, GlobalAction.CLOSE):
                 await safe_delete(update=update, context=context)
@@ -60,3 +70,20 @@ async def user_main_router(update: Update, context: CustomContext):
                 return PrivateConversationState.USER_CONVERSATION
     finally:
         await update.callback_query.answer()
+
+
+async def _render_sponsor_message(update: Update, context: CustomContext, base_path: PathBuilder):
+    text = "Testo dello Sponsor"
+    
+    keyboard = [
+        [ButtonItem(text="💬 Contatta l'Admin", url="https://t.me/prof_layton")],
+        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
+    ]
+    
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard
+    )
+    
