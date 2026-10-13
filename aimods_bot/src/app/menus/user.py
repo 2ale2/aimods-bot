@@ -73,10 +73,29 @@ async def user_main_router(update: Update, context: CustomContext):
 
 
 async def _render_sponsor_message(update: Update, context: CustomContext, base_path: PathBuilder):
-    text = "Testo dello Sponsor"
+    text = ("<tg-emoji emoji-id=\"5424818078833715060\">📣</tg-emoji> <b>Sponsorizza il Tuo Servizio</b>\n\n"
+            "<tg-emoji emoji-id=\"5431821053074630770\">❔</tg-emoji> "
+            "<i>Hai una community da far crescere, un software da lanciare o un servizio da promuovere?</i>\n\n"
+            "<tg-emoji emoji-id=\"5258203794772085854\">⚡️</tg-emoji> "
+            "Fallo davanti a un pubblico 100% in target. La nostra community conta oltre <b>14.000 utenti</b> "
+            "appassionati di tecnologia, modding e informatica, con una media di "
+            "<b>1.500 visualizzazioni reali in 24h</b>.\n\n"
+            "<tg-emoji emoji-id=\"5285221724634239278\">💎</tg-emoji> "
+            "<b>La Nostra Esclusiva: il Pacchetto Weekend</b>\n"
+            "<blockquote>Nel fine settimana non pubblichiamo contenuti: "
+            "il tuo post sponsorizzato rimarrà <b>l'ultimo messaggio visibile per 24 o 48 ore consecutive</b>, "
+            "senza essere \"oscurato\" da altri contenuti. Questo garantisce una <b>visibilità assoluta</b> e un "
+            "<b>tasso di clic nettamente superiore alla media</b>.</blockquote>\n\n"
+            "<tg-emoji emoji-id=\"5231200819986047254\">📊</tg-emoji> <b>Cosa Offriamo</b>\n"
+            "    • Slot standard 24h (con 1h fissato in alto)\n"
+            "    • Esclusiva Weekend (Sabato e/o Domenica)\n"
+            "    • Post Pinnato (fissato in alto)\n\n"
+            "<tg-emoji emoji-id=\"5974464899336637626\">💬</tg-emoji> <b>Clicca sul pulsante</b> qui sotto per "
+            "<b>contattare l'Admin</b>, <b>richiedere il listino prezzi aggiornato</b> o <b>creare un "
+            "pacchetto su misura</b>. Senza impegno!")
     
     keyboard = [
-        [ButtonItem(text="💬 Contatta l'Admin", url="https://t.me/prof_layton")],
+        [ButtonItem(text="🎩 Contatta l'Admin", url="https://t.me/prof_layton")],
         [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
     ]
     
