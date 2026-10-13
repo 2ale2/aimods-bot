@@ -85,7 +85,7 @@ async def _render_sponsor_message(update: Update, context: CustomContext, base_p
             "<blockquote>Nel fine settimana non pubblichiamo contenuti: "
             "il tuo post sponsorizzato rimarrà <b>l'ultimo messaggio visibile per 24 o 48 ore consecutive</b>, "
             "senza essere \"oscurato\" da altri contenuti. Questo garantisce una <b>visibilità assoluta</b> e un "
-            "<b>tasso di clic nettamente superiore alla media</b>.</blockquote>\n\n"
+            "<b>tasso di click nettamente superiore alla media</b>.</blockquote>\n\n"
             "<tg-emoji emoji-id=\"5231200819986047254\">📊</tg-emoji> <b>Cosa Offriamo</b>\n"
             "    • Slot standard 24h (con 1h fissato in alto)\n"
             "    • Esclusiva Weekend (Sabato e/o Domenica)\n"
