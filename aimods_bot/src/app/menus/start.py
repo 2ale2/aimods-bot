@@ -62,7 +62,7 @@ async def get_panel(update: Update, context: CustomContext, admin: bool, banned:
                     [
                         ButtonItem(text="⚙ Impostazioni", callback_key=path.add(UserRoute.MANAGE_SETTINGS)),
                         ButtonItem(
-                            text="Sporizza",
+                            text="Sponsorizza",
                             callback_key=path.add(UserRoute.SPONSOR),
                             icon_custom_emoji_id="5424818078833715060",
                             style=KeyboardButtonStyle.BLUE
