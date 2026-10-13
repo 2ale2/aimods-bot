@@ -59,6 +59,9 @@ async def wrong_input_message(
 
 async def not_implemented_yet(update: Update, context: CustomContext) -> None:
     """Messaggio per funzionalità non ancora implementate"""
+    if update.callback_query:
+        await update.callback_query.answer("⚠️ Warning\n\nFunzionalità non ancora implementata.", show_alert=True)
+        return
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="⚠️ Funzionalità non ancora implementata.",

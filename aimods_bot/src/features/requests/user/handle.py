@@ -51,6 +51,17 @@ def _advance_or_finish_wizard(wizard: RequestWizardSession) -> None:
             break
 
 
+async def _recover_lost_wizard(update: Update, context: CustomContext):
+    """
+    Lo stato della conversazione dice «wizard», ma in `chat_data` il wizard non c'è
+    (per esempio una `chat_data` scartata perché non passava la validazione).
+    Invece di sollevare un'eccezione, e lasciare il tasto premuto senza risposta,
+    torna al menù principale.
+    """
+    log.warning(f"User {update.effective_user.id} in wizard state without an active wizard: back to main menu")
+    return await start(update=update, context=context)
+
+
 async def handle_wizard_text_input(update: Update, context: CustomContext):
     if not update.message:
         raise ValueError("No message inside Update!")
@@ -59,7 +70,7 @@ async def handle_wizard_text_input(update: Update, context: CustomContext):
 
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
-        raise ValueError("No wizard to process!")
+        return await _recover_lost_wizard(update=update, context=context)
 
     if not wizard.requesting:
         log.warning("Requesting no field!")
@@ -117,7 +128,8 @@ async def handle_wizard_callback_input(update: Update, context: CustomContext):
 
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
-        raise ValueError("No wizard to process!")
+        await query.answer()
+        return await _recover_lost_wizard(update=update, context=context)
 
     if query.data in (GlobalAction.YES, GlobalAction.NO):
         if not wizard.requesting:
@@ -159,7 +171,7 @@ async def handle_wizard_back(update: Update, context: CustomContext):
 
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
-        raise ValueError("No wizard to process!")
+        return await _recover_lost_wizard(update=update, context=context)
 
     draft = wizard.draft
 
@@ -205,7 +217,8 @@ async def handle_wizard_confirm(update: Update, context: CustomContext):
 
     wizard = context.pydc.persistent.active_request_wizard
     if not wizard:
-        raise ValueError("No wizard to process!")
+        await query.answer()
+        return await _recover_lost_wizard(update=update, context=context)
 
     if wizard.requesting is not None:
         raise ValueError("Request draft is not complete yet!")

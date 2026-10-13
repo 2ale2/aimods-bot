@@ -17,8 +17,38 @@ from aimods_bot.src.features.requests.user.handle import handle_wizard_callback_
     handle_wizard_text_input, handle_wizard_confirm
 from aimods_bot.src.core.constants import COMMAND_PREFIX
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
-from aimods_bot.src.ui.path_navigation import GlobalAction
+from aimods_bot.src.ui.path_navigation import GlobalAction, NotificationAction, UserRoute
 from aimods_bot.src.ui.helpers import safe_delete_wrapper
+from aimods_bot.src.ui.routing import PathBuilder
+
+
+def _is_user_notification_button(callback_data: object) -> bool:
+    """
+    Tasto arrivato con una notifica all'utente: un percorso `user/...` che contiene
+    `from_notification`. Lo legge `PathBuilder`, come fanno i router.
+    """
+    if not isinstance(callback_data, str):
+        return False
+    segments = PathBuilder.from_string(callback_data).segments
+    return segments[:1] == (UserRoute.ROOT,) and NotificationAction.FROM_NOTIFICATION in segments
+
+
+async def _notification_button_during_wizard(update, context):
+    """
+    Il wizard delle richieste è modale: nel suo stato i tasti dei pannelli ricevono l'avviso
+    «premi Home». Le notifiche però arrivano in un messaggio a parte, e l'utente può premerne
+    i tasti con un wizard lasciato aperto: vengono eseguiti come dal menù utente.
+
+    «Formula Richiesta» decide da sé lo stato (pannello continua / ricomincia). Per gli altri
+    tasti, se il wizard c'è ancora, si resta nel suo stato perché i suoi tasti continuino a
+    funzionare.
+    """
+    next_state = await user_main_router(update=update, context=context)
+    segments = PathBuilder.from_string(update.callback_query.data).segments
+    if UserRoute.ADD_REQUEST in segments or context.pydc.persistent.active_request_wizard is None:
+        return next_state
+    return PCS.USER_REQUEST_WIZARD_SESSION
+
 
 main_private_conversation_handler = ConversationHandler(
     entry_points=[
@@ -41,6 +71,7 @@ main_private_conversation_handler = ConversationHandler(
             CallbackQueryHandler(pattern=GlobalAction.REQUEST_WIZARD_BACK, callback=handle_wizard_back),
             CallbackQueryHandler(pattern=GlobalAction.CONFIRM, callback=handle_wizard_confirm),
             CallbackQueryHandler(pattern=GlobalAction.CLOSE, callback=safe_delete_wrapper),
+            CallbackQueryHandler(pattern=_is_user_notification_button, callback=_notification_button_during_wizard),
             CallbackQueryHandler(callback=handle_wizard_callback_input)
         ],
         PCS.SET_REQUEST_LIMITATION_USER: [

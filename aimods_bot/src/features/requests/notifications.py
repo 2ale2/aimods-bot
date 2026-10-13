@@ -272,8 +272,7 @@ async def send_section_closing_admin_notification(
                         AdminSettingsRoute.NOTIFICATIONS,
                         AdminSettingsNotificationsRoute.SECTION_CLOSING,
                         NotificationAction.FROM_NOTIFICATION,
-                        section.platform,
-                        section.category
+                        section
                     )
                 )
             ],

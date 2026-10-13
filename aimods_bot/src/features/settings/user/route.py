@@ -49,16 +49,20 @@ async def user_settings_management_route(
                                 context=context,
                                 base_path=root
                             )
-                        case [section_str]:
+                        # [section] dal pannello impostazioni,
+                        # [from_notification, section] dal tasto nella notifica di apertura sezione
+                        case [section_str] | [NotificationAction.FROM_NOTIFICATION, section_str]:
                             try:
                                 section = RequestSection.from_string(section_str)
                             except (ValueError, ValidationError):
                                 log.warning(f"Invalid section string: {section_str}")
                                 return PCS.USER_CONVERSATION
 
+                            # dalla notifica il tasto dice «Disattiva»: spegne sempre, anche se premuto due volte
                             await handle_user_section_opening_notification_toggle(
                                 context=context,
-                                section=section
+                                section=section,
+                                value=False if from_notification else None
                             )
                             if from_notification:
                                 await render_section_opening_notification_disabled_panel(

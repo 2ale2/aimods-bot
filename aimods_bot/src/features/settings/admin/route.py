@@ -85,7 +85,7 @@ async def admin_new_requests_notification_settings_management_route(
         case [section_str] | [NotificationAction.FROM_NOTIFICATION, section_str] as segments:
             section = RequestSection.from_string(section_str)
             if NotificationAction.FROM_NOTIFICATION in segments:
-                await handle_admin_new_requests_notification_toggle(context=context, section=section)
+                await handle_admin_new_requests_notification_toggle(context=context, section=section, value=False)
                 await render_new_requests_notification_disabled_panel(update=update, context=context, section=section)
             else:
                 await handle_admin_new_requests_notification_toggle(context=context, section=section)
@@ -122,9 +122,10 @@ async def admin_closing_section_notification_settings_management_route(
                 base_path=root
             )
 
-        case [section_str, NotificationAction.FROM_NOTIFICATION]:
+        # Tasto «Disattiva» della notifica di chiusura sezione
+        case [NotificationAction.FROM_NOTIFICATION, section_str]:
             section = RequestSection.from_string(section_str)
-            await handle_admin_section_closing_notification_toggle(context=context, section=section)
+            await handle_admin_section_closing_notification_toggle(context=context, section=section, value=False)
             await render_section_closure_notification_disabled_panel(update=update, context=context, data=section)
 
     return PCS.ADMIN_CONVERSATION

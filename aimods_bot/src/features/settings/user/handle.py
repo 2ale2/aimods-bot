@@ -5,10 +5,12 @@ from aimods_bot.src.features.requests.section import RequestSection
 
 async def handle_user_section_opening_notification_toggle(
         context: CustomContext,
-        section: RequestSection
+        section: RequestSection,
+        value: bool | None = None
 ):
+    """Inverte la notifica di apertura della sezione, oppure la imposta a `value` se indicato."""
     settings = context.pydc.persistent.user_notifications.section_opening_notifications
 
     platform_settings = settings.setdefault(section.platform, {})
     current = platform_settings.get(section.category, DEFAULT_SECTION_OPENING_NOTIFICATION)
-    platform_settings[section.category] = not current
+    platform_settings[section.category] = (not current) if value is None else value
