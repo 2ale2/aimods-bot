@@ -39,6 +39,8 @@ class AdminRequestManagementRoute(StrEnum):
     REJECT_REASON_BACK = "reject_reason_back"
     VERIFY_MEMBERSHIP = "verify_membership"
     CONFIRM_MEMBERSHIP = "confirm_membership"
+    CONTACT_AUTHOR = "contact_author"
+    NOTIFY_AUTHOR = "notify_author"
 
 
 class LimitationsAction(StrEnum):

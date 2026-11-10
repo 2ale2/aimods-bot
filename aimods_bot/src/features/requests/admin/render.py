@@ -395,7 +395,15 @@ def _get_admin_menage_request_keyboard(
             )
         )
 
-    keyboard.extend([limit_buttons, [ButtonItem(text="🔙 Indietro", callback_key=back_callback_key)]])
+    contact_button = ButtonItem(
+        text="💬 Contatta Autore",
+        callback_key=base_path.add(AdminRequestManagementRoute.CONTACT_AUTHOR)
+    )
+    keyboard.extend([
+        [contact_button],
+        limit_buttons,
+        [ButtonItem(text="🔙 Indietro", callback_key=back_callback_key)]
+    ])
 
     if current_status in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         keyboard[-2].insert(0, ButtonItem(

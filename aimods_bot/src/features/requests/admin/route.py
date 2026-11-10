@@ -1,5 +1,6 @@
 from telegram import Update
 
+from aimods_bot.src.features.requests.admin.contact.route import route_admin_contact_author
 from aimods_bot.src.features.requests.admin.handle import handle_membership_op
 from aimods_bot.src.features.requests.admin.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
@@ -267,6 +268,25 @@ async def admin_manage_request_route(
                     base_path=root
                 )
             return PCS.ADMIN_CONVERSATION
+
+        # --- CONTATTO CON L'AUTORE ---
+        case [AdminRequestManagementRoute.CONTACT_AUTHOR, *rest]:
+            async def render_request_panel():
+                await render_admin_manage_request_panel(
+                    update=update,
+                    context=context,
+                    request=request,
+                    base_path=root
+                )
+
+            return await route_admin_contact_author(
+                update=update,
+                context=context,
+                request=request,
+                root=root.add(AdminRequestManagementRoute.CONTACT_AUTHOR),
+                relative_path=PathBuilder(*rest),
+                render_request_panel=render_request_panel
+            )
 
         case [LimitationsOp.LIMIT, *rest]:
             return await route_admin_manage_limitations(
