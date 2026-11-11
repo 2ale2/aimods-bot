@@ -48,6 +48,7 @@ class BaseRequest(BaseModel):
 
     rejection_reason: str | None = None
     status_change_notifications: bool = True
+    admin_dm_request_sent: bool = False
 
     channel_membership: ChannelMembership = ChannelMembership.UNKNOWN
     channel_membership_confirmed_by: int | None = None

@@ -17,6 +17,7 @@ class UserManageSettingsRoute(StrEnum):
     NOTIFICATIONS = "notifications"
 
     SECTION_OPENING_NOTIFICATIONS = "section_opening_notifications"
+    ADMIN_NOTIFICATIONS = "admin_notifications"
 
 
 class UserManageRequestsRoute(StrEnum):

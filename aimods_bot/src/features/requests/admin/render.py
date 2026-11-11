@@ -1,15 +1,18 @@
 import html
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
+from telegram.error import TelegramError, BadRequest
 
-from aimods_bot.src.core.customcontext import CustomContext
+from aimods_bot.src.core.customcontext import CustomContext, ChatData
 from aimods_bot.src.core.config.models import CategorySetting
-from aimods_bot.src.core.constants import Platform, RequestStatus, RejectRequestReason, ChannelMembership
+from aimods_bot.src.core.constants import Platform, RequestStatus, RejectRequestReason, ChannelMembership, \
+    AdminToUserNotifications
 from aimods_bot.src.ui.path_navigation import AdminRequestManagementRoute, AdminRoute, \
     AdminRequestsRoute, LimitationsAction, GlobalAction, UserRoute, UserManageRequestsRoute, LimitationsOp, \
-    NotificationAction
+    NotificationAction, UserManageSettingsRoute
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY, BaseRequest
+from aimods_bot.src.ui.path_navigation.admin import AdminRequestManagementContactUserRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.ui.panel import ButtonItem
@@ -351,15 +354,30 @@ def _get_admin_menage_request_keyboard(
     next_status_button = steps[current_index + 1]
     previous_status_button = steps[current_index - 1]
 
-    keyboard = [[]]
+    cd = context.application.chat_data.get(request.user_id)
+    if not isinstance(cd, ChatData):
+        cd = False
+    else:
+        cd = cd.persistent.user_notifications.admin_notification.get(
+            AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST
+        )
+
+    should_display_dm_contact_button = cd and not request.admin_dm_request_sent
+
+    keyboard = [[
+        ButtonItem(
+            text="📩 Contatta l'utente",
+            callback_key=base_path.add(AdminRequestManagementRoute.CONTACT_USER)
+        )], []] if should_display_dm_contact_button else [[]]
+
     if current_status not in (RequestStatus.COMPLETED, RequestStatus.REJECTED):
         if next_status_button:
-            keyboard[0].insert(0, ButtonItem(
+            keyboard[1].insert(0, ButtonItem(
                 text=f"{next_status_button.icon} {next_status_button.label}",
                 callback_key=base_path.add(AdminRequestManagementRoute.CHANGE_STATUS, next_status_button))
             )
         if previous_status_button:
-            keyboard[0].insert(0, ButtonItem(
+            keyboard[1].insert(0, ButtonItem(
                 text=f"{previous_status_button.icon} {previous_status_button.label}",
                 callback_key=base_path.add(AdminRequestManagementRoute.CHANGE_STATUS, previous_status_button))
             )
@@ -942,3 +960,110 @@ async def _get_last_ten_requests_section_text(requests: list[BaseRequest], secti
                  "🔹 Scegli un'opzione.")
 
     return text
+
+
+async def render_contact_user_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        request: BaseRequest
+):
+    text = _get_contact_user_panel_text(request=request)
+
+    keyboard = [
+        [
+            ButtonItem(
+                text="🔔 Notifica l'utente",
+                callback_key=base_path.add(AdminRequestManagementContactUserRoute.NOTIFY_USER)
+            )
+        ]
+    ]
+
+    try:
+        chat_full_info = await context.bot.get_chat(chat_id=request.user_id)
+        if chat_full_info and chat_full_info.username:
+            keyboard[0].append(
+                ButtonItem(
+                    text="💬 Scrivi all'utente",
+                    url=f"https://t.me/{chat_full_info.username}"
+                )
+            )
+    except TelegramError:
+        pass
+    except BadRequest as e:
+        log.warning(f"Error in API request 'get_chat': {e}")
+
+    keyboard.append([ButtonItem(text="🔙 Indietro", callback_key=base_path.back())])
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard
+    )
+
+
+def _get_contact_user_panel_text(request: BaseRequest):
+    return _get_header() + (
+        "\n\n      → 📩 <b><i>Contatta Utente</i></b>\n\n"
+        f"🔹 Per contattare l'utente <code>{request.user_id}</code> in merito alla sua "
+        f"richiesta di <i>{request.name}</i>, <b>scegli un'opzione</b>."
+    )
+
+
+async def render_dm_user_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder,
+        request: BaseRequest
+):
+    text = get_dm_user_text(user_id=request.user_id) + "\n\n🔹 Scegli un'opzione."
+
+    keyboard = [
+        [
+            ButtonItem(
+                text="📨 Invia Notifica",
+                callback_key=base_path.add(AdminRequestManagementContactUserRoute.CONFIRM_NOTIFY_USER))
+        ],
+        [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
+    ]
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard
+    )
+
+
+def get_dm_user_text(user_id: int):
+    return _get_header() + (
+        "\n\n      → 🔔 <b><i>Notifica Utente</i></b>\n\n"
+        f"<blockquote>✉️ Verrà inviato un messaggio all'utente <code>{user_id}</code> tramite cui potrà "
+        "contattarti. <b>Assicurati di avere uno username e di non avere limitazioni sui messaggi privati "
+        "che impediscano all'utente di contattarti (es.: stelle)</b>.</blockquote>"
+    )
+
+
+def get_admin_contact_request_text_and_keyboard(update: Update, request: BaseRequest):
+    text = ("<tg-emoji emoji-id=\"5242628160297641831\">🔔</tg-emoji> Informazioni sulla Tua Richiesta\n\n"
+            f"ℹ️ L'admin che ha preso in carico la tua richiesta per {request.name} ha chiesto di contattarti.\n\n"
+            "<blockquote>⚠️ Puoi scegliere di non rispondere alla richiesta, ma questo potrebbe inficiare sull'esito "
+            "della tua richiesta.</blockquote>\n\n"
+            "🔹 Scegli un'opzione.")
+
+    disable_path = PathBuilder(
+        UserRoute.ROOT,
+        UserRoute.MANAGE_SETTINGS,
+        UserManageSettingsRoute.NOTIFICATIONS,
+        UserManageSettingsRoute.ADMIN_NOTIFICATIONS,
+        AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST
+    )
+
+    keyboard = [
+        [InlineKeyboardButton(text="👨🏻‍🔧 Scrivi all'admin", url=f"https://t.me/{update.effective_user.username}")],
+        [InlineKeyboardButton(text="🔕 Disattiva queste notifiche", callback_data=disable_path)],
+        [InlineKeyboardButton(text="🚮 Ignora e chiudi", callback_data=GlobalAction.CLOSE)]
+    ]
+
+    return text, InlineKeyboardMarkup(keyboard)

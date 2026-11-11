@@ -1,6 +1,6 @@
 from telegram import Update
 
-from aimods_bot.src.features.requests.admin.handle import handle_membership_op
+from aimods_bot.src.features.requests.admin.handle import handle_membership_op, handle_admin_contact_request_sending
 from aimods_bot.src.features.requests.admin.limit.render import render_request_deleted_panel, \
     render_request_inactive_panel
 from aimods_bot.src.features.requests.admin.limit.route import route_admin_manage_limitations
@@ -21,7 +21,7 @@ from aimods_bot.src.features.requests.admin.render import (
     send_user_request_status_changed_notification,
     render_last_ten_requests_platform_panel,
     render_last_ten_requests_category_panel,
-    render_last_ten_requests_section_panel
+    render_last_ten_requests_section_panel, render_contact_user_panel, render_dm_user_panel
 )
 from aimods_bot.src.features.requests.admin.sections_management.route import \
     route_admin_request_section_configure_selection
@@ -34,6 +34,7 @@ from aimods_bot.src.ui.path_navigation import AdminRequestsRoute, \
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
+from aimods_bot.src.ui.path_navigation.admin import AdminRequestManagementContactUserRoute
 from aimods_bot.src.ui.routing import PathBuilder
 from aimods_bot.src.infra.telegram.utils import safe_delete
 from aimods_bot.src.features.moderation.members import user_is_banned
@@ -133,7 +134,6 @@ async def route_admin_active_requests_management(
         #  NOTA - Potrei spostare il controllo dove mi aspetto che il flow ritorni, per ridurre le probabilità d'errore
         context.free_base_path()
 
-    # noinspection SpellCheckingInspection
     match relative_path.segments:
         case []:
             await render_admin_active_requests_management_panel(update=update, context=context, base_path=root)
@@ -393,6 +393,36 @@ async def admin_manage_request_route(
                                 log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
                     case _:
                         log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
+
+        case [AdminRequestManagementRoute.CONTACT_USER, *rest]:
+            if await ensure_active():
+                match PathBuilder(*rest).segments:
+                    case []:
+                        await render_contact_user_panel(
+                            update=update,
+                            context=context,
+                            base_path=root.add(AdminRequestManagementRoute.CONTACT_USER),
+                            request=request
+                        )
+                        return PCS.ADMIN_CONVERSATION
+                    case [AdminRequestManagementContactUserRoute.NOTIFY_USER, *rest]:
+                        root.add(AdminRequestManagementRoute.CONTACT_USER)
+
+                        match PathBuilder(*rest).segments:
+                            case []:
+                                await render_dm_user_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root.add(AdminRequestManagementContactUserRoute.NOTIFY_USER),
+                                    request=request
+                                )
+                            case [AdminRequestManagementContactUserRoute.CONFIRM_NOTIFY_USER]:
+                                await handle_admin_contact_request_sending(
+                                    update=update,
+                                    context=context,
+                                    base_path=root.add(AdminRequestManagementContactUserRoute.NOTIFY_USER),
+                                    request=request
+                                )
         case _:
             log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
 

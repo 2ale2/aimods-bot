@@ -79,6 +79,9 @@ async def user_settings_management_route(
                         case _:
                             log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
+                case [UserManageSettingsRoute.ADMIN_NOTIFICATIONS, *rest]:
+                    pass
+
                 case _:
                     log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 

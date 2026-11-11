@@ -373,6 +373,23 @@ class RejectRequestReason(StrEnum):
                 return "Richiesta non chiara"
 
 
+class AdminToUserNotifications(StrEnum):
+    ADMIN_REQUESTING_USER_DM_FOR_REQUEST = "admin_requesting_user_dm_for_request"
+
+    @property
+    def label(self) -> str:
+        match self:
+            case AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST:
+                return "❔ Notifiche di Contatto per le Tue Richieste"
+
+    @property
+    def description(self) -> str:
+        match self:
+            case AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST:
+                return ("Scegli se impedire agli admin di chiedere se possono contattarti in merito alle tue richieste."
+                        "Disabilitarle può incidere sul loro esito.")
+
+
 class ModerationList(StrEnum):
     WHITELIST = "whitelist"
     GREYLIST = "greylist"

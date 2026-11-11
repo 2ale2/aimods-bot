@@ -57,6 +57,12 @@ async def render_user_notification_settings_management_panel(
                     callback_key=base_path.add(UserManageSettingsRoute.SECTION_OPENING_NOTIFICATIONS)
                 )
             ],
+            [
+                ButtonItem(
+                    text="👨🏻‍🔧 Notifiche Admin",
+                    callback_key=base_path.add(UserManageSettingsRoute.ADMIN_NOTIFICATIONS)
+                )
+            ],
             [ButtonItem(text="🔙 Indietro", callback_key=base_path.back())]
         ]
     )

@@ -39,6 +39,13 @@ class AdminRequestManagementRoute(StrEnum):
     REJECT_REASON_BACK = "reject_reason_back"
     VERIFY_MEMBERSHIP = "verify_membership"
     CONFIRM_MEMBERSHIP = "confirm_membership"
+    CONTACT_USER = "contact_user"
+
+
+class AdminRequestManagementContactUserRoute(StrEnum):
+    # admin/manage_requests/<platform>/<catgeory>/<id>/contact_user
+    NOTIFY_USER = "notify_user"
+    CONFIRM_NOTIFY_USER = "confirm_notify_user"
 
 
 class LimitationsAction(StrEnum):

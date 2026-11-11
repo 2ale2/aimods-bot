@@ -6,7 +6,7 @@ from typing import List, Optional, Literal, Dict, Union, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 
-from aimods_bot.src.core.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE
+from aimods_bot.src.core.constants import SECONDI_RIMOZIONE_RICHIESTE_ATTIVE_COMPLETATE, AdminToUserNotifications
 from aimods_bot.src.infra.log import logger
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
@@ -299,9 +299,19 @@ class UserNotifications(BaseModel):
         description="Notifiche per le nuove richieste"
     )
 
+    admin_notifications: Dict[str, bool] = Field(
+        default_factory=dict,
+        description="Notifiche dagli admin all'utente"
+    )
+
     def model_post_init(self, __context):
         if not self.section_opening_notifications:
             self.section_opening_notifications = {
                 platform: {category: False for category in categories}
                 for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
+            }
+
+        if not self.admin_notifications:
+            self.admin_notifications = {
+                admin_notification: True for admin_notification in AdminToUserNotifications
             }
