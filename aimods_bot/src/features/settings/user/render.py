@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import UserNotifications
-from aimods_bot.src.core.constants import Platform, AdminToUserNotifications
+from aimods_bot.src.core.constants import Platform, AdminToUserNotifications, EMOJI_NUMBER
 from aimods_bot.src.ui.path_navigation import UserManageSettingsRoute, GlobalAction
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
@@ -175,13 +175,14 @@ def _get_user_admin_notification_settings_text_keyboard(settings: UserNotificati
             "▫️ Da qui puoi gestire le <b>notifiche che gli admin possono inviarti</b>.\n\n")
 
     keyboard = []
-    for notification in AdminToUserNotifications:
+    for n, notification in enumerate(AdminToUserNotifications):
         enabled = current_settings.get(notification, True)
-        text += (f"<b>{notification.label}</b> – {'🔔' if enabled else '🔕'}\n"
-                 f"<blockquote>{notification.description}</blockquote>\n\n")
+        emoji_number = EMOJI_NUMBER.get(n, n)
+        text += (f"{emoji_number} <b>{notification.label}</b> – {'🔔' if enabled else '🔕'}\n"
+                 f"<blockquote><i>{notification.description}</i></blockquote>\n\n")
         keyboard.append([
             ButtonItem(
-                text=f"{'🔕 Disattiva' if enabled else '🔔 Attiva'}",
+                text=f"{f'{emoji_number} Disattiva' if enabled else f'{emoji_number} Attiva'}",
                 callback_key=base_path.add(notification)
             )
         ])
@@ -200,8 +201,8 @@ async def render_admin_notification_disabled_panel(
 ):
     text = ("✅ <b>Notifiche Disattivate</b>\n\n"
             f"▫ Hai disattivato: <b>{notification.label}</b>.\n\n"
-            "<blockquote>ℹ️ Puoi riattivarle dalle impostazioni, nella sezione 🔔 Notifiche → "
-            "👨🏻‍🔧 Notifiche Admin.</blockquote>")
+            "<blockquote>ℹ️ Puoi riattivarle dalle impostazioni, nella sezione <i>🔔 Notifiche → "
+            "👨🏻‍🔧 Notifiche Admin</i>.</blockquote>")
 
     await create_and_render_panel(
         update=update,

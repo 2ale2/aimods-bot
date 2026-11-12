@@ -380,7 +380,7 @@ class AdminToUserNotifications(StrEnum):
     def label(self) -> str:
         match self:
             case AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST:
-                return "❔ Notifiche di Contatto per le Tue Richieste"
+                return "Notifiche di Contatto per le Tue Richieste"
 
     @property
     def description(self) -> str:

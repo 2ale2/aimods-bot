@@ -1044,15 +1044,18 @@ def get_dm_user_text(user_id: int):
         "\n\n      → 🔔 <b><i>Notifica Utente</i></b>\n\n"
         f"<blockquote>✉️ Verrà inviato un messaggio all'utente <code>{user_id}</code> tramite cui potrà "
         "contattarti. <b>Assicurati di avere uno username e di non avere limitazioni sui messaggi privati "
-        "che impediscano all'utente di contattarti (es.: stelle)</b>.</blockquote>"
+        "che impediscano all'utente di contattarti</b> (es.: stelle).</blockquote>"
     )
 
 
 def get_admin_contact_request_text_and_keyboard(update: Update, request: BaseRequest):
-    text = ("<tg-emoji emoji-id=\"5242628160297641831\">🔔</tg-emoji> Informazioni sulla Tua Richiesta\n\n"
-            f"ℹ️ L'admin che ha preso in carico la tua richiesta per {html.escape(request.name)} ha chiesto di contattarti.\n\n"
-            "<blockquote>⚠️ Puoi scegliere di non rispondere alla richiesta, ma questo potrebbe inficiare sull'esito "
-            "della tua richiesta.</blockquote>\n\n"
+    text = ("<tg-emoji emoji-id=\"5242628160297641831\">🔔</tg-emoji> <b>Informazioni sulla Tua Richiesta</b>\n\n"
+            f"ℹ️ <b>L'admin</b> che ha preso in carico la tua richiesta per <i>{html.escape(request.name)}</i> "
+            "<b>ha chiesto di contattarti</b>.\n\n"
+            f"<code>{request.name} (#{request.id})</code>\n"
+            "👆<i>Clicca su questo testo e invialo all'admin</i>\n\n"
+            "<blockquote>⚠️ Puoi scegliere di non rispondere, ma <b>questo potrebbe inficiare sull'esito "
+            "della tua richiesta</b>.</blockquote>\n\n"
             "🔹 Scegli un'opzione.")
 
     disable_path = PathBuilder(
@@ -1067,7 +1070,7 @@ def get_admin_contact_request_text_and_keyboard(update: Update, request: BaseReq
     keyboard = [
         [InlineKeyboardButton(text="👨🏻‍🔧 Scrivi all'admin", url=f"https://t.me/{update.effective_user.username}")],
         [InlineKeyboardButton(text="🔕 Disattiva queste notifiche", callback_data=disable_path)],
-        [InlineKeyboardButton(text="🚮 Ignora e chiudi", callback_data=GlobalAction.CLOSE_MENU)]
+        [InlineKeyboardButton(text="🚮 Ignora e chiudi", callback_data=GlobalAction.CLOSE)]
     ]
 
     return text, InlineKeyboardMarkup(keyboard)
