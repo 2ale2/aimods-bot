@@ -359,7 +359,7 @@ def _get_admin_menage_request_keyboard(
         AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST, True
     )
 
-    should_display_dm_contact_button = user_accepts_dm_requests and not request.admin_dm_request_sent
+    should_display_dm_contact_button = request.is_active and user_accepts_dm_requests and not request.admin_dm_request_sent
 
     keyboard = []
     if should_display_dm_contact_button:
