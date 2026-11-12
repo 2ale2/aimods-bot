@@ -311,7 +311,6 @@ class UserNotifications(BaseModel):
                 for platform, categories in PLATFORM_CATEGORY_REGISTRY.items()
             }
 
-        if not self.admin_notifications:
-            self.admin_notifications = {
-                admin_notification: True for admin_notification in AdminToUserNotifications
-            }
+        # setdefault: le notifiche aggiunte in futuro partono attive anche per chi ha già il dizionario salvato
+        for admin_notification in AdminToUserNotifications:
+            self.admin_notifications.setdefault(admin_notification, True)

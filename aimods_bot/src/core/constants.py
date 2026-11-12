@@ -386,7 +386,7 @@ class AdminToUserNotifications(StrEnum):
     def description(self) -> str:
         match self:
             case AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST:
-                return ("Scegli se impedire agli admin di chiedere se possono contattarti in merito alle tue richieste."
+                return ("Scegli se impedire agli admin di chiedere se possono contattarti in merito alle tue richieste. "
                         "Disabilitarle può incidere sul loro esito.")
 
 

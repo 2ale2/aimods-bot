@@ -4,10 +4,12 @@ from pydantic import ValidationError
 from telegram import Update
 
 from aimods_bot.src.features.settings.user.handle import \
-    handle_user_section_opening_notification_toggle
+    handle_user_section_opening_notification_toggle, handle_user_admin_notification_toggle
 from aimods_bot.src.features.settings.user.render import render_user_settings_management_panel, \
     render_user_notification_settings_management_panel, render_user_section_opening_notification_settings_panel, \
-    render_section_opening_notification_disabled_panel
+    render_section_opening_notification_disabled_panel, render_user_admin_notification_settings_panel, \
+    render_admin_notification_disabled_panel
+from aimods_bot.src.core.constants import AdminToUserNotifications
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS
 from aimods_bot.src.ui.path_navigation import UserManageSettingsRoute, NotificationAction
@@ -80,7 +82,43 @@ async def user_settings_management_route(
                             log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
                 case [UserManageSettingsRoute.ADMIN_NOTIFICATIONS, *rest]:
-                    pass
+                    root = root.add(UserManageSettingsRoute.ADMIN_NOTIFICATIONS)
+                    match PathBuilder(*rest).segments:
+                        case []:
+                            await render_user_admin_notification_settings_panel(
+                                update=update,
+                                context=context,
+                                base_path=root
+                            )
+                        # [notification] dal pannello impostazioni,
+                        # [from_notification, notification] dal tasto nel messaggio inviato dall'admin
+                        case [notification_str] | [NotificationAction.FROM_NOTIFICATION, notification_str]:
+                            try:
+                                notification = AdminToUserNotifications(notification_str)
+                            except ValueError:
+                                log.warning(f"Invalid admin notification string: {notification_str}")
+                                return PCS.USER_CONVERSATION
+
+                            # dalla notifica il tasto dice «Disattiva»: spegne sempre, anche se premuto due volte
+                            await handle_user_admin_notification_toggle(
+                                context=context,
+                                notification=notification,
+                                value=False if from_notification else None
+                            )
+                            if from_notification:
+                                await render_admin_notification_disabled_panel(
+                                    update=update,
+                                    context=context,
+                                    notification=notification
+                                )
+                            else:
+                                await render_user_admin_notification_settings_panel(
+                                    update=update,
+                                    context=context,
+                                    base_path=root
+                                )
+                        case _:
+                            log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")
 
                 case _:
                     log.warning(f"Unhandled path in {os.path.realpath(__file__)}: {relative_path.build()}")

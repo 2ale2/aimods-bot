@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, time, timezone
 from typing import Dict, Any, Union
 
@@ -766,6 +767,54 @@ class CustomContext(CallbackContext[ExtBot, BotData, dict, dict]):
         request.channel_membership = membership
         request.channel_membership_confirmed_by = confirmed_by
         log.info(f"Request {ix} channel membership set to '{membership}' (by {confirmed_by})")
+        return True
+
+    async def set_request_status_change_notifications(self, ix: int, enabled: bool) -> bool:
+        """
+        Attiva/disattiva le notifiche di cambio stato di una richiesta attiva: prima il database,
+        poi la copia in memoria, solo se il database ha accettato la modifica.
+        """
+        request = self.pydb.active_requests.get(ix, None)
+        if request is None:
+            log.warning(f"Request {ix} not found in active request cache.")
+            return False
+
+        query = f"""UPDATE {REQUESTS_TABLE} SET status_change_notifications = $1 WHERE id = $2"""
+        res = await execute_query(query=query, params=[enabled, int(ix)])
+        if not res:
+            log.error(f"Failed to set status change notifications to {enabled} for request {ix}")
+            return False
+
+        request.status_change_notifications = enabled
+        log.info(f"Request {ix}: status change notifications set to {enabled}")
+        return True
+
+    # ======== CONTATTO DELL'AUTORE ========
+
+    async def set_request_admin_dm_request_sent(self, ix: int) -> bool:
+        """
+        Segna che a una richiesta attiva è già stata inviata la richiesta di contatto da parte di un admin.
+        Il campo non ha una colonna dedicata: vive nel JSON `content`, che viene riscritto.
+        Prima il database, poi la copia in memoria, solo se il database ha accettato la modifica.
+        """
+        from aimods_bot.src.features.requests.repository import request_to_record
+
+        request = self.pydb.active_requests.get(ix, None)
+        if request is None:
+            log.warning(f"Request {ix} not found in active request cache.")
+            return False
+
+        updated = request.model_copy(update={"admin_dm_request_sent": True})
+        content_json = json.dumps(request_to_record(updated)["content"])
+
+        query = f"""UPDATE {REQUESTS_TABLE} SET content = $1 WHERE id = $2"""
+        res = await execute_query(query=query, params=[content_json, int(ix)])
+        if not res:
+            log.error(f"Failed to mark admin DM request as sent for request {ix}")
+            return False
+
+        request.admin_dm_request_sent = True
+        log.info(f"Request {ix}: admin DM request marked as sent")
         return True
 
     # ======== SEZIONI RICHIESTE ========

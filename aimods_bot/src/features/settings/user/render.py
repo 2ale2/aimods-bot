@@ -2,7 +2,7 @@ from telegram import Update
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.config.models import UserNotifications
-from aimods_bot.src.core.constants import Platform
+from aimods_bot.src.core.constants import Platform, AdminToUserNotifications
 from aimods_bot.src.ui.path_navigation import UserManageSettingsRoute, GlobalAction
 from aimods_bot.src.features.requests.section import RequestSection
 from aimods_bot.src.features.requests.models import PLATFORM_CATEGORY_REGISTRY
@@ -149,3 +149,65 @@ def _get_section_opening_notification_disabled_text(section: RequestSection):
             f"della sezione {cat_config.icon} <b>{cat_config.label} ({section.platform.label})</b>.")
 
     return text
+
+
+async def render_user_admin_notification_settings_panel(
+        update: Update,
+        context: CustomContext,
+        base_path: PathBuilder
+):
+    settings = context.pydc.persistent.user_notifications
+    text, keyboard = _get_user_admin_notification_settings_text_keyboard(settings=settings, base_path=base_path)
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=keyboard
+    )
+
+
+def _get_user_admin_notification_settings_text_keyboard(settings: UserNotifications, base_path: PathBuilder):
+    current_settings = settings.admin_notifications
+
+    text = ("⚙️ <b>Gestione Impostazioni</b>\n\n"
+            "      🔔 <i>Notifiche</i> → <i><u>Notifiche Admin</u></i>\n\n"
+            "▫️ Da qui puoi gestire le <b>notifiche che gli admin possono inviarti</b>.\n\n")
+
+    keyboard = []
+    for notification in AdminToUserNotifications:
+        enabled = current_settings.get(notification, True)
+        text += (f"<b>{notification.label}</b> – {'🔔' if enabled else '🔕'}\n"
+                 f"<blockquote>{notification.description}</blockquote>\n\n")
+        keyboard.append([
+            ButtonItem(
+                text=f"{'🔕 Disattiva' if enabled else '🔔 Attiva'}",
+                callback_key=base_path.add(notification)
+            )
+        ])
+
+    text += "🔹 Scegli un'opzione."
+
+    keyboard.append([ButtonItem(text="🔙 Conferma", callback_key=base_path.back())])
+
+    return text, keyboard
+
+
+async def render_admin_notification_disabled_panel(
+        update: Update,
+        context: CustomContext,
+        notification: AdminToUserNotifications
+):
+    text = ("✅ <b>Notifiche Disattivate</b>\n\n"
+            f"▫ Hai disattivato: <b>{notification.label}</b>.\n\n"
+            "<blockquote>ℹ️ Puoi riattivarle dalle impostazioni, nella sezione 🔔 Notifiche → "
+            "👨🏻‍🔧 Notifiche Admin.</blockquote>")
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text=text,
+        keyboard=[
+            [ButtonItem(text="🚮 Chiudi", callback_key=GlobalAction.CLOSE)]
+        ]
+    )

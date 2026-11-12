@@ -12,8 +12,10 @@ import locale
 import os
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from pydantic import HttpUrl
 
 for _key, _value in {
     "CHANNEL_ID": "-1001",
@@ -33,11 +35,16 @@ from telegram.request import BaseRequest  # noqa: E402
 from aimods_bot.src.app.handlers.conversation import main_private_conversation_handler as conv  # noqa: E402
 from aimods_bot.src.core.config.loader import load_configuration  # noqa: E402
 from aimods_bot.src.core.config.models import Configuration  # noqa: E402
+from aimods_bot.src.core import customcontext as customcontext_module  # noqa: E402
+from aimods_bot.src.core.constants import AdminToUserNotifications, RequestStatus  # noqa: E402
 from aimods_bot.src.core.customcontext import CustomContext, BotData, ChatData, UserData  # noqa: E402
+from aimods_bot.src.features.requests.admin.render import get_admin_contact_request_text_and_keyboard  # noqa: E402
+from aimods_bot.src.features.requests.models import WindowsGame  # noqa: E402
 from aimods_bot.src.features.requests.section import RequestSection  # noqa: E402
 from aimods_bot.src.ui.conversation_states import PrivateConversationState as PCS  # noqa: E402
 from aimods_bot.src.ui.path_navigation import (  # noqa: E402
-    AdminRoute, AdminSettingsNotificationsRoute, AdminSettingsRoute, GlobalAction, NotificationAction,
+    AdminRequestsRoute, AdminRoute, AdminSettingsNotificationsRoute, AdminSettingsRoute, GlobalAction,
+    NotificationAction,
     UserManageSettingsRoute, UserRoute,
 )
 from aimods_bot.src.ui.routing import PathBuilder  # noqa: E402
@@ -85,6 +92,12 @@ class _FakeTelegram(BaseRequest):
         elif endpoint == "getChatMember":
             result = {"status": "member",
                       "user": {"id": params.get("user_id"), "is_bot": False, "first_name": "u"}}
+        elif endpoint == "getChat":
+            result = {"id": params.get("chat_id"), "type": "private", "first_name": "u", "username": "author",
+                      "accent_color_id": 0, "max_reaction_count": 0,
+                      "accepted_gift_types": {"unlimited_gifts": False, "limited_gifts": False,
+                                              "unique_gifts": False, "premium_subscription": False,
+                                              "gifts_from_channels": False}}
         else:
             result = True
         return 200, json.dumps({"ok": True, "result": result}).encode()
@@ -126,12 +139,15 @@ class _Bench:
         context = CustomContext(self.app, chat_id=user_id, user_id=user_id)
         context.init_request_wizard_session(user_id=user_id, section=SECTION, from_notification=False, msg_id=400)
 
-    async def click(self, user_id: int, data: str):
+    async def click(self, user_id: int, data: str, username: str | None = None):
         self._update_id += 1
+        sender = {"id": user_id, "is_bot": False, "first_name": "Tester"}
+        if username:
+            sender["username"] = username
         update = Update.de_json({
             "update_id": self._update_id,
             "callback_query": {"id": str(self._update_id), "chat_instance": "c", "data": data,
-                               "from": {"id": user_id, "is_bot": False, "first_name": "Tester"},
+                               "from": sender,
                                "message": _bot_message(user_id, "📭 Sezione Richieste Aperta!")},
         }, self.app.bot)
         await self.app.process_update(update)
@@ -233,4 +249,138 @@ def test_admin_mute_section_closing_from_notification():
         await b.click(ADMIN, BTN_ADMIN_CLOSING)
         assert settings["windows"]["game"] is False
         assert any("Notifiche Disattivate" in t for t in b.edited_texts())
+    _run(scenario)
+
+
+# ======== CONTATTO DELL'AUTORE DI UNA RICHIESTA ========
+
+REQUEST_ID = 7
+
+
+def _admin_dm(chat: ChatData) -> bool:
+    return chat.persistent.user_notifications.admin_notifications[
+        AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST
+    ]
+
+
+def _sample_request(name: str = "Cyberpunk 2077") -> WindowsGame:
+    return WindowsGame(
+        id=REQUEST_ID, user_id=USER, name=name, version="2.1", link=HttpUrl("https://gog.com/cyberpunk"),
+        features="DLC", steamtools=True, hypervisor=False, status=RequestStatus.PENDING, section=SECTION
+    )
+
+
+def _dm_buttons(name: str = "Cyberpunk 2077") -> tuple[str, list]:
+    update = SimpleNamespace(effective_user=SimpleNamespace(username="the_admin"))
+    text, markup = get_admin_contact_request_text_and_keyboard(update=update, request=_sample_request(name))
+    return text, [button for row in markup.inline_keyboard for button in row]
+
+
+def _button_data(bench: _Bench, text: str) -> str:
+    """`callback_data` del tasto che contiene `text` nell'ultimo pannello modificato."""
+    for endpoint, params in reversed(bench.calls):
+        if endpoint != "editMessageText":
+            continue
+        markup = params.get("reply_markup") or {}
+        if isinstance(markup, str):
+            markup = json.loads(markup)
+        for row in markup.get("inline_keyboard", []):
+            for button in row:
+                if text in button["text"]:
+                    return button["callback_data"]
+        raise AssertionError(f"Button {text!r} not found in the last panel")
+    raise AssertionError("No panel edited")
+
+
+def test_admin_dm_buttons_are_routable():
+    _, buttons = _dm_buttons()
+    write, mute, close = buttons
+    assert write.url == "https://t.me/the_admin"
+    assert NotificationAction.FROM_NOTIFICATION in PathBuilder.from_string(mute.callback_data).segments
+    # dev'essere chiudibile anche fuori dalla conversazione, dove risponde solo `close_menu_handler`
+    assert close.callback_data == GlobalAction.CLOSE_MENU
+
+
+def test_admin_dm_text_escapes_request_name():
+    text, _ = _dm_buttons(name="<A&B>")
+    assert "&lt;A&amp;B&gt;" in text
+    assert "<A&B>" not in text
+
+
+@pytest.mark.parametrize("state", [None, PCS.USER_CONVERSATION, PCS.USER_REQUEST_WIZARD_SESSION])
+def test_mute_admin_dm_from_notification_turns_it_off(state):
+    async def scenario(b: _Bench):
+        if state == PCS.USER_REQUEST_WIZARD_SESSION:
+            b.open_wizard(USER)
+        b.set_state(USER, state)
+        assert _admin_dm(b.chat(USER)) is True
+        mute = _dm_buttons()[1][1].callback_data
+        await b.click(USER, mute)
+        await b.click(USER, mute)  # premuto due volte resta spento
+        assert _admin_dm(b.chat(USER)) is False
+        assert any("Notifiche Disattivate" in t for t in b.edited_texts())
+    _run(scenario)
+
+
+def test_admin_dm_setting_toggles_from_settings_panel():
+    async def scenario(b: _Bench):
+        b.set_state(USER, PCS.USER_CONVERSATION)
+        panel = PathBuilder(UserRoute.ROOT, UserRoute.MANAGE_SETTINGS, UserManageSettingsRoute.NOTIFICATIONS,
+                            UserManageSettingsRoute.ADMIN_NOTIFICATIONS).build()
+        await b.click(USER, panel)
+        await b.click(USER, _button_data(b, "Disattiva"))
+        assert _admin_dm(b.chat(USER)) is False
+        await b.click(USER, _button_data(b, "Attiva"))
+        assert _admin_dm(b.chat(USER)) is True
+    _run(scenario)
+
+
+def test_admin_contacts_request_author(monkeypatch):
+    queries = []
+
+    async def fake_execute_query(query, params):
+        queries.append((query, params))
+        return True
+
+    monkeypatch.setattr(customcontext_module, "execute_query", fake_execute_query)
+
+    async def scenario(b: _Bench):
+        b.app.bot_data.active_requests[REQUEST_ID] = _sample_request()
+        b.chat(USER)  # l'autore ha già usato il bot
+        b.set_state(ADMIN, PCS.ADMIN_CONVERSATION)
+
+        request_panel = PathBuilder(AdminRoute.ROOT, AdminRoute.MANAGE_REQUESTS, AdminRequestsRoute.ACTIVE,
+                                    SECTION.platform, SECTION.category, str(REQUEST_ID)).build()
+        await b.click(ADMIN, request_panel, username="the_admin")
+        await b.click(ADMIN, _button_data(b, "Contatta l'utente"), username="the_admin")
+        assert any("Contatta Utente" in t for t in b.edited_texts())
+        await b.click(ADMIN, _button_data(b, "Notifica l'utente"), username="the_admin")
+        await b.click(ADMIN, _button_data(b, "Invia Notifica"), username="the_admin")
+
+        sent = [p for e, p in b.calls if e == "sendMessage"]
+        assert [p["chat_id"] for p in sent] == [USER]
+        assert any("Notifica Inviata" in t for t in b.edited_texts())
+        assert b.app.bot_data.active_requests[REQUEST_ID].admin_dm_request_sent is True
+        assert len(queries) == 1 and json.loads(queries[0][1][0])["admin_dm_request_sent"] is True
+
+        # il tasto sparisce dal pannello della richiesta
+        await b.click(ADMIN, _button_data(b, "Torna alla richiesta"), username="the_admin")
+        with pytest.raises(AssertionError):
+            _button_data(b, "Contatta l'utente")
+    _run(scenario)
+
+
+def test_contact_button_hidden_when_user_disabled_it():
+    async def scenario(b: _Bench):
+        b.app.bot_data.active_requests[REQUEST_ID] = _sample_request()
+        b.chat(USER).persistent.user_notifications.admin_notifications[
+            AdminToUserNotifications.ADMIN_REQUESTING_USER_DM_FOR_REQUEST
+        ] = False
+        b.set_state(ADMIN, PCS.ADMIN_CONVERSATION)
+        request_panel = PathBuilder(AdminRoute.ROOT, AdminRoute.MANAGE_REQUESTS, AdminRequestsRoute.ACTIVE,
+                                    SECTION.platform, SECTION.category, str(REQUEST_ID)).build()
+        await b.click(ADMIN, request_panel)
+        _button_data(b, "Limita Utente")  # il pannello c'è
+        with pytest.raises(AssertionError):
+            _button_data(b, "Contatta l'utente")
     _run(scenario)

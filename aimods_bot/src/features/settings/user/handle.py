@@ -1,5 +1,5 @@
 from aimods_bot.src.core.customcontext import CustomContext
-from aimods_bot.src.core.constants import DEFAULT_SECTION_OPENING_NOTIFICATION
+from aimods_bot.src.core.constants import DEFAULT_SECTION_OPENING_NOTIFICATION, AdminToUserNotifications
 from aimods_bot.src.features.requests.section import RequestSection
 
 
@@ -14,3 +14,15 @@ async def handle_user_section_opening_notification_toggle(
     platform_settings = settings.setdefault(section.platform, {})
     current = platform_settings.get(section.category, DEFAULT_SECTION_OPENING_NOTIFICATION)
     platform_settings[section.category] = (not current) if value is None else value
+
+
+async def handle_user_admin_notification_toggle(
+        context: CustomContext,
+        notification: AdminToUserNotifications,
+        value: bool | None = None
+):
+    """Inverte la notifica dagli admin, oppure la imposta a `value` se indicato."""
+    settings = context.pydc.persistent.user_notifications.admin_notifications
+
+    current = settings.get(notification, True)
+    settings[notification] = (not current) if value is None else value

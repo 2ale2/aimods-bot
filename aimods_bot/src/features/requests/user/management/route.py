@@ -80,7 +80,11 @@ async def user_active_requests_management_route(
                     UserManageRequestsRoute.ENABLE_STATUS_NOTIFICATION,
                     UserManageRequestsRoute.DISABLE_STATUS_NOTIFICATION
                 ):
-                    await toggle_status_notifications(context=context, request=request)
+                    if request.is_active and not await toggle_status_notifications(context=context, request=request):
+                        await update.callback_query.answer(
+                            text="⚠️ Non è stato possibile salvare la preferenza. Riprova più tardi.",
+                            show_alert=True
+                        )
                     await render_manage_selected_request_panel(
                         update=update,
                         context=context,

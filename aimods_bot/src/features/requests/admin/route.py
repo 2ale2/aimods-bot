@@ -396,33 +396,38 @@ async def admin_manage_request_route(
 
         case [AdminRequestManagementRoute.CONTACT_USER, *rest]:
             if await ensure_active():
+                contact_root = root.add(AdminRequestManagementRoute.CONTACT_USER)
                 match PathBuilder(*rest).segments:
                     case []:
                         await render_contact_user_panel(
                             update=update,
                             context=context,
-                            base_path=root.add(AdminRequestManagementRoute.CONTACT_USER),
+                            base_path=contact_root,
                             request=request
                         )
                         return PCS.ADMIN_CONVERSATION
                     case [AdminRequestManagementContactUserRoute.NOTIFY_USER, *rest]:
-                        root.add(AdminRequestManagementRoute.CONTACT_USER)
+                        notify_root = contact_root.add(AdminRequestManagementContactUserRoute.NOTIFY_USER)
 
                         match PathBuilder(*rest).segments:
                             case []:
                                 await render_dm_user_panel(
                                     update=update,
                                     context=context,
-                                    base_path=root.add(AdminRequestManagementContactUserRoute.NOTIFY_USER),
+                                    base_path=notify_root,
                                     request=request
                                 )
                             case [AdminRequestManagementContactUserRoute.CONFIRM_NOTIFY_USER]:
                                 await handle_admin_contact_request_sending(
                                     update=update,
                                     context=context,
-                                    base_path=root.add(AdminRequestManagementContactUserRoute.NOTIFY_USER),
+                                    base_path=notify_root,
                                     request=request
                                 )
+                            case _:
+                                log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
+                    case _:
+                        log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
         case _:
             log.warning(f"Unhandled path in manage_request: {str(relative_path)}")
 

@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.error import TelegramError, BadRequest, Forbidden
+from telegram.error import TelegramError, Forbidden
 
 from aimods_bot.src.core.customcontext import CustomContext
 from aimods_bot.src.core.constants import ChannelMembership
@@ -84,37 +84,20 @@ async def handle_admin_contact_request_sending(
         )
         return
 
-    identifier = None
-    try:
-        chat_full_info = await context.bot.get_chat(chat_id=request.user_id)
-        if chat_full_info and chat_full_info.username:
-            identifier = chat_full_info.username
-    except TelegramError:
-        pass
-    except BadRequest as e:
-        log.warning(f"Error in API request 'get_chat': {e}")
-
-    if not identifier:
-        identifier = request.user_id
+    if request.admin_dm_request_sent:
+        await update.callback_query.answer(
+            text="ℹ️ La richiesta di contatto è già stata inviata all'utente.",
+            show_alert=True
+        )
+        return
 
     text, reply_markup = get_admin_contact_request_text_and_keyboard(update=update, request=request)
     try:
         await context.bot.send_message(
-            chat_id=identifier,
+            chat_id=request.user_id,
             text=text,
             reply_markup=reply_markup,
             parse_mode=ParseMode.HTML
-        )
-
-        request.admin_dm_request_sent = True
-
-        await create_and_render_panel(
-            update=update,
-            context=context,
-            text="✅ <b>Notifica Inviata</b>\n\n"
-                 "<blockquote>ℹ️ L'utente ha la facoltà di ignorare o disattivare le richieste "
-                 "di contatto.</blockquote>",
-            keyboard=[[ButtonItem(text="🔙 Torna alla richiesta.", callback_key=base_path.back(2))]]
         )
     except Forbidden:
         text = (
@@ -127,8 +110,9 @@ async def handle_admin_contact_request_sending(
             text=text,
             keyboard=unable_to_notify_keyboard
         )
-    except Exception as e:
-        log.error(f"Unable to send message to user {identifier}: {e}")
+        return
+    except TelegramError as e:
+        log.error(f"Unable to send message to user {request.user_id}: {e}")
         text = (
                 get_dm_user_text(user_id=request.user_id) +
                 unable_to_notify_text.format("errore dell'API.")
@@ -139,3 +123,15 @@ async def handle_admin_contact_request_sending(
             text=text,
             keyboard=unable_to_notify_keyboard
         )
+        return
+
+    await context.set_request_admin_dm_request_sent(ix=request.id)
+
+    await create_and_render_panel(
+        update=update,
+        context=context,
+        text="✅ <b>Notifica Inviata</b>\n\n"
+             "<blockquote>ℹ️ L'utente ha la facoltà di ignorare o disattivare le richieste "
+             "di contatto.</blockquote>",
+        keyboard=[[ButtonItem(text="🔙 Torna alla richiesta.", callback_key=base_path.back(2))]]
+    )
